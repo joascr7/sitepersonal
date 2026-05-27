@@ -109,7 +109,7 @@ export default function NovaFicha() {
       <div className="max-w-4xl mx-auto">
         <h1 className="text-3xl font-black text-gray-900 mb-10 tracking-tighter">Nova Ficha</h1>
 
-        {/* Notificação */}
+        {/* Notificaçãoo */}
         {toast && <div className="fixed top-5 right-5 z-[100] bg-black text-white px-6 py-3 rounded-full font-bold shadow-2xl">{toast}</div>}
 
         {/* Botão de Biblioteca */}
