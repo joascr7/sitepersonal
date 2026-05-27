@@ -1,12 +1,10 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+// Usamos valores padrão vazios apenas para permitir que o build do Next.js passe
+// em páginas que não dependem do Supabase no lado do servidor (como a not-found)
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
-// ADICIONE ESTAS LINHAS DE DEBUG:
-console.log("--- DEBUG DO SUPABASE ---");
-console.log("URL carregada:", supabaseUrl);
-console.log("Chave carregada (início):", supabaseAnonKey?.substring(0, 10) + "...");
-console.log("-------------------------");
-
+// Só lançamos erro se estivermos em tempo de execução (browser/server side)
+// e não em tempo de build estático
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
