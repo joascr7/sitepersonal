@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useRouter, useParams } from 'next/navigation';
 
@@ -12,6 +12,7 @@ interface Serie {
 interface Exercicio {
   nome: string;
   video: string;
+  metodo: string;
   tipoSerie: string;
   series: Serie[];
 }
@@ -20,24 +21,75 @@ export default function NovaFicha() {
   const params = useParams();
   const id = params?.id as string;
   const router = useRouter();
-  
+
   const [nome, setNome] = useState('');
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [modelos, setModelos] = useState<any[]>([]);
   
   const [exercicios, setExercicios] = useState<Exercicio[]>([{ 
     nome: '', 
     video: '', 
+    metodo: 'Normal', 
     tipoSerie: 'Repetições e carga',
     series: [{ reps: '', carga: '', intervalo: '0' }] 
   }]);
 
+  useEffect(() => {
+    const fetchModelos = async () => {
+      const { data } = await supabase.from('treinos_padrao').select('*');
+      if (data) setModelos(data);
+    };
+    fetchModelos();
+  }, []);
+
+  const aplicarModelo = (modelo: any) => {
+    try {
+      const novosExercicios = typeof modelo.exercicios_json === 'string' 
+        ? JSON.parse(modelo.exercicios_json) 
+        : modelo.exercicios_json;
+
+      setExercicios(prev => [...prev, ...novosExercicios]);
+    } catch (e) {
+      console.error("Erro ao processar modelo:", e);
+      alert("Erro ao aplicar este modelo de treino.");
+    }
+  };
+
+  const uploadVideo = async (exIndex: number, file: File) => {
+    try {
+      setUploading(true);
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random()}.${fileExt}`;
+      const filePath = `exercicios/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('videos')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage.from('videos').getPublicUrl(filePath);
+      
+      const n = [...exercicios];
+      n[exIndex].video = data.publicUrl;
+      setExercicios(n);
+    } catch (err: any) {
+      alert('Erro ao enviar vídeo: ' + err.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const adicionarExercicio = () => {
     setExercicios([...exercicios, { 
-      nome: '', 
-      video: '', 
-      tipoSerie: 'Repetições e carga', 
+      nome: '', video: '', metodo: 'Normal', tipoSerie: 'Repetições e carga', 
       series: [{ reps: '', carga: '', intervalo: '0' }] 
     }]);
+  };
+
+  const removerExercicio = (index: number) => {
+    setExercicios(exercicios.filter((_, i) => i !== index));
   };
 
   const adicionarSerie = (exIndex: number) => {
@@ -73,7 +125,6 @@ export default function NovaFicha() {
         descricao: JSON.stringify(exercicios),
         personal_id: user?.id 
       }]);
-      
       router.push(`/dashboard/aluno/${id}`);
     } catch (err: any) {
       alert('Erro ao salvar: ' + err.message);
@@ -85,6 +136,18 @@ export default function NovaFicha() {
     <main className="min-h-screen bg-gray-50 p-6 md:p-12">
       <div className="max-w-4xl mx-auto">
         <h1 className="text-3xl font-black text-gray-900 mb-10 tracking-tighter">Nova Ficha</h1>
+
+        {/* Layout em Grid Responsivo para Treinos Padrão */}
+        <div className="mb-8 p-6 bg-white rounded-3xl border border-gray-100 shadow-sm">
+          <h3 className="font-bold text-gray-900 mb-4">Escolha um Treino Padrão</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {modelos.map((m) => (
+              <button key={m.id} onClick={() => aplicarModelo(m)} className="px-4 py-3 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl text-xs font-bold text-gray-700 transition-all text-center">
+                {m.nome_modelo}
+              </button>
+            ))}
+          </div>
+        </div>
         
         <input 
           className="w-full p-4 mb-8 border border-gray-200 rounded-2xl outline-none focus:ring-2 focus:ring-gray-900 transition" 
@@ -94,7 +157,16 @@ export default function NovaFicha() {
         />
 
         {exercicios.map((ex, exIndex) => (
-          <div key={exIndex} className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 mb-8">
+          <div key={exIndex} className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 mb-8 relative">
+            
+            {/* Botão de Remover Exercício */}
+            <button 
+              onClick={() => removerExercicio(exIndex)}
+              className="absolute top-6 right-6 text-red-400 hover:text-red-600 font-bold text-sm"
+            >
+              Remover
+            </button>
+
             <input 
               className="font-black text-xl w-full mb-4 outline-none border-b border-gray-100 pb-2" 
               placeholder="Nome do Exercício" 
@@ -103,12 +175,25 @@ export default function NovaFicha() {
               onBlur={() => buscarVideo(ex.nome, exIndex)} 
             />
 
-            <input 
-              className="w-full p-4 border border-gray-200 rounded-xl mb-6 text-sm outline-none focus:ring-2 focus:ring-gray-900" 
-              placeholder="Link do vídeo (YouTube)" 
-              value={ex.video} 
-              onChange={(e) => { const n = [...exercicios]; n[exIndex].video = e.target.value; setExercicios(n); }} 
-            />
+            <div className="mb-4">
+              <input 
+                className="w-full p-4 border border-gray-200 rounded-xl text-sm mb-2" 
+                placeholder="Link do vídeo ou carregue abaixo..." 
+                value={ex.video} 
+                onChange={(e) => { const n = [...exercicios]; n[exIndex].video = e.target.value; setExercicios(n); }} 
+              />
+              <button type="button" onClick={() => document.getElementById(`file-${exIndex}`)?.click()} className="w-full py-2 bg-gray-200 rounded-xl text-xs font-bold text-gray-700 hover:bg-gray-300">
+                {uploading ? 'Enviando...' : 'Upload de Vídeo do Celular'}
+              </button>
+              <input type="file" id={`file-${exIndex}`} className="hidden" accept="video/*" onChange={(e) => e.target.files && uploadVideo(exIndex, e.target.files[0])} />
+            </div>
+
+            <div className="mb-6">
+              <input list="metodos-list" className="w-full p-4 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-gray-900" placeholder="Método (ex: Drop-set ou digite...)" value={ex.metodo} onChange={(e) => { const n = [...exercicios]; n[exIndex].metodo = e.target.value; setExercicios(n); }} />
+              <datalist id="metodos-list">
+                <option value="Normal" /><option value="Drop-set" /><option value="Rest-Pause" /><option value="Bi-set" /><option value="Tri-set" /><option value="Pirâmide" /><option value="Até a Exaustão" />
+              </datalist>
+            </div>
             
             <div className="space-y-3">
               {ex.series.map((s, sIndex) => (
@@ -120,29 +205,12 @@ export default function NovaFicha() {
               ))}
             </div>
             
-            <button 
-              onClick={() => adicionarSerie(exIndex)} 
-              className="mt-6 text-sm font-bold text-blue-600 hover:text-blue-700 transition"
-            >
-              + Adicionar série
-            </button>
+            <button onClick={() => adicionarSerie(exIndex)} className="mt-6 text-sm font-bold text-blue-600 hover:text-blue-700 transition"> + Adicionar série </button>
           </div>
         ))}
         
-        <button 
-          onClick={adicionarExercicio} 
-          className="w-full bg-gray-100 hover:bg-gray-200 text-gray-900 p-4 rounded-2xl mb-4 font-bold transition-all active:scale-[0.98]"
-        >
-          + Adicionar Exercício
-        </button>
-        
-        <button 
-          onClick={salvarFicha} 
-          disabled={loading} 
-          className="w-full bg-gray-900 hover:bg-black text-white p-4 rounded-2xl font-bold transition-all active:scale-[0.98] shadow-sm disabled:bg-gray-400"
-        >
-          {loading ? 'Salvando...' : 'Finalizar e Salvar Ficha'}
-        </button>
+        <button onClick={adicionarExercicio} className="w-full bg-gray-100 hover:bg-gray-200 text-gray-900 p-4 rounded-2xl mb-4 font-bold transition-all active:scale-[0.98]"> + Adicionar Exercício </button>
+        <button onClick={salvarFicha} disabled={loading} className="w-full bg-gray-900 hover:bg-black text-white p-4 rounded-2xl font-bold transition-all active:scale-[0.98] shadow-sm disabled:bg-gray-400"> {loading ? 'Salvando...' : 'Finalizar e Salvar Ficha'} </button>
       </div>
     </main>
   );
