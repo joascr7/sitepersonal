@@ -31,9 +31,9 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
         setFicha(fichaData);
 
         const { data: { user } } = await supabase.auth.getUser();
+        // Verifica se o personal_id da ficha pertence ao usuário logado
         const ehDono = !!(user && fichaData && String(fichaData.personal_id) === String(user.id));
-        const estaNoDashboard = window.location.pathname.includes('/dashboard');
-        setIsPersonal(ehDono && estaNoDashboard);
+        setIsPersonal(ehDono);
       } catch (err: any) {
         setErrorMsg(err.message);
       } finally {
@@ -43,13 +43,28 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
     fetchData();
   }, [treinoId]);
 
+  // Função para processar a duplicação no banco
+  const duplicarTreino = async (alunoSelecionadoId: string) => {
+    try {
+      const { error } = await supabase.from('fichas').insert({
+        nome_treino: `${ficha.nome_treino} (Cópia)`,
+        descricao: ficha.descricao,
+        aluno_id: alunoSelecionadoId,
+        personal_id: ficha.personal_id
+      });
+      if (error) throw error;
+      alert("Treino duplicado com sucesso!");
+      setIsModalOpen(false);
+    } catch (err: any) {
+      alert("Erro ao duplicar: " + err.message);
+    }
+  };
+
   const renderizarExercicios = () => {
     if (!ficha?.descricao) return <p className="text-gray-500 text-center p-10">Treino vazio.</p>;
 
     try {
       const exercicios = typeof ficha.descricao === 'string' ? JSON.parse(ficha.descricao) : ficha.descricao;
-
-      // Garantir que exercicios seja um array
       if (!Array.isArray(exercicios)) return <p className="text-red-500">Formato inválido.</p>;
 
       return exercicios.map((ex: any, index: number) => (
@@ -60,18 +75,13 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
             <div className="aspect-video w-full mb-6 rounded-2xl overflow-hidden bg-black">
               <iframe 
                 className="w-full h-full"
-                src={ex.video
-                  .replace("youtu.be/", "youtube.com/embed/")
-                  .replace("watch?v=", "embed/")
-                  .replace("shorts/", "embed/")
-                }
+                src={ex.video.replace("youtu.be/", "youtube.com/embed/").replace("watch?v=", "embed/").replace("shorts/", "embed/")}
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
                 allowFullScreen
               />
             </div>
           )}
 
-          {/* Tabela de Séries com fallback para caso 'series' não exista */}
           <table className="w-full text-sm text-center">
             <thead className="text-[10px] uppercase font-black text-gray-400 tracking-widest border-b border-gray-100">
               <tr>
@@ -102,14 +112,29 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
 
   return (
     <main className="max-w-4xl mx-auto p-6 md:p-10 bg-gray-50 min-h-screen">
-      <ModalSelecaoAlunos isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSelect={() => {}} />
+      {/* Modal conectado à função de duplicação */}
+      <ModalSelecaoAlunos 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        onSelect={duplicarTreino} 
+      />
 
       <div className="flex justify-between items-center mb-10">
         <button onClick={() => router.back()} className="text-sm font-bold text-gray-400 hover:text-gray-900 transition">← Voltar</button>
         {isPersonal && (
           <div className="flex gap-3">
-            <button onClick={() => setIsModalOpen(true)} className="bg-white border border-gray-200 px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-gray-50 transition-all active:scale-[0.98]">Duplicar</button>
-            <a href={`/dashboard/aluno/${id}/editar-ficha/${treinoId}`} className="bg-gray-900 text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-black transition-all active:scale-[0.98]">Editar</a>
+            <button 
+              onClick={() => setIsModalOpen(true)} 
+              className="bg-white border border-gray-200 px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-gray-50 transition-all active:scale-[0.98]"
+            >
+              Duplicar
+            </button>
+            <a 
+              href={`/dashboard/aluno/${id}/editar-ficha/${treinoId}`} 
+              className="bg-gray-900 text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-black transition-all active:scale-[0.98]"
+            >
+              Editar
+            </a>
           </div>
         )}
       </div>

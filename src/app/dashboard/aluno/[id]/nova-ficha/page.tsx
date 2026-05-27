@@ -1,7 +1,7 @@
 'use client';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter, useParams, useSearchParams } from 'next/navigation';
 
 interface Serie {
   reps: string;
@@ -17,9 +17,12 @@ interface Exercicio {
   series: Serie[];
 }
 
-export default function NovaFicha() {
+function NovaFichaContent() {
   const params = useParams();
+  const searchParams = useSearchParams();
+  
   const id = params?.id as string;
+  const abaOrigem = searchParams.get('aba') || 'treinos';
   const router = useRouter();
 
   const [nome, setNome] = useState('');
@@ -86,7 +89,12 @@ export default function NovaFicha() {
   const adicionarExercicio = () => setExercicios([...exercicios, { nome: '', video: '', metodo: 'Normal', tipoSerie: 'Repetições e carga', series: [{ reps: '', carga: '', intervalo: '0' }] }]);
   const removerExercicio = (index: number) => setExercicios(exercicios.filter((_, i) => i !== index));
   const adicionarSerie = (exIndex: number) => { const n = [...exercicios]; n[exIndex].series.push({ reps: '', carga: '', intervalo: '0' }); setExercicios(n); };
-  const atualizarSerie = (exIndex: number, sIndex: number, campo: keyof Serie, valor: string) => { const n = [...exercicios]; n[exIndex].series[sIndex][campo] = valor; setExercicios(n); };
+  
+  const atualizarSerie = (exIndex: number, sIndex: number, campo: keyof Serie, valor: string) => { 
+    const n = [...exercicios]; 
+    n[exIndex].series[sIndex][campo] = valor; 
+    setExercicios(n); 
+  };
   
   const buscarVideo = async (nomeExercicio: string, index: number) => {
     if (!nomeExercicio.trim()) return;
@@ -99,31 +107,50 @@ export default function NovaFicha() {
     setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      await supabase.from('fichas').insert([{ aluno_id: id, nome_treino: nome, descricao: JSON.stringify(exercicios), personal_id: user?.id }]);
-      router.push(`/dashboard/aluno/${id}`);
-    } catch (err: any) { alert('Erro ao salvar: ' + err.message); setLoading(false); }
+      const { error } = await supabase.from('fichas').insert([{ 
+        aluno_id: id, 
+        nome_treino: nome, 
+        descricao: JSON.stringify(exercicios), 
+        personal_id: user?.id 
+      }]);
+      
+      if (error) throw error;
+
+      router.refresh(); // Atualiza os dados
+      router.replace(`/dashboard/aluno/${id}?aba=${abaOrigem}`);
+    } catch (err: any) { 
+      alert('Erro ao salvar: ' + err.message); 
+      setLoading(false); 
+    }
   };
 
   return (
     <main className="min-h-screen bg-gray-50 p-6 md:p-12">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-black text-gray-900 mb-10 tracking-tighter">Nova Ficha</h1>
+        <div className="flex items-center gap-4 mb-10">
+          <button 
+            onClick={() => { router.refresh(); router.replace(`/dashboard/aluno/${id}?aba=${abaOrigem}`); }} 
+            className="p-2 bg-white border border-gray-200 rounded-full hover:bg-gray-100 transition shadow-sm"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+          <h1 className="text-3xl font-black text-gray-900 tracking-tighter">Nova Ficha</h1>
+        </div>
 
-        {/* Notificaçãoo */}
         {toast && <div className="fixed top-5 right-5 z-[100] bg-black text-white px-6 py-3 rounded-full font-bold shadow-2xl">{toast}</div>}
 
-        {/* Botão de Biblioteca */}
         <button onClick={() => setIsModalOpen(true)} className="w-full mb-8 py-5 bg-gray-900 text-white rounded-3xl font-black hover:bg-black transition-all shadow-lg active:scale-[0.98]">
           + Adicionar Treino da Biblioteca
         </button>
 
-        {/* Modal */}
         {isModalOpen && (
           <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
             <div className="bg-white w-full max-w-2xl max-h-[80vh] rounded-3xl p-8 overflow-y-auto shadow-2xl">
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-black">Biblioteca de Treinos</h2>
-                <button onClick={() => setIsModalOpen(false)} className="font-bold text-gray-400">FECHAR</button>
+                <h2 className="text-2xl font-black text-gray-900">Biblioteca de Treinos</h2>
+                <button onClick={() => setIsModalOpen(false)} className="font-bold text-gray-500 hover:text-gray-900">FECHAR</button>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 {modelos.map((m) => (
@@ -151,7 +178,7 @@ export default function NovaFicha() {
               <input list="metodos-list" className="w-full p-4 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-gray-900" placeholder="Método..." value={ex.metodo} onChange={(e) => { const n = [...exercicios]; n[exIndex].metodo = e.target.value; setExercicios(n); }} />
               <datalist id="metodos-list"><option value="Normal" /><option value="Drop-set" /><option value="Rest-Pause" /><option value="Bi-set" /><option value="Tri-set" /><option value="Pirâmide" /><option value="Até a Exaustão" /></datalist>
             </div>
-            <div className="space-y-3">{ex.series.map((s, sIndex) => (<div key={sIndex} className="grid grid-cols-3 gap-3"><input className="p-3 border border-gray-200 rounded-xl" placeholder="Reps" value={s.reps} onChange={(e) => atualizarSerie(exIndex, sIndex, 'reps', e.target.value)} /><input className="p-3 border border-gray-200 rounded-xl" placeholder="Carga" value={s.carga} onChange={(e) => atualizarSerie(exIndex, sIndex, 'carga', e.target.value)} /><input className="p-3 border border-gray-200 rounded-xl" placeholder="Int" value={s.intervalo} onChange={(e) => atualizarSerie(exIndex, sIndex, 'intervalo', e.target.value)} /></div>))}</div>
+            <div className="space-y-3">{ex.series.map((s, sIndex) => (<div key={sIndex} className="grid grid-cols-3 gap-3"><input type="number" className="p-3 border border-gray-200 rounded-xl" placeholder="Reps" value={s.reps} onChange={(e) => atualizarSerie(exIndex, sIndex, 'reps', e.target.value)} /><input type="number" className="p-3 border border-gray-200 rounded-xl" placeholder="Carga" value={s.carga} onChange={(e) => atualizarSerie(exIndex, sIndex, 'carga', e.target.value)} /><input type="number" className="p-3 border border-gray-200 rounded-xl" placeholder="Int" value={s.intervalo} onChange={(e) => atualizarSerie(exIndex, sIndex, 'intervalo', e.target.value)} /></div>))}</div>
             <button onClick={() => adicionarSerie(exIndex)} className="mt-6 text-sm font-bold text-blue-600 hover:text-blue-700 transition"> + Adicionar série </button>
           </div>
         ))}
@@ -160,5 +187,13 @@ export default function NovaFicha() {
         <button onClick={salvarFicha} disabled={loading} className="w-full bg-gray-900 hover:bg-black text-white p-4 rounded-2xl font-bold transition-all active:scale-[0.98] shadow-sm disabled:bg-gray-400"> {loading ? 'Salvando...' : 'Finalizar e Salvar Ficha'} </button>
       </div>
     </main>
+  );
+}
+
+export default function NovaFicha() {
+  return (
+    <Suspense fallback={<div className="p-10 text-center">Carregando...</div>}>
+      <NovaFichaContent />
+    </Suspense>
   );
 }

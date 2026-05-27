@@ -8,12 +8,32 @@ export default function CadastroProfessor() {
   const [password, setPassword] = useState('');
   const [nome, setNome] = useState('');
   const [cref, setCref] = useState('');
+  const [telefone, setTelefone] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
+  // Máscara fluida de telefone: (11) 99999-9999
+  const formatarTelefone = (value: string) => {
+    const digits = value.replace(/\D/g, '');
+    const limited = digits.slice(0, 11);
+    
+    if (limited.length <= 2) return limited ? `(${limited}` : '';
+    if (limited.length <= 7) return `(${limited.slice(0, 2)}) ${limited.slice(2)}`;
+    return `(${limited.slice(0, 2)}) ${limited.slice(2, 7)}-${limited.slice(7)}`;
+  };
+
   const handleSignUp = async () => {
-    if (!nome.trim() || !email.trim() || !password || !cref.trim()) {
-      alert('Por favor, preencha todos os campos.');
+    // Regex para validar: 000000-G/UF (ex: 123456-G/SP)
+    const regexCref = /^\d{6}-[A-Z]\/[A-Z]{2}$/;
+    const telefoneLimpo = telefone.replace(/\D/g, '');
+
+    if (!nome.trim() || !email.trim() || !password || !cref.trim() || telefoneLimpo.length < 10) {
+      alert('Por favor, preencha todos os campos corretamente.');
+      return;
+    }
+
+    if (!regexCref.test(cref.trim().toUpperCase())) {
+      alert('CREF inválido. Use o formato: 123456-G/SP');
       return;
     }
 
@@ -29,10 +49,7 @@ export default function CadastroProfessor() {
         email: email.trim(),
         password,
         options: {
-          data: { 
-            nome: nome.trim(),
-            role: 'personal'
-          }
+          data: { nome: nome.trim(), role: 'personal' }
         }
       });
 
@@ -44,8 +61,9 @@ export default function CadastroProfessor() {
           .insert({
             id: data.user.id,
             nome: nome.trim(),
-            cref: cref.trim(),
-            email: email.trim()
+            cref: cref.trim().toUpperCase(),
+            email: email.trim(),
+            telefone: `+55${telefoneLimpo}` // Salva no padrão E.164 internacional
           });
 
         if (dbError) throw dbError;
@@ -70,29 +88,37 @@ export default function CadastroProfessor() {
         <h1 className="text-xl font-black text-gray-900 mb-8">Criar conta de Personal</h1>
         
         <input 
-          className="w-full p-4 mb-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-900 outline-none transition" 
+          className="w-full p-4 mb-4 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-black transition" 
           placeholder="Nome Completo" 
           value={nome} 
           onChange={(e) => setNome(e.target.value)} 
         />
         
         <input 
-          className="w-full p-4 mb-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-900 outline-none transition" 
-          placeholder="CREF (000000-G/UF)" 
+          className="w-full p-4 mb-4 border border-gray-200 rounded-xl outline-none uppercase focus:ring-2 focus:ring-black transition" 
+          placeholder="CREF (123456-G/SP)" 
           value={cref} 
           onChange={(e) => setCref(e.target.value)} 
+        />
+
+        <input 
+          type="tel"
+          className="w-full p-4 mb-4 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-black transition" 
+          placeholder="(00) 00000-0000" 
+          value={telefone} 
+          onChange={(e) => setTelefone(formatarTelefone(e.target.value))} 
         />
         
         <input 
           type="email" 
-          className="w-full p-4 mb-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-900 outline-none transition" 
+          className="w-full p-4 mb-4 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-black transition" 
           placeholder="E-mail" 
           value={email} 
           onChange={(e) => setEmail(e.target.value)} 
         />
         
         <input 
-          className="w-full p-4 mb-8 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-900 outline-none transition" 
+          className="w-full p-4 mb-8 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-black transition" 
           type="password" 
           placeholder="Senha" 
           value={password} 
@@ -102,7 +128,7 @@ export default function CadastroProfessor() {
         <button 
           onClick={handleSignUp}
           disabled={loading}
-          className="w-full bg-gray-900 hover:bg-black text-white py-4 rounded-xl font-bold transition-all active:scale-[0.98] shadow-sm disabled:bg-gray-400"
+          className="w-full bg-black text-white py-4 rounded-xl font-bold transition-all hover:bg-gray-800 active:scale-[0.98] disabled:bg-gray-400"
         >
           {loading ? "Processando..." : "Finalizar Cadastro"}
         </button>

@@ -10,8 +10,7 @@ export default function LogoutButton() {
     router.push('/');
   };
 
-  return (
-    <button 
+  return (   <button 
       onClick={handleLogout}
       className="text-gray-500 hover:text-gray-900 font-bold text-sm transition-colors duration-200 active:scale-[0.98]"
     >
