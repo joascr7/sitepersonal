@@ -60,7 +60,7 @@ export default function LoginProfessor() {
           Voltar
         </button>
         
-        <h1 className="text-xl font-black text-gray-900 mb-1">EVOFIT</h1>
+        <h1 className="text-xl font-black text-gray-900 mb-1">AURAFIT</h1>
         <h2 className="text-gray-900 font-bold mb-8">Área do Professor</h2>
         
         <input 

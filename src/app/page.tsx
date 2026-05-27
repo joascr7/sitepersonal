@@ -9,7 +9,7 @@ export default function page() {
       <div className="w-full max-w-sm p-10 bg-white rounded-3xl border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)] text-center">
         <div className="mb-10">
           <h1 className="text-3xl font-black text-gray-900 tracking-tighter mb-2">
-            EVOFIT
+            AURAFIT
           </h1>
           <p className="text-gray-500 font-medium text-sm">Selecione seu perfil de acesso</p>
         </div>
