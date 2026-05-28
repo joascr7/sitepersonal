@@ -2,13 +2,12 @@
 import { usePathname } from 'next/navigation';
 import LogoutButton from './LogoutButton';
 import { FaChartLine, FaWallet } from 'react-icons/fa';
-import { useLogo } from '@/components/LogoProvider'; // Importa o hook do contexto global
+import { useLogo } from '@/components/LogoProvider';
 
 export default function Navbar() {
   const pathname = usePathname();
-  const { logo, nome } = useLogo(); // Consome a logo e nome globais
+  const { logo, nome } = useLogo();
 
-  // Rotas onde a navbar não deve aparecer
   const rotasExcluidas = ['/', '/login-professor', '/login-aluno', '/login-professor-cadastro', '/nova-senha'];
   
   if (rotasExcluidas.includes(pathname) || pathname.startsWith('/aluno')) return null;
@@ -22,12 +21,12 @@ export default function Navbar() {
     <>
       {/* --- DESKTOP: Barra Superior --- */}
       <nav className="hidden md:flex sticky top-0 z-50 bg-white/70 backdrop-blur-xl border-b border-gray-100 px-10 py-5 justify-between items-center transition-all">
-        {/* Logo Dinâmica */}
-        <div className="w-32 h-8 flex items-center">
+        {/* Aumentei de 32/8 para 40/10 para uma logo mais presente */}
+        <div className="w-40 h-10 flex items-center">
           {logo ? (
-            <img src={logo} className="h-full object-contain" alt={nome} />
+            <img src={logo} className="h-full w-full object-contain" alt={nome} />
           ) : (
-            <span className="font-black text-gray-950 tracking-tighter text-lg">{nome}</span>
+            <span className="font-black text-gray-950 tracking-tighter text-xl">{nome}</span>
           )}
         </div>
         
@@ -47,27 +46,42 @@ export default function Navbar() {
         </div>
       </nav>
 
-      {/* --- MOBILE: Barra Inferior Flutuante --- */}
-      <nav className="md:hidden fixed bottom-6 left-6 right-6 z-50 bg-white/90 backdrop-blur-2xl border border-gray-100 rounded-3xl py-4 px-8 flex justify-between items-center shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)]">
-        {navItems.map((item) => (
-          <a 
-            key={item.path}
-            href={item.path} 
-            className={`flex flex-col items-center gap-1.5 transition-all ${pathname === item.path ? 'text-gray-950' : 'text-gray-400'}`}
-          >
-            <span className="text-lg">{item.icon}</span>
-            <span className="text-[8px] font-black uppercase tracking-widest">{item.name}</span>
-          </a>
-        ))}
-        
-        <div className="flex flex-col items-center gap-1.5 text-gray-400">
-           <div className="text-lg"><LogoutButton /></div>
-           <span className="text-[8px] font-black uppercase tracking-widest">Sair</span>
+      {/* --- MOBILE: Barra Superior (Logo) + Inferior (Navegação) --- */}
+      <div className="md:hidden">
+        {/* Topo Mobile: Aumentei o h-6 para h-9 para deixar a logo maior */}
+        <div className="fixed top-0 w-full bg-white/80 backdrop-blur-md px-6 py-4 z-40 border-b border-gray-50">
+          <div className="w-32 h-9 flex items-center">
+            {logo ? (
+              <img src={logo} className="h-full w-full object-contain" alt={nome} />
+            ) : (
+              <span className="font-black text-gray-950 tracking-tighter text-lg">{nome}</span>
+            )}
+          </div>
         </div>
-      </nav>
-      
-      {/* Spacer mobile para o conteúdo não ser cortado */}
-      <div className="md:hidden h-24" />
+
+        {/* Barra Inferior Flutuante */}
+        <nav className="fixed bottom-6 left-6 right-6 z-50 bg-white/90 backdrop-blur-2xl border border-gray-100 rounded-3xl py-4 px-8 flex justify-between items-center shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)]">
+          {navItems.map((item) => (
+            <a 
+              key={item.path}
+              href={item.path} 
+              className={`flex flex-col items-center gap-1.5 transition-all ${pathname === item.path ? 'text-gray-950' : 'text-gray-400'}`}
+            >
+              <span className="text-lg">{item.icon}</span>
+              <span className="text-[8px] font-black uppercase tracking-widest">{item.name}</span>
+            </a>
+          ))}
+          
+          <div className="flex flex-col items-center gap-1.5 text-gray-400">
+             <div className="text-lg"><LogoutButton /></div>
+             <span className="text-[8px] font-black uppercase tracking-widest">Sair</span>
+          </div>
+        </nav>
+        
+        {/* Spacers para evitar corte de conteúdo */}
+        <div className="h-24" /> {/* Topo: aumentado para compensar a logo maior */}
+        <div className="h-54" /> {/* Base */}
+      </div>
     </>
   );
 }
