@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { FaDumbbell, FaClipboardList, FaChartLine, FaFileInvoice, FaFolderOpen, FaUserCircle, FaCommentMedical } from 'react-icons/fa';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { startOfWeek, endOfWeek, eachDayOfInterval, format, isSameDay, parseISO } from 'date-fns';
 
 export default function AreaDoAluno({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -14,6 +15,7 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
   const [loading, setLoading] = useState(true);
   const [avaliacoes, setAvaliacoes] = useState<any[]>([]);
   const [modalAberta, setModalAberta] = useState(false);
+  const [diasTreino, setDiasTreino] = useState<Date[]>([]);
 
   useEffect(() => {
     if (!id) return;
@@ -22,9 +24,8 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
 
   const fetchData = async () => {
     setLoading(true);
-    // Busca dados do aluno e dados do personal associado
+    // Dados Aluno/Personal
     const { data: alunoData } = await supabase.from('alunos').select('*').eq('id', id).maybeSingle();
-    
     if (alunoData) {
       setAluno(alunoData);
       if (alunoData.personal_id) {
@@ -32,18 +33,21 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
         if (pData) setPersonal(pData);
       }
     }
+
+    // Dados de Conclusão (Frequência)
+    const { data: conclusoes } = await supabase
+      .from('conclusoes_treino')
+      .select('created_at')
+      .eq('aluno_id', id)
+      .gte('created_at', startOfWeek(new Date()).toISOString());
+    
+    if (conclusoes) setDiasTreino(conclusoes.map(d => parseISO(d.created_at)));
+    
     setLoading(false);
   };
 
   const abrirAvaliacoes = async () => {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from('avaliacoes_fisicas') 
-      .select('*')
-      .eq('aluno_id', id)
-      .order('data_avaliacao', { ascending: false });
-
-    setLoading(false);
+    const { data, error } = await supabase.from('avaliacoes_fisicas').select('*').eq('aluno_id', id).order('data_avaliacao', { ascending: false });
     if (!error && data && data.length > 0) {
       setAvaliacoes(data);
       setModalAberta(true);
@@ -55,27 +59,44 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
   if (loading) return <main className="min-h-screen bg-gray-50 flex items-center justify-center text-gray-400">Carregando...</main>;
 
   return (
-    <main className="min-h-screen bg-gray-50 p-6 md:p-10">
-      <div className="flex flex-col items-center mb-12 mt-6">
+    <main className="min-h-screen bg-gray-50 p-6 md:p-10 max-w-4xl mx-auto">
+      {/* Header Perfil */}
+      <div className="flex flex-col items-center mb-10 mt-6">
         <div className="w-24 h-24 rounded-full bg-gray-200 mb-4 overflow-hidden border-2 border-white shadow-sm">
           {personal?.avatar_url ? <img src={personal.avatar_url} className="w-full h-full object-cover" /> : <FaUserCircle className="w-full h-full text-gray-400" />}
         </div>
-        <h1 className="font-black text-gray-900 text-lg tracking-tight">{personal?.nome || 'Personal Trainer'}</h1>
-        {/* Renderização segura do CREF */}
-        {personal && (
-          <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mt-1">
-            CREF: {personal.cref || 'N/A'}
-          </p>
-        )}
+        <h1 className="font-black text-gray-900 text-lg">{personal?.nome || 'Personal Trainer'}</h1>
+        <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mt-1">CREF: {personal?.cref || 'N/A'}</p>
       </div>
 
-      <h2 className="text-2xl font-black text-gray-900 mb-8 tracking-tighter">Olá, {aluno?.nome}.</h2>
+      <h2 className="text-2xl font-black text-gray-900 mb-6">Olá, {aluno?.nome}.</h2>
 
+      {/* Componente Frequência (Estilo App Elite) */}
+      <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 mb-8">
+        <h2 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Frequência de Treinos</h2>
+        <div className="flex justify-between items-center">
+          {eachDayOfInterval({ start: startOfWeek(new Date(), { weekStartsOn: 0 }), end: endOfWeek(new Date(), { weekStartsOn: 0 }) }).map((dia, index) => {
+            const treinou = diasTreino.some(d => isSameDay(d, dia));
+            const hoje = isSameDay(dia, new Date());
+            return (
+              <div key={index} className="flex flex-col items-center gap-2">
+                <div className={`w-9 h-9 rounded-full border-2 flex items-center justify-center font-black text-sm 
+                  ${treinou ? 'bg-black border-black text-white' : hoje ? 'border-amber-400 text-amber-500' : 'border-gray-200 text-gray-300'}`}>
+                  {treinou ? '✓' : hoje ? '!' : ''}
+                </div>
+                <span className="text-[9px] font-bold text-gray-400 uppercase">{format(dia, 'EEEEE', { locale: undefined })}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Menu Principal */}
       <div className="grid grid-cols-2 gap-4">
         <BotaoMenu icon={<FaDumbbell />} label="Treinos" onClick={() => router.push(`/aluno/${id}/treinos`)} />
         <BotaoMenu icon={<FaClipboardList />} label="Avaliações" onClick={abrirAvaliacoes} />
-        <BotaoMenu icon={<FaChartLine />} label="Meu Progresso" onClick={() => router.push(`/aluno/${id}/evolucao`)} />
-        <BotaoMenu icon={<FaCommentMedical />} label="Feedback Treino" onClick={() => router.push(`/aluno/${id}/feedback`)} />
+        <BotaoMenu icon={<FaChartLine />} label="Meu Progresso" onClick={() => router.push(`/aluno/${id}/progresso`)} />
+        <BotaoMenu icon={<FaCommentMedical />} label="Feedback" onClick={() => router.push(`/aluno/${id}/feedback`)} />
         <BotaoMenu icon={<FaFileInvoice />} label="Faturas" />
         <BotaoMenu icon={<FaFolderOpen />} label="Arquivos" />
       </div>

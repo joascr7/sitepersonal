@@ -60,19 +60,17 @@ export default function EditarFicha() {
     setLoading(false);
   };
 
-  const excluirFicha = async () => {
-    if (!confirm("Tem certeza que deseja excluir esta ficha permanentemente?")) return;
-
-    setLoading(true);
-    const { error } = await supabase.from('fichas').delete().eq('id', treinoId);
-
-    if (error) {
-      alert("Erro ao excluir: " + error.message);
-      setLoading(false);
-    } else {
-      router.push(`/dashboard/aluno/${id}`);
-    }
-  };
+ const excluirFicha = async () => {
+  if (!confirm("Tem certeza?")) return;
+  
+  setLoading(true);
+  // O Supabase apaga a ficha e o banco apaga o resto automaticamente!
+  const { error } = await supabase.from('fichas').delete().eq('id', treinoId);
+  
+  if (!error) router.push(`/dashboard/aluno/${id}`);
+  else alert("Erro: " + error.message);
+  setLoading(false);
+};
 
   if (loading) return <main className="min-h-screen p-10 text-center text-gray-500">Carregando editor...</main>;
 

@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
 import AgendaGeral from '@/components/AgendaGeral'; 
-/* import LogoutButton from '@/components/LogoutButton';*/
+import LogoutButton from '@/components/LogoutButton';
 
 export default function Dashboard() {
   const [user, setUser] = useState<any>(null);
@@ -15,6 +15,7 @@ export default function Dashboard() {
   const [alunoSelecionado, setAlunoSelecionado] = useState<any>(null);
   const [valorPago, setValorPago] = useState('');
   const router = useRouter();
+
 
   useEffect(() => {
     const checkUser = async () => {
@@ -110,10 +111,10 @@ export default function Dashboard() {
           </div>
         )}
 
-       {/* <div className="flex justify-between items-center mb-10">
+        <div className="flex justify-between items-center mb-10">
           <h1 className="text-3xl font-black text-gray-900 tracking-tight">Dashboard</h1>
           <LogoutButton />
-        </div>*/}
+        </div>
 
         {/* Cards de Resumo */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
@@ -147,6 +148,8 @@ export default function Dashboard() {
           </div>
         )}
 
+        
+
         {/* Tabela de Alunos */}
         <div className="bg-white shadow-sm border border-gray-100 rounded-3xl overflow-hidden">
           <div className="p-8 border-b border-gray-100 flex justify-between items-center">
@@ -165,16 +168,33 @@ export default function Dashboard() {
           </div>
           <table className="w-full text-left">
             <thead className="bg-gray-50 text-[10px] uppercase font-black text-gray-400 tracking-widest">
-              <tr><th className="p-6">Nome</th><th className="p-6">Objetivo</th></tr>
-            </thead>
+  <tr>
+    <th className="p-6">Nome</th>
+    <th className="p-6">Objetivo</th>
+    <th className="p-6 text-center">Ações</th> 
+  </tr>
+</thead>
             <tbody>
-              {alunosFiltrados.map((aluno) => (
-                <tr key={aluno.id} className="border-t border-gray-100 hover:bg-gray-50/50 transition">
-                  <td className="p-6 font-bold"><a href={`/dashboard/aluno/${aluno.id}`} className="text-blue-600 hover:underline">{aluno.nome}</a></td>
-                  <td className="p-6 text-sm text-gray-600">{aluno.objetivo}</td>
-                </tr>
-              ))}
-            </tbody>
+  {alunosFiltrados.map((aluno) => (
+    <tr key={aluno.id} className="border-t border-gray-100 hover:bg-gray-50/50 transition">
+      <td className="p-6 font-bold">
+        <a href={`/dashboard/aluno/${aluno.id}`} className="text-blue-600 hover:underline">
+          {aluno.nome}
+        </a>
+      </td>
+      <td className="p-6 text-sm text-gray-600">{aluno.objetivo}</td>
+      <td className="p-6 text-center">
+        {/* Botão de Progresso */}
+        <button 
+  onClick={() => router.push(`/dashboard/aluno/${aluno.id}/progresso`)}
+  className="bg-black text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-gray-800 transition-all active:scale-[0.98]"
+>
+  Progresso
+</button>
+      </td>
+    </tr>
+  ))}
+</tbody>
           </table>
         </div>
       </div>
