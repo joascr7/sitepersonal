@@ -8,9 +8,17 @@ export default function Page() {
     <main className="min-h-screen flex items-center justify-center bg-[#FAFAFA] px-6">
       <div className="w-full max-w-[340px] flex flex-col items-center p-8 bg-white rounded-3xl border border-gray-100 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_4px_6px_-2px_rgba(0,0,0,0.05)]">
         
-        {/* Branding */}
+        {/* Branding com efeito Premium */}
         <div className="mb-12 text-center">
-          <h1 className="text-3xl font-extrabold text-gray-950 tracking-tighter mb-2">
+          <h1 
+            className="text-4xl font-black tracking-tighter mb-2"
+            style={{
+              background: 'linear-gradient(135deg, #007bff 0%, #00c6ff 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              filter: 'drop-shadow(0px 2px 2px rgba(0,0,0,0.1))',
+            }}
+          >
             AURAFIT
           </h1>
           <p className="text-gray-400 font-medium text-xs tracking-widest uppercase">

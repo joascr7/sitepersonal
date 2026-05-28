@@ -13,29 +13,24 @@ export function LogoProvider({ children }: { children: React.ReactNode }) {
   const [data, setData] = useState<LogoData>({ logo: null, nome: 'AURAFIT' });
 
   useEffect(() => {
-    async function loadGlobalConfig() {
+   async function loadGlobalConfig() {
   try {
-    // Tenta buscar qualquer registro da tabela
     const { data, error } = await supabase
-      .from('configuracoes') // Certifique-se que o nome aqui é igual ao do painel
+      .from('configuracoes')
       .select('nome_empresa, logo_url')
       .limit(1);
 
-    if (error) {
-      console.error("ERRO DE CONEXÃO COM O BANCO:", error);
-      return;
-    }
+    if (error || !data || data.length === 0) return;
 
-    if (!data || data.length === 0) {
-      console.warn("A tabela está vazia. Adicione pelo menos uma linha nela!");
-      return;
-    }
-
-    console.log("DADOS RECEBIDOS:", data[0]);
-    setData({ logo: data[0].logo_url, nome: data[0].nome_empresa });
+    // AQUI ESTÁ A CORREÇÃO:
+    // Forçamos o logo a ser null, ignorando o que vem do banco
+    setData({ 
+      logo: null, // <--- Isso impede que qualquer imagem seja carregada
+      nome: data[0].nome_empresa 
+    });
     
   } catch (err) {
-    console.error("ERRO INESPERADO:", err);
+    console.error("ERRO:", err);
   }
 }
     

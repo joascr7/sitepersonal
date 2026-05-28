@@ -62,13 +62,23 @@ export default function LoginProfessor() {
         </button>
         
         <div className="mb-8">
-          <h1 className="text-2xl font-extrabold text-gray-950 tracking-tighter mb-1">AURAFIT</h1>
-          <p className="text-gray-400 font-medium text-sm">Área do Professor</p>
+          <h1 
+            className="text-3xl font-black tracking-tighter mb-1"
+            style={{
+              background: 'linear-gradient(135deg, #007bff 0%, #00c6ff 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              filter: 'drop-shadow(0px 2px 2px rgba(0,0,0,0.1))',
+            }}
+          >
+            AURAFIT
+          </h1>
+          <p className="text-gray-400 font-bold text-xs tracking-widest uppercase">Área do Professor</p>
         </div>
         
         <div className="space-y-4">
           <input 
-            className="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-gray-900/5 outline-none transition-all placeholder:text-gray-400 text-sm font-medium" 
+            className="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500/10 outline-none transition-all placeholder:text-gray-400 text-sm font-medium" 
             placeholder="E-mail" 
             value={email}
             onChange={(e) => setEmail(e.target.value)} 
@@ -76,7 +86,7 @@ export default function LoginProfessor() {
           
           <div className="relative w-full">
             <input 
-              className="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-gray-900/5 outline-none transition-all placeholder:text-gray-400 text-sm font-medium" 
+              className="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500/10 outline-none transition-all placeholder:text-gray-400 text-sm font-medium" 
               type={showPass ? "text" : "password"} 
               placeholder="Senha" 
               value={password}
@@ -93,7 +103,7 @@ export default function LoginProfessor() {
         </div>
         
         <div className="mt-4 mb-8 text-center">
-          <span onClick={handleResetPassword} className="text-xs font-bold text-gray-400 hover:text-gray-900 underline cursor-pointer transition">
+          <span onClick={handleResetPassword} className="text-xs font-bold text-gray-400 hover:text-blue-600 underline cursor-pointer transition">
             Esqueceu a senha?
           </span>
         </div>

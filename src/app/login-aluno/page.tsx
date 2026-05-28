@@ -57,7 +57,17 @@ export default function LoginAluno() {
         </button>
         
         <div className="mb-8">
-          <h1 className="text-2xl font-extrabold text-gray-950 tracking-tighter mb-1">AURAFIT</h1>
+          <h1 
+            className="text-3xl font-black tracking-tighter mb-1"
+            style={{
+              background: 'linear-gradient(135deg, #007bff 0%, #00c6ff 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              filter: 'drop-shadow(0px 2px 2px rgba(0,0,0,0.1))',
+            }}
+          >
+            AURAFIT
+          </h1>
           <p className="text-blue-600 font-bold text-xs tracking-widest uppercase">Área do Aluno</p>
         </div>
         
