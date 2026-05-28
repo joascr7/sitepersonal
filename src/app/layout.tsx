@@ -22,8 +22,13 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
+        {/* Navbar responsiva controlada pelo ConditionalNavbar */}
         <ConditionalNavbar />
-        <main className="flex-grow">
+        
+        {/* pb-24: Adiciona espaço no fundo apenas no mobile para não cortar o conteúdo 
+          md:pb-0: Remove esse espaço no desktop, onde a navbar não é fixa no rodapé 
+        */}
+        <main className="flex-grow pb-24 md:pb-0">
           {children}
         </main>
       </body>
