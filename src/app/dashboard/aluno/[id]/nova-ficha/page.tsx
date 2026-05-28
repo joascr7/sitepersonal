@@ -169,60 +169,85 @@ function NovaFichaContent() {
   };
 
   return (
-    <main className="min-h-screen bg-gray-50 p-6 md:p-12">
-      <div className="max-w-4xl mx-auto">
-        <div className="flex items-center gap-4 mb-10">
-          <button onClick={() => router.back()} className="p-2 bg-white border border-gray-200 rounded-full hover:bg-gray-100 transition shadow-sm">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
-          </button>
-          <h1 className="text-3xl font-black text-gray-900 tracking-tighter">Nova Ficha</h1>
+    <main className="min-h-screen bg-gray-50/50 p-4 md:p-12 transition-colors">
+      <div className="max-w-3xl mx-auto">
+        <div className="flex items-center justify-between mb-10">
+          <button onClick={() => router.back()} className="text-sm font-semibold text-gray-400 hover:text-gray-900 transition-colors">← Voltar</button>
+          <h1 className="text-xl font-bold tracking-tight text-gray-900">Nova Ficha</h1>
+          <div className="w-16" />
         </div>
 
-        {toast && <div className="fixed top-5 right-5 z-[100] bg-black text-white px-6 py-3 rounded-full font-bold shadow-2xl">{toast}</div>}
+        {toast && <div className="fixed top-5 right-5 z-[100] bg-gray-900 text-white px-6 py-3 rounded-full font-bold shadow-2xl animate-in fade-in">{toast}</div>}
 
-        <button onClick={() => setIsModalOpen(true)} className="w-full mb-8 py-5 bg-gray-900 text-white rounded-3xl font-black shadow-lg hover:bg-black transition-all active:scale-[0.98]">
+        <button onClick={() => setIsModalOpen(true)} className="w-full mb-8 py-4 bg-white border border-gray-200 text-gray-900 rounded-xl font-semibold shadow-sm hover:shadow-md transition-all active:scale-[0.99] text-sm">
           + Adicionar de "Meus Modelos" ou "Padrão"
         </button>
 
         {isModalOpen && (
-          <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-            <div className="bg-white w-full max-w-2xl max-h-[80vh] rounded-3xl p-8 overflow-y-auto shadow-2xl">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-black text-gray-900">Biblioteca de Treinos</h2>
-                <button onClick={() => setIsModalOpen(false)} className="font-bold text-gray-500 hover:text-gray-900">FECHAR</button>
-              </div>
-              
-              <h3 className="font-bold text-blue-600 uppercase text-xs mb-3">Meus Modelos</h3>
-              <div className="grid grid-cols-2 gap-3 mb-6">
-                {meusModelos.map((m) => (
-                  <button key={m.id} onClick={() => aplicarModelo(m, false)} className="p-4 bg-blue-50 border border-blue-100 rounded-xl text-sm font-bold text-blue-800 text-left hover:border-blue-300 transition">
-                    {m.nome_modelo}
-                  </button>
-                ))}
-              </div>
+  <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+    <div className="bg-white w-full max-w-lg rounded-3xl p-6 shadow-2xl flex flex-col max-h-[85vh]">
+      {/* Header Fixo */}
+      <div className="flex justify-between items-center mb-6 shrink-0">
+        <h2 className="text-xl font-black text-gray-900">Biblioteca de Treinos</h2>
+        <button 
+          onClick={() => setIsModalOpen(false)} 
+          className="text-xs font-bold text-gray-400 hover:text-gray-900 transition-colors uppercase tracking-widest"
+        >
+          Fechar
+        </button>
+      </div>
 
-              <h3 className="font-bold text-gray-400 uppercase text-xs mb-3">Treinos Padrão</h3>
-              <div className="grid grid-cols-2 gap-3">
-                {treinosPadrao.map((m) => (
-                  <button key={m.id} onClick={() => aplicarModelo(m, true)} className="p-4 bg-gray-50 border border-gray-100 rounded-xl text-sm font-bold text-gray-700 text-left hover:border-gray-900 transition">
-                    {m.nome_modelo || m.nome}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
+      {/* Conteúdo com Scroll Customizado */}
+      <div className="overflow-y-auto pr-2 space-y-8 custom-scrollbar">
         
-        <input className="w-full p-4 mb-8 border border-gray-200 rounded-2xl outline-none focus:ring-2 focus:ring-gray-900 transition" placeholder="Nome do Treino" value={nome} onChange={(e) => setNome(e.target.value)} />
+        {/* Agrupamento Meus Modelos */}
+        <div>
+          <h3 className="font-bold text-blue-600 uppercase text-[10px] tracking-widest mb-3">Meus Modelos</h3>
+          <div className="grid gap-2">
+            {meusModelos.map((m) => (
+              <button 
+                key={m.id} 
+                onClick={() => aplicarModelo(m, false)} 
+                className="w-full p-4 bg-blue-50/50 hover:bg-blue-50 border border-blue-100 rounded-xl text-sm font-bold text-blue-900 text-left transition-all"
+              >
+                {m.nome_modelo}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Agrupamento Treinos Padrão */}
+        <div>
+          <h3 className="font-bold text-gray-400 uppercase text-[10px] tracking-widest mb-3">Treinos Padrão</h3>
+          <div className="grid gap-2">
+            {treinosPadrao.map((m) => (
+              <button 
+                key={m.id} 
+                onClick={() => aplicarModelo(m, true)} 
+                className="w-full p-4 bg-gray-50 hover:bg-gray-100 border border-gray-100 rounded-xl text-sm font-bold text-gray-700 text-left transition-all"
+              >
+                {m.nome_modelo || m.nome}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
+        
+        <input className="w-full p-4 mb-8 bg-white border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-gray-200 transition-all placeholder:text-gray-400" placeholder="Nome do Treino" value={nome} onChange={(e) => setNome(e.target.value)} />
 
         {exercicios.map((ex, exIndex) => (
-          <div key={exIndex} className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 mb-8 relative">
-            <button onClick={() => removerExercicio(exIndex)} className="absolute top-6 right-6 text-red-400 font-bold text-sm">Remover</button>
-            <input className="font-black text-xl w-full mb-4 outline-none border-b border-gray-100 pb-2" placeholder="Nome do Exercício" value={ex.nome} onChange={(e) => { const n = [...exercicios]; n[exIndex].nome = e.target.value; setExercicios(n); }} onBlur={() => buscarVideo(ex.nome, exIndex)} />
+          <div key={exIndex} className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm mb-6 transition-all hover:shadow-md">
+            <div className="flex justify-between items-center mb-6">
+              <input className="font-semibold text-gray-900 w-full outline-none border-b border-transparent focus:border-gray-200 pb-1" placeholder="Nome do Exercício" value={ex.nome} onChange={(e) => { const n = [...exercicios]; n[exIndex].nome = e.target.value; setExercicios(n); }} onBlur={() => buscarVideo(ex.nome, exIndex)} />
+              <button onClick={() => removerExercicio(exIndex)} className="text-gray-400 hover:text-red-500 font-bold text-xs ml-4">Remover</button>
+            </div>
             
-            <div className="mb-4">
-              <input className="w-full p-4 border border-gray-200 rounded-xl text-sm mb-2" placeholder="Link do vídeo" value={ex.video} onChange={(e) => { const n = [...exercicios]; n[exIndex].video = e.target.value; setExercicios(n); }} />
-              <button type="button" onClick={() => document.getElementById(`file-${exIndex}`)?.click()} className="w-full py-2 bg-gray-200 rounded-xl text-xs font-bold text-gray-700 hover:bg-gray-300"> {uploading ? 'Enviando...' : 'Upload de Vídeo'} </button>
+            <div className="mb-6 space-y-2">
+              <input className="w-full p-3 bg-gray-50 border border-gray-100 rounded-xl text-sm outline-none focus:border-gray-300 transition-all" placeholder="Link do vídeo" value={ex.video} onChange={(e) => { const n = [...exercicios]; n[exIndex].video = e.target.value; setExercicios(n); }} />
+              <button type="button" onClick={() => document.getElementById(`file-${exIndex}`)?.click()} className="w-full py-2 bg-gray-900 text-white rounded-xl text-xs font-bold hover:bg-gray-800 transition-all"> {uploading ? 'Enviando...' : 'Upload de Vídeo (Máx 10MB)'} </button>
               <input type="file" id={`file-${exIndex}`} className="hidden" accept="video/*" onChange={(e) => e.target.files && uploadVideo(exIndex, e.target.files[0])} />
             
               {ex.video && (ex.video.includes('youtube') || ex.video.includes('youtu.be')) && (
@@ -232,35 +257,32 @@ function NovaFichaContent() {
               )}
             </div>
 
-            <div className="grid grid-cols-4 gap-2 text-[9px] font-black text-gray-400 uppercase px-1 mb-2">
-              <span className="text-center">Reps</span>
-              <span className="text-center">Carga Rec.</span>
-              <span className="text-center">Intervalo</span>
-              <span className="text-center">Planejada</span>
+            <div className="grid grid-cols-4 gap-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 px-1">
+              <span>Reps</span>
+              <span>Carga</span>
+              <span>Desc.</span>
+              <span>Planej.</span>
             </div>
 
             <div className="space-y-2">
               {ex.series.map((s, sIndex) => (
-                <div key={sIndex} className="flex gap-2 items-center">
-                  <div className="grid grid-cols-4 gap-2 flex-grow">
-                    <input type="text" className="p-3 bg-gray-50 border rounded-xl font-bold text-sm text-center" placeholder="-" value={s.reps} onChange={(e) => atualizarSerie(exIndex, sIndex, 'reps', e.target.value)} />
-                    <input type="number" className="p-3 bg-gray-50 border rounded-xl font-bold text-sm text-center" placeholder="-" value={s.carga} onChange={(e) => atualizarSerie(exIndex, sIndex, 'carga', e.target.value)} />
-                    <input type="number" className="p-3 bg-gray-50 border rounded-xl font-black text-blue-600 text-sm text-center" placeholder="-" value={s.intervalo} onChange={(e) => atualizarSerie(exIndex, sIndex, 'intervalo', e.target.value)} />
-                    <input type="number" className="p-3 bg-gray-50 border rounded-xl font-bold text-sm text-center" placeholder="-" value={s.CargaPlanejada} onChange={(e) => atualizarSerie(exIndex, sIndex, 'CargaPlanejada', e.target.value)} />
-                  </div>
-                  <button onClick={() => { const n = [...exercicios]; n[exIndex].series = n[exIndex].series.filter((_, i) => i !== sIndex); setExercicios(n); }} className="text-red-400 font-black p-2 hover:bg-red-50 rounded-full">✕</button>
+                <div key={sIndex} className="grid grid-cols-4 gap-2">
+                  <input type="text" className="p-2 bg-gray-50 border border-transparent rounded-lg text-sm text-center focus:bg-white focus:border-gray-200 outline-none transition-all" placeholder="3x12" value={s.reps} onChange={(e) => atualizarSerie(exIndex, sIndex, 'reps', e.target.value)} />
+                  <input type="number" className="p-2 bg-gray-50 border border-transparent rounded-lg text-sm text-center focus:bg-white focus:border-gray-200 outline-none transition-all" placeholder="0" value={s.carga} onChange={(e) => atualizarSerie(exIndex, sIndex, 'carga', e.target.value)} />
+                  <input type="number" className="p-2 bg-gray-50 border border-transparent rounded-lg text-sm text-center focus:bg-white focus:border-gray-200 outline-none transition-all" placeholder="0" value={s.intervalo} onChange={(e) => atualizarSerie(exIndex, sIndex, 'intervalo', e.target.value)} />
+                  <input type="number" className="p-2 bg-gray-50 border border-transparent rounded-lg text-sm text-center focus:bg-white focus:border-gray-200 outline-none transition-all" placeholder="0" value={s.CargaPlanejada} onChange={(e) => atualizarSerie(exIndex, sIndex, 'CargaPlanejada', e.target.value)} />
                 </div>
               ))}
             </div>
-            <button onClick={() => adicionarSerie(exIndex)} className="mt-6 text-sm font-bold text-blue-600"> + Adicionar série </button>
+            <button onClick={() => adicionarSerie(exIndex)} className="mt-4 text-xs font-bold text-gray-500 hover:text-gray-900 transition-colors"> + Adicionar série </button>
           </div>
         ))}
         
-        <button onClick={adicionarExercicio} className="w-full bg-gray-100 p-4 rounded-2xl mb-4 font-bold"> + Adicionar Exercício </button>
+        <button onClick={adicionarExercicio} className="w-full py-4 rounded-xl font-bold text-sm text-gray-500 border-2 border-dashed border-gray-200 hover:border-gray-300 hover:text-gray-900 transition-all mb-8"> + Adicionar Exercício </button>
         
         <div className="flex flex-col gap-3">
-            <button onClick={async () => { setLoading(true); try { await salvarFicha(); router.back(); } catch(e: any) { alert(e.message); } finally { setLoading(false); }}} disabled={loading} className="w-full bg-gray-900 text-white p-4 rounded-2xl font-bold"> {loading ? 'Salvando...' : 'Finalizar e Salvar para o Aluno'} </button>
-            <button onClick={salvarCombo} disabled={loading} className="w-full bg-blue-600 text-white p-4 rounded-2xl font-bold"> Salvar para Aluno + Salvar como Modelo </button>
+            <button onClick={async () => { setLoading(true); try { await salvarFicha(); router.back(); } catch(e: any) { alert(e.message); } finally { setLoading(false); }}} disabled={loading} className="w-full bg-gray-900 text-white p-4 rounded-xl font-bold shadow-lg hover:bg-black transition-all"> {loading ? 'Salvando...' : 'Finalizar e Salvar'} </button>
+            <button onClick={salvarCombo} disabled={loading} className="w-full bg-white border border-gray-900 text-gray-900 p-4 rounded-xl font-bold hover:bg-gray-50 transition-all"> Salvar para Aluno + Modelo </button>
         </div>
       </div>
     </main>
@@ -269,7 +291,7 @@ function NovaFichaContent() {
 
 export default function NovaFicha() {
   return (
-    <Suspense fallback={<div className="p-10 text-center">Carregando...</div>}>
+    <Suspense fallback={<div className="p-10 text-center font-medium">Carregando...</div>}>
       <NovaFichaContent />
     </Suspense>
   );

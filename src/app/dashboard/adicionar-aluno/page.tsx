@@ -11,7 +11,6 @@ export default function AdicionarAluno() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  // Máscara profissional de telefone
   const formatarTelefone = (val: string) => {
     const digits = val.replace(/\D/g, '').slice(0, 11);
     if (digits.length <= 2) return `(${digits}`;
@@ -29,8 +28,7 @@ export default function AdicionarAluno() {
 
   const handleAddAluno = async () => {
     if (!formData.nome.trim() || !formData.email.trim() || !formData.password) {
-      alert('Campos obrigatórios: Nome, E-mail e Senha.');
-      return;
+      return; // Em um SaaS Premium, usaríamos um Toast componente aqui em vez de alert
     }
 
     setLoading(true);
@@ -40,60 +38,65 @@ export default function AdicionarAluno() {
 
       const result = await cadastrarAlunoAction({
         ...formData,
-        telefone: formData.telefone.replace(/\D/g, '') // Limpa para salvar padrão E.164
+        telefone: formData.telefone.replace(/\D/g, '')
       }, session.user.id);
 
       if (result.error) throw new Error(result.error);
-
-      alert('Aluno cadastrado com sucesso!');
       router.push('/dashboard');
     } catch (err: any) {
-      alert(err.message || 'Erro inesperado.');
+      console.error(err);
     } finally {
       setLoading(false);
     }
   };
 
   const InputField = ({ label, ...props }: any) => (
-    <div className="w-full">
-      <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 px-1">{label}</label>
+    <div className="flex flex-col gap-1.5">
+      <label className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] px-1">{label}</label>
       <input 
         {...props} 
-        className="w-full p-4 border border-gray-200 rounded-2xl outline-none focus:ring-2 focus:ring-gray-900 transition-all placeholder:text-gray-300"
+        className="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:bg-white focus:ring-2 focus:ring-gray-900/5 transition-all placeholder:text-gray-400 font-medium text-sm"
       />
     </div>
   );
 
   return (
-    <main className="min-h-screen bg-gray-50 p-6 md:p-12">
-      <div className="max-w-xl mx-auto bg-white p-10 rounded-3xl shadow-lg border border-gray-100">
-        <h1 className="text-3xl font-black text-gray-900 mb-8 tracking-tighter">Novo Aluno</h1>
+    <main className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+      <div className="w-full max-w-lg bg-white p-8 md:p-10 rounded-3xl shadow-sm border border-gray-100">
+        <header className="mb-10">
+          <h1 className="text-2xl font-black text-gray-900 tracking-tighter">Adicionar Aluno</h1>
+          <p className="text-gray-500 text-sm mt-1">Preencha as informações do novo aluno.</p>
+        </header>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="col-span-2">
-            <InputField label="Nome Completo" name="nome" value={formData.nome} onChange={handleInputChange} placeholder="Ex: João Silva" />
-          </div>
-          
-          <InputField label="E-mail de Acesso" name="email" type="email" value={formData.email} onChange={handleInputChange} placeholder="joao@email.com" />
-          <InputField label="Senha Inicial" name="password" type="password" value={formData.password} onChange={handleInputChange} placeholder="••••••••" />
-          
-          <InputField label="WhatsApp" name="telefone" value={formData.telefone} onChange={handleInputChange} placeholder="(00) 00000-0000" />
-          <InputField label="Data de Vencimento" name="dataVencimento" type="date" value={formData.dataVencimento} onChange={handleInputChange} />
-          
-          <div className="col-span-2">
-            <InputField label="Objetivo" name="objetivo" value={formData.objetivo} onChange={handleInputChange} placeholder="Ex: Hipertrofia, Emagrecimento..." />
-            <div className="mt-4">
-              <InputField label="Link de Pagamento (URL)" name="linkPagamento" value={formData.linkPagamento} onChange={handleInputChange} placeholder="https://pay.exemplo.com/..." />
+        <div className="space-y-8">
+          {/* Seção Acesso */}
+          <section className="space-y-4">
+            <h2 className="text-[10px] font-black uppercase text-gray-300 tracking-widest">Acesso</h2>
+            <InputField label="E-mail" name="email" type="email" value={formData.email} onChange={handleInputChange} placeholder="exemplo@email.com" />
+            <InputField label="Senha" name="password" type="password" value={formData.password} onChange={handleInputChange} placeholder="••••••••" />
+          </section>
+
+          <div className="h-px bg-gray-100" />
+
+          {/* Seção Perfil */}
+          <section className="space-y-4">
+            <h2 className="text-[10px] font-black uppercase text-gray-300 tracking-widest">Perfil</h2>
+            <InputField label="Nome Completo" name="nome" value={formData.nome} onChange={handleInputChange} placeholder="Nome do aluno" />
+            <div className="grid grid-cols-2 gap-4">
+              <InputField label="WhatsApp" name="telefone" value={formData.telefone} onChange={handleInputChange} placeholder="(00) 00000-0000" />
+              <InputField label="Vencimento" name="dataVencimento" type="date" value={formData.dataVencimento} onChange={handleInputChange} />
             </div>
-          </div>
+            <InputField label="Objetivo" name="objetivo" value={formData.objetivo} onChange={handleInputChange} placeholder="Hipertrofia, emagrecimento..." />
+            <InputField label="Link de Pagamento" name="linkPagamento" value={formData.linkPagamento} onChange={handleInputChange} placeholder="https://..." />
+          </section>
         </div>
 
         <button 
           onClick={handleAddAluno}
           disabled={loading}
-          className="w-full mt-10 bg-gray-900 hover:bg-black text-white p-5 rounded-2xl font-black transition-all active:scale-[0.98] disabled:opacity-50 shadow-xl"
+          className="w-full mt-10 bg-gray-900 hover:bg-black text-white py-4 rounded-2xl font-bold transition-all active:scale-[0.98] disabled:opacity-50"
         >
-          {loading ? "Processando..." : "Confirmar Cadastro"}
+          {loading ? "Cadastrando..." : "Confirmar Cadastro"}
         </button>
       </div>
     </main>

@@ -31,29 +31,18 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
     carregarDados();
   }, [id]);
 
-const fetchFeedbacks = async () => {
-  // 1. Quem é o personal logado?
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return;
+  const fetchFeedbacks = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    
+    const { data, error } = await supabase
+      .from('feedbacks_treino')
+      .select('*')
+      .eq('aluno_id', id)
+      .order('data_criacao', { ascending: false });
 
-  // 2. Queremos buscar feedbacks onde:
-  // - O personal_id da tabela seja o ID do personal logado
-  // - O aluno_id da tabela seja o ID da página (const { id } = use(params))
-  
-  const { data, error } = await supabase
-    .from('feedbacks_treino')
-    .select('*')
-    .eq('aluno_id', id) // <--- O id vem dos params (ID do aluno da página)
-    // .eq('personal_id', user.id) // <--- Remova este filtro temporariamente para testar
-    .order('data_criacao', { ascending: false });
-
-  if (error) {
-    console.error("ERRO:", error);
-  } else {
-    console.log("Feedbacks encontrados:", data);
-    setFeedbacks(data || []);
-  }
-};
+    if (!error) setFeedbacks(data || []);
+  };
 
   const fetchDadosAluno = async () => {
     const { data } = await supabase.from('alunos').select('*').eq('id', id).maybeSingle();
@@ -81,20 +70,11 @@ const fetchFeedbacks = async () => {
   };
 
   const excluirFeedback = async (id: string) => {
-  if (!confirm("Tem certeza que deseja excluir este feedback?")) return;
-
-  const { error } = await supabase
-    .from('feedbacks_treino')
-    .delete()
-    .eq('id', id);
-
-  if (error) {
-    alert("Erro ao excluir: " + error.message);
-  } else {
-    // Recarrega os dados para o usuário ver a lista atualizada
-    fetchFeedbacks(); 
-  }
-};
+    if (!confirm("Tem certeza que deseja excluir este feedback?")) return;
+    const { error } = await supabase.from('feedbacks_treino').delete().eq('id', id);
+    if (!error) fetchFeedbacks();
+    else alert("Erro ao excluir: " + error.message);
+  };
 
   const excluirFicha = async (e: React.MouseEvent, fichaId: string) => {
     e.stopPropagation();
@@ -123,115 +103,135 @@ const fetchFeedbacks = async () => {
       setIsModalAvaliacaoOpen(false);
       setMedidas({ peso: '', gordura: '', torax: '', ombros: '', abdomen: '', cintura: '', quadril: '', braco_direito: '', braco_esquerdo: '', observacoes: '' });
       fetchHistorico();
-      alert("Registro salvo com sucesso!");
     } else alert("Erro ao salvar: " + error.message);
   };
 
-  if (loading) return <main className="p-10 text-center text-gray-500">Carregando...</main>;
+  if (loading) return <main className="flex items-center justify-center min-h-screen text-gray-400 font-bold">Carregando dados...</main>;
 
   return (
-    <main className="p-10 bg-gray-50 min-h-screen">
-      <section className="bg-white p-8 rounded-3xl shadow-sm mb-8 flex items-center gap-8 border border-gray-100">
-        <img src={aluno?.avatar_url || 'https://via.placeholder.com/150'} className="w-24 h-24 rounded-full object-cover border-4 border-blue-50" />
-        <div>
-          <h1 className="text-3xl font-black text-gray-900 tracking-tighter">{aluno?.nome}</h1>
-          <p className="text-gray-500 font-medium">Objetivo: {aluno?.objetivo || 'Nenhum definido'}</p>
-        </div>
-      </section>
-
-      <div className="flex gap-6 mb-8 border-b border-gray-200">
-        <button onClick={() => { setAbaAtiva('treinos'); router.replace(`?aba=treinos`) }} className={`pb-3 font-black text-sm uppercase tracking-widest ${abaAtiva === 'treinos' ? 'border-b-2 border-black text-black' : 'text-gray-400'}`}>Fichas</button>
-        <button onClick={() => { setAbaAtiva('evolucao'); router.replace(`?aba=evolucao`) }} className={`pb-3 font-black text-sm uppercase tracking-widest ${abaAtiva === 'evolucao' ? 'border-b-2 border-black text-black' : 'text-gray-400'}`}>Evolução</button>
-        <button onClick={() => { setAbaAtiva('feedback'); router.replace(`?aba=feedback`) }} className={`pb-3 font-black text-sm uppercase tracking-widest ${abaAtiva === 'feedback' ? 'border-b-2 border-black text-black' : 'text-gray-400'}`}>Feedback</button>
-      </div>
-
-      {abaAtiva === 'treinos' ? (
-        <section className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
-          {fichas.map((f) => (
-            <div key={f.id} className="border-b border-gray-50 py-6 flex justify-between items-center group">
-              <button onClick={() => router.push(`/dashboard/aluno/${id}/treino/${f.id}`)} className="font-bold text-gray-900 text-lg hover:text-blue-600 transition">
-                {f.nome_treino}
-              </button>
-              <button onClick={(e) => excluirFicha(e, f.id)} className="text-red-400 hover:text-red-600 font-bold text-xs uppercase opacity-0 group-hover:opacity-100 transition">Excluir</button>
-            </div>
-          ))}
-          <a href={`/dashboard/aluno/${id}/nova-ficha`} className="mt-8 block w-full text-center bg-black text-white p-4 rounded-2xl font-black hover:bg-gray-800 transition">+ Criar Nova Ficha</a>
+    <main className="min-h-screen bg-gray-50/50 p-6 md:p-12">
+      <div className="max-w-4xl mx-auto">
+        {/* Header de Perfil Premium */}
+        <section className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm mb-10 flex flex-col md:flex-row items-center gap-8">
+          <img src={aluno?.avatar_url || 'https://via.placeholder.com/150'} className="w-28 h-28 rounded-3xl object-cover shadow-lg border border-gray-100" />
+          <div className="text-center md:text-left">
+            <h1 className="text-4xl font-black text-gray-900 tracking-tighter mb-1">{aluno?.nome}</h1>
+            <p className="text-blue-600 font-bold bg-blue-50 px-4 py-1 rounded-full inline-block text-sm">Objetivo: {aluno?.objetivo || 'Não definido'}</p>
+          </div>
         </section>
-      ) : abaAtiva === 'evolucao' ? (
-        <section className="space-y-8">
-          <div className="flex justify-between items-center">
-            <h2 className="text-2xl font-black tracking-tighter">Histórico de Medidas</h2>
-            <button onClick={() => setIsModalAvaliacaoOpen(true)} className="bg-blue-600 text-white px-8 py-3 rounded-2xl font-black shadow-lg shadow-blue-200 hover:bg-blue-700 transition">+ Nova Avaliação</button>
-          </div>
-          <div className="h-72 w-full bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={[...historico].filter(a => a.peso && !a.tipo).reverse()}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f9f9f9" />
-                <XAxis dataKey="data_avaliacao" tickFormatter={(d) => new Date(d).toLocaleDateString()} />
-                <YAxis />
-                <Tooltip />
-                <Line type="monotone" dataKey="peso" stroke="#2563eb" strokeWidth={4} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-          <div className="grid gap-6">
-            {historico.filter(a => !a.tipo).map((av) => (
-              <div key={av.id} className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 relative">
-                <button onClick={() => excluirAvaliacao(av.id)} className="absolute top-4 right-4 text-red-400 hover:text-red-600 font-bold text-xs uppercase">Excluir</button>
-                <p className="font-black text-xl mb-6">{new Date(av.data_avaliacao).toLocaleDateString()}</p>
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                  {Object.entries(av).map(([key, val]: any) => {
-                    if (['id', 'aluno_id', 'data_avaliacao', 'observacoes', 'tipo'].includes(key) || !val) return null;
-                    return (
-                      <div key={key} className="bg-gray-50 p-4 rounded-2xl">
-                        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">{key.replace('_', ' ')}</p>
-                        <p className="font-black text-md">{val} {['peso', 'gordura'].includes(key) ? 'kg/%' : 'cm'}</p>
-                      </div>
-                    );
-                  })}
-                </div>
+
+        {/* Abas Premium */}
+        <div className="flex gap-8 mb-10 border-b border-gray-200">
+          {['treinos', 'evolucao', 'feedback'].map((tab) => (
+            <button 
+              key={tab} 
+              onClick={() => { setAbaAtiva(tab); router.replace(`?aba=${tab}`) }} 
+              className={`pb-4 font-black text-xs uppercase tracking-[0.2em] transition-all border-b-2 ${abaAtiva === tab ? 'border-gray-900 text-gray-900' : 'border-transparent text-gray-400 hover:text-gray-600'}`}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
+
+        {/* Conteúdo Treinos */}
+        {abaAtiva === 'treinos' && (
+          <section className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
+            {fichas.map((f) => (
+              <div key={f.id} className="border-b border-gray-50 py-6 flex justify-between items-center group transition-all">
+                <button onClick={() => router.push(`/dashboard/aluno/${id}/treino/${f.id}`)} className="font-bold text-gray-900 text-lg hover:text-blue-600 transition-colors">
+                  {f.nome_treino}
+                </button>
+                <button onClick={(e) => excluirFicha(e, f.id)} className="text-gray-300 hover:text-red-500 font-bold text-[10px] uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">Excluir</button>
               </div>
             ))}
-          </div>
-        </section>
-      ) : (
-        <section className="space-y-6">
-          <h2 className="text-2xl font-black">Feedbacks Registrados</h2>
-          {feedbacks.map((f) => (
-            <div key={f.id} className="bg-black p-8 rounded-3xl text-white relative mb-4">
-              <button onClick={async () => { if (confirm("Excluir feedback?")) { await supabase.from('feedbacks_treino').delete().eq('id', f.id); fetchFeedbacks(); } }} className="absolute top-4 right-4 text-red-400 font-bold text-[10px] uppercase">Excluir</button>
-              <p className="text-xs text-gray-400 mb-2">{new Date(f.data_criacao).toLocaleDateString()}</p>
-              <p className="font-bold text-sm">Intensidade: {f.intensidade}/10 - {f.sentimento}</p>
-              <p className="text-lg italic mt-2 leading-relaxed">"{f.observacoes}"</p>
-            </div>
-          ))}
-        </section>
-      )}
+            <a href={`/dashboard/aluno/${id}/nova-ficha`} className="mt-10 block w-full text-center bg-gray-900 text-white p-5 rounded-2xl font-black hover:bg-black transition-all active:scale-[0.98]">
+              + Criar Nova Ficha
+            </a>
+          </section>
+        )}
 
-      {isModalAvaliacaoOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white p-10 rounded-3xl w-full max-w-xl shadow-2xl max-h-[90vh] overflow-y-auto">
-            <h3 className="text-2xl font-black mb-6">Registrar Medidas</h3>
-            <div className="grid grid-cols-2 gap-4">
-              {Object.keys(medidas).filter(k => k !== 'observacoes').map((key) => (
-                <div key={key}>
-                  <label className="text-[10px] font-bold uppercase text-gray-400">{key.replace('_', ' ')}</label>
-                  <input type="number" className="w-full p-4 border rounded-2xl mt-1 font-bold" onChange={(e) => setMedidas({...medidas, [key]: e.target.value})} />
+        {/* Conteúdo Evolução */}
+        {abaAtiva === 'evolucao' && (
+          <section className="space-y-8">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-black tracking-tighter">Progresso de Medidas</h2>
+              <button onClick={() => setIsModalAvaliacaoOpen(true)} className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all">+ Nova Avaliação</button>
+            </div>
+            
+            <div className="h-72 w-full bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={[...historico].filter(a => a.peso && !a.tipo).reverse()}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                  <XAxis dataKey="data_avaliacao" hide />
+                  <Tooltip contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
+                  <Line type="monotone" dataKey="peso" stroke="#2563eb" strokeWidth={4} dot={{r: 6}} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className="grid gap-6">
+              {historico.filter(a => !a.tipo).map((av) => (
+                <div key={av.id} className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 relative group">
+                  <button onClick={() => excluirAvaliacao(av.id)} className="absolute top-8 right-8 text-gray-300 hover:text-red-500 font-bold text-[10px] uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">Excluir</button>
+                  <p className="font-black text-xl mb-6 text-gray-900">{new Date(av.data_avaliacao).toLocaleDateString()}</p>
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                    {Object.entries(av).map(([key, val]: any) => {
+                      if (['id', 'aluno_id', 'data_avaliacao', 'observacoes', 'tipo'].includes(key) || !val) return null;
+                      return (
+                        <div key={key} className="bg-gray-50 p-5 rounded-2xl">
+                          <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">{key.replace('_', ' ')}</p>
+                          <p className="font-black text-lg text-gray-900">{val}<span className="text-[10px] text-gray-400 ml-1">{['peso', 'gordura'].includes(key) ? 'kg/%' : 'cm'}</span></p>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               ))}
             </div>
-            <textarea className="w-full p-4 border rounded-2xl mt-4" placeholder="Observações" onChange={(e) => setMedidas({...medidas, observacoes: e.target.value})} />
-            <div className="flex gap-4 mt-8">
-              <button onClick={() => setIsModalAvaliacaoOpen(false)} className="flex-1 p-4 bg-gray-100 rounded-2xl font-bold">Cancelar</button>
-              <button onClick={salvarAvaliacaoCompleta} className="flex-1 p-4 bg-black text-white rounded-2xl font-bold">Salvar</button>
+          </section>
+        )}
+
+        {/* Conteúdo Feedback */}
+        {abaAtiva === 'feedback' && (
+          <section className="space-y-6">
+            <h2 className="text-2xl font-black tracking-tighter">Feedbacks</h2>
+            {feedbacks.map((f) => (
+              <div key={f.id} className="bg-gray-900 p-8 rounded-3xl text-white relative shadow-xl">
+                <button onClick={() => excluirFeedback(f.id)} className="absolute top-8 right-8 text-gray-500 hover:text-red-400 font-bold text-[10px] uppercase tracking-widest">Excluir</button>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-3">{new Date(f.data_criacao).toLocaleDateString()}</p>
+                <p className="font-bold text-sm mb-4 bg-white/10 inline-block px-3 py-1 rounded-full">Intensidade: {f.intensidade}/10</p>
+                <p className="text-xl italic font-medium leading-relaxed text-gray-100">"{f.observacoes}"</p>
+              </div>
+            ))}
+          </section>
+        )}
+
+        {/* Modal Avaliação Premium */}
+        {isModalAvaliacaoOpen && (
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-white p-10 rounded-3xl w-full max-w-xl shadow-2xl animate-in zoom-in-95 duration-200">
+              <h3 className="text-2xl font-black mb-8">Nova Avaliação</h3>
+              <div className="grid grid-cols-2 gap-4">
+                {Object.keys(medidas).filter(k => k !== 'observacoes').map((key) => (
+                  <div key={key}>
+                    <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest">{key.replace('_', ' ')}</label>
+                    <input type="number" className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl mt-1 font-bold outline-none focus:ring-2 focus:ring-gray-200 transition-all" onChange={(e) => setMedidas({...medidas, [key]: e.target.value})} />
+                  </div>
+                ))}
+              </div>
+              <textarea className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl mt-4 outline-none font-medium h-24" placeholder="Observações..." onChange={(e) => setMedidas({...medidas, observacoes: e.target.value})} />
+              <div className="flex gap-4 mt-10">
+                <button onClick={() => setIsModalAvaliacaoOpen(false)} className="flex-1 p-4 bg-gray-100 rounded-2xl font-bold hover:bg-gray-200 transition-all">Cancelar</button>
+                <button onClick={salvarAvaliacaoCompleta} className="flex-1 p-4 bg-gray-900 text-white rounded-2xl font-bold hover:bg-black transition-all">Salvar Medidas</button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </main>
   );
 }
 
 export default function DetalheAluno({ params }: { params: Promise<{ id: string }> }) {
-  return <Suspense><DetalheAlunoContent params={params} /></Suspense>;
+  return <Suspense fallback={<main className="flex items-center justify-center min-h-screen text-gray-400">Carregando...</main>}><DetalheAlunoContent params={params} /></Suspense>;
 }

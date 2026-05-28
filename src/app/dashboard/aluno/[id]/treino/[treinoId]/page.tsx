@@ -52,10 +52,10 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
       });
 
       if (error) throw error;
-      alert("Treino copiado com sucesso para o aluno!");
       setIsModalOpen(false);
+      router.refresh();
     } catch (err: any) {
-      alert("Erro ao duplicar: " + err.message);
+      console.error("Erro ao duplicar:", err.message);
     }
   };
 
@@ -64,7 +64,6 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
     setLoading(true);
     const { error } = await supabase.from('fichas').delete().eq('id', treinoId);
     if (error) {
-      alert("Erro ao excluir: " + error.message);
       setLoading(false);
     } else {
       router.push(`/dashboard/aluno/${id}`);
@@ -72,47 +71,43 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
   };
 
   const renderizarExercicios = () => {
-    if (!ficha?.descricao) return <p className="text-gray-500 p-8 text-center">Treino vazio.</p>;
+    if (!ficha?.descricao) return <p className="text-gray-400 p-8 text-center">Nenhum exercício registrado.</p>;
 
     try {
-      const exercicios = typeof ficha.descricao === 'string' 
-        ? JSON.parse(ficha.descricao) 
-        : ficha.descricao;
+      const exercicios = typeof ficha.descricao === 'string' ? JSON.parse(ficha.descricao) : ficha.descricao;
 
       return exercicios.map((ex: any, index: number) => (
-        <div key={index} className="mb-8 bg-white border border-gray-100 rounded-3xl shadow-sm overflow-hidden">
-          <div className="bg-gray-900 text-white p-6 font-black tracking-tight flex justify-between items-center">
-            {ex.nome}
+        <div key={index} className="mb-8 bg-white border border-gray-200 rounded-3xl shadow-sm hover:shadow-md transition-all duration-300">
+          <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+            <h3 className="font-bold text-gray-900 text-lg tracking-tight">{ex.nome}</h3>
             {ex.video && (
-              <a href={ex.video} target="_blank" className="text-[10px] uppercase tracking-widest bg-white/10 hover:bg-white/20 text-white px-3 py-1 rounded-lg transition">
-                Ver Vídeo
+              <a href={ex.video} target="_blank" className="text-[10px] font-bold uppercase tracking-widest bg-gray-900 text-white px-4 py-2 rounded-lg hover:bg-black transition-all">
+                Assistir Vídeo
               </a>
             )}
           </div>
-          <table className="w-full text-left text-sm">
-            <thead className="bg-gray-50 text-[10px] uppercase font-black text-gray-400 tracking-widest">
-              <tr>
-                <th className="p-4 border-b">Reps</th>
-                <th className="p-4 border-b">Carga</th>
-                <th className="p-4 border-b">Planejada</th>
-                <th className="p-4 border-b">Intervalo</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {ex.series?.map((s: any, sIndex: number) => (
-                <tr key={sIndex}>
-                  <td className="p-4 font-bold text-gray-900">{s.reps || '-'}</td>
-                  <td className="p-4 font-bold text-gray-900">{s.carga || '-'} kg</td>
-                  <td className="p-4 text-gray-500">{s.CargaPlanejada || '-'} kg</td>
-                  <td className="p-4 text-gray-500">{s.intervalo || '0'} s</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          
+          <div className="grid grid-cols-4 gap-4 p-6 bg-gray-50/50 text-[10px] uppercase font-black text-gray-400 tracking-widest border-b border-gray-100">
+            <span>Reps</span>
+            <span>Carga</span>
+            <span>Planej.</span>
+            <span>Desc.</span>
+          </div>
+
+          <div className="divide-y divide-gray-100">
+            {ex.series?.map((s: any, sIndex: number) => (
+              <div key={sIndex} className="grid grid-cols-4 gap-4 p-6 text-sm">
+                <span className="font-semibold text-gray-900">{s.reps || '-'}</span>
+                <span className="font-semibold text-gray-900">{s.carga || '0'} kg</span>
+                <span className="text-gray-500">{s.CargaPlanejada || '0'} kg</span>
+                <span className="text-blue-600 font-semibold">{s.intervalo || '0'}s</span>
+              </div>
+            ))}
+          </div>
         </div>
       ));
     } catch (e) {
-      return <p className="text-red-500 p-8 text-center font-bold">Erro ao processar estrutura da ficha.</p>;
+      return <p className="text-red-500 p-8 text-center font-bold">Erro ao processar dados da ficha.</p>;
     }
   };
 
@@ -120,8 +115,8 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
   if (errorMsg) return <main className="p-10 text-center text-red-500 font-bold">Erro: {errorMsg}</main>;
 
   return (
-    <main className="min-h-screen bg-gray-50 p-6 md:p-12">
-      <div className="max-w-4xl mx-auto">
+    <main className="min-h-screen bg-gray-50/50 p-6 md:p-12">
+      <div className="max-w-3xl mx-auto">
         <ModalSelecaoAlunos 
           isOpen={isModalOpen} 
           onClose={() => setIsModalOpen(false)} 
@@ -129,18 +124,22 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
         />
 
         <div className="flex justify-between items-center mb-10">
-          <button onClick={() => router.back()} className="text-sm font-bold text-gray-400 hover:text-gray-900 transition">← Voltar</button>
+          <button onClick={() => router.back()} className="text-sm font-semibold text-gray-400 hover:text-gray-900 transition-colors">← Voltar</button>
           
           {isPersonal && (
-            <div className="flex gap-3">
-              <button onClick={() => setIsModalOpen(true)} className="bg-white border border-gray-200 text-gray-900 px-6 py-3 rounded-xl font-bold hover:bg-gray-50 transition-all active:scale-[0.98]">Duplicar</button>
-              <button onClick={excluirFicha} className="bg-red-50 text-red-600 px-6 py-3 rounded-xl font-bold hover:bg-red-100 transition-all active:scale-[0.98]">Excluir</button>
-              <a href={`/dashboard/aluno/${id}/editar-ficha/${treinoId}`} className="bg-gray-900 text-white px-6 py-3 rounded-xl font-bold hover:bg-black transition-all active:scale-[0.98]">Editar</a>
+            <div className="flex gap-2">
+              <button onClick={() => setIsModalOpen(true)} className="px-5 py-2.5 bg-white border border-gray-200 text-gray-900 rounded-xl font-semibold text-sm hover:bg-gray-50 transition-all active:scale-[0.98]">Duplicar</button>
+              <button onClick={excluirFicha} className="px-5 py-2.5 text-red-600 bg-red-50 rounded-xl font-semibold text-sm hover:bg-red-100 transition-all active:scale-[0.98]">Excluir</button>
+              <a href={`/dashboard/aluno/${id}/editar-ficha/${treinoId}`} className="px-5 py-2.5 bg-gray-900 text-white rounded-xl font-semibold text-sm hover:bg-black transition-all active:scale-[0.98]">Editar</a>
             </div>
           )}
         </div>
 
-        <h1 className="text-4xl font-black text-gray-900 mb-10 tracking-tighter">{ficha?.nome_treino || "Treino"}</h1>
+        <header className="mb-12">
+           <h1 className="text-4xl font-extrabold text-gray-900 tracking-tighter mb-2">{ficha?.nome_treino || "Treino"}</h1>
+           <p className="text-gray-500 font-medium">Detalhes e execução da série.</p>
+        </header>
+
         {renderizarExercicios()}
       </div>
     </main>

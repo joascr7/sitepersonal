@@ -4,7 +4,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 
 interface Serie {
-  reps: string; // Alterado para string para aceitar "3x12"
+  reps: string;
   carga: number | string;
   CargaPlanejada: number | string;
   intervalo: number | string;
@@ -31,7 +31,6 @@ export default function EditarFicha() {
 
   useEffect(() => {
     if (!treinoId) return;
-
     const carregarDados = async () => {
       setLoading(true);
       const { data, error } = await supabase
@@ -45,13 +44,10 @@ export default function EditarFicha() {
         try {
           const parsed = typeof data.descricao === 'string' ? JSON.parse(data.descricao) : data.descricao;
           setExercicios(Array.isArray(parsed) ? parsed : []);
-        } catch (e) {
-          setExercicios([]);
-        }
+        } catch (e) { setExercicios([]); }
       }
       setLoading(false);
     };
-
     carregarDados();
   }, [treinoId]);
 
@@ -100,44 +96,71 @@ export default function EditarFicha() {
     setLoading(false);
   };
 
-  if (loading) return <main className="min-h-screen p-10 text-center text-gray-500">Carregando editor...</main>;
+  if (loading) return <main className="min-h-screen p-10 text-center text-gray-500 font-medium">Carregando editor...</main>;
 
   return (
-    <main className="min-h-screen bg-gray-50 p-6 md:p-12">
-      <div className="max-w-4xl mx-auto">
+    <main className="min-h-screen bg-gray-50/50 p-6 md:p-12">
+      <div className="max-w-3xl mx-auto">
+        {/* Header de Ações */}
         <div className="flex justify-between items-center mb-10">
-          <button onClick={() => router.back()} className="text-sm font-bold text-gray-400 hover:text-gray-900 transition">← Voltar</button>
-          <button onClick={excluirFicha} className="text-red-600 font-bold text-xs bg-red-50 px-4 py-2 rounded-xl">Excluir Ficha</button>
+          <button onClick={() => router.back()} className="text-sm font-semibold text-gray-400 hover:text-gray-900 transition-colors">← Voltar</button>
+          <button onClick={excluirFicha} className="text-red-500 font-semibold text-sm hover:text-red-600 transition-colors">Excluir Ficha</button>
         </div>
 
-        <input className="w-full p-4 mb-8 border rounded-2xl" value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Nome do Treino" />
+        {/* Input Nome do Treino */}
+        <input 
+          className="w-full text-2xl font-bold bg-transparent mb-8 outline-none border-b border-transparent focus:border-gray-200 transition-all placeholder:text-gray-300" 
+          value={nome} 
+          onChange={(e) => setNome(e.target.value)} 
+          placeholder="Nome do Treino" 
+        />
 
+        {/* Lista de Exercícios */}
         {exercicios.map((ex, exIndex) => (
-          <div key={exIndex} className="bg-white p-6 rounded-3xl shadow-sm border mb-8">
-            <input className="font-black text-lg w-full mb-4 border-b pb-2 outline-none" value={ex.nome} onChange={(e) => { const n = [...exercicios]; n[exIndex].nome = e.target.value; setExercicios(n); }} />
+          <div key={exIndex} className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm mb-6 transition-all hover:shadow-md">
+            <input 
+              className="font-semibold text-gray-900 w-full mb-6 outline-none border-b border-transparent focus:border-gray-200 pb-1" 
+              value={ex.nome} 
+              onChange={(e) => { const n = [...exercicios]; n[exIndex].nome = e.target.value; setExercicios(n); }} 
+              placeholder="Nome do Exercício"
+            />
             
-            <div className="mb-4">
-              <input className="w-full p-3 border rounded-xl text-sm mb-2" placeholder="Link do vídeo (ou upload)" value={ex.video} onChange={(e) => { const n = [...exercicios]; n[exIndex].video = e.target.value; setExercicios(n); }} />
-              <button type="button" onClick={() => document.getElementById(`file-${exIndex}`)?.click()} className="w-full py-2 bg-gray-100 rounded-xl text-xs font-bold hover:bg-gray-200">
+            <div className="mb-6 space-y-2">
+              <input 
+                className="w-full p-3 bg-gray-50 border border-gray-100 rounded-xl text-sm outline-none focus:border-gray-300 transition-all" 
+                placeholder="URL do vídeo" 
+                value={ex.video} 
+                onChange={(e) => { const n = [...exercicios]; n[exIndex].video = e.target.value; setExercicios(n); }} 
+              />
+              <button type="button" onClick={() => document.getElementById(`file-${exIndex}`)?.click()} className="w-full py-2.5 bg-gray-900 text-white rounded-xl text-xs font-bold hover:bg-gray-800 transition-all">
                 {uploading ? 'Enviando...' : 'Upload de Vídeo (Máx 10MB)'}
               </button>
               <input type="file" id={`file-${exIndex}`} className="hidden" accept="video/*" onChange={(e) => e.target.files && uploadVideo(exIndex, e.target.files[0])} />
             </div>
 
+            <div className="grid grid-cols-4 gap-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 px-1">
+              <span>Reps</span><span>Carga</span><span>Desc.</span><span>Planej.</span>
+            </div>
+
             <div className="space-y-2">
               {ex.series?.map((s, sIndex) => (
                 <div key={sIndex} className="grid grid-cols-4 gap-2">
-                  <input type="text" className="p-2 bg-gray-50 border rounded-lg text-center" placeholder="3x12" value={s.reps} onChange={(e) => { const n = [...exercicios]; n[exIndex].series[sIndex].reps = e.target.value; setExercicios(n); }} />
-                  <input type="number" className="p-2 bg-gray-50 border rounded-lg text-center" value={s.carga} onChange={(e) => { const n = [...exercicios]; n[exIndex].series[sIndex].carga = e.target.value; setExercicios(n); }} />
-                  <input type="number" className="p-2 bg-gray-50 border rounded-lg text-center" value={s.intervalo} onChange={(e) => { const n = [...exercicios]; n[exIndex].series[sIndex].intervalo = e.target.value; setExercicios(n); }} />
-                  <input type="number" className="p-2 bg-gray-50 border rounded-lg text-center" value={s.CargaPlanejada} onChange={(e) => { const n = [...exercicios]; n[exIndex].series[sIndex].CargaPlanejada = e.target.value; setExercicios(n); }} />
+                  <input type="text" className="p-2 bg-gray-50 border border-transparent rounded-lg text-sm text-center focus:bg-white focus:border-gray-200 transition-all outline-none" value={s.reps} onChange={(e) => { const n = [...exercicios]; n[exIndex].series[sIndex].reps = e.target.value; setExercicios(n); }} />
+                  <input type="number" className="p-2 bg-gray-50 border border-transparent rounded-lg text-sm text-center focus:bg-white focus:border-gray-200 transition-all outline-none" value={s.carga} onChange={(e) => { const n = [...exercicios]; n[exIndex].series[sIndex].carga = e.target.value; setExercicios(n); }} />
+                  <input type="number" className="p-2 bg-gray-50 border border-transparent rounded-lg text-sm text-center focus:bg-white focus:border-gray-200 transition-all outline-none" value={s.intervalo} onChange={(e) => { const n = [...exercicios]; n[exIndex].series[sIndex].intervalo = e.target.value; setExercicios(n); }} />
+                  <input type="number" className="p-2 bg-gray-50 border border-transparent rounded-lg text-sm text-center focus:bg-white focus:border-gray-200 transition-all outline-none" value={s.CargaPlanejada} onChange={(e) => { const n = [...exercicios]; n[exIndex].series[sIndex].CargaPlanejada = e.target.value; setExercicios(n); }} />
                 </div>
               ))}
             </div>
           </div>
         ))}
 
-        <button onClick={atualizarFicha} className="w-full bg-black text-white p-4 rounded-2xl font-bold shadow-lg">Salvar Alterações</button>
+        <button 
+          onClick={atualizarFicha} 
+          className="w-full bg-gray-900 text-white p-4 rounded-xl font-bold shadow-lg hover:shadow-xl transition-all active:scale-[0.98]"
+        >
+          Salvar Alterações
+        </button>
       </div>
     </main>
   );

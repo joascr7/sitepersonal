@@ -2,7 +2,7 @@
 import { useEffect, useState, use } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
-import { subMonths, startOfWeek, parseISO } from 'date-fns';
+import { subMonths, startOfWeek } from 'date-fns';
 
 export default function ProgressoPersonal({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -14,7 +14,7 @@ export default function ProgressoPersonal({ params }: { params: Promise<{ id: st
   useEffect(() => {
     const carregarDados = async () => {
       setLoading(true);
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('registro_series')
         .select('*')
         .eq('aluno_id', id)
@@ -25,84 +25,76 @@ export default function ProgressoPersonal({ params }: { params: Promise<{ id: st
         const unicos = Array.from(new Set(data.map((h: any) => h.exercicio_nome)));
         setExerciciosUnicos(unicos as string[]);
         setFiltro(prev => ({ ...prev, exercicio: unicos[0] as string }));
-      } else {
-        console.error("Erro ou dados vazios:", error);
       }
       setLoading(false);
     };
     if (id) carregarDados();
   }, [id]);
 
-  // Filtro seguro: garante que não tentamos filtrar se exercicio for vazio
   const dadosFiltrados = historico.filter(h => {
-  const matchExercicio = h.exercicio_nome === filtro.exercicio;
-  
-  // Converte a data do banco para um objeto Date real e ignora o problema do fuso
-  const dataExec = new Date(h.data_execucao);
-  
-  // Usa o dia de hoje como base, garantindo que o tempo não interfira
-  const hoje = new Date();
-  const limite = filtro.periodo === 'semana' 
-    ? startOfWeek(hoje, { weekStartsOn: 0 }) 
-    : subMonths(hoje, 1);
+    const matchExercicio = h.exercicio_nome === filtro.exercicio;
+    const dataExec = new Date(h.data_execucao);
+    const limite = filtro.periodo === 'semana' ? startOfWeek(new Date(), { weekStartsOn: 0 }) : subMonths(new Date(), 1);
+    return matchExercicio && dataExec >= limite;
+  });
 
-  return matchExercicio && dataExec >= limite;
-});
+  const cargaMaxima = dadosFiltrados.length > 0 ? Math.max(...dadosFiltrados.map(d => d.carga)) : 0;
 
-  if (loading) return <main className="p-10 text-center text-gray-400">Analisando dados...</main>;
+  if (loading) return <main className="flex min-h-screen items-center justify-center text-gray-400 font-bold">Analisando dados...</main>;
 
   return (
-    <main className="max-w-4xl mx-auto p-6 md:p-12">
-      <h1 className="text-2xl font-black mb-8">Relatório de Evolução</h1>
+    <main className="min-h-screen bg-gray-50/50 p-6 md:p-12">
+      <div className="max-w-4xl mx-auto">
+        <header className="mb-10">
+          <h1 className="text-3xl font-black text-gray-900 tracking-tighter">Relatório de Evolução</h1>
+          <p className="text-gray-500 font-medium">Acompanhe a curva de carga do seu aluno.</p>
+        </header>
 
-      {/* Controles de Filtro */}
-      <div className="grid grid-cols-2 gap-4 mb-8">
-        <select 
-          className="bg-white p-4 rounded-2xl border border-gray-100 font-bold text-sm shadow-sm"
-          value={filtro.exercicio}
-          onChange={(e) => setFiltro({...filtro, exercicio: e.target.value})}
-        >
-          {exerciciosUnicos.length > 0 ? (
-            exerciciosUnicos.map(ex => <option key={ex} value={ex}>{ex}</option>)
+        {/* Painel de Controle */}
+        <section className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
+            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-2 mb-2 block">Exercício</label>
+            <select className="w-full bg-transparent font-bold text-sm outline-none" value={filtro.exercicio} onChange={(e) => setFiltro({...filtro, exercicio: e.target.value})}>
+              {exerciciosUnicos.map(ex => <option key={ex} value={ex}>{ex}</option>)}
+            </select>
+          </div>
+          
+          <div className="flex bg-white p-2 rounded-2xl border border-gray-100 shadow-sm">
+            {['semana', 'mes'].map(p => (
+              <button key={p} onClick={() => setFiltro({...filtro, periodo: p})}
+                className={`flex-1 rounded-xl text-xs font-black uppercase tracking-widest py-3 transition-all ${filtro.periodo === p ? 'bg-gray-900 text-white' : 'hover:bg-gray-50'}`}>
+                {p}
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {/* Dashboard de Performance */}
+        <section className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
+          <div className="flex justify-between items-end mb-10">
+             <div>
+                <h2 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Carga Máxima</h2>
+                <p className="text-3xl font-black">{cargaMaxima} <span className="text-sm text-gray-400">kg</span></p>
+             </div>
+          </div>
+          
+          {dadosFiltrados.length > 0 ? (
+            <div className="h-72 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={dadosFiltrados}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                  <XAxis dataKey="data_execucao" hide />
+                  <Tooltip contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
+                  <Line type="monotone" dataKey="carga" stroke="#000" strokeWidth={4} dot={{r: 6, strokeWidth: 2, fill: '#fff'}} activeDot={{r: 8}} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
           ) : (
-            <option>Sem exercícios</option>
+            <div className="h-64 flex items-center justify-center border-2 border-dashed border-gray-100 rounded-2xl">
+              <p className="text-sm font-bold text-gray-400">Dados insuficientes para o período.</p>
+            </div>
           )}
-        </select>
-        
-        <div className="flex bg-gray-100 p-1 rounded-2xl">
-          {['semana', 'mes'].map(p => (
-            <button 
-              key={p}
-              onClick={() => setFiltro({...filtro, periodo: p})}
-              className={`flex-1 rounded-xl text-xs font-black uppercase transition-all ${filtro.periodo === p ? 'bg-white shadow-sm' : ''}`}
-            >
-              {p}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Gráfico ou Aviso */}
-      <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm min-h-[300px] flex flex-col">
-        <h2 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-6">Tendência de Carga</h2>
-        
-        {dadosFiltrados.length > 0 ? (
-          <div className="h-64 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={dadosFiltrados}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f9fafb" />
-                <XAxis dataKey="data_execucao" tickFormatter={(v) => new Date(v).toLocaleDateString('pt-BR', {day: '2-digit', month: '2-digit'})} fontSize={10} axisLine={false} tickLine={false} />
-                <YAxis fontSize={10} axisLine={false} />
-                <Tooltip contentStyle={{borderRadius: '16px', border: 'none'}} />
-                <Line type="monotone" dataKey="carga" stroke="#000" strokeWidth={3} dot={{r: 4, fill: '#000'}} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        ) : (
-          <div className="flex-1 flex items-center justify-center text-center">
-            <p className="text-sm font-bold text-gray-400">Nenhum dado encontrado para este período.</p>
-          </div>
-        )}
+        </section>
       </div>
     </main>
   );
