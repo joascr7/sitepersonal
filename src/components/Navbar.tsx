@@ -20,11 +20,15 @@ export default function Navbar() {
   return (
     <>
       {/* --- DESKTOP: Barra Superior --- */}
-      <nav className="hidden md:flex sticky top-0 z-50 bg-white/70 backdrop-blur-xl border-b border-gray-100 px-10 py-5 justify-between items-center transition-all">
-        {/* Aumentei de 32/8 para 40/10 para uma logo mais presente */}
-        <div className="w-40 h-10 flex items-center">
+      <nav className="hidden md:flex sticky top-0 z-50 bg-white/70 backdrop-blur-xl border-b border-gray-100 px-10 py-5 justify-between items-center">
+        {/* Container fixo para a logo não empurrar nada */}
+        <div className="w-40 h-10 flex items-center overflow-hidden">
           {logo ? (
-            <img src={logo} className="h-full w-full object-contain" alt={nome} />
+            <img 
+              src={logo} 
+              className="w-full h-full object-contain object-left" 
+              alt={nome} 
+            />
           ) : (
             <span className="font-black text-gray-950 tracking-tighter text-xl">{nome}</span>
           )}
@@ -46,20 +50,24 @@ export default function Navbar() {
         </div>
       </nav>
 
-      {/* --- MOBILE: Barra Superior (Logo) + Inferior (Navegação) --- */}
+      {/* --- MOBILE --- */}
       <div className="md:hidden">
-        {/* Topo Mobile: Aumentei o h-6 para h-9 para deixar a logo maior */}
-        <div className="fixed top-0 w-full bg-white/80 backdrop-blur-md px-6 py-4 z-40 border-b border-gray-50">
-          <div className="w-32 h-9 flex items-center">
+        {/* Topo Mobile com altura fixa (h-16) para não cortar */}
+        <div className="fixed top-0 w-full h-16 bg-white/80 backdrop-blur-md px-6 z-40 border-b border-gray-50 flex items-center">
+          <div className="w-32 h-10 flex items-center overflow-hidden">
             {logo ? (
-              <img src={logo} className="h-full w-full object-contain" alt={nome} />
+              <img 
+                src={logo} 
+                className="w-full h-full object-contain object-left" 
+                alt={nome} 
+              />
             ) : (
               <span className="font-black text-gray-950 tracking-tighter text-lg">{nome}</span>
             )}
           </div>
         </div>
 
-        {/* Barra Inferior Flutuante */}
+        {/* Barra Inferior */}
         <nav className="fixed bottom-6 left-6 right-6 z-50 bg-white/90 backdrop-blur-2xl border border-gray-100 rounded-3xl py-4 px-8 flex justify-between items-center shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)]">
           {navItems.map((item) => (
             <a 
@@ -71,16 +79,14 @@ export default function Navbar() {
               <span className="text-[8px] font-black uppercase tracking-widest">{item.name}</span>
             </a>
           ))}
-          
           <div className="flex flex-col items-center gap-1.5 text-gray-400">
              <div className="text-lg"><LogoutButton /></div>
              <span className="text-[8px] font-black uppercase tracking-widest">Sair</span>
           </div>
         </nav>
         
-        {/* Spacers para evitar corte de conteúdo */}
-        <div className="h-24" /> {/* Topo: aumentado para compensar a logo maior */}
-        <div className="h-54" /> {/* Base */}
+        {/* Spacer corrigido: O topo agora tem 16 (64px) e a base tem 24 */}
+        <div className="h-20" /> 
       </div>
     </>
   );

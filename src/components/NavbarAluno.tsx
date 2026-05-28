@@ -20,10 +20,10 @@ export default function NavbarAluno() {
     <>
       {/* --- DESKTOP: Barra Superior --- */}
       <nav className="hidden md:flex sticky top-0 z-50 bg-white/70 backdrop-blur-xl border-b border-gray-100 px-10 py-5 justify-between items-center transition-all">
-        {/* Aumentei a altura para h-10 e largura para w-40 para dar mais destaque */}
-        <div className="w-40 h-10 flex items-center">
+        {/* Container com largura/altura fixa e overflow hidden para nunca empurrar elementos */}
+        <div className="w-40 h-10 flex items-center overflow-hidden">
           {logo ? (
-            <img src={logo} className="h-full w-full object-contain" alt={nome} />
+            <img src={logo} className="h-full w-full object-contain object-left" alt={nome} />
           ) : (
             <span className="font-black text-gray-950 tracking-tighter text-xl">{nome}</span>
           )}
@@ -47,11 +47,15 @@ export default function NavbarAluno() {
 
       {/* --- MOBILE: Barra Superior (Logo) + Inferior (Navegação) --- */}
       <div className="md:hidden">
-        {/* Topo Mobile com Logo - Aumentei a altura de h-6 para h-8 */}
-        <div className="fixed top-0 w-full bg-white/80 backdrop-blur-md px-6 py-4 z-40 border-b border-gray-50">
-          <div className="w-32 h-8 flex items-center">
+        {/* Topo Mobile: Altura fixa de 16 (64px) para estabilidade */}
+        <div className="fixed top-0 w-full h-16 bg-white/80 backdrop-blur-md px-6 z-40 border-b border-gray-50 flex items-center">
+          <div className="w-32 h-10 flex items-center overflow-hidden">
             {logo ? (
-              <img src={logo} className="h-full w-full object-contain" alt={nome} />
+              <img 
+                src={logo} 
+                className="h-full w-full object-contain object-left" 
+                alt={nome} 
+              />
             ) : (
               <span className="font-black text-gray-950 tracking-tighter text-lg">{nome}</span>
             )}
@@ -77,9 +81,8 @@ export default function NavbarAluno() {
           </div>
         </nav>
         
-        {/* Spacers para o conteúdo não ser cortado */}
-        <div className="h-24" /> {/* Topo mais alto para acomodar a logo maior */}
-        <div className="h-24" /> {/* Base */}
+        {/* Spacers corrigidos */}
+        <div className="h-20" /> 
       </div>
     </>
   );
