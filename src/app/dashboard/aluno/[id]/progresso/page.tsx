@@ -35,12 +35,19 @@ export default function ProgressoPersonal({ params }: { params: Promise<{ id: st
 
   // Filtro seguro: garante que não tentamos filtrar se exercicio for vazio
   const dadosFiltrados = historico.filter(h => {
-    if (!filtro.exercicio) return false;
-    const matchExercicio = h.exercicio_nome === filtro.exercicio;
-    const dataExec = parseISO(h.data_execucao);
-    const limite = filtro.periodo === 'semana' ? startOfWeek(new Date()) : subMonths(new Date(), 1);
-    return matchExercicio && dataExec >= limite;
-  });
+  const matchExercicio = h.exercicio_nome === filtro.exercicio;
+  
+  // Converte a data do banco para um objeto Date real e ignora o problema do fuso
+  const dataExec = new Date(h.data_execucao);
+  
+  // Usa o dia de hoje como base, garantindo que o tempo não interfira
+  const hoje = new Date();
+  const limite = filtro.periodo === 'semana' 
+    ? startOfWeek(hoje, { weekStartsOn: 0 }) 
+    : subMonths(hoje, 1);
+
+  return matchExercicio && dataExec >= limite;
+});
 
   if (loading) return <main className="p-10 text-center text-gray-400">Analisando dados...</main>;
 
