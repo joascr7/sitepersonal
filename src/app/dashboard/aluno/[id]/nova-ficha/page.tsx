@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 
 interface Serie {
-  reps: number | string;
+  reps: string; 
   carga: number | string;
   CargaPlanejada: number | string;
   intervalo: number | string;
@@ -29,8 +29,8 @@ function NovaFichaContent() {
   const [nome, setNome] = useState('');
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [meusModelos, setMeusModelos] = useState<any[]>([]); // Seus modelos criados
-  const [treinosPadrao, setTreinosPadrao] = useState<any[]>([]); // Treinos padrão da plataforma
+  const [meusModelos, setMeusModelos] = useState<any[]>([]);
+  const [treinosPadrao, setTreinosPadrao] = useState<any[]>([]);
   const [biblioteca, setBiblioteca] = useState<any[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
@@ -42,10 +42,7 @@ function NovaFichaContent() {
 
   useEffect(() => {
     const fetchData = async () => {
-      // 1. Busca o usuário primeiro
       const { data: { user } } = await supabase.auth.getUser();
-      
-      // 2. Busca a biblioteca e os padrões (que não dependem do ID do usuário)
       const [pRes, bRes] = await Promise.all([
         supabase.from('treinos_padrao').select('*'),
         supabase.from('videos_biblioteca').select('*')
@@ -54,7 +51,6 @@ function NovaFichaContent() {
       if (pRes.data) setTreinosPadrao(pRes.data);
       if (bRes.data) setBiblioteca(bRes.data);
 
-      // 3. Se houver usuário, busca os modelos DELE
       if (user?.id) {
         const { data: mData } = await supabase
           .from('modelos_personal')
@@ -62,8 +58,6 @@ function NovaFichaContent() {
           .eq('personal_id', user.id);
         
         if (mData) setMeusModelos(mData);
-      } else {
-        console.warn("Usuário não autenticado ou carregando...");
       }
     };
 
@@ -77,8 +71,6 @@ function NovaFichaContent() {
 
   const aplicarModelo = (modelo: any, ehPadrao: boolean) => {
     try {
-      // Se for da tabela treinos_padrao, a coluna é 'exercicios_json'. 
-      // Se for modelos_personal, a coluna é 'descricao'.
       const raw = ehPadrao ? modelo.exercicios_json : modelo.descricao;
       const novosExercicios = typeof raw === 'string' ? JSON.parse(raw) : raw;
       
@@ -91,6 +83,7 @@ function NovaFichaContent() {
   };
 
   const uploadVideo = async (exIndex: number, file: File) => {
+    if (file.size > 10 * 1024 * 1024) return alert("Arquivo maior que 10MB!");
     try {
       setUploading(true);
       const fileExt = file.name.split('.').pop();
@@ -137,8 +130,10 @@ function NovaFichaContent() {
     setLoading(true);
     const exerciciosLimpos = exercicios.map(ex => ({
       ...ex, series: ex.series.map(s => ({
-        reps: Number(s.reps) || 0, carga: Number(s.carga) || 0,
-        CargaPlanejada: Number(s.CargaPlanejada) || 0, intervalo: Number(s.intervalo) || 0
+        reps: s.reps, 
+        carga: Number(s.carga) || 0,
+        CargaPlanejada: Number(s.CargaPlanejada) || 0,
+        intervalo: Number(s.intervalo) || 0
       }))
     }));
 
@@ -154,24 +149,13 @@ function NovaFichaContent() {
     setLoading(true);
     try {
       await salvarFicha();
-      
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Usuário não autenticado");
-
-      const exerciciosLimpos = exercicios.map(ex => ({
-        ...ex,
-        series: ex.series.map(s => ({
-          reps: Number(s.reps) || 0,
-          carga: Number(s.carga) || 0,
-          CargaPlanejada: Number(s.CargaPlanejada) || 0,
-          intervalo: Number(s.intervalo) || 0
-        }))
-      }));
 
       await supabase.from('modelos_personal').insert({
         personal_id: user.id,
         nome_modelo: nome,
-        descricao: JSON.stringify(exerciciosLimpos)
+        descricao: JSON.stringify(exercicios)
       });
       
       showToast("Salvo para o aluno e como modelo!");
@@ -259,7 +243,7 @@ function NovaFichaContent() {
               {ex.series.map((s, sIndex) => (
                 <div key={sIndex} className="flex gap-2 items-center">
                   <div className="grid grid-cols-4 gap-2 flex-grow">
-                    <input type="number" className="p-3 bg-gray-50 border rounded-xl font-bold text-sm text-center" placeholder="-" value={s.reps} onChange={(e) => atualizarSerie(exIndex, sIndex, 'reps', e.target.value)} />
+                    <input type="text" className="p-3 bg-gray-50 border rounded-xl font-bold text-sm text-center" placeholder="-" value={s.reps} onChange={(e) => atualizarSerie(exIndex, sIndex, 'reps', e.target.value)} />
                     <input type="number" className="p-3 bg-gray-50 border rounded-xl font-bold text-sm text-center" placeholder="-" value={s.carga} onChange={(e) => atualizarSerie(exIndex, sIndex, 'carga', e.target.value)} />
                     <input type="number" className="p-3 bg-gray-50 border rounded-xl font-black text-blue-600 text-sm text-center" placeholder="-" value={s.intervalo} onChange={(e) => atualizarSerie(exIndex, sIndex, 'intervalo', e.target.value)} />
                     <input type="number" className="p-3 bg-gray-50 border rounded-xl font-bold text-sm text-center" placeholder="-" value={s.CargaPlanejada} onChange={(e) => atualizarSerie(exIndex, sIndex, 'CargaPlanejada', e.target.value)} />
