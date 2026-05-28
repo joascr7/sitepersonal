@@ -21,12 +21,16 @@ export default function RootLayout({
       lang="pt-br"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
-        {/* Navbar responsiva controlada pelo ConditionalNavbar */}
+      <body className="min-h-full flex flex-col bg-gray-50">
+        {/* O ConditionalNavbar agora gerencia toda a lógica de visibilidade.
+          Certifique-se de que NÃO exista nenhum <Navbar /> ou <LogoutButton /> 
+          dentro dos seus arquivos page.tsx.
+        */}
         <ConditionalNavbar />
         
-        {/* pb-24: Adiciona espaço no fundo apenas no mobile para não cortar o conteúdo 
-          md:pb-0: Remove esse espaço no desktop, onde a navbar não é fixa no rodapé 
+        {/* flex-grow: Garante que o main ocupe todo o espaço restante.
+          pb-24: Espaço para a navbar mobile fixa.
+          md:pb-0: Remove o padding no desktop.
         */}
         <main className="flex-grow pb-24 md:pb-0">
           {children}

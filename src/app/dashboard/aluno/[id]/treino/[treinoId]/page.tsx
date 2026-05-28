@@ -21,7 +21,6 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
     const fetchData = async () => {
       setLoading(true);
       try {
-        // Busca da ficha
         const { data: fichaData, error: fichaError } = await supabase
           .from('fichas')
           .select('*')
@@ -31,10 +30,7 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
         if (fichaError) throw new Error(fichaError.message);
         setFicha(fichaData);
 
-        // Verificação de autenticação e propriedade
         const { data: { user } } = await supabase.auth.getUser();
-        
-        // Se o usuário logado for o dono (personal_id), permitimos edição
         const ehDono = !!(user && fichaData && String(fichaData.personal_id) === String(user.id));
         setIsPersonal(ehDono);
       } catch (err: any) {
@@ -46,14 +42,13 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
     fetchData();
   }, [treinoId]);
 
-  // Função robusta de duplicação
   const duplicarTreino = async (alunoSelecionadoId: string) => {
     try {
       const { error } = await supabase.from('fichas').insert({
         nome_treino: `${ficha.nome_treino} (Cópia)`,
         descricao: ficha.descricao,
         aluno_id: alunoSelecionadoId,
-        personal_id: ficha.personal_id // Mantém o dono original
+        personal_id: ficha.personal_id
       });
 
       if (error) throw error;
@@ -66,10 +61,8 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
 
   const excluirFicha = async () => {
     if (!confirm("Tem certeza que deseja excluir esta ficha? Esta ação é irreversível.")) return;
-    
     setLoading(true);
     const { error } = await supabase.from('fichas').delete().eq('id', treinoId);
-    
     if (error) {
       alert("Erro ao excluir: " + error.message);
       setLoading(false);
@@ -99,17 +92,19 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
           <table className="w-full text-left text-sm">
             <thead className="bg-gray-50 text-[10px] uppercase font-black text-gray-400 tracking-widest">
               <tr>
-                <th className="p-4 border-b">Série/Rep</th>
+                <th className="p-4 border-b">Reps</th>
                 <th className="p-4 border-b">Carga</th>
+                <th className="p-4 border-b">Planejada</th>
                 <th className="p-4 border-b">Intervalo</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {ex.series?.map((s: any, sIndex: number) => (
                 <tr key={sIndex}>
-                  <td className="p-4 font-bold text-gray-900">{s.reps}</td>
-                  <td className="p-4 font-bold text-gray-900">{s.carga} kg</td>
-                  <td className="p-4 text-gray-500">{s.intervalo} seg</td>
+                  <td className="p-4 font-bold text-gray-900">{s.reps || '-'}</td>
+                  <td className="p-4 font-bold text-gray-900">{s.carga || '-'} kg</td>
+                  <td className="p-4 text-gray-500">{s.CargaPlanejada || '-'} kg</td>
+                  <td className="p-4 text-gray-500">{s.intervalo || '0'} s</td>
                 </tr>
               ))}
             </tbody>
@@ -127,7 +122,6 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
   return (
     <main className="min-h-screen bg-gray-50 p-6 md:p-12">
       <div className="max-w-4xl mx-auto">
-        {/* Modal agora com a função de duplicação injetada */}
         <ModalSelecaoAlunos 
           isOpen={isModalOpen} 
           onClose={() => setIsModalOpen(false)} 
@@ -139,24 +133,9 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
           
           {isPersonal && (
             <div className="flex gap-3">
-              <button 
-                onClick={() => setIsModalOpen(true)} 
-                className="bg-white border border-gray-200 text-gray-900 px-6 py-3 rounded-xl font-bold hover:bg-gray-50 transition-all active:scale-[0.98]"
-              >
-                Duplicar
-              </button>
-              <button 
-                onClick={excluirFicha} 
-                className="bg-red-50 text-red-600 px-6 py-3 rounded-xl font-bold hover:bg-red-100 transition-all active:scale-[0.98]"
-              >
-                Excluir
-              </button>
-              <a 
-                href={`/dashboard/aluno/${id}/editar-ficha/${treinoId}`} 
-                className="bg-gray-900 text-white px-6 py-3 rounded-xl font-bold hover:bg-black transition-all active:scale-[0.98]"
-              >
-                Editar
-              </a>
+              <button onClick={() => setIsModalOpen(true)} className="bg-white border border-gray-200 text-gray-900 px-6 py-3 rounded-xl font-bold hover:bg-gray-50 transition-all active:scale-[0.98]">Duplicar</button>
+              <button onClick={excluirFicha} className="bg-red-50 text-red-600 px-6 py-3 rounded-xl font-bold hover:bg-red-100 transition-all active:scale-[0.98]">Excluir</button>
+              <a href={`/dashboard/aluno/${id}/editar-ficha/${treinoId}`} className="bg-gray-900 text-white px-6 py-3 rounded-xl font-bold hover:bg-black transition-all active:scale-[0.98]">Editar</a>
             </div>
           )}
         </div>

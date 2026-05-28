@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
 import AgendaGeral from '@/components/AgendaGeral'; 
-import LogoutButton from '@/components/LogoutButton';
+
 
 export default function Dashboard() {
   const [user, setUser] = useState<any>(null);
@@ -111,10 +111,7 @@ export default function Dashboard() {
           </div>
         )}
 
-        <div className="flex justify-between items-center mb-10">
-          <h1 className="text-3xl font-black text-gray-900 tracking-tight">Dashboard</h1>
-          <LogoutButton />
-        </div>
+       
 
         {/* Cards de Resumo */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
