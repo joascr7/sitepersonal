@@ -125,103 +125,260 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
         </section>
 
         <div className="flex gap-8 mb-10 border-b border-gray-200">
-          {['treinos', 'evolucao', 'feedback'].map((tab) => (
-            <button 
-              key={tab} 
-              onClick={() => { setAbaAtiva(tab); router.replace(`?aba=${tab}`) }} 
-              className={`pb-4 font-black text-xs uppercase tracking-[0.2em] transition-all border-b-2 ${abaAtiva === tab ? 'border-gray-900 text-gray-900' : 'border-transparent text-gray-400 hover:text-gray-600'}`}
-            >
-              {tab}
-            </button>
-          ))}
-        </div>
+  {[
+    { id: 'treinos', label: 'Programação de Treino' },
+    { id: 'evolucao', label: 'Evolução Corporal' },
+    { id: 'feedback', label: 'Feedbacks do Aluno' }
+  ].map((tab) => (
+    <button 
+      key={tab.id} 
+      onClick={() => { setAbaAtiva(tab.id); router.replace(`?aba=${tab.id}`) }} 
+      className={`pb-4 text-[11px] font-black uppercase tracking-widest transition-all border-b-2 ${
+        abaAtiva === tab.id 
+          ? 'border-gray-900 text-gray-900' 
+          : 'border-transparent text-gray-400 hover:text-gray-600'
+      }`}
+    >
+      {tab.label}
+    </button>
+  ))}
+</div>
 
         {abaAtiva === 'treinos' && (
-          <section className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
-            {fichas.map((f) => (
-              <div key={f.id} className="border-b border-gray-50 py-6 flex justify-between items-center group transition-all">
-                <button onClick={() => router.push(`/dashboard/aluno/${id}/treino/${f.id}`)} className="font-bold text-gray-900 text-lg hover:text-blue-600 transition-colors">
+  <section className="space-y-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {fichas.length > 0 ? (
+        fichas.map((f) => (
+          <div 
+            key={f.id} 
+            className="group relative bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-md hover:border-gray-200 transition-all duration-300"
+          >
+            <div className="flex items-start justify-between">
+              <div>
+                <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest bg-blue-50 px-2 py-1 rounded-lg">
+                  Treino Ativo
+                </span>
+                <h3 className="text-lg font-black text-gray-900 mt-2 tracking-tight">
                   {f.nome_treino}
-                </button>
-                <button onClick={(e) => excluirFicha(e, f.id)} className="text-gray-300 hover:text-red-500 font-bold text-[10px] uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">Excluir</button>
+                </h3>
+                <p className="text-gray-400 text-xs mt-1">Criado em {new Date(f.created_at).toLocaleDateString('pt-BR')}</p>
               </div>
-            ))}
-            <a href={`/dashboard/aluno/${id}/nova-ficha`} className="mt-10 block w-full text-center bg-gray-900 text-white p-5 rounded-2xl font-black hover:bg-black transition-all active:scale-[0.98]">
-              + Criar Nova Ficha
-            </a>
-          </section>
-        )}
-
-        {abaAtiva === 'evolucao' && (
-          <section className="space-y-8">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-black tracking-tighter">Progresso de Medidas</h2>
-              <button onClick={() => setIsModalAvaliacaoOpen(true)} className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all">+ Nova Avaliação</button>
+              
+              <button 
+                onClick={(e) => excluirFicha(e, f.id)} 
+                className="text-gray-300 hover:text-red-500 p-2 transition-colors"
+                title="Remover ficha"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+              </button>
             </div>
-            
-            <div className="h-72 w-full bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={[...historico].filter(a => a.peso && !a.tipo).reverse()}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                  <XAxis dataKey="data_avaliacao" hide />
-                  <Tooltip contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
-                  <Line type="monotone" dataKey="peso" stroke="#2563eb" strokeWidth={4} dot={{r: 6}} />
-                </LineChart>
-              </ResponsiveContainer>
+
+            <div className="mt-6 pt-6 border-t border-gray-50 flex items-center justify-between">
+              <button 
+                onClick={() => router.push(`/dashboard/aluno/${id}/treino/${f.id}`)} 
+                className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest text-gray-900 hover:text-blue-600 transition-colors"
+              >
+                Visualizar Detalhes →
+              </button>
+            </div>
+          </div>
+        ))
+      ) : (
+        <div className="col-span-full py-20 text-center border-2 border-dashed border-gray-100 rounded-3xl">
+          <p className="text-gray-400 font-medium">Nenhuma ficha criada ainda.</p>
+        </div>
+      )}
+    </div>
+
+    {/* Botão de Nova Ficha com destaque */}
+    <a 
+      href={`/dashboard/aluno/${id}/nova-ficha`} 
+      className="flex items-center justify-center gap-2 w-full bg-gray-900 text-white p-6 rounded-3xl font-black text-sm uppercase tracking-widest hover:bg-black hover:shadow-lg transition-all active:scale-[0.99]"
+    >
+      <span className="text-xl">+</span> Criar Nova Ficha de Treino
+    </a>
+  </section>
+)}
+
+  {abaAtiva === 'evolucao' && (
+  <section className="space-y-8">
+    {/* Header com destaque */}
+    <div className="flex justify-between items-end">
+      <div>
+        <h2 className="text-3xl font-black tracking-tighter text-gray-900">Evolução Corporal</h2>
+        <p className="text-gray-500 font-medium">Acompanhamento de metas e métricas.</p>
+      </div>
+      <button 
+        onClick={() => setIsModalAvaliacaoOpen(true)} 
+        className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black text-sm shadow-xl shadow-blue-200 hover:bg-blue-700 transition-all active:scale-[0.98]"
+      >
+        + Nova Avaliação
+      </button>
+    </div>
+
+    {/* Gráfico Premium */}
+    <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 h-96">
+      <div className="flex justify-between items-center mb-8">
+        <h3 className="font-black text-gray-900 tracking-tight">Progressão de Peso (kg)</h3>
+        <span className="text-[10px] font-black uppercase text-blue-600 bg-blue-50 px-3 py-1 rounded-full">Histórico de Peso</span>
+      </div>
+      <ResponsiveContainer width="100%" height="80%">
+        <LineChart data={[...historico].filter(a => a.peso).reverse()}>
+          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+          <XAxis dataKey="data_avaliacao" hide />
+          <YAxis domain={['auto', 'auto']} hide />
+          <Tooltip 
+            contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)', padding: '12px' }}
+            cursor={{ stroke: '#e5e7eb', strokeWidth: 2 }}
+          />
+          <Line 
+            type="monotone" 
+            dataKey="peso" 
+            stroke="#2563eb" 
+            strokeWidth={5} 
+            dot={{ fill: '#2563eb', strokeWidth: 2, r: 6, stroke: '#fff' }} 
+            activeDot={{ r: 8, strokeWidth: 0 }}
+          />
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+
+    {/* Lista de Avaliações */}
+    <div className="space-y-6">
+      {historico.filter(a => !a.tipo).map((av) => (
+        <div key={av.id} className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow group">
+          <div className="flex justify-between items-start mb-6">
+            <div>
+              <p className="font-black text-2xl text-gray-900">
+                {new Date(av.data_avaliacao).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}
+              </p>
+              <p className="text-gray-400 text-xs uppercase tracking-widest font-bold mt-1">Registro de Avaliação</p>
+            </div>
+            <button 
+              onClick={() => excluirAvaliacao(av.id)} 
+              className="text-gray-300 hover:text-red-500 text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              Excluir
+            </button>
+          </div>
+          
+          {/* Grid de Métricas Organizado com Filtro de Segurança */}
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            {Object.entries(av).map(([key, val]: any) => {
+              // Filtro de campos técnicos e valores vazios
+              const camposProibidos = ['id', 'aluno_id', 'data_avaliacao', 'observacoes', 'tipo', 'personal_id', 'created_at', 'updated_at'];
+              if (camposProibidos.includes(key) || val === null || val === undefined || val === '') return null;
+              
+              const isCorpo = ['peitoral', 'braco', 'cintura', 'quadril', 'coxa', 'ombros', 'torax', 'abdomen'].includes(key);
+              
+              return (
+                <div key={key} className={`p-5 rounded-2xl ${isCorpo ? 'bg-indigo-50/50' : 'bg-gray-50'}`}>
+                  <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 truncate">
+                    {key.replace('_', ' ')}
+                  </p>
+                  <p className="font-black text-xl text-gray-900">
+                    {val}
+                    <span className="text-[10px] text-gray-400 ml-1 font-bold">
+                      {['peso', 'gordura'].includes(key) ? (key === 'peso' ? 'kg' : '%') : 'cm'}
+                    </span>
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+  </section>
+)}
+
+{/* SEÇÃO DE FEEDBACKS */}
+        {abaAtiva === 'feedback' && (
+          <section className="space-y-8">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-3xl font-black tracking-tighter text-gray-900">Feedbacks de Treino</h2>
+                <p className="text-gray-500 font-medium">O que o aluno está sentindo sobre a evolução.</p>
+              </div>
+              <div className="text-[10px] font-black uppercase tracking-widest text-gray-400 bg-gray-100 px-4 py-2 rounded-full">
+                {feedbacks.length} Registros
+              </div>
             </div>
 
             <div className="grid gap-6">
-              {historico.filter(a => !a.tipo).map((av) => (
-                <div key={av.id} className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 relative group">
-                  <button onClick={() => excluirAvaliacao(av.id)} className="absolute top-8 right-8 text-gray-300 hover:text-red-500 font-bold text-[10px] uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">Excluir</button>
-                  <p className="font-black text-xl mb-6 text-gray-900">{new Date(av.data_avaliacao).toLocaleDateString()}</p>
-                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                    {Object.entries(av).map(([key, val]: any) => {
-                      if (['id', 'aluno_id', 'data_avaliacao', 'observacoes', 'tipo'].includes(key) || !val) return null;
-                      return (
-                        <div key={key} className="bg-gray-50 p-5 rounded-2xl">
-                          <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">{key.replace('_', ' ')}</p>
-                          <p className="font-black text-lg text-gray-900">{val}<span className="text-[10px] text-gray-400 ml-1">{['peso', 'gordura'].includes(key) ? 'kg/%' : 'cm'}</span></p>
+              {feedbacks.length > 0 ? (
+                feedbacks.map((f) => (
+                  <div key={f.id} className="group relative bg-white p-8 rounded-3xl shadow-sm border border-gray-100 hover:shadow-md transition-all">
+                    <div className="flex justify-between items-start mb-6">
+                      <div className="flex items-center gap-4">
+                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-lg ${f.intensidade > 7 ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'}`}>
+                          {f.intensidade}
                         </div>
-                      );
-                    })}
+                        <div>
+                          <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Intensidade Percibida</p>
+                          <p className="font-bold text-gray-900">Nível {f.intensidade} de 10</p>
+                        </div>
+                      </div>
+                      <button 
+                        onClick={() => excluirFeedback(f.id)} 
+                        className="text-gray-300 hover:text-red-500 text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        Excluir
+                      </button>
+                    </div>
+
+                    <blockquote className="text-xl italic font-medium leading-relaxed text-gray-700 bg-gray-50 p-6 rounded-2xl border-l-4 border-gray-900">
+                      "{f.observacoes}"
+                    </blockquote>
+                    
+                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mt-6">
+                      Registrado em {new Date(f.data_criacao).toLocaleDateString('pt-BR')}
+                    </p>
                   </div>
+                ))
+              ) : (
+                <div className="text-center py-20 border-2 border-dashed border-gray-200 rounded-3xl">
+                  <p className="text-gray-400 font-medium">Nenhum feedback disponível no momento.</p>
                 </div>
-              ))}
+              )}
             </div>
           </section>
         )}
 
-        {abaAtiva === 'feedback' && (
-          <section className="space-y-6">
-            <h2 className="text-2xl font-black tracking-tighter">Feedbacks</h2>
-            {feedbacks.map((f) => (
-              <div key={f.id} className="bg-gray-900 p-8 rounded-3xl text-white relative shadow-xl">
-                <button onClick={() => excluirFeedback(f.id)} className="absolute top-8 right-8 text-gray-500 hover:text-red-400 font-bold text-[10px] uppercase tracking-widest">Excluir</button>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-3">{new Date(f.data_criacao).toLocaleDateString()}</p>
-                <p className="font-bold text-sm mb-4 bg-white/10 inline-block px-3 py-1 rounded-full">Intensidade: {f.intensidade}/10</p>
-                <p className="text-xl italic font-medium leading-relaxed text-gray-100">"{f.observacoes}"</p>
-              </div>
-            ))}
-          </section>
-        )}
-
+        {/* MODAL DE AVALIAÇÃO OTIMIZADO */}
         {isModalAvaliacaoOpen && (
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-white p-10 rounded-3xl w-full max-w-xl shadow-2xl animate-in zoom-in-95 duration-200">
-              <h3 className="text-2xl font-black mb-8">Nova Avaliação</h3>
-              <div className="grid grid-cols-2 gap-4">
+          <div className="fixed inset-0 bg-black/30 backdrop-blur-md z-50 flex items-center justify-center p-4">
+            <div className="bg-white p-10 rounded-[2rem] w-full max-w-2xl shadow-2xl animate-in fade-in zoom-in-95 duration-300">
+              <div className="mb-8">
+                <h3 className="text-3xl font-black tracking-tighter">Nova Avaliação</h3>
+                <p className="text-gray-400 font-medium mt-1">Preencha as métricas corporais do aluno.</p>
+              </div>
+              
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                 {Object.keys(medidas).filter(k => k !== 'observacoes').map((key) => (
-                  <div key={key}>
-                    <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest">{key.replace('_', ' ')}</label>
-                    <input type="number" className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl mt-1 font-bold outline-none focus:ring-2 focus:ring-gray-200 transition-all" onChange={(e) => setMedidas({...medidas, [key]: e.target.value})} />
+                  <div key={key} className="space-y-1">
+                    <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest pl-1">
+                      {key.replace('_', ' ')}
+                    </label>
+                    <input 
+                      type="number" 
+                      className="w-full p-4 bg-gray-50 border border-transparent rounded-2xl font-bold outline-none focus:bg-white focus:ring-2 focus:ring-gray-900 transition-all" 
+                      placeholder="0.0"
+                      onChange={(e) => setMedidas({...medidas, [key]: e.target.value})} 
+                    />
                   </div>
                 ))}
               </div>
-              <textarea className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl mt-4 outline-none font-medium h-24" placeholder="Observações..." onChange={(e) => setMedidas({...medidas, observacoes: e.target.value})} />
+
+              <textarea 
+                className="w-full p-5 bg-gray-50 border border-transparent rounded-2xl mt-6 outline-none font-medium h-32 focus:bg-white focus:ring-2 focus:ring-gray-900 transition-all" 
+                placeholder="Adicione observações sobre a evolução do aluno..." 
+                onChange={(e) => setMedidas({...medidas, observacoes: e.target.value})} 
+              />
+
               <div className="flex gap-4 mt-10">
-                <button onClick={() => setIsModalAvaliacaoOpen(false)} className="flex-1 p-4 bg-gray-100 rounded-2xl font-bold hover:bg-gray-200 transition-all">Cancelar</button>
-                <button onClick={salvarAvaliacaoCompleta} className="flex-1 p-4 bg-gray-900 text-white rounded-2xl font-bold hover:bg-black transition-all">Salvar Medidas</button>
+                <button onClick={() => setIsModalAvaliacaoOpen(false)} className="flex-1 p-4 bg-gray-100 rounded-2xl font-black hover:bg-gray-200 transition-all">Cancelar</button>
+                <button onClick={salvarAvaliacaoCompleta} className="flex-1 p-4 bg-gray-900 text-white rounded-2xl font-black hover:bg-black hover:shadow-lg transition-all">Salvar Avaliação</button>
               </div>
             </div>
           </div>
@@ -232,5 +389,9 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
 }
 
 export default function DetalheAluno({ params }: { params: Promise<{ id: string }> }) {
-  return <Suspense fallback={<main className="flex items-center justify-center min-h-screen text-gray-400">Carregando...</main>}><DetalheAlunoContent params={params} /></Suspense>;
+  return (
+    <Suspense fallback={<main className="flex items-center justify-center min-h-screen text-gray-400">Carregando...</main>}>
+      <DetalheAlunoContent params={params} />
+    </Suspense>
+  );
 }

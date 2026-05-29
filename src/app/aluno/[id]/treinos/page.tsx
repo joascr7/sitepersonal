@@ -7,121 +7,120 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
   const { id } = use(params);
   const router = useRouter();
   const [fichas, setFichas] = useState<any[]>([]);
-  const [conclusoes, setConclusoes] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Meta global de sessões (ex: 30)
+  const META_SESSOES = 30;
 
   useEffect(() => {
-    const checkAccessAndFetch = async () => {
+    const init = async () => {
       setLoading(true);
-
-      // 1. Check de Pagamento (Segurança no front-end)
-      const { data: aluno, error: alunoError } = await supabase
-        .from('alunos')
-        .select('status_pagamento, data_vencimento')
-        .eq('id', id)
-        .single();
-
-      if (alunoError || !aluno) {
-        setLoading(false);
-        return;
-      }
-
-      const hoje = new Date();
-      const vencimento = aluno.data_vencimento ? new Date(aluno.data_vencimento) : null;
-      const estaBloqueado = aluno.status_pagamento === 'bloqueado' || (vencimento && vencimento < hoje);
-
-      if (estaBloqueado) {
+      
+      // Validação de Acesso
+      const { data: aluno } = await supabase.from('alunos').select('status_pagamento, data_vencimento').eq('id', id).single();
+      if (!aluno || aluno.status_pagamento === 'bloqueado' || (aluno.data_vencimento && new Date(aluno.data_vencimento) < new Date())) {
         router.push('/aluno/pagamento-pendente');
         return;
       }
 
-      // 2. Fetch de Dados (se liberado)
-      const { data: fichasData } = await supabase.from('fichas').select('*').eq('aluno_id', id);
-      const { data: conclusoesData } = await supabase.from('conclusoes_treino').select('treino_id').eq('aluno_id', id);
+      // Fetch paralelo otimizado
+      const [fichasRes, histRes] = await Promise.all([
+        supabase.from('fichas').select('*').eq('aluno_id', id),
+        supabase.from('conclusoes_treino')
+          .select('treino_id, data_conclusao')
+          .eq('aluno_id', id)
+          .order('data_conclusao', { ascending: false })
+      ]);
 
-      if (conclusoesData) setConclusoes(conclusoesData.map(c => c.treino_id));
-      if (fichasData) {
-        const processadas = fichasData.map(f => {
+      if (fichasRes.data) {
+        const historicoData = histRes.data || [];
+        
+        const processadas = fichasRes.data.map(f => {
           let exercicios = [];
-          try { exercicios = typeof f.descricao === 'string' ? JSON.parse(f.descricao || '[]') : (f.descricao || []); } catch (e) { exercicios = []; }
-          return { ...f, exercicios, count: exercicios.length };
+          try { exercicios = typeof f.descricao === 'string' ? JSON.parse(f.descricao || '[]') : (f.descricao || []); } catch { exercicios = []; }
+          
+          const historicoDoTreino = historicoData.filter(h => h.treino_id === f.id);
+          
+          return { 
+            ...f, 
+            count: exercicios.length, 
+            sessõesCount: historicoDoTreino.length,
+            ultimaSessao: historicoDoTreino.length > 0 ? historicoDoTreino[0].data_conclusao : null 
+          };
         });
         setFichas(processadas);
       }
       setLoading(false);
     };
-
-    checkAccessAndFetch();
+    init();
   }, [id, router]);
 
-  if (loading) return <main className="min-h-screen bg-[#FAFAFA] flex items-center justify-center text-blue-600 font-bold tracking-widest uppercase text-xs">Validando acesso...</main>;
+  if (loading) return (
+    <main className="min-h-screen bg-[#F8F9FA] flex items-center justify-center p-6">
+      <div className="w-full max-w-xl space-y-4">
+        <div className="h-20 bg-white rounded-[2rem] animate-pulse" />
+        <div className="h-40 bg-white rounded-[2rem] animate-pulse" />
+      </div>
+    </main>
+  );
 
   return (
-    <main className="min-h-screen bg-[#FAFAFA] p-6 md:p-12">
+    <main className="min-h-screen bg-[#F8F9FA] p-6 md:p-12">
       <div className="max-w-xl mx-auto">
-        <h1 
-          className="text-4xl font-black tracking-tighter mb-10"
-          style={{
-            background: 'linear-gradient(135deg, #111 0%, #444 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-          }}
-        >
-          Meus Treinos
-        </h1>
-        
-        {fichas.length === 0 ? (
-          <div className="text-center py-20 bg-white rounded-3xl border border-gray-100 shadow-sm">
-            <p className="text-gray-400 font-medium">Nenhum treino liberado ainda.</p>
-          </div>
-        ) : (
-          fichas.map((f) => {
-            const estaConcluido = conclusoes.includes(f.id);
+        <header className="mb-12">
+          <h1 className="text-5xl font-black tracking-tighter text-gray-950">Treinos</h1>
+          <p className="text-[10px] font-black uppercase tracking-[0.25em] text-gray-400 mt-2">Centro de Performance</p>
+        </header>
+
+        <div className="space-y-6">
+          {fichas.map((f) => {
+            const progressoPercent = Math.min(Math.round((f.sessõesCount / META_SESSOES) * 100), 100);
+            
             return (
-              <div 
-                key={f.id} 
-                className={`group bg-white p-6 rounded-3xl mb-4 flex justify-between items-center transition-all duration-500 border ${
-                  estaConcluido 
-                    ? 'border-blue-500/20 shadow-[0_0_20px_rgba(59,130,246,0.1)]' 
-                    : 'border-gray-100 hover:border-gray-300 hover:shadow-xl hover:shadow-gray-200/50'
-                }`}
-              >
-                <div>
-                  <div className="flex items-center gap-3">
-                    <p className={`text-lg font-black transition-colors ${estaConcluido ? 'text-blue-600' : 'text-gray-950'}`}>
-                      {f.nome_treino}
-                    </p>
-                    {estaConcluido && (
-                      <span className="text-[9px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-md font-black uppercase tracking-widest border border-blue-100">
-                        Concluído
-                      </span>
-                    )}
+              <div key={f.id} className="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm hover:shadow-lg transition-all duration-300">
+                <div className="flex justify-between items-start mb-6">
+                  <div>
+                    <h2 className="text-lg font-black text-gray-950">{f.nome_treino}</h2>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-gray-400 mt-1">{f.count} Exercícios</p>
                   </div>
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mt-1">
-                    {f.count} Exercícios
-                  </p>
+                  <div className="text-right">
+                    <p className="text-[9px] font-black uppercase text-gray-400">Último treino</p>
+                    <p className="text-[10px] font-bold text-gray-950">
+                      {f.ultimaSessao ? new Date(f.ultimaSessao).toLocaleDateString('pt-BR') : 'Nunca realizado'}
+                    </p>
+                  </div>
                 </div>
-                
+
+                {/* COMPONENTE DE PROGRESSO PREMIUM */}
+                <div className="mb-8">
+                  <div className="flex justify-between items-end mb-2">
+                    <p className="text-[9px] font-black uppercase text-gray-400">Progresso de Treino</p>
+                    <p className="text-[10px] font-black text-gray-950">Sessões: <span className="text-sm">{f.sessõesCount}/{META_SESSOES}</span></p>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <span className="text-3xl font-black tracking-tighter">{progressoPercent}%</span>
+                    <div className="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-amber-400 transition-all duration-1000 ease-out" 
+                        style={{ width: `${progressoPercent}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+
                 <button 
                   onClick={() => router.push(`/aluno/${id}/treino/${f.id}`)}
-                  className={`px-8 py-3 rounded-xl text-sm font-bold shadow-sm transition-all active:scale-[0.95] ${
-                    estaConcluido 
-                      ? 'bg-blue-600 text-white hover:bg-blue-700' 
-                      : 'bg-gray-900 text-white hover:bg-black'
-                  }`}
+                  className="w-full bg-gray-900 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-black transition-all active:scale-[0.98]"
                 >
-                  {estaConcluido ? 'Revisar' : 'Abrir'}
+                  Iniciar Treino
                 </button>
               </div>
             );
-          })
-        )}
+          })}
+        </div>
         
-        <button 
-          onClick={() => router.back()} 
-          className="text-gray-400 mt-10 hover:text-gray-900 transition-all w-full text-center text-[10px] font-black uppercase tracking-[0.25em]"
-        >
-          ← Voltar para perfil
+        <button onClick={() => router.back()} className="mt-12 w-full text-gray-400 hover:text-gray-900 transition-all text-[9px] font-black uppercase tracking-[0.25em]">
+          Voltar para Perfil
         </button>
       </div>
     </main>

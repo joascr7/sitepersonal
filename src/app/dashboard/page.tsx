@@ -3,7 +3,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
 import AgendaGeral from '@/components/AgendaGeral';
-import { FaWallet, FaUsers, FaExclamationTriangle, FaCheckCircle, FaSearch } from 'react-icons/fa';
+import { FaWallet, FaUsers, FaExclamationTriangle, FaSearch } from 'react-icons/fa';
 
 export default function Dashboard() {
   const [user, setUser] = useState<any>(null);
@@ -40,21 +40,18 @@ export default function Dashboard() {
     if (data) setTotalMes(data.reduce((acc, curr) => acc + Number(curr.valor), 0));
   };
 
-  // Função Premium de Baixa Automática
   const processarPagamento = async () => {
     if (!alunoSelecionado || !valorPago) return;
     
     const novaDataVencimento = new Date();
     novaDataVencimento.setMonth(novaDataVencimento.getMonth() + 1);
 
-    // 1. Registra no Financeiro
     await supabase.from('pagamentos').insert([{ 
       aluno_id: alunoSelecionado.id, 
       valor: parseFloat(valorPago), 
       personal_id: user.id 
     }]);
 
-    // 2. Atualiza Aluno
     await supabase.from('alunos').update({ 
       status_pagamento: 'ativo',
       data_vencimento: novaDataVencimento.toISOString() 
@@ -86,7 +83,6 @@ export default function Dashboard() {
           </button>
         </header>
 
-        {/* Bento Grid */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm flex items-center gap-4">
             <div className="p-4 bg-emerald-50 text-emerald-600 rounded-2xl"><FaWallet /></div>
@@ -109,7 +105,7 @@ export default function Dashboard() {
 
         {alunosVencendo.length > 0 && (
           <div className="p-8 bg-amber-500 rounded-3xl text-white shadow-xl flex items-center justify-between">
-            <div className="flex items-center gap-3"><FaExclamationTriangle /> <span className="font-bold text-sm">Alunos precisando de renovação</span></div>
+            <div className="flex items-center gap-3"><FaExclamationTriangle /> <span className="font-bold text-sm">Renovação próxima</span></div>
             <div className="flex gap-2">
               {alunosVencendo.map(a => (
                 <button key={a.id} onClick={() => { setAlunoSelecionado(a); setIsModalOpen(true); }} className="bg-amber-600 px-4 py-2 rounded-xl text-xs font-bold hover:bg-amber-700">{a.nome}</button>
@@ -127,7 +123,7 @@ export default function Dashboard() {
             <thead className="bg-gray-50/50 text-[10px] uppercase font-black text-gray-400 tracking-widest">
               <tr>
                 <th className="px-8 py-4">Status</th>
-                <th className="px-8 py-4">Nome</th>
+                <th className="px-8 py-4">Aluno</th>
                 <th className="px-8 py-4 hidden md:table-cell">Objetivo</th>
                 <th className="px-8 py-4 text-right">Ações</th> 
               </tr>
@@ -136,10 +132,23 @@ export default function Dashboard() {
               {alunosFiltrados.map((a) => (
                 <tr key={a.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-8 py-6"><span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase ${a.status_pagamento === 'ativo' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>{a.status_pagamento}</span></td>
-                  <td className="px-8 py-6 font-bold text-gray-900">{a.nome}</td>
+                  <td className="px-8 py-6 flex items-center gap-4">
+                    {/* Imagem de perfil com Fallback */}
+                    {a.avatar_url ? (
+                      <img src={a.avatar_url} alt={a.nome} className="w-10 h-10 rounded-full object-cover" />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-xs font-black text-gray-500">
+                        {a.nome.charAt(0)}
+                      </div>
+                    )}
+                    <span className="font-bold text-gray-900">{a.nome}</span>
+                  </td>
                   <td className="px-8 py-6 text-sm text-gray-600 hidden md:table-cell">{a.objetivo}</td>
                   <td className="px-8 py-6 text-right">
-                    <button onClick={() => router.push(`/dashboard/aluno/${a.id}/progresso`)} className="bg-gray-900 text-white px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all">Ver Perfil</button>
+                     <div className="inline-flex rounded-xl overflow-hidden shadow-sm border border-gray-200">
+                      <button onClick={() => router.push(`/dashboard/aluno/${a.id}`)} className="bg-gray-100 px-4 py-2 text-[10px] font-black uppercase tracking-widest hover:bg-gray-200 transition-all">Perfil</button>
+                      <button onClick={() => router.push(`/dashboard/aluno/${a.id}/progresso`)} className="bg-gray-900 text-white px-4 py-2 text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all">Progresso</button>
+                    </div>
                   </td>
                 </tr>
               ))}

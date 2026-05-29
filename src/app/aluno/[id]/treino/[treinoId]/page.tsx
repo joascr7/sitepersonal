@@ -12,10 +12,13 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
   const [registros, setRegistros] = useState<any[]>([]);
   const [concluidos, setConcluidos] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
-  const [treinoConcluido, setTreinoConcluido] = useState(false);
+  const [sessoesContador, setSessoesContador] = useState(0);
+  const [inputValues, setInputValues] = useState<Record<string, string>>({});
 
   const exercicios = ficha?.descricao ? (typeof ficha.descricao === 'string' ? JSON.parse(ficha.descricao) : ficha.descricao) : [];
-  const todosFinalizados = exercicios.length > 0 && concluidos.length === exercicios.length;
+  const totalExercicios = exercicios.length;
+  const progresso = totalExercicios > 0 ? Math.round((concluidos.length / totalExercicios) * 100) : 0;
+  const todosFinalizados = totalExercicios > 0 && concluidos.length === totalExercicios;
 
   useEffect(() => {
     if (!treinoId) return;
@@ -26,12 +29,19 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
         const [fichaRes, regRes, concRes] = await Promise.all([
           supabase.from('fichas').select('*').eq('id', treinoId).maybeSingle(),
           supabase.from('registro_series').select('*').eq('treino_id', treinoId),
-          supabase.from('conclusoes_treino').select('*').eq('treino_id', treinoId).limit(1)
+          supabase.from('conclusoes_treino').select('id', { count: 'exact' }).eq('treino_id', treinoId)
         ]);
 
         setFicha(fichaRes.data);
-        if (regRes.data) setRegistros(regRes.data);
-        if (concRes.data && concRes.data.length > 0) setTreinoConcluido(true);
+        if (regRes.data) {
+          setRegistros(regRes.data);
+          const initialInputs: Record<string, string> = {};
+          regRes.data.forEach((r: any) => {
+            initialInputs[`${r.exercicio_nome}-${r.serie_index}`] = r.carga.toString();
+          });
+          setInputValues(initialInputs);
+        }
+        setSessoesContador(concRes.count || 0);
       } catch (err) {
         console.error("Erro ao carregar:", err);
       } finally {
@@ -55,10 +65,16 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
     }
   };
 
-  const finalizarTreino = async () => {
+  const finalizarSessao = async () => {
     const { error } = await supabase.from('conclusoes_treino').insert({ aluno_id: id, treino_id: treinoId });
-    if (error) alert("Erro ao finalizar: " + error.message);
-    else { setTreinoConcluido(true); router.refresh(); }
+    if (error) {
+      alert("Erro ao finalizar: " + error.message);
+    } else { 
+      setSessoesContador(prev => prev + 1);
+      setConcluidos([]);
+      alert("Sessao registrada com sucesso.");
+      router.refresh(); 
+    }
   };
 
   const renderizarVideo = (url: string) => {
@@ -68,7 +84,7 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
     const isYoutube = embedUrl.includes("youtube.com") || embedUrl.includes("youtu.be");
     
     return (
-      <div className="w-full bg-black rounded-2xl overflow-hidden mb-6 aspect-video">
+      <div className="w-full bg-black rounded-3xl overflow-hidden mb-6 aspect-video shadow-lg">
         {isYoutube ? (
           <iframe className="w-full h-full" src={embedUrl.split('&')[0]} allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
         ) : (
@@ -78,32 +94,36 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
     );
   };
 
-  if (loading) return <main className="p-10 text-center">Carregando...</main>;
+  if (loading) return <main className="p-10 text-center font-bold">CARREGANDO DADOS...</main>;
 
   return (
     <main className="max-w-4xl mx-auto p-6 bg-gray-50 min-h-screen">
-      <div className="flex justify-between items-center mb-10">
-        <button onClick={() => router.back()} className="font-bold text-gray-400">← Voltar</button>
-        {treinoConcluido ? <span className="text-green-600 font-black text-sm">✅ TREINO CONCLUÍDO!</span> : (
-          <button onClick={finalizarTreino} disabled={!todosFinalizados} className={`${todosFinalizados ? 'bg-green-500' : 'bg-gray-300'} text-white px-6 py-2 rounded-xl font-bold transition-all`}>
-            Finalizar Treino
-          </button>
-        )}
+      <div className="flex justify-between items-center mb-6">
+        <button onClick={() => router.back()} className="font-bold text-gray-400 uppercase text-xs">Voltar</button>
+        <div className="text-right">
+          <p className="text-[10px] font-black uppercase text-gray-500">Progresso: {progresso}%</p>
+          <div className="w-32 h-2 bg-gray-200 rounded-full mt-1 overflow-hidden">
+            <div className="h-full bg-black transition-all" style={{ width: `${progresso}%` }}></div>
+          </div>
+        </div>
       </div>
 
-      <h1 className="text-4xl font-black mb-10 tracking-tighter">{ficha?.nome_treino || "Treino"}</h1>
+      <header className="mb-10">
+        <h1 className="text-4xl font-black mb-2 tracking-tighter">{ficha?.nome_treino || "Treino"}</h1>
+        <p className="text-gray-500 font-bold uppercase text-[10px] tracking-widest">Sessões totais realizadas: {sessoesContador}</p>
+      </header>
       
       {exercicios.map((ex: any, exIndex: number) => {
         const estaConcluido = concluidos.includes(exIndex);
         return (
-          <div key={exIndex} className={`mb-8 p-6 bg-white border rounded-3xl shadow-sm ${estaConcluido ? 'border-green-200' : 'border-gray-100'}`}>
-            <div className="flex justify-between items-center mb-4">
+          <div key={exIndex} className={`mb-8 p-6 bg-white border rounded-3xl shadow-sm ${estaConcluido ? 'border-black' : 'border-gray-100'}`}>
+            <div className="flex justify-between items-center mb-6">
               <h3 className="text-xl font-black text-gray-900">{ex.nome}</h3>
               <button 
                 onClick={() => !estaConcluido && setConcluidos([...concluidos, exIndex])}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition ${estaConcluido ? 'bg-green-100 text-green-700' : 'bg-gray-900 text-white'}`}
+                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${estaConcluido ? 'bg-black text-white' : 'bg-gray-100 text-gray-600'}`}
               >
-                {estaConcluido ? '✅ Finalizado' : 'Finalizar Exercício'}
+                {estaConcluido ? 'Finalizado' : 'Marcar Exercício'}
               </button>
             </div>
             
@@ -115,17 +135,20 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
               </thead>
               <tbody>
                 {(ex.series || []).map((s: any, sIndex: number) => {
-                  const reg = registros.find(r => r.exercicio_nome === ex.nome && r.serie_index === sIndex);
+                  const key = `${ex.nome}-${sIndex}`;
                   return (
                     <tr key={sIndex} className="border-b border-gray-50">
                       <td className="py-4 font-bold">{s.reps || '-'}</td>
                       <td className="py-4 text-gray-400">{s.carga || 0}kg</td>
-                      <td className="py-4 font-black text-blue-600">{s.intervalo || 0}s</td>
+                      <td className="py-4 font-black">{s.intervalo || 0}s</td>
                       <td className="py-4">
                         <input 
-                          type="number" disabled={estaConcluido} defaultValue={reg?.carga || ''} placeholder="0"
-                          className="w-16 p-2 bg-gray-50 border border-gray-200 rounded-lg text-center font-bold"
+                          type="number" 
+                          value={inputValues[key] || ''}
+                          onChange={(e) => setInputValues(prev => ({ ...prev, [key]: e.target.value }))}
                           onBlur={(e) => registrarCarga(ex.nome, Number(e.target.value), s.reps, sIndex)}
+                          placeholder="0"
+                          className="w-16 p-2 bg-gray-50 border border-gray-200 rounded-lg text-center font-bold"
                         />
                       </td>
                     </tr>
@@ -136,6 +159,14 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
           </div>
         );
       })}
+
+      <button 
+        onClick={finalizarSessao} 
+        disabled={!todosFinalizados} 
+        className={`w-full py-5 rounded-2xl font-black text-sm uppercase tracking-widest transition-all ${todosFinalizados ? 'bg-black text-white hover:bg-gray-800' : 'bg-gray-200 text-gray-500 cursor-not-allowed'}`}
+      >
+        {todosFinalizados ? 'Finalizar Sessão de Treino' : 'Conclua todos os exercícios para finalizar'}
+      </button>
     </main>
   );
 }
