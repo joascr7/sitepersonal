@@ -47,48 +47,52 @@ function PagamentoContent() {
   }, [router]);
 
   const handleMercadoPago = async () => {
-    if (!alunoId || !personal?.id) {
-      alert("Dados de pagamento não carregados. Tente recarregar a página.");
-      return;
-    }
+  if (!alunoId || !personal?.id) {
+    alert("Dados de pagamento não carregados.");
+    return;
+  }
+  
+  setIsProcessing(true);
+  
+  try {
+    // 1. Busca a sessão ativa do usuário logado
+    const { data: { session } } = await supabase.auth.getSession();
     
-    setIsProcessing(true);
-    
-    try {
-      // 1. Recupera a sessão atual para pegar o token
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      const response = await fetch('https://caaxbbnikrtuzkdrkkqz.supabase.co/functions/v1/criar-pagamento', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          // 2. ADICIONE ESTA LINHA: Envia o token para a Edge Function validar
-          'Authorization': `Bearer ${session?.access_token}` 
-        },
-        body: JSON.stringify({
-          alunoId: alunoId,
-          valor: 150.00, 
-          personalId: personal.id 
-        }),
-      });
-      
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.error || "Erro no servidor de pagamento");
-      }
+    // 2. Se não houver sessão, não há token para enviar
+    if (!session) throw new Error("Usuário não autenticado.");
 
-      if (data.init_point) {
-        window.location.href = data.init_point;
-      } else {
-        throw new Error("Link de pagamento não gerado.");
-      }
-    } catch (err: any) {
-      console.error(err);
-      alert(err.message || "Erro ao conectar com sistema de pagamento.");
-      setIsProcessing(false);
+    const response = await fetch('https://caaxbbnikrtuzkdrkkqz.supabase.co/functions/v1/criar-pagamento', {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        // O Supabase exige este header exato para autorizar funções privadas
+        'Authorization': `Bearer ${session.access_token}` 
+      },
+      body: JSON.stringify({
+        alunoId: alunoId,
+        valor: 150.00, 
+        personalId: personal.id 
+      }),
+    });
+    
+    // 3. Verifica se a resposta foi bem sucedida
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || "Erro ao conectar com o servidor.");
     }
-  };
+    
+    const data = await response.json();
+    if (data.init_point) {
+      window.location.href = data.init_point;
+    } else {
+      throw new Error("Link de pagamento não gerado.");
+    }
+  } catch (err: any) {
+    console.error("Erro no pagamento:", err);
+    alert(err.message || "Erro ao conectar com sistema de pagamento.");
+    setIsProcessing(false);
+  }
+};
 
   if (loading) return <div className="text-gray-500 font-black tracking-widest uppercase text-xs animate-pulse">Carregando...</div>;
   
