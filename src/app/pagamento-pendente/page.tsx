@@ -11,7 +11,7 @@ function PagamentoContent() {
   
   const [loading, setLoading] = useState(true);
   const [personal, setPersonal] = useState<any>(null);
-  const [alunoId, setAlunoId] = useState<string | null>(null); // CORREÇÃO: Estado definido aqui
+  const [alunoId, setAlunoId] = useState<string | null>(null);
   const [error, setError] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -20,14 +20,14 @@ function PagamentoContent() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { router.push('/login'); return; }
 
-      // CORREÇÃO: Agora salvamos o ID no estado para usar no handleMercadoPago
       setAlunoId(session.user.id);
 
+      // CORREÇÃO: Adicionado 'valor_mensalidade' no select abaixo
       const { data: alunoData, error: dbError } = await supabase
         .from('alunos')
         .select(`
           status_pagamento, 
-          personais(id, chave_pix, mp_access_token, modo_pagamento)
+          personais(id, chave_pix, mp_access_token, modo_pagamento, valor_mensalidade)
         `)
         .eq('id', session.user.id)
         .single();
@@ -47,55 +47,46 @@ function PagamentoContent() {
   }, [router]);
 
   const handleMercadoPago = async () => {
-  // 1. Validação de segurança dos dados carregados
-  if (!alunoId || !personal?.id) {
-    alert("Dados de pagamento não carregados. Recarregue a página.");
-    return;
-  }
-  
-  setIsProcessing(true);
-  
-  try {
-    // 2. Busca o token de sessão atual
-    const { data: { session } } = await supabase.auth.getSession();
+    if (!alunoId || !personal?.id) {
+      alert("Dados de pagamento não carregados. Tente recarregar a página.");
+      return;
+    }
     
-    if (!session) throw new Error("Sessão expirada. Faça login novamente.");
+    setIsProcessing(true);
+    
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Sessão expirada.");
 
-    // 3. Chamada à Edge Function utilizando o valor vindo do banco (personal.valor_mensalidade)
-    const response = await fetch('https://caaxbbnikrtuzkdrkkqz.supabase.co/functions/v1/criar-pagamento', {
-      method: 'POST',
-      headers: { 
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session.access_token}` 
-      },
-      body: JSON.stringify({
-        alunoId: alunoId,
-        // O valor agora é dinâmico, garantindo que cada personal cobre o seu preço
-        valor: parseFloat(personal.valor_mensalidade) || 150.00, 
-        personalId: personal.id 
-      }),
-    });
-    
-    // 4. Tratamento de erro detalhado
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || `Erro de conexão (${response.status})`);
+      const response = await fetch('https://caaxbbnikrtuzkdrkkqz.supabase.co/functions/v1/criar-pagamento', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}` 
+        },
+        body: JSON.stringify({
+          alunoId: alunoId,
+          // Agora o valor virá corretamente do banco
+          valor: parseFloat(personal.valor_mensalidade) || 150.00, 
+          personalId: personal.id 
+        }),
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) throw new Error(data.error || "Erro ao gerar link de pagamento.");
+
+      if (data.init_point) {
+        window.location.href = data.init_point;
+      } else {
+        throw new Error("Link de pagamento não retornado.");
+      }
+    } catch (err: any) {
+      console.error(err);
+      alert(err.message || "Erro ao conectar com sistema de pagamento.");
+      setIsProcessing(false);
     }
-    
-    const data = await response.json();
-    
-    // 5. Redirecionamento para o gateway de pagamento
-    if (data.init_point) {
-      window.location.href = data.init_point;
-    } else {
-      throw new Error("O gateway de pagamento não retornou o link.");
-    }
-  } catch (err: any) {
-    console.error("Erro técnico no pagamento:", err);
-    alert(err.message);
-    setIsProcessing(false);
-  }
-};
+  };
 
   if (loading) return <div className="text-gray-500 font-black tracking-widest uppercase text-xs animate-pulse">Carregando...</div>;
   
