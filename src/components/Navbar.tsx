@@ -1,7 +1,7 @@
 'use client';
 import { usePathname } from 'next/navigation';
 import LogoutButton from './LogoutButton';
-import { FaChartLine, FaWallet } from 'react-icons/fa';
+import { FaChartLine, FaWallet, FaUser } from 'react-icons/fa';
 import { useLogo } from '@/components/LogoProvider';
 
 export default function Navbar() {
@@ -15,6 +15,7 @@ export default function Navbar() {
   const navItems = [
     { name: 'Dashboard', path: '/dashboard', icon: <FaChartLine /> },
     { name: 'Financeiro', path: '/dashboard/financeiro', icon: <FaWallet /> },
+    { name: 'Perfil', path: '/perfil', icon: <FaUser /> },
   ];
 
   return (
