@@ -47,49 +47,52 @@ function PagamentoContent() {
   }, [router]);
 
   const handleMercadoPago = async () => {
+  // 1. Validação de segurança dos dados carregados
   if (!alunoId || !personal?.id) {
-    alert("Dados de pagamento não carregados.");
+    alert("Dados de pagamento não carregados. Recarregue a página.");
     return;
   }
   
   setIsProcessing(true);
   
   try {
-    // 1. Busca a sessão ativa do usuário logado
+    // 2. Busca o token de sessão atual
     const { data: { session } } = await supabase.auth.getSession();
     
-    // 2. Se não houver sessão, não há token para enviar
-    if (!session) throw new Error("Usuário não autenticado.");
+    if (!session) throw new Error("Sessão expirada. Faça login novamente.");
 
+    // 3. Chamada à Edge Function utilizando o valor vindo do banco (personal.valor_mensalidade)
     const response = await fetch('https://caaxbbnikrtuzkdrkkqz.supabase.co/functions/v1/criar-pagamento', {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
-        // O Supabase exige este header exato para autorizar funções privadas
         'Authorization': `Bearer ${session.access_token}` 
       },
       body: JSON.stringify({
         alunoId: alunoId,
-        valor: 150.00, 
+        // O valor agora é dinâmico, garantindo que cada personal cobre o seu preço
+        valor: parseFloat(personal.valor_mensalidade) || 150.00, 
         personalId: personal.id 
       }),
     });
     
-    // 3. Verifica se a resposta foi bem sucedida
+    // 4. Tratamento de erro detalhado
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || "Erro ao conectar com o servidor.");
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Erro de conexão (${response.status})`);
     }
     
     const data = await response.json();
+    
+    // 5. Redirecionamento para o gateway de pagamento
     if (data.init_point) {
       window.location.href = data.init_point;
     } else {
-      throw new Error("Link de pagamento não gerado.");
+      throw new Error("O gateway de pagamento não retornou o link.");
     }
   } catch (err: any) {
-    console.error("Erro no pagamento:", err);
-    alert(err.message || "Erro ao conectar com sistema de pagamento.");
+    console.error("Erro técnico no pagamento:", err);
+    alert(err.message);
     setIsProcessing(false);
   }
 };
