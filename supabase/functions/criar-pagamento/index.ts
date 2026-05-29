@@ -37,7 +37,14 @@ serve(async (req) => {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      items: [{ title: "Mensalidade AuraFit", quantity: 1, unit_price: Number(valor) }],
+      items: [{ 
+        title: "Mensalidade AuraFit", 
+        quantity: 1, 
+        unit_price: Number(valor) 
+      }],
+      // A mágica acontece aqui:
+      // O external_reference liga esse pagamento ao ID do seu aluno no Supabase
+      external_reference: alunoId, 
       back_urls: { 
         success: `https://aurafit.usoprime.com/aluno/${alunoId}`,
         failure: `https://aurafit.usoprime.com/pagamento-pendente`
