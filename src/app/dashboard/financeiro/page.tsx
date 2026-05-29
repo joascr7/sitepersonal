@@ -44,21 +44,24 @@ export default function Financeiro() {
   };
 
   const salvarConfig = async () => {
-    setSaving(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    const { error } = await supabase.from('personais').update({ 
-      chave_pix: config.pix, 
-      mp_access_token: config.token, 
-      modo_pagamento: config.modo,
-      valor_mensalidade: config.valor
-    }).eq('id', user?.id);
+  setSaving(true);
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  const { error } = await supabase.from('personais').update({ 
+    chave_pix: config.pix, 
+    mp_access_token: config.token, 
+    modo_pagamento: config.modo,
+    valor_mensalidade: config.valor // Garantindo que este dado está sendo enviado
+  }).eq('id', user?.id);
 
-    if (error) alert('Erro ao salvar: ' + error.message);
-    else alert('Configurações atualizadas!');
-    
-    setSaving(false);
-  };
+  if (error) {
+    alert('Erro ao salvar: ' + error.message);
+  } else {
+    alert('Configurações atualizadas!');
+    await fetchDados(); // Adicione isso: força a busca do valor novo logo após salvar
+  }
+  setSaving(false);
+};
 
   const totalGeral = pagamentos.reduce((acc, curr) => acc + Number(curr.valor), 0);
 
