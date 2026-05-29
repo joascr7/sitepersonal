@@ -7,8 +7,10 @@ import { cadastrarAlunoAction } from '../../actions/aluno';
 // CORREÇÃO: InputField movido para fora do componente principal.
 // Isso evita que o React recrie o componente a cada letra digitada, o que trava o teclado.
 const InputField = ({ label, name, value, onChange, type = "text", placeholder, autoComplete }: any) => (
-  <div className="flex flex-col gap-1.5 w-full">
-    <label className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] px-1">{label}</label>
+  <div className="flex flex-col gap-1.5 w-full min-w-0"> {/* Adicionado min-w-0 */}
+    <label className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] px-1 truncate">
+      {label}
+    </label>
     <input 
       name={name}
       type={type}
@@ -16,7 +18,8 @@ const InputField = ({ label, name, value, onChange, type = "text", placeholder, 
       placeholder={placeholder}
       value={value}
       onChange={onChange}
-      className="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:bg-white focus:ring-2 focus:ring-black/5 transition-all text-sm font-medium"
+      // Adicionado block e w-full para forçar o limite do container pai
+      className="block w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:bg-white focus:ring-2 focus:ring-black/5 transition-all text-sm font-medium box-border"
     />
   </div>
 );
