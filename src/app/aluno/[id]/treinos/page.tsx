@@ -11,8 +11,31 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchTreinos = async () => {
+    const checkAccessAndFetch = async () => {
       setLoading(true);
+
+      // 1. Check de Pagamento (Segurança no front-end)
+      const { data: aluno, error: alunoError } = await supabase
+        .from('alunos')
+        .select('status_pagamento, data_vencimento')
+        .eq('id', id)
+        .single();
+
+      if (alunoError || !aluno) {
+        setLoading(false);
+        return;
+      }
+
+      const hoje = new Date();
+      const vencimento = aluno.data_vencimento ? new Date(aluno.data_vencimento) : null;
+      const estaBloqueado = aluno.status_pagamento === 'bloqueado' || (vencimento && vencimento < hoje);
+
+      if (estaBloqueado) {
+        router.push('/aluno/pagamento-pendente');
+        return;
+      }
+
+      // 2. Fetch de Dados (se liberado)
       const { data: fichasData } = await supabase.from('fichas').select('*').eq('aluno_id', id);
       const { data: conclusoesData } = await supabase.from('conclusoes_treino').select('treino_id').eq('aluno_id', id);
 
@@ -27,10 +50,11 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
       }
       setLoading(false);
     };
-    fetchTreinos();
-  }, [id]);
 
-  if (loading) return <main className="min-h-screen bg-[#FAFAFA] flex items-center justify-center text-blue-600 font-bold tracking-widest uppercase text-xs">Carregando Treinos...</main>;
+    checkAccessAndFetch();
+  }, [id, router]);
+
+  if (loading) return <main className="min-h-screen bg-[#FAFAFA] flex items-center justify-center text-blue-600 font-bold tracking-widest uppercase text-xs">Validando acesso...</main>;
 
   return (
     <main className="min-h-screen bg-[#FAFAFA] p-6 md:p-12">

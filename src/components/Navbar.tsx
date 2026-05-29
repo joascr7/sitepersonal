@@ -8,8 +8,17 @@ export default function Navbar() {
   const pathname = usePathname();
   const { logo, nome } = useLogo();
 
-  const rotasExcluidas = ['/', '/login-professor', '/login-aluno', '/login-professor-cadastro', '/nova-senha'];
+  // Adicionado '/pagamento-pendente' aqui para que a navbar suma nesta tela
+  const rotasExcluidas = [
+    '/', 
+    '/login-professor', 
+    '/login-aluno', 
+    '/login-professor-cadastro', 
+    '/nova-senha',
+    '/pagamento-pendente'
+  ];
   
+  // A condição pathname.startsWith('/aluno') continua protegendo a área de treino dos alunos
   if (rotasExcluidas.includes(pathname) || pathname.startsWith('/aluno')) return null;
 
   const navItems = [

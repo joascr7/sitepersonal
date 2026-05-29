@@ -3,6 +3,7 @@ import { useEffect, useState, use, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import ControleFinanceiro from '@/components/ControleFinanceiro'; // Importação do novo componente
 
 function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -111,16 +112,18 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
   return (
     <main className="min-h-screen bg-gray-50/50 p-6 md:p-12">
       <div className="max-w-4xl mx-auto">
-        {/* Header de Perfil Premium */}
         <section className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm mb-10 flex flex-col md:flex-row items-center gap-8">
           <img src={aluno?.avatar_url || 'https://via.placeholder.com/150'} className="w-28 h-28 rounded-3xl object-cover shadow-lg border border-gray-100" />
-          <div className="text-center md:text-left">
+          <div className="text-center md:text-left flex-1">
             <h1 className="text-4xl font-black text-gray-900 tracking-tighter mb-1">{aluno?.nome}</h1>
             <p className="text-blue-600 font-bold bg-blue-50 px-4 py-1 rounded-full inline-block text-sm">Objetivo: {aluno?.objetivo || 'Não definido'}</p>
           </div>
+          {/* Integração do controle financeiro ao lado do perfil */}
+          <div className="w-full md:w-auto">
+             <ControleFinanceiro alunoId={id} initialStatus={aluno?.status_pagamento || 'pendente'} />
+          </div>
         </section>
 
-        {/* Abas Premium */}
         <div className="flex gap-8 mb-10 border-b border-gray-200">
           {['treinos', 'evolucao', 'feedback'].map((tab) => (
             <button 
@@ -133,7 +136,6 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
           ))}
         </div>
 
-        {/* Conteúdo Treinos */}
         {abaAtiva === 'treinos' && (
           <section className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
             {fichas.map((f) => (
@@ -150,7 +152,6 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
           </section>
         )}
 
-        {/* Conteúdo Evolução */}
         {abaAtiva === 'evolucao' && (
           <section className="space-y-8">
             <div className="flex justify-between items-center">
@@ -191,7 +192,6 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
           </section>
         )}
 
-        {/* Conteúdo Feedback */}
         {abaAtiva === 'feedback' && (
           <section className="space-y-6">
             <h2 className="text-2xl font-black tracking-tighter">Feedbacks</h2>
@@ -206,7 +206,6 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
           </section>
         )}
 
-        {/* Modal Avaliação Premium */}
         {isModalAvaliacaoOpen && (
           <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <div className="bg-white p-10 rounded-3xl w-full max-w-xl shadow-2xl animate-in zoom-in-95 duration-200">

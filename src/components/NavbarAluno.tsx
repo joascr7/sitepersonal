@@ -8,12 +8,17 @@ export default function NavbarAluno() {
   const pathname = usePathname();
   const { logo, nome } = useLogo();
   
+  // 1. Verifica se é a página de pagamento para ocultar a navbar
+  if (pathname === '/pagamento-pendente') return null;
+
+  // 2. Extrai o ID com segurança
   const parts = pathname.split('/');
   const alunoId = parts[2];
 
+  // 3. Define os links baseando-se no ID extraído
   const navLinks = [
-    { name: 'Início', path: `/aluno/${alunoId}`, icon: <FaHome /> },
-    { name: 'Perfil', path: `/aluno/${alunoId}/perfil`, icon: <FaUser /> },
+    { name: 'Início', path: alunoId ? `/aluno/${alunoId}` : '#', icon: <FaHome /> },
+    { name: 'Perfil', path: alunoId ? `/aluno/${alunoId}/perfil` : '#', icon: <FaUser /> },
   ];
 
   return (

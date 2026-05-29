@@ -3,7 +3,7 @@ import { useEffect, useState, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { FaDumbbell, FaClipboardList, FaChartLine, FaFileInvoice, FaFolderOpen, FaUserCircle, FaCommentMedical } from 'react-icons/fa';
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import { LineChart, Line, Tooltip, ResponsiveContainer } from 'recharts';
 import { startOfWeek, endOfWeek, eachDayOfInterval, format, isSameDay, parseISO } from 'date-fns';
 
 export default function AreaDoAluno({ params }: { params: Promise<{ id: string }> }) {
@@ -19,8 +19,29 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
 
   useEffect(() => {
     if (!id) return;
-    fetchData();
-  }, [id]);
+    
+    // Verificação de segurança: checa o status financeiro antes de carregar o conteúdo
+    const checkStatus = async () => {
+      const { data: alunoData } = await supabase
+        .from('alunos')
+        .select('status_pagamento, data_vencimento')
+        .eq('id', id)
+        .single();
+
+      if (alunoData) {
+        const hoje = new Date();
+        const vencimento = alunoData.data_vencimento ? new Date(alunoData.data_vencimento) : null;
+        
+        if (alunoData.status_pagamento === 'bloqueado' || (vencimento && vencimento < hoje)) {
+          router.push('/pagamento-pendente?motivo=vencido');
+          return;
+        }
+      }
+      fetchData();
+    };
+
+    checkStatus();
+  }, [id, router]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -56,7 +77,6 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
   return (
     <main className="min-h-screen bg-[#FAFAFA] p-6 md:p-12">
       <div className="max-w-3xl mx-auto">
-        
         {/* Header Perfil */}
         <header className="flex flex-col items-center mb-12">
           <div className="w-24 h-24 rounded-full bg-white shadow-lg overflow-hidden border border-gray-100 mb-6 p-1">
@@ -66,10 +86,35 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
           <p className="text-gray-400 text-[9px] font-black uppercase tracking-[0.25em] mt-1">CREF: {personal?.cref || 'N/A'}</p>
         </header>
 
+
+        {/* Status de Pagamento (Premium UI) */}
+{aluno && (
+  <div className="mb-10 max-w-sm mx-auto">
+    <div className={`p-6 rounded-3xl border ${
+      aluno.status_pagamento === 'bloqueado' 
+        ? 'bg-red-50 border-red-100' 
+        : 'bg-white border-gray-100 shadow-sm'
+    }`}>
+      <div className="flex flex-col gap-1 text-center">
+        <span className="text-[9px] font-black uppercase tracking-[0.25em] text-gray-400">
+          Status do Plano
+        </span>
+        <span className={`text-sm font-black tracking-tighter ${
+          aluno.status_pagamento === 'bloqueado' ? 'text-red-600' : 'text-gray-900'
+        }`}>
+          {aluno.status_pagamento === 'bloqueado' ? 'Acesso Restrito' : 'Plano Ativo'}
+        </span>
+        <span className="text-[10px] font-medium text-gray-500 mt-1">
+          Vencimento: {aluno.data_vencimento ? new Date(aluno.data_vencimento).toLocaleDateString('pt-BR') : 'Não definido'}
+        </span>
+      </div>
+    </div>
+  </div>
+)}
+
         <section className="mb-10">
           <h2 className="text-3xl font-black text-gray-950 tracking-tighter mb-8">Olá, {aluno?.nome.split(' ')[0]}.</h2>
           
-          {/* Frequência Premium */}
           <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
             <h2 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-6">Sua semana de treinos</h2>
             <div className="flex justify-between items-center">
@@ -90,7 +135,6 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
           </div>
         </section>
 
-        {/* Menu Principal Bento Grid */}
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           <BotaoMenu icon={<FaDumbbell />} label="Treinos" onClick={() => router.push(`/aluno/${id}/treinos`)} />
           <BotaoMenu icon={<FaClipboardList />} label="Avaliações" onClick={abrirAvaliacoes} />

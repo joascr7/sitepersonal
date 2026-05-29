@@ -1,8 +1,7 @@
-import { createServerClient, type CookieOptions } from '@supabase/ssr';
+import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
 export async function middleware(request: NextRequest) {
-  // Criação do objeto de resposta inicial
   let response = NextResponse.next({
     request: { headers: request.headers },
   });
@@ -22,53 +21,61 @@ export async function middleware(request: NextRequest) {
   const { data: { session } } = await supabase.auth.getSession();
   const pathname = request.nextUrl.pathname;
 
-  // 1. Otimização: Ignorar rotas de sistema, arquivos estáticos e imagens
-  if (
-    pathname.startsWith('/_next') || 
-    pathname.startsWith('/api') || 
-    pathname.startsWith('/favicon.ico') ||
-    pathname.includes('.') // Ignora arquivos com extensão (ex: .png, .css)
-  ) {
-    return response;
-  }
+  // Ignora arquivos estáticos e assets para performance
+  if (pathname.startsWith('/_next') || pathname.includes('.')) return response;
 
-  // 2. Extração da Role (Padrão de segurança: se não tiver role, não assume nada)
   const userRole = session?.user.user_metadata?.role;
-
-  // 3. Definição de rotas
   const isAuthPage = pathname === '/login' || pathname === '/';
-  const isDashboardPage = pathname.startsWith('/dashboard');
-  const isAlunoPage = pathname.startsWith('/aluno-area');
+  
+  // 1. Permite acesso livre ao Login/Home
+  if (isAuthPage) return response;
 
-  // 4. BLOQUEIO: Usuário não logado tentando acessar área restrita
-  if (!session && (isDashboardPage || isAlunoPage)) {
+  // 2. Proteção de rotas principais
+  const isProtected = pathname.startsWith('/dashboard') || pathname.startsWith('/aluno/') || pathname === '/pagamento-pendente';
+  if (!session && isProtected) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  // 5. CONTROLE DE ACESSO: Usuário logado
+  // 3. Controle de Acesso para Logados
   if (session) {
-    // Se logado e na página de login, redireciona para a home correta baseada na role
-    if (isAuthPage) {
-      const destination = userRole === 'personal' ? '/dashboard' : '/aluno-area';
-      return NextResponse.redirect(new URL(destination, request.url));
-    }
+    const isAlunoRoute = pathname.startsWith('/aluno/');
+    const isDashboardRoute = pathname.startsWith('/dashboard');
 
-    // Proteção de rotas (evita acesso cruzado entre perfis)
-    if (userRole === 'personal' && isAlunoPage) {
+    // Impede Personais de acessar áreas de aluno
+    if (userRole === 'personal' && (isAlunoRoute || pathname === '/pagamento-pendente')) {
       return NextResponse.redirect(new URL('/dashboard', request.url));
     }
     
-    if (userRole === 'aluno' && isDashboardPage) {
-      return NextResponse.redirect(new URL('/aluno-area', request.url));
+    // Impede Alunos de acessar o dashboard do personal
+    if (userRole === 'aluno' && isDashboardRoute) {
+      return NextResponse.redirect(new URL(`/aluno/${session.user.id}`, request.url));
+    }
+
+    // 4. Bloqueio Financeiro (Regra de Ouro)
+    // Se for aluno tentando acessar área de treino, valida status
+    if (userRole === 'aluno' && isAlunoRoute && pathname !== '/pagamento-pendente') {
+      const { data: aluno } = await supabase
+        .from('alunos')
+        .select('status_pagamento, data_vencimento')
+        .eq('id', session.user.id)
+        .single();
+
+      if (aluno) {
+        const hoje = new Date();
+        const vencimento = aluno.data_vencimento ? new Date(aluno.data_vencimento) : null;
+        const estaBloqueado = aluno.status_pagamento === 'bloqueado' || (vencimento && vencimento < hoje);
+
+        // Se bloqueado, o redirecionamento é OBRIGATÓRIO, exceto se já estiver na página de pagamento
+        if (estaBloqueado && pathname !== '/pagamento-pendente') {
+          return NextResponse.redirect(new URL('/pagamento-pendente?motivo=vencido', request.url));
+        }
+      }
     }
   }
 
   return response;
 }
 
-// Configuração otimizada para o matcher
 export const config = {
-  matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
-  ],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'],
 };
