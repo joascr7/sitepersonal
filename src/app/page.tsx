@@ -49,6 +49,18 @@ export default function Page() {
           <p className="text-[9px] font-bold text-gray-400 uppercase tracking-[0.25em]">
             Plataforma de Alta Performance
           </p>
+
+          <p className="text-[6px] font-arial text-gray-700 uppercase tracking-[0.40em] text-center">
+  Desenvolvido por  | {' '}
+  <a 
+    href="https://www.instagram.com/joas.vieira7" 
+    target="_blank" 
+    rel="noopener noreferrer" 
+    className="hover:text-black transition-colors duration-300 font-bold"
+  >
+    JOÁS VIEIRA
+  </a>
+</p>
         </div>
         
       </div>
