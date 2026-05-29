@@ -47,7 +47,6 @@ function PagamentoContent() {
   }, [router]);
 
   const handleMercadoPago = async () => {
-    // Agora o alunoId está disponível corretamente
     if (!alunoId || !personal?.id) {
       alert("Dados de pagamento não carregados. Tente recarregar a página.");
       return;
@@ -56,9 +55,16 @@ function PagamentoContent() {
     setIsProcessing(true);
     
     try {
+      // 1. Recupera a sessão atual para pegar o token
+      const { data: { session } } = await supabase.auth.getSession();
+      
       const response = await fetch('https://caaxbbnikrtuzkdrkkqz.supabase.co/functions/v1/criar-pagamento', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          // 2. ADICIONE ESTA LINHA: Envia o token para a Edge Function validar
+          'Authorization': `Bearer ${session?.access_token}` 
+        },
         body: JSON.stringify({
           alunoId: alunoId,
           valor: 150.00, 
@@ -67,14 +73,19 @@ function PagamentoContent() {
       });
       
       const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || "Erro no servidor de pagamento");
+      }
+
       if (data.init_point) {
         window.location.href = data.init_point;
       } else {
-        throw new Error(data.error || "Erro ao gerar link de pagamento.");
+        throw new Error("Link de pagamento não gerado.");
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert("Erro ao conectar com sistema de pagamento.");
+      alert(err.message || "Erro ao conectar com sistema de pagamento.");
       setIsProcessing(false);
     }
   };
