@@ -16,14 +16,40 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
     const init = async () => {
       setLoading(true);
       
-      // Validação de Acesso
-      const { data: aluno } = await supabase.from('alunos').select('status_pagamento, data_vencimento').eq('id', id).single();
-      if (!aluno || aluno.status_pagamento === 'bloqueado' || (aluno.data_vencimento && new Date(aluno.data_vencimento) < new Date())) {
-        router.push('/aluno/pagamento-pendente');
+      // 1. Validação de Acesso com Tolerância de 2 dias
+      const { data: aluno } = await supabase
+        .from('alunos')
+        .select('status_pagamento, data_vencimento')
+        .eq('id', id)
+        .single();
+
+      if (aluno) {
+        const hoje = new Date();
+        hoje.setHours(0, 0, 0, 0);
+        
+        // Converte data_vencimento (YYYY-MM-DD) para data local
+        const [ano, mes, dia] = aluno.data_vencimento.split('-').map(Number);
+        const vencimento = new Date(ano, mes - 1, dia);
+        
+        // Define o limite: vencimento + 2 dias
+        const dataLimite = new Date(vencimento);
+        dataLimite.setDate(dataLimite.getDate() + 2);
+        dataLimite.setHours(0, 0, 0, 0);
+
+        // Bloqueia apenas se: status for manual 'bloqueado' OU se hoje passou do limite
+        const estaBloqueado = aluno.status_pagamento === 'bloqueado' || hoje > dataLimite;
+
+        if (estaBloqueado) {
+          router.push('/aluno/pagamento-pendente');
+          return;
+        }
+      } else {
+        // Se não encontrar o aluno, segurança extra: redireciona
+        router.push('/login');
         return;
       }
 
-      // Fetch paralelo otimizado
+      // 2. Fetch paralelo otimizado (restante do código original)
       const [fichasRes, histRes] = await Promise.all([
         supabase.from('fichas').select('*').eq('aluno_id', id),
         supabase.from('conclusoes_treino')

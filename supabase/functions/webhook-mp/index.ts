@@ -7,27 +7,63 @@ const supabase = createClient(
 );
 
 serve(async (req) => {
-  const url = new URL(req.url);
-  const paymentId = url.searchParams.get("data.id");
-  const topic = url.searchParams.get("topic");
-
-  if (topic === "payment" && paymentId) {
-    // 1. Busca os dados do pagamento no Mercado Pago
-    // Nota: Como não temos o token do personal aqui, o ideal é usar uma conta global ou buscar
-    const response = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
-      headers: { "Authorization": `Bearer ${Deno.env.get('MP_ACCESS_TOKEN_GLOBAL')}` }
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { 
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+      } 
     });
-    
-    const payment = await response.json();
-
-    // 2. Se aprovado, libera o aluno usando o external_reference
-    if (payment.status === 'approved') {
-      await supabase
-        .from('alunos')
-        .update({ status_pagamento: 'ativo' })
-        .eq('id', payment.external_reference); // Esse é o alunoId que enviamos antes
-    }
   }
 
-  return new Response("OK", { status: 200 });
+  try {
+    const body = await req.json();
+    const paymentId = body.data?.id;
+
+    if (body.type === "payment" && paymentId) {
+      const response = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
+        headers: { 
+          "Authorization": `Bearer ${Deno.env.get('MP_ACCESS_TOKEN')}`,
+          "Content-Type": "application/json"
+        }
+      });
+      
+      const payment = await payment.json();
+
+      if (payment.status === 'approved') {
+        const alunoId = payment.external_reference;
+        
+        if (alunoId) {
+          // 1. Busca os dados atuais do aluno
+          const { data: aluno } = await supabase
+            .from('alunos')
+            .select('data_vencimento')
+            .eq('id', alunoId)
+            .single();
+
+          // 2. Calcula a nova data: se já passou do vencimento, usa hoje + 30.
+          // Se ainda não venceu, usa o vencimento atual + 30.
+          const vencimentoAtual = aluno?.data_vencimento ? new Date(aluno.data_vencimento) : new Date();
+          const hoje = new Date();
+          
+          let novaData = (vencimentoAtual > hoje) ? vencimentoAtual : hoje;
+          novaData.setDate(novaData.getDate() + 30);
+
+          // 3. Atualiza o banco
+          await supabase
+            .from('alunos')
+            .update({ 
+              status_pagamento: 'ativo',
+              data_vencimento: novaData.toISOString().split('T')[0] // Formato YYYY-MM-DD
+            })
+            .eq('id', alunoId);
+        }
+      }
+    }
+
+    return new Response("OK", { status: 200 });
+  } catch (error) {
+    console.error("Erro no webhook:", error);
+    return new Response("Erro interno", { status: 500 });
+  }
 });

@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabaseClient';
 function PagamentoContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const motivo = searchParams.get('motivo');
+  const motivo = searchParams.get('motivo'); // 'vencido' ou 'renovacao'
   
   const [loading, setLoading] = useState(true);
   const [personal, setPersonal] = useState<any>(null);
@@ -21,7 +21,6 @@ function PagamentoContent() {
       if (!session) { router.push('/login'); return; }
       setAlunoId(session.user.id);
 
-      // Busca dados do aluno e personal em uma única chamada
       const { data: alunoData, error: dbError } = await supabase
         .from('alunos')
         .select(`
@@ -39,9 +38,30 @@ function PagamentoContent() {
     init();
   }, [router]);
 
+  // Polling para redirecionar automaticamente assim que o status mudar no banco
+  useEffect(() => {
+  if (!alunoId) return;
+
+  const interval = setInterval(async () => {
+    const { data } = await supabase
+      .from('alunos')
+      .select('status_pagamento')
+      .eq('id', alunoId)
+      .single();
+
+    // Só redireciona se o status for realmente 'ativo'
+    // E evitamos o loop verificando se já não estamos tentando navegar
+    if (data?.status_pagamento === 'ativo') {
+      clearInterval(interval); // Mata o timer antes de mudar a rota
+      router.push(`/aluno/${alunoId}`);
+    }
+  }, 5000);
+
+  return () => clearInterval(interval);
+}, [alunoId, router]);
+
   const handleMercadoPago = async () => {
     if (!alunoId || !personal?.id) return;
-    
     setIsProcessing(true);
     setStatusMessage("Conectando com Mercado Pago...");
     
@@ -64,49 +84,26 @@ function PagamentoContent() {
       
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Erro ao gerar pagamento.");
-
-      if (data.init_point) {
-        setStatusMessage("Redirecionando...");
-        window.location.href = data.init_point;
-      }
+      if (data.init_point) window.location.href = data.init_point;
     } catch (err: any) {
       console.error(err);
       setStatusMessage("Erro ao iniciar pagamento. Tente novamente.");
       setIsProcessing(false);
-      setTimeout(() => setStatusMessage(null), 3000);
     }
   };
 
-  const verificarPagamento = async () => {
-  if (!alunoId) return;
-
-  setLoading(true);
-  setStatusMessage("Consultando banco de dados...");
-  
-  const { data } = await supabase
-    .from('alunos')
-    .select('status_pagamento')
-    .eq('id', alunoId)
-    .single();
-
-  if (data?.status_pagamento === 'ativo') {
-    // CORREÇÃO: Redirecionar para a rota dinâmica correta do aluno
-    router.push(`/aluno/${alunoId}`); 
-  } else {
-    setLoading(false);
-    setStatusMessage("Pagamento ainda não identificado. Se já pagou, aguarde 1 minuto.");
-    setTimeout(() => setStatusMessage(null), 4000);
-  }
-};
-
-  if (loading && !statusMessage) return <div className="text-gray-500 font-bold animate-pulse">Sincronizando dados...</div>;
+  if (loading) return <div className="text-gray-500 font-bold animate-pulse text-center">Sincronizando...</div>;
 
   return (
     <div className="max-w-md w-full text-center p-6">
       <div className="mb-10">
-        <h1 className="text-3xl font-black tracking-tighter mb-3">Acesso Suspenso</h1>
+        <h1 className="text-3xl font-black tracking-tighter mb-3">
+          {motivo === 'vencido' ? "Acesso Suspenso" : "Renovação de Plano"}
+        </h1>
         <p className="text-gray-400 font-medium text-sm">
-          {motivo === 'vencido' ? "Seu plano expirou." : "Identificamos uma pendência no seu plano."}
+          {motivo === 'vencido' 
+            ? "Seu plano expirou. Regularize para continuar." 
+            : "Seu plano vence em breve. Renove para garantir mais 30 dias."}
         </p>
       </div>
 
@@ -118,7 +115,9 @@ function PagamentoContent() {
 
       {personal?.modo_pagamento === 'imediata' ? (
         <div className="bg-blue-600 p-8 rounded-3xl mb-8 shadow-2xl">
-          <p className="text-white font-bold mb-6">Pague agora para liberação automática.</p>
+          <p className="text-white font-bold mb-6">
+            {motivo === 'vencido' ? "Pague agora para liberação imediata." : "Pague agora para adicionar +30 dias ao seu plano."}
+          </p>
           <button 
             onClick={handleMercadoPago} 
             disabled={isProcessing}
@@ -140,7 +139,7 @@ function PagamentoContent() {
         </div>
       )}
 
-      <button onClick={verificarPagamento} className="w-full py-2 text-[10px] font-black uppercase tracking-[0.2em] text-gray-600 hover:text-white transition-all">
+      <button onClick={() => window.location.reload()} className="w-full py-2 text-[10px] font-black uppercase tracking-[0.2em] text-gray-600 hover:text-white transition-all">
         ← Já realizei o pagamento
       </button>
     </div>

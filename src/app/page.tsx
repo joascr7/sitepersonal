@@ -1,14 +1,22 @@
 'use client';
+
 import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 
 export default function Page() {
   const router = useRouter();
+  const [isNavigating, setIsNavigating] = useState<string | null>(null);
+
+  const handleNavigation = (path: string) => {
+    setIsNavigating(path);
+    router.push(path);
+  };
 
   return (
     <main className="min-h-screen flex items-center justify-center bg-[#FAFAFA] px-6">
-      <div className="w-full max-w-[340px] flex flex-col items-center p-8 bg-white rounded-3xl border border-gray-100 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_4px_6px_-2px_rgba(0,0,0,0.05)]">
+      <div className="w-full max-w-[340px] flex flex-col items-center p-8 bg-white rounded-3xl border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
         
-        {/* Branding com efeito Premium */}
+        {/* Branding */}
         <div className="mb-12 text-center">
           <h1 
             className="text-4xl font-black tracking-tighter mb-2"
@@ -16,51 +24,53 @@ export default function Page() {
               background: 'linear-gradient(135deg, #007bff 0%, #00c6ff 100%)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
-              filter: 'drop-shadow(0px 2px 2px rgba(0,0,0,0.1))',
             }}
           >
             AURAFIT
           </h1>
-          <p className="text-gray-400 font-medium text-xs tracking-widest uppercase">
-            Selecione seu perfil
+          <p className="text-[10px] font-bold text-slate-400 tracking-[0.3em] uppercase">
+            Acesso ao Ecossistema
           </p>
         </div>
         
-        {/* Ações */}
+        {/* Ações com Feedback Visual */}
         <div className="w-full space-y-3">
           <button 
-            onClick={() => router.push('/login-aluno')} 
-            className="w-full bg-gray-900 hover:bg-black text-white py-4 rounded-2xl font-semibold text-sm transition-all duration-300 active:scale-[0.98] shadow-md shadow-gray-200"
+            onClick={() => handleNavigation('/login-aluno')} 
+            disabled={!!isNavigating}
+            className="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-slate-800 transition-all active:scale-[0.97] disabled:opacity-50"
           >
-            Acesso Aluno
+            {isNavigating === '/login-aluno' ? "Autenticando..." : "Entrar como Aluno"}
           </button>
           
           <button 
-            onClick={() => router.push('/login-personal')} 
-            className="w-full bg-white border border-gray-200 hover:border-gray-300 text-gray-700 py-4 rounded-2xl font-semibold text-sm transition-all duration-300 active:scale-[0.98]"
+            onClick={() => handleNavigation('/login-personal')} 
+            disabled={!!isNavigating}
+            className="w-full bg-white border border-slate-200 text-slate-600 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest hover:border-slate-300 hover:text-slate-900 transition-all active:scale-[0.97] disabled:opacity-50"
           >
-            Acesso Personal
+            {isNavigating === '/login-personal' ? "Redirecionando..." : "Entrar como Personal"}
           </button>
         </div>
 
-        {/* Rodapé minimalista */}
-        <div className="mt-16 flex flex-col items-center gap-3">
-          <div className="h-px w-10 bg-gray-100" />
-          <p className="text-[9px] font-bold text-gray-400 uppercase tracking-[0.25em]">
-            Plataforma de Alta Performance
-          </p>
-
-          <p className="text-[6px] font-arial text-gray-700 uppercase tracking-[0.40em] text-center">
-  Desenvolvido por  | {' '}
-  <a 
-    href="https://www.instagram.com/joas.vieira7" 
-    target="_blank" 
-    rel="noopener noreferrer" 
-    className="hover:text-black transition-colors duration-300 font-bold"
-  >
-    JOÁS VIEIRA
-  </a>
-</p>
+        {/* Rodapé minimalista com efeito de respiro */}
+        <div className="mt-16 flex flex-col items-center gap-4">
+          <div className="h-px w-10 bg-slate-100" />
+          <div className="text-center">
+            <p className="text-[8px] font-black text-slate-300 uppercase tracking-[0.3em] mb-1">
+              Plataforma de Alta Performance
+            </p>
+            <p className="text-[7px] font-bold text-slate-400 uppercase tracking-[0.2em]">
+              Desenvolvido por{' '}
+              <a 
+                href="https://www.instagram.com/joas.vieira7" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="hover:text-blue-500 transition-colors"
+              >
+                JOÁS VIEIRA
+              </a>
+            </p>
+          </div>
         </div>
         
       </div>

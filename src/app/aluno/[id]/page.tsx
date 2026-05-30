@@ -2,7 +2,7 @@
 import { useEffect, useState, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
-import { FaDumbbell, FaClipboardList, FaChartLine, FaFileInvoice, FaFolderOpen, FaUserCircle, FaCommentMedical } from 'react-icons/fa';
+import { FaDumbbell, FaClipboardList, FaChartLine, FaFileInvoice, FaFolderOpen, FaUserCircle, FaExclamationTriangle, FaCommentMedical } from 'react-icons/fa';
 import { LineChart, Line, Tooltip, ResponsiveContainer } from 'recharts';
 import { startOfWeek, endOfWeek, eachDayOfInterval, format, isSameDay, parseISO } from 'date-fns';
 
@@ -22,26 +22,61 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
     
     // Verificação de segurança: checa o status financeiro antes de carregar o conteúdo
     const checkStatus = async () => {
-      const { data: alunoData } = await supabase
-        .from('alunos')
-        .select('status_pagamento, data_vencimento')
-        .eq('id', id)
-        .single();
+  const { data: alunoData } = await supabase
+    .from('alunos')
+    .select('status_pagamento, data_vencimento')
+    .eq('id', id)
+    .single();
 
-      if (alunoData) {
-        const hoje = new Date();
-        const vencimento = alunoData.data_vencimento ? new Date(alunoData.data_vencimento) : null;
-        
-        if (alunoData.status_pagamento === 'bloqueado' || (vencimento && vencimento < hoje)) {
-          router.push('/pagamento-pendente?motivo=vencido');
-          return;
-        }
-      }
-      fetchData();
-    };
+  if (alunoData) {
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+
+    // Converte a data do banco para data local (evita fuso horário)
+    const [ano, mes, dia] = alunoData.data_vencimento.split('-').map(Number);
+    const vencimento = new Date(ano, mes - 1, dia);
+
+    // Calcula limite de 2 dias
+    const dataLimite = new Date(vencimento);
+    dataLimite.setDate(dataLimite.getDate() + 2);
+    dataLimite.setHours(0, 0, 0, 0);
+
+    // Bloqueia APENAS se estiver bloqueado manualmente OU se passou dos 2 dias
+    const estaBloqueado = alunoData.status_pagamento === 'bloqueado' || hoje > dataLimite;
+
+    if (estaBloqueado) {
+      router.push('/pagamento-pendente?motivo=vencido');
+      return;
+    }
+  }
+  fetchData();
+};
 
     checkStatus();
   }, [id, router]);
+
+
+  // Exemplo dentro da página do aluno
+useEffect(() => {
+  const checkStatus = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+
+    const { data: aluno } = await supabase
+      .from('alunos')
+      .select('ativo')
+      .eq('id', session.user.id)
+      .single();
+
+    // Se o aluno estiver inativo, expulsa ele
+    if (aluno && !aluno.ativo) {
+      await supabase.auth.signOut();
+      router.push('/login-aluno');
+      alert("Sua conta está inativa. Entre em contato com seu treinador.");
+    }
+  };
+  checkStatus();
+}, []);
 
   const fetchData = async () => {
     setLoading(true);
@@ -87,73 +122,119 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
         </header>
 
 
-        {/* Status de Pagamento (Premium UI) */}
-{aluno && (
-  <div className="mb-10 max-w-sm mx-auto">
-    <div className={`p-6 rounded-3xl border ${
-      aluno.status_pagamento === 'bloqueado' 
-        ? 'bg-red-50 border-red-100' 
-        : 'bg-white border-gray-100 shadow-sm'
+ {aluno && (
+  <div className="mb-10 max-w-sm mx-auto space-y-4">
+    {/* Banner de Aviso (Lógica isolada) */}
+    {(() => {
+      const hoje = new Date().getTime();
+      const vencimento = aluno.data_vencimento ? new Date(aluno.data_vencimento).getTime() : 0;
+      const diasRestantes = (vencimento - hoje) / (1000 * 3600 * 24);
+      const estaBloqueado = aluno.status_pagamento === 'bloqueado';
+      
+      if (!estaBloqueado && diasRestantes > 3) return null;
+
+      return (
+      <div className={`group flex items-center justify-between gap-4 px-5 py-4 rounded-3xl border transition-all duration-500 ${
+      estaBloqueado ? 'bg-red-500/5 border-red-500/10 text-red-600' : 'bg-amber-500/5 border-amber-500/10 text-amber-600'
     }`}>
-      <div className="flex flex-col gap-1 text-center">
-        <span className="text-[9px] font-black uppercase tracking-[0.25em] text-gray-400">
-          Status do Plano
-        </span>
-        <span className={`text-sm font-black tracking-tighter ${
-          aluno.status_pagamento === 'bloqueado' ? 'text-red-600' : 'text-gray-900'
-        }`}>
-          {aluno.status_pagamento === 'bloqueado' ? 'Acesso Restrito' : 'Plano Ativo'}
-        </span>
-        <span className="text-[10px] font-medium text-gray-500 mt-1">
-          Vencimento: {aluno.data_vencimento ? new Date(aluno.data_vencimento).toLocaleDateString('pt-BR') : 'Não definido'}
+      <div className="flex items-center gap-3">
+        <div className={`p-2 rounded-full ${estaBloqueado ? 'bg-red-500/10' : 'bg-amber-500/10'}`}>
+          <FaExclamationTriangle className="text-sm" />
+        </div>
+        <div>
+          <h4 className="text-[10px] font-black uppercase tracking-widest">
+            {estaBloqueado ? "Acesso Restrito" : "Aviso de Renovação"}
+          </h4>
+          <p className="text-[10px] opacity-70 mt-0.5">
+            {estaBloqueado ? "Sua assinatura está pendente. Regularize para continuar." : "Seu plano expira em breve. Evite interrupções."}
+          </p>
+        </div>
+      </div>
+      <button 
+  onClick={() => router.push('/aluno/pagamento-pendente?motivo=renovacao')}
+  className="text-[10px] font-black uppercase opacity-50 underline decoration-2 underline-offset-4 decoration-current cursor-pointer hover:opacity-100"
+>
+  Antecipar Pagamento
+</button>
+    </div>
+  );
+})()}
+
+    {/* Card de Status */}
+    <div className="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)] flex flex-col items-center justify-center gap-6">
+      <div className="flex flex-col items-center gap-2">
+        <div className="flex items-center gap-2">
+          <div className={`w-2 h-2 rounded-full ${aluno.status_pagamento === 'bloqueado' ? 'bg-red-500' : 'bg-emerald-500'}`} />
+          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">
+            {aluno.status_pagamento === 'bloqueado' ? 'Restrito' : 'Assinatura Ativa'}
+          </span>
+        </div>
+        <p className="text-xl font-black text-gray-950">
+          {aluno.status_pagamento === 'bloqueado' ? 'Conta Bloqueada' : 'Plano Premium'}
+        </p>
+      </div>
+      <div className="w-full h-px bg-gray-50" />
+      <div className="w-full flex justify-between items-center text-[10px] uppercase font-bold tracking-widest text-gray-400">
+        <span>Vencimento</span>
+        <span className="text-gray-900">
+          {aluno.data_vencimento ? new Date(aluno.data_vencimento).toLocaleDateString('pt-BR') : 'Data não definida'}
         </span>
       </div>
     </div>
   </div>
 )}
 
-        <section className="mb-10">
-          <h2 className="text-3xl font-black text-gray-950 tracking-tighter mb-8">Olá, {aluno?.nome.split(' ')[0]}.</h2>
-          
-          <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
-            <h2 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-6">Sua semana de treinos</h2>
-            <div className="flex justify-between items-center">
-              {eachDayOfInterval({ start: startOfWeek(new Date(), { weekStartsOn: 0 }), end: endOfWeek(new Date(), { weekStartsOn: 0 }) }).map((dia, index) => {
-                const treinou = diasTreino.some(d => isSameDay(d, dia));
-                const hoje = isSameDay(dia, new Date());
-                return (
-                  <div key={index} className="flex flex-col items-center gap-3">
-                    <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black text-xs transition-all
-                      ${treinou ? 'bg-gray-900 text-white' : hoje ? 'border-2 border-gray-900 text-gray-900' : 'bg-gray-50 text-gray-300'}`}>
-                      {treinou ? '✓' : hoje ? '●' : ''}
-                    </div>
-                    <span className="text-[9px] font-bold text-gray-400 uppercase">{format(dia, 'EEEEE')}</span>
-                  </div>
-                );
-              })}
+<section className="mb-10">
+  <h2 className="text-3xl font-black text-gray-950 tracking-tighter mb-8">Olá, {aluno?.nome.split(' ')[0]}.</h2>
+  <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
+    <h2 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-6">Sua semana de treinos</h2>
+    <div className="flex justify-between items-center">
+      {eachDayOfInterval({ start: startOfWeek(new Date(), { weekStartsOn: 0 }), end: endOfWeek(new Date(), { weekStartsOn: 0 }) }).map((dia, index) => {
+        const treinou = diasTreino.some(d => isSameDay(d, dia));
+        const hoje = isSameDay(dia, new Date());
+        return (
+          <div key={index} className="flex flex-col items-center gap-3">
+            <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black text-xs ${treinou ? 'bg-gray-900 text-white' : hoje ? 'border-2 border-gray-900 text-gray-900' : 'bg-gray-50 text-gray-300'}`}>
+              {treinou ? '✓' : hoje ? '●' : ''}
             </div>
+            <span className="text-[9px] font-bold text-gray-400 uppercase">{format(dia, 'EEEEE')}</span>
           </div>
-        </section>
+        );
+      })}
+    </div>
+  </div>
+</section>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          <BotaoMenu icon={<FaDumbbell />} label="Treinos" onClick={() => router.push(`/aluno/${id}/treinos`)} />
-          <BotaoMenu icon={<FaClipboardList />} label="Avaliações" onClick={abrirAvaliacoes} />
-          <BotaoMenu icon={<FaChartLine />} label="Progresso" onClick={() => router.push(`/aluno/${id}/progresso`)} />
-          <BotaoMenu icon={<FaCommentMedical />} label="Feedback" onClick={() => router.push(`/aluno/${id}/feedback`)} />
-          <BotaoMenu icon={<FaFileInvoice />} label="Faturas" />
-          <BotaoMenu icon={<FaFolderOpen />} label="Arquivos" />
-        </div>
+<div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+  <BotaoMenu icon={<FaDumbbell />} label="Treinos" onClick={() => router.push(`/aluno/${id}/treinos`)} />
+  <BotaoMenu icon={<FaClipboardList />} label="Avaliações" onClick={abrirAvaliacoes} />
+  <BotaoMenu icon={<FaChartLine />} label="Progresso" onClick={() => router.push(`/aluno/${id}/progresso`)} />
+  <BotaoMenu icon={<FaCommentMedical />} label="Feedback" onClick={() => router.push(`/aluno/${id}/feedback`)} />
+  <BotaoMenu icon={<FaFileInvoice />} label="Faturas" />
+  <BotaoMenu icon={<FaFolderOpen />} label="Arquivos" />
+</div>
 
+{/* Renderização do Modal */}
         {modalAberta && (
-          <ModalAvaliacao isOpen={modalAberta} onClose={() => setModalAberta(false)} avaliacao={avaliacoes[0]} historico={avaliacoes.map(a => ({ data: new Date(a.data_avaliacao).toLocaleDateString(), peso: a.peso })).reverse()} />
+          <ModalAvaliacao 
+            isOpen={modalAberta} 
+            onClose={() => setModalAberta(false)} 
+            avaliacao={avaliacoes[0]} 
+            historico={avaliacoes.map(a => ({ 
+              data: new Date(a.data_avaliacao).toLocaleDateString(), 
+              peso: a.peso 
+            })).reverse()} 
+          />
         )}
       </div>
     </main>
   );
 }
 
+// --- Funções fora da export default ---
+
 function ModalAvaliacao({ isOpen, onClose, avaliacao, historico }: any) {
-  if (!isOpen) return null;
+  if (!isOpen || !avaliacao) return null;
 
   const medidasList = [
     { label: 'Torax', value: avaliacao.torax },
@@ -168,39 +249,20 @@ function ModalAvaliacao({ isOpen, onClose, avaliacao, historico }: any) {
   return (
     <div className="fixed inset-0 bg-black/20 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
       <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl p-8 border border-gray-100 max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-300">
-        
-        {/* Header Minimalista */}
         <div className="flex justify-between items-center mb-8">
           <h2 className="text-sm font-black uppercase tracking-[0.2em] text-gray-900">Evolução</h2>
-          <button 
-            onClick={onClose} 
-            className="text-gray-400 hover:text-gray-900 transition-colors text-xl"
-          >
-            &times;
-          </button>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-900 transition-colors text-xl">&times;</button>
         </div>
 
-        {/* Gráfico de Tendência (Premium) */}
         <div className="h-32 w-full mb-10">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={historico} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
-              <Tooltip 
-                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} 
-                itemStyle={{ fontSize: '10px', fontWeight: 'bold' }}
-              />
-              <Line 
-                type="monotone" 
-                dataKey="peso" 
-                stroke="#000" 
-                strokeWidth={3} 
-                dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} 
-                activeDot={{ r: 6, strokeWidth: 0 }}
-              />
+              <Tooltip contentStyle={{ borderRadius: '12px', border: 'none' }} />
+              <Line type="monotone" dataKey="peso" stroke="#000" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
             </LineChart>
           </ResponsiveContainer>
         </div>
 
-        {/* Métricas Principais (Bento Cards) */}
         <div className="grid grid-cols-2 gap-4 mb-10">
           <div className="bg-gray-50 p-5 rounded-2xl">
             <p className="text-[9px] font-black uppercase text-gray-400 tracking-widest mb-1">Peso Atual</p>
@@ -212,7 +274,6 @@ function ModalAvaliacao({ isOpen, onClose, avaliacao, historico }: any) {
           </div>
         </div>
 
-        {/* Medidas Detalhadas (Clean List) */}
         <div className="space-y-6">
           <p className="text-[10px] font-black uppercase text-gray-300 tracking-widest border-b border-gray-100 pb-2">Medidas Detalhadas</p>
           <div className="grid grid-cols-2 gap-x-6 gap-y-6">

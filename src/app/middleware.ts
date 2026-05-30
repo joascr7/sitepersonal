@@ -21,39 +21,38 @@ export async function middleware(request: NextRequest) {
   const { data: { session } } = await supabase.auth.getSession();
   const pathname = request.nextUrl.pathname;
 
-  // Ignora arquivos estáticos e assets para performance
-  if (pathname.startsWith('/_next') || pathname.includes('.')) return response;
+  // Rotas públicas e exclusões de middleware
+  if (pathname.startsWith('/_next') || pathname.includes('.') || pathname === '/login' || pathname === '/') {
+    return response;
+  }
 
-  const userRole = session?.user.user_metadata?.role;
-  const isAuthPage = pathname === '/login' || pathname === '/';
-  
-  // 1. Permite acesso livre ao Login/Home
-  if (isAuthPage) return response;
+  // Permite acesso à página de pagamento sem bloqueios de loop
+  if (pathname === '/pagamento-pendente') {
+    return response;
+  }
 
-  // 2. Proteção de rotas principais
-  const isProtected = pathname.startsWith('/dashboard') || pathname.startsWith('/aluno/') || pathname === '/pagamento-pendente';
+  const isProtected = pathname.startsWith('/dashboard') || pathname.startsWith('/aluno/');
   if (!session && isProtected) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  // 3. Controle de Acesso para Logados
   if (session) {
+    request.headers.set('x-user-id', session.user.id);
+    
+    const userRole = session.user.user_metadata?.role;
     const isAlunoRoute = pathname.startsWith('/aluno/');
     const isDashboardRoute = pathname.startsWith('/dashboard');
 
-    // Impede Personais de acessar áreas de aluno
-    if (userRole === 'personal' && (isAlunoRoute || pathname === '/pagamento-pendente')) {
+    if (userRole === 'personal' && isAlunoRoute) {
       return NextResponse.redirect(new URL('/dashboard', request.url));
     }
     
-    // Impede Alunos de acessar o dashboard do personal
     if (userRole === 'aluno' && isDashboardRoute) {
       return NextResponse.redirect(new URL(`/aluno/${session.user.id}`, request.url));
     }
 
-    // 4. Bloqueio Financeiro (Regra de Ouro)
-    // Se for aluno tentando acessar área de treino, valida status
-    if (userRole === 'aluno' && isAlunoRoute && pathname !== '/pagamento-pendente') {
+    // Lógica de bloqueio para Alunos
+    if (userRole === 'aluno' && isAlunoRoute) {
       const { data: aluno } = await supabase
         .from('alunos')
         .select('status_pagamento, data_vencimento')
@@ -62,11 +61,18 @@ export async function middleware(request: NextRequest) {
 
       if (aluno) {
         const hoje = new Date();
-        const vencimento = aluno.data_vencimento ? new Date(aluno.data_vencimento) : null;
-        const estaBloqueado = aluno.status_pagamento === 'bloqueado' || (vencimento && vencimento < hoje);
+        const vencimento = new Date(aluno.data_vencimento);
+        const dataLimite = new Date(vencimento);
+        dataLimite.setDate(dataLimite.getDate() + 2);
 
-        // Se bloqueado, o redirecionamento é OBRIGATÓRIO, exceto se já estiver na página de pagamento
-        if (estaBloqueado && pathname !== '/pagamento-pendente') {
+        // Bloqueia apenas se estiver explicitamente 'bloqueado' OU se estiver vencido E não estiver ativo
+        // Adicionamos a checagem '!pathname.startsWith' para evitar loop
+        const estaVencido = hoje.getTime() > dataLimite.getTime();
+        
+        if (
+          (aluno.status_pagamento === 'bloqueado' || (estaVencido && aluno.status_pagamento !== 'ativo')) &&
+          !pathname.startsWith('/pagamento-pendente')
+        ) {
           return NextResponse.redirect(new URL('/pagamento-pendente?motivo=vencido', request.url));
         }
       }
@@ -75,7 +81,3 @@ export async function middleware(request: NextRequest) {
 
   return response;
 }
-
-export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'],
-};

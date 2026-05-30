@@ -8,72 +8,71 @@ export default function LoginAluno() {
   const [password, setPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [message, setMessage] = useState<{ type: 'error' | 'success', text: string } | null>(null);
+  
   const router = useRouter();
 
-  const handleLogin = async () => {
-    const { data, error } = await supabase.auth.signInWithPassword({ 
-      email: email.trim(), 
-      password 
+ const handleLogin = async () => {
+  setIsProcessing(true);
+  setMessage(null);
+
+  // 1. Autenticação inicial
+  const { data, error } = await supabase.auth.signInWithPassword({ 
+    email: email.trim(), 
+    password 
+  });
+
+  if (error) {
+    setMessage({ type: 'error', text: "Credenciais inválidas. Verifique seus dados." });
+    setIsProcessing(false);
+    return;
+  }
+
+  // 2. Verificar se é perfil aluno e se está ATIVO
+  const { data: aluno, error: alunoError } = await supabase
+    .from('alunos')
+    .select('ativo, id')
+    .eq('id', data.user.id)
+    .maybeSingle();
+
+  // Se não achar na tabela alunos ou se 'ativo' for false
+  if (alunoError || !aluno || aluno.ativo === false) {
+    await supabase.auth.signOut(); // Desloga imediatamente
+    setMessage({ 
+      type: 'error', 
+      text: "Sua conta está inativa ou você não possui permissão de aluno. Contate seu treinador." 
     });
+    setIsProcessing(false);
+    return;
+  }
 
-    if (error) {
-      alert(error.message);
-      return;
-    }
-
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', data.user.id)
-      .maybeSingle(); 
-
-    if (profileError || !profile || profile.role === 'personal') {
-      await supabase.auth.signOut();
-      alert("Acesso negado: Esta página é exclusiva para alunos.");
-      return;
-    }
-
-    router.push(`/aluno/${data.user.id}`);
-    router.refresh();
-  };
-
-  const handleResetPassword = async () => {
-    const emailReset = prompt("Digite seu e-mail para receber o link de recuperação:");
-    if (emailReset) {
-      const { error } = await supabase.auth.resetPasswordForEmail(emailReset, {
-        redirectTo: `${window.location.origin}/nova-senha`,
-      });
-      if (error) alert(error.message);
-      else alert('Link de recuperação enviado para seu e-mail!');
-    }
-  };
+  // 3. Login autorizado
+  router.push(`/aluno/${data.user.id}`);
+};
 
   return (
     <main className="min-h-screen flex items-center justify-center bg-[#FAFAFA] p-6">
-      <div className="w-full max-w-[360px] bg-white p-8 rounded-3xl border border-gray-100 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_4px_6px_-2px_rgba(0,0,0,0.05)]">
+      <div className="w-full max-w-[360px] bg-white p-8 rounded-3xl border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
         
         <button onClick={() => router.back()} className="text-[10px] font-bold text-gray-400 hover:text-gray-900 transition-colors uppercase tracking-[0.2em] mb-10">
           ← Voltar
         </button>
         
         <div className="mb-8">
-          <h1 
-            className="text-3xl font-black tracking-tighter mb-1"
-            style={{
-              background: 'linear-gradient(135deg, #007bff 0%, #00c6ff 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              filter: 'drop-shadow(0px 2px 2px rgba(0,0,0,0.1))',
-            }}
-          >
-            AURAFIT
-          </h1>
-          <p className="text-blue-600 font-bold text-xs tracking-widest uppercase">Área do Aluno</p>
+          <h1 className="text-3xl font-black tracking-tighter text-slate-900 mb-1">AURAFIT</h1>
+          <p className="text-blue-600 font-bold text-[10px] tracking-[0.2em] uppercase">Área do Aluno</p>
         </div>
         
+        {message && (
+          <div className={`mb-6 p-4 rounded-xl text-[10px] font-bold uppercase tracking-wider ${message.type === 'error' ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'}`}>
+            {message.text}
+          </div>
+        )}
+
         <div className="space-y-4">
           <input 
-            className="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500/10 outline-none transition-all placeholder:text-gray-400 text-sm font-medium" 
+            className="w-full px-4 py-3.5 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-medium" 
             placeholder="E-mail" 
             value={email}
             onChange={(e) => setEmail(e.target.value)} 
@@ -81,7 +80,7 @@ export default function LoginAluno() {
           
           <div className="relative w-full">
             <input 
-              className="w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500/10 outline-none transition-all placeholder:text-gray-400 text-sm font-medium" 
+              className="w-full px-4 py-3.5 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:border-blue-500 transition-all text-sm font-medium" 
               type={showPass ? "text" : "password"} 
               placeholder="Senha" 
               value={password}
@@ -89,7 +88,7 @@ export default function LoginAluno() {
             />
             <button 
               type="button" 
-              className="absolute right-4 top-3.5 text-[10px] font-black text-gray-400 hover:text-gray-900 uppercase tracking-widest transition"
+              className="absolute right-4 top-3.5 text-[10px] font-black text-gray-400 hover:text-gray-900 uppercase tracking-widest"
               onClick={() => setShowPass(!showPass)}
             >
               {showPass ? "Ocultar" : "Exibir"}
@@ -98,37 +97,35 @@ export default function LoginAluno() {
         </div>
         
         <div className="mt-4 mb-8 text-center">
-          <span onClick={handleResetPassword} className="text-xs font-bold text-gray-400 hover:text-blue-600 underline cursor-pointer transition">
+          <span onClick={() => setMessage({ type: 'success', text: "Solicite a redefinição com seu treinador." })} className="text-[10px] font-bold text-gray-400 hover:text-blue-600 underline cursor-pointer transition">
             Esqueceu a senha?
           </span>
         </div>
         
         <button 
           onClick={handleLogin} 
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-xl font-bold text-sm transition-all active:scale-[0.98]"
+          disabled={isProcessing}
+          className="w-full bg-slate-900 hover:bg-slate-800 text-white py-4 rounded-xl font-bold text-sm transition-all active:scale-[0.98] disabled:opacity-50"
         >
-          Entrar no sistema
+          {isProcessing ? "Validando acesso..." : "Entrar no sistema"}
         </button>
         
         <button 
           onClick={() => setShowModal(true)} 
-          className="w-full mt-3 bg-gray-50 hover:bg-gray-100 text-gray-600 py-4 rounded-xl font-bold text-sm transition-all active:scale-[0.98]"
+          className="w-full mt-3 bg-gray-50 hover:bg-gray-100 text-gray-600 py-4 rounded-xl font-bold text-sm transition-all"
         >
           Não tenho conta
         </button>
       </div>
 
       {showModal && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white p-8 rounded-3xl w-full max-w-sm shadow-2xl animate-in zoom-in-95">
-            <h3 className="text-lg font-black mb-4 text-gray-900">Acesso exclusivo</h3>
-            <p className="text-gray-600 mb-8 leading-relaxed text-sm">
-              O seu cadastro deve ser realizado diretamente pelo seu personal trainer. Entre em contato com ele para solicitar o seu acesso.
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-center justify-center p-6">
+          <div className="bg-white p-8 rounded-3xl w-full max-w-sm shadow-2xl animate-in fade-in zoom-in-95 duration-300">
+            <h3 className="text-sm font-black mb-2 uppercase tracking-widest text-slate-900">Acesso Restrito</h3>
+            <p className="text-gray-500 mb-8 leading-relaxed text-xs">
+              O seu cadastro é realizado exclusivamente pelo seu Personal Trainer. Entre em contato para ativar sua jornada na AuraFit.
             </p>
-            <button 
-              onClick={() => setShowModal(false)} 
-              className="w-full bg-gray-900 text-white py-4 rounded-xl font-bold text-sm hover:bg-black transition"
-            >
+            <button onClick={() => setShowModal(false)} className="w-full bg-slate-900 text-white py-4 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-black transition">
               Entendido
             </button>
           </div>
