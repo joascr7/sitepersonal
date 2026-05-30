@@ -260,12 +260,36 @@ useEffect(() => {
 </section>
 
 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-  <BotaoMenu icon={<FaDumbbell />} label="Treinos" onClick={() => router.push(`/aluno/${id}/treinos`)} />
-  <BotaoMenu icon={<FaClipboardList />} label="Avaliações" onClick={abrirAvaliacoes} />
-  <BotaoMenu icon={<FaChartLine />} label="Progresso" onClick={() => router.push(`/aluno/${id}/progresso`)} />
-  <BotaoMenu icon={<FaCommentMedical />} label="Feedback" onClick={() => router.push(`/aluno/${id}/feedback`)} />
-  <BotaoMenu icon={<FaFileInvoice />} label="Faturas" />
-  <BotaoMenu icon={<FaFolderOpen />} label="Arquivos" />
+  <BotaoMenu 
+    icon={<FaDumbbell />} 
+    label="Treinos" 
+    onClick={() => router.push(`/aluno/${id}/treinos`)} 
+  />
+  <BotaoMenu 
+    icon={<FaClipboardList />} 
+    label="Avaliações" 
+    onClick={abrirAvaliacoes} 
+  />
+  <BotaoMenu 
+    icon={<FaChartLine />} 
+    label="Progresso" 
+    onClick={() => router.push(`/aluno/${id}/progresso`)} 
+  />
+  <BotaoMenu 
+    icon={<FaCommentMedical />} 
+    label="Feedback" 
+    onClick={() => router.push(`/aluno/${id}/feedback`)} 
+  />
+  <BotaoMenu 
+    icon={<FaFileInvoice />} 
+    label="Faturas" 
+    onClick={() => router.push(`/aluno/${id}/faturas`)} 
+  />
+  <BotaoMenu 
+    icon={<FaFolderOpen />} 
+    label="Arquivos" 
+    onClick={() => router.push(`/aluno/${id}/arquivos`)} 
+  />
 </div>
 
 {/* Renderização do Modal */}

@@ -3,11 +3,13 @@ import { useState, useEffect, Suspense } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 
-interface Serie {
-  reps: string; 
-  carga: number | string;
-  CargaPlanejada: number | string;
-  intervalo: number | string;
+interface Exercicio {
+  nome: string;
+  video: string;
+  metodo: string;
+  tipoSerie: string;
+  series: Serie[];
+  observacao?: string; // Adicione esta linha
 }
 
 interface Exercicio {
@@ -238,74 +240,117 @@ function NovaFichaContent() {
         
         <input className="w-full p-4 mb-8 bg-white border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-gray-200 transition-all placeholder:text-gray-400" placeholder="Nome do Treino" value={nome} onChange={(e) => setNome(e.target.value)} />
 
-        {exercicios.map((ex, exIndex) => (
-          <div key={exIndex} className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm mb-6 transition-all hover:shadow-md">
-            <div className="flex justify-between items-center mb-6">
-              <input className="font-semibold text-gray-900 w-full outline-none border-b border-transparent focus:border-gray-200 pb-1" placeholder="Nome do Exercício" value={ex.nome} onChange={(e) => { const n = [...exercicios]; n[exIndex].nome = e.target.value; setExercicios(n); }} onBlur={() => buscarVideo(ex.nome, exIndex)} />
-              <button onClick={() => removerExercicio(exIndex)} className="text-gray-400 hover:text-red-500 font-bold text-xs ml-4">Remover</button>
-            </div>
-            
-            <div className="mb-6 space-y-2">
-              <input className="w-full p-3 bg-gray-50 border border-gray-100 rounded-xl text-sm outline-none focus:border-gray-300 transition-all" placeholder="Link do vídeo" value={ex.video} onChange={(e) => { const n = [...exercicios]; n[exIndex].video = e.target.value; setExercicios(n); }} />
-              <button type="button" onClick={() => document.getElementById(`file-${exIndex}`)?.click()} className="w-full py-2 bg-gray-900 text-white rounded-xl text-xs font-bold hover:bg-gray-800 transition-all"> {uploading ? 'Enviando...' : 'Upload de Vídeo (Máx 10MB)'} </button>
-              <input type="file" id={`file-${exIndex}`} className="hidden" accept="video/*" onChange={(e) => e.target.files && uploadVideo(exIndex, e.target.files[0])} />
-            
-              {ex.video && (ex.video.includes('youtube') || ex.video.includes('youtu.be')) && (
-                <div className="mt-4 w-full h-40 bg-gray-100 rounded-xl overflow-hidden border border-gray-200">
-                  <iframe className="w-full h-full" src={ex.video.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/').replace('/shorts/', '/embed/').split('&')[0]} frameBorder="0" allowFullScreen></iframe>
-                </div>
-              )}
-            </div>
+       {/* Lista de Exercícios */}
+{exercicios.map((ex, exIndex) => (
+  <div key={exIndex} className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm mb-6 transition-all hover:shadow-md">
+    
+    <div className="flex justify-between items-center mb-6">
+      <input 
+        className="font-semibold text-gray-900 w-full outline-none border-b border-transparent focus:border-gray-200 pb-1" 
+        placeholder="Nome do Exercício" 
+        value={ex.nome} 
+        onChange={(e) => { const n = [...exercicios]; n[exIndex].nome = e.target.value; setExercicios(n); }} 
+        onBlur={() => buscarVideo(ex.nome, exIndex)} 
+      />
+      <button onClick={() => removerExercicio(exIndex)} className="text-gray-400 hover:text-red-500 font-bold text-xs ml-4">Remover</button>
+    </div>
 
-            <div className="grid grid-cols-4 gap-3 text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 px-1">
-              <span>Reps</span>
-              <span>Carga</span>
-              <span>Desc.</span>
-              <span>Planej.</span>
-            </div>
+    {/* Campo de Vídeo e Observação */}
+    <div className="mb-6 space-y-4">
+      <input 
+        className="w-full p-3 bg-gray-50 border border-gray-100 rounded-xl text-sm outline-none focus:border-gray-300 transition-all" 
+        placeholder="Link do vídeo" 
+        value={ex.video} 
+        onChange={(e) => { const n = [...exercicios]; n[exIndex].video = e.target.value; setExercicios(n); }} 
+      />
+      
+      <button 
+        type="button" 
+        onClick={() => document.getElementById(`file-${exIndex}`)?.click()} 
+        className="w-full py-2 bg-gray-900 text-white rounded-xl text-xs font-bold hover:bg-gray-800 transition-all"
+      > 
+        {uploading ? 'Enviando...' : 'Upload de Vídeo (Máx 10MB)'} 
+      </button>
+      
+      <input type="file" id={`file-${exIndex}`} className="hidden" accept="video/*" onChange={(e) => e.target.files && uploadVideo(exIndex, e.target.files[0])} />
+    
+      {ex.video && (ex.video.includes('youtube') || ex.video.includes('youtu.be')) && (
+        <div className="w-full h-40 bg-gray-100 rounded-xl overflow-hidden border border-gray-200">
+          <iframe className="w-full h-full" src={ex.video.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/').replace('/shorts/', '/embed/').split('&')[0]} frameBorder="0" allowFullScreen></iframe>
+        </div>
+      )}
 
-            <div className="space-y-2">
-  {ex.series.map((s, sIndex) => (
-    <div key={sIndex} className="grid grid-cols-4 gap-2">
+      {/* Campo de Observação Integrado */}
       <input 
-        type="text" 
-        className="p-2 bg-gray-50 border border-transparent rounded-lg text-sm text-center focus:bg-white focus:border-gray-200 outline-none transition-all" 
-        placeholder="3x12" 
-        value={s.reps ?? ''} 
-        onChange={(e) => atualizarSerie(exIndex, sIndex, 'reps', e.target.value)} 
-      />
-      <input 
-        type="number" 
-        className="p-2 bg-gray-50 border border-transparent rounded-lg text-sm text-center focus:bg-white focus:border-gray-200 outline-none transition-all" 
-        placeholder="0" 
-        value={s.carga ?? ''} 
-        onChange={(e) => atualizarSerie(exIndex, sIndex, 'carga', e.target.value)} 
-      />
-      <input 
-        type="number" 
-        className="p-2 bg-gray-50 border border-transparent rounded-lg text-sm text-center focus:bg-white focus:border-gray-200 outline-none transition-all" 
-        placeholder="0" 
-        value={s.intervalo ?? ''} 
-        onChange={(e) => atualizarSerie(exIndex, sIndex, 'intervalo', e.target.value)} 
-      />
-      <input 
-        type="number" 
-        className="p-2 bg-gray-50 border border-transparent rounded-lg text-sm text-center focus:bg-white focus:border-gray-200 outline-none transition-all" 
-        placeholder="0" 
-        value={s.CargaPlanejada ?? ''} 
-        onChange={(e) => atualizarSerie(exIndex, sIndex, 'CargaPlanejada', e.target.value)} 
+        className="w-full text-xs text-gray-500 bg-gray-50 p-3 rounded-xl border border-gray-100 outline-none focus:border-gray-300 transition-all placeholder:italic"
+        placeholder="Adicionar observação (ex: foco na negativa, pausa de 2s...)"
+        value={ex.observacao || ''}
+        onChange={(e) => { const n = [...exercicios]; n[exIndex].observacao = e.target.value; setExercicios(n); }}
       />
     </div>
-  ))}
-</div>
-<button 
-  onClick={() => adicionarSerie(exIndex)} 
-  className="mt-4 text-xs font-bold text-gray-500 hover:text-gray-900 transition-colors"
-> 
-  + Adicionar série 
-</button>
+
+    {/* Header da Tabela */}
+    <div className="grid grid-cols-5 gap-2 text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-3 px-1 text-center">
+      <span>Série</span><span>Reps</span><span>Carga</span><span>Desc.</span><span>Planej.</span>
+    </div>
+
+    {/* Linhas de Séries */}
+    <div className="space-y-2">
+      {ex.series.map((s, sIndex) => (
+        <div key={sIndex} className="grid grid-cols-5 gap-2 items-center">
+          <input 
+            type="number" 
+            className="p-2 bg-gray-50 border border-transparent rounded-lg text-sm text-center font-bold text-gray-700 focus:bg-white focus:border-gray-200 outline-none transition-all" 
+            value={sIndex + 1} 
+            readOnly 
+          />
+          <input 
+            type="text" 
+            className="p-2 bg-gray-50 border border-transparent rounded-lg text-sm text-center focus:bg-white focus:border-gray-200 outline-none transition-all" 
+            placeholder="12" 
+            value={s.reps ?? ''} 
+            onChange={(e) => atualizarSerie(exIndex, sIndex, 'reps', e.target.value)} 
+          />
+          <input 
+            type="number" 
+            className="p-2 bg-gray-50 border border-transparent rounded-lg text-sm text-center focus:bg-white focus:border-gray-200 outline-none transition-all" 
+            placeholder="0" 
+            value={s.carga ?? ''} 
+            onChange={(e) => atualizarSerie(exIndex, sIndex, 'carga', e.target.value)} 
+          />
+          <input 
+            type="number" 
+            className="p-2 bg-gray-50 border border-transparent rounded-lg text-sm text-center focus:bg-white focus:border-gray-200 outline-none transition-all" 
+            placeholder="0" 
+            value={s.intervalo ?? ''} 
+            onChange={(e) => atualizarSerie(exIndex, sIndex, 'intervalo', e.target.value)} 
+          />
+          <div className="flex items-center gap-1">
+            <input 
+              type="number" 
+              className="p-2 bg-gray-50 border border-transparent rounded-lg text-sm text-center focus:bg-white focus:border-gray-200 outline-none transition-all w-full" 
+              placeholder="0" 
+              value={s.CargaPlanejada ?? ''} 
+              onChange={(e) => atualizarSerie(exIndex, sIndex, 'CargaPlanejada', e.target.value)} 
+            />
+            <button 
+              onClick={() => { const n = [...exercicios]; n[exIndex].series.splice(sIndex, 1); setExercicios(n); }} 
+              className="text-gray-300 hover:text-red-500 font-bold px-1"
+            > × </button>
           </div>
-        ))}
+        </div>
+      ))}
+    </div>
+
+    {/* Botão Adicionar Série */}
+    <button 
+      onClick={() => adicionarSerie(exIndex)} 
+      className="mt-4 text-xs font-bold text-gray-500 hover:text-gray-900 transition-colors w-full py-2 border-2 border-dashed border-gray-100 rounded-xl"
+    > 
+      + Adicionar série 
+    </button>
+  </div>
+))}
         
         <button onClick={adicionarExercicio} className="w-full py-4 rounded-xl font-bold text-sm text-gray-500 border-2 border-dashed border-gray-200 hover:border-gray-300 hover:text-gray-900 transition-all mb-8"> + Adicionar Exercício </button>
         

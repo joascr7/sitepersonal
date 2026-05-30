@@ -16,6 +16,7 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
   const [loading, setLoading] = useState(true);
   const [abaAtiva, setAbaAtiva] = useState(searchParams.get('aba') || 'treinos');
   const [feedbacks, setFeedbacks] = useState<any[]>([]);
+  const [arquivos, setArquivos] = useState<any[]>([]);
   const [isModalAvaliacaoOpen, setIsModalAvaliacaoOpen] = useState(false);
   const [medidas, setMedidas] = useState({
     peso: '', gordura: '', torax: '', ombros: '', abdomen: '', 
@@ -23,14 +24,24 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
   });
 
   useEffect(() => {
-    if (!id) return;
-    const carregarDados = async () => {
-      setLoading(true);
-      await Promise.all([fetchDadosAluno(), fetchHistorico(), fetchFichas(), fetchFeedbacks()]);
-      setLoading(false);
-    };
-    carregarDados();
-  }, [id]);
+  if (!id) return;
+  const carregarDados = async () => {
+    setLoading(true);
+    // Adicione fetchArquivos aqui no Promise.all
+    await Promise.all([fetchDadosAluno(), fetchHistorico(), fetchFichas(), fetchFeedbacks(), fetchArquivos()]);
+    setLoading(false);
+  };
+  carregarDados();
+}, [id]);
+
+const fetchArquivos = async () => {
+    const { data, error } = await supabase
+      .from('documentos')
+      .select('*')
+      .eq('aluno_id', id);
+    
+    if (!error && data) setArquivos(data);
+  };
 
   const fetchFeedbacks = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -126,10 +137,11 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
 
         <div className="flex gap-8 mb-10 border-b border-gray-200">
   {[
-    { id: 'treinos', label: 'Programação de Treino' },
-    { id: 'evolucao', label: 'Evolução Corporal' },
-    { id: 'feedback', label: 'Feedbacks do Aluno' }
-  ].map((tab) => (
+  { id: 'treinos', label: 'Programação de Treino' },
+  { id: 'evolucao', label: 'Evolução Corporal' },
+  { id: 'feedback', label: 'Feedbacks do Aluno' },
+  { id: 'arquivos', label: 'Documentos/Exames' } // <--- Nova aba
+].map((tab) => (
     <button 
       key={tab.id} 
       onClick={() => { setAbaAtiva(tab.id); router.replace(`?aba=${tab.id}`) }} 
@@ -345,6 +357,97 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
           </section>
         )}
 
+
+      {abaAtiva === 'arquivos' && (
+  <section className="space-y-8 animate-in fade-in duration-500">
+    <div>
+      <h2 className="text-3xl font-black tracking-tighter text-gray-900">Documentos e Exames</h2>
+      <p className="text-gray-500 font-medium">Upload e gestão de arquivos do aluno.</p>
+    </div>
+
+    {/* Área de Upload */}
+    <div className="bg-white p-8 rounded-3xl border-2 border-dashed border-gray-200 text-center">
+      <label className="cursor-pointer flex flex-col items-center gap-4">
+        <div className="p-4 bg-gray-50 rounded-2xl">
+           <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" /></svg>
+        </div>
+        <span className="font-black text-sm text-gray-900">Clique para enviar novo PDF</span>
+        <input 
+          type="file" 
+          accept="application/pdf" 
+          className="hidden" 
+          onChange={async (e) => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+
+            const filePath = `${id}/${Date.now()}-${file.name}`;
+            
+            // 1. Upload
+            const { error: uploadError } = await supabase.storage
+              .from('documentos-alunos')
+              .upload(filePath, file);
+
+            if (uploadError) return alert("Erro ao subir arquivo.");
+
+            // 2. Registro no banco
+            await supabase.from('documentos').insert({ 
+              aluno_id: id, 
+              url: filePath, 
+              nome_arquivo: file.name 
+            });
+
+            alert("Arquivo enviado com sucesso!"); 
+            await fetchArquivos(); 
+          }}
+        />
+      </label>
+    </div>
+
+    {/* Lista de Arquivos */}
+    <div className="space-y-3">
+      {arquivos && arquivos.length > 0 ? (
+        arquivos.map((arq: any) => (
+          <div key={arq.id} className="flex items-center justify-between p-4 bg-white border border-gray-100 rounded-2xl shadow-sm hover:border-gray-200 transition-colors">
+            <div className="flex items-center gap-3">
+              <span className="text-red-500 text-xl">📄</span>
+              <span className="font-bold text-sm text-gray-700 truncate max-w-[200px]">{arq.nome_arquivo}</span>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <button 
+                onClick={() => {
+                  const { data } = supabase.storage.from('documentos-alunos').getPublicUrl(arq.url);
+                  window.open(data.publicUrl, '_blank');
+                }}
+                className="text-[10px] font-black uppercase text-blue-600 hover:text-blue-800 transition-colors px-3"
+              >
+                Abrir
+              </button>
+
+              {/* Botão Excluir Premium */}
+              <button 
+                onClick={async () => {
+                  if (!confirm("Tem certeza que deseja excluir este arquivo?")) return;
+                  await supabase.storage.from('documentos-alunos').remove([arq.url]);
+                  await supabase.from('documentos').delete().eq('id', arq.id);
+                  await fetchArquivos();
+                }}
+                className="relative p-2 rounded-xl text-gray-300 hover:bg-red-50 hover:text-red-500 transition-all duration-300"
+                title="Remover arquivo"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        ))
+      ) : (
+        <p className="text-center text-gray-400 font-medium py-10">Nenhum arquivo enviado ainda.</p>
+      )}
+    </div>
+  </section>
+)}
         {/* MODAL DE AVALIAÇÃO OTIMIZADO */}
         {isModalAvaliacaoOpen && (
           <div className="fixed inset-0 bg-black/30 backdrop-blur-md z-50 flex items-center justify-center p-4">

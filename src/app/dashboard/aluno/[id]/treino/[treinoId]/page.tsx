@@ -70,7 +70,7 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
     }
   };
 
-  const renderizarExercicios = () => {
+ const renderizarExercicios = () => {
     if (!ficha?.descricao) return <p className="text-gray-400 p-8 text-center">Nenhum exercício registrado.</p>;
 
     try {
@@ -87,7 +87,9 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
             )}
           </div>
           
-          <div className="grid grid-cols-4 gap-4 p-6 bg-gray-50/50 text-[10px] uppercase font-black text-gray-400 tracking-widest border-b border-gray-100">
+          {/* AQUI ESTÁ A CORREÇÃO: Grid de 5 colunas */}
+          <div className="grid grid-cols-5 gap-4 p-6 bg-gray-50/50 text-[10px] uppercase font-black text-gray-400 tracking-widest border-b border-gray-100">
+            <span>Série</span>
             <span>Reps</span>
             <span>Carga</span>
             <span>Planej.</span>
@@ -95,15 +97,20 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
           </div>
 
           <div className="divide-y divide-gray-100">
-            {ex.series?.map((s: any, sIndex: number) => (
-              <div key={sIndex} className="grid grid-cols-4 gap-4 p-6 text-sm">
-                <span className="font-semibold text-gray-900">{s.reps || '-'}</span>
-                <span className="font-semibold text-gray-900">{s.carga || '0'} kg</span>
-                <span className="text-gray-500">{s.CargaPlanejada || '0'} kg</span>
-                <span className="text-blue-600 font-semibold">{s.intervalo || '0'}s</span>
-              </div>
-            ))}
-          </div>
+  {ex.series?.map((s: any, sIndex: number) => (
+    <div key={sIndex} className="grid grid-cols-5 gap-4 p-6 text-sm items-center">
+      {/* CORREÇÃO: Prioriza o 's.ordem' salvo, se não existir, usa o contador automático */}
+      <span className="font-black text-gray-900">
+        {s.ordem && s.ordem.trim() !== "" ? s.ordem : sIndex + 1}
+      </span>
+      
+      <span className="font-semibold text-gray-900">{s.reps || '-'}</span>
+      <span className="font-semibold text-gray-900">{s.carga || '0'} kg</span>
+      <span className="text-gray-500">{s.CargaPlanejada || '0'} kg</span>
+      <span className="text-blue-600 font-semibold">{s.intervalo || '0'}s</span>
+    </div>
+  ))}
+</div>
         </div>
       ));
     } catch (e) {
