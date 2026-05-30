@@ -9,7 +9,6 @@ interface Serie {
   carga: number | string;
   CargaPlanejada: number | string;
   intervalo: number | string;
-  observacao?: string; // Adicione esta linha
 }
 
 interface Exercicio {
@@ -18,7 +17,7 @@ interface Exercicio {
   metodo: string;
   tipoSerie: string;
   series: Serie[];
-  observacao?: string; // <--- Adicione esta linha aqui
+  observacao?: string;
 }
 
 export default function EditarFicha() {
