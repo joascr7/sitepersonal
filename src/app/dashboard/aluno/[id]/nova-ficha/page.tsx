@@ -3,21 +3,24 @@ import { useState, useEffect, Suspense } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 
+
+// 1. Agora defina Exercicio usando Serie
 interface Exercicio {
   nome: string;
   video: string;
   metodo: string;
   tipoSerie: string;
   series: Serie[];
-  observacao?: string; // Adicione esta linha
+  observacao?: string;
 }
 
-interface Exercicio {
-  nome: string;
-  video: string;
-  metodo: string;
-  tipoSerie: string;
-  series: Serie[];
+// 2. Defina a interface Serie primeiro
+interface Serie {
+  ordem?: string;
+  reps: string;
+  carga: number | string;
+  CargaPlanejada: number | string;
+  intervalo: number | string;
 }
 
 function NovaFichaContent() {
@@ -37,10 +40,15 @@ function NovaFichaContent() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   
-  const [exercicios, setExercicios] = useState<Exercicio[]>([{ 
-    nome: '', video: '', metodo: 'Normal', tipoSerie: 'Repetições e carga',
-    series: [{ reps: '', carga: '', CargaPlanejada: '', intervalo: '' }] 
-  }]);
+ // Localize o seu useState de exercicios e ajuste para isto:
+const [exercicios, setExercicios] = useState<Exercicio[]>([{ 
+  nome: '', 
+  video: '', 
+  metodo: 'Normal', 
+  tipoSerie: 'Repetições e carga',
+  // Adicionado ordem: '' aqui embaixo:
+  series: [{ ordem: '', reps: '', carga: '', CargaPlanejada: '', intervalo: '' }] 
+}]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -104,9 +112,29 @@ function NovaFichaContent() {
     }
   };
 
-  const adicionarExercicio = () => setExercicios([...exercicios, { nome: '', video: '', metodo: 'Normal', tipoSerie: 'Repetições e carga', series: [{ reps: '', carga: '', CargaPlanejada: '', intervalo: '' }] }]);
+  const adicionarExercicio = () => setExercicios([
+  ...exercicios, 
+  { 
+    nome: '', 
+    video: '', 
+    metodo: 'Normal', 
+    tipoSerie: 'Repetições e carga', 
+    // Ajuste aqui para incluir o campo 'ordem':
+    series: [{ ordem: '', reps: '', carga: '', CargaPlanejada: '', intervalo: '' }] 
+  }
+]);
   const removerExercicio = (index: number) => setExercicios(exercicios.filter((_, i) => i !== index));
-  const adicionarSerie = (exIndex: number) => { const n = [...exercicios]; n[exIndex].series.push({ reps: '', carga: '', CargaPlanejada: '', intervalo: '' }); setExercicios(n); };
+  const adicionarSerie = (exIndex: number) => { 
+  const n = [...exercicios]; 
+  n[exIndex].series.push({ 
+    ordem: '', // Adicione isso aqui
+    reps: '', 
+    carga: '', 
+    CargaPlanejada: '', 
+    intervalo: '' 
+  }); 
+  setExercicios(n); 
+};
   
   const atualizarSerie = (exIndex: number, sIndex: number, campo: keyof Serie, valor: string) => { 
     const n = [...exercicios]; 

@@ -1,8 +1,9 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, use } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 
+// 1. Defina a interface Serie primeiro
 interface Serie {
   ordem: string;
   reps: string;
@@ -11,6 +12,7 @@ interface Serie {
   intervalo: number | string;
 }
 
+// 2. Agora defina Exercicio usando Serie
 interface Exercicio {
   nome: string;
   video: string;
@@ -19,6 +21,7 @@ interface Exercicio {
   series: Serie[];
   observacao?: string;
 }
+
 
 export default function EditarFicha() {
   const params = useParams();
