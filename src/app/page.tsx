@@ -1,14 +1,24 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function Page() {
   const router = useRouter();
   const [isNavigating, setIsNavigating] = useState<string | null>(null);
 
-  const handleNavigation = (path: string) => {
+  // EFEITO DE PERSISTÊNCIA: Se já escolheu antes, pula a tela!
+  useEffect(() => {
+    const tipoSalvo = localStorage.getItem('usuario_tipo');
+    if (tipoSalvo) {
+      router.push(tipoSalvo === 'aluno' ? '/login-aluno' : '/login-personal');
+    }
+  }, [router]);
+
+  const handleNavigation = (path: string, tipo: 'aluno' | 'personal') => {
     setIsNavigating(path);
+    // SALVA A ESCOLHA ANTES DE NAVEGAR
+    localStorage.setItem('usuario_tipo', tipo);
     router.push(path);
   };
 
@@ -36,7 +46,7 @@ export default function Page() {
         {/* Ações com Feedback Visual */}
         <div className="w-full space-y-3">
           <button 
-            onClick={() => handleNavigation('/login-aluno')} 
+            onClick={() => handleNavigation('/login-aluno', 'aluno')} 
             disabled={!!isNavigating}
             className="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-slate-800 transition-all active:scale-[0.97] disabled:opacity-50"
           >
@@ -44,7 +54,7 @@ export default function Page() {
           </button>
           
           <button 
-            onClick={() => handleNavigation('/login-personal')} 
+            onClick={() => handleNavigation('/login-personal', 'personal')} 
             disabled={!!isNavigating}
             className="w-full bg-white border border-slate-200 text-slate-600 py-4 rounded-2xl font-bold text-xs uppercase tracking-widest hover:border-slate-300 hover:text-slate-900 transition-all active:scale-[0.97] disabled:opacity-50"
           >
@@ -52,7 +62,7 @@ export default function Page() {
           </button>
         </div>
 
-        {/* Rodapé minimalista com efeito de respiro */}
+        {/* Rodapé minimalista */}
         <div className="mt-16 flex flex-col items-center gap-4">
           <div className="h-px w-10 bg-slate-100" />
           <div className="text-center">
@@ -60,7 +70,7 @@ export default function Page() {
               Plataforma de Alta Performance
             </p>
             <p className="text-[7px] font-bold text-slate-400 uppercase tracking-[0.2em]">
-              Desenvolvido por{' '}
+              Desenvolvido por {' '}
               <a 
                 href="https://www.instagram.com/joas.vieira7" 
                 target="_blank" 
