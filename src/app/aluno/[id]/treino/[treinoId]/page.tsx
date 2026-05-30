@@ -84,27 +84,73 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
     fetchData();
   }, [treinoId]);
 
-  const registrarCarga = async (nomeExercicio: string, carga: number, reps: number, serieIndex: number) => {
+ const registrarCarga = async (nomeExercicio: string, carga: number, reps: number, serieIndex: number) => {
     if (!carga || carga <= 0) return;
+    
     const registroExistente = registros.find(r => r.exercicio_nome === nomeExercicio && r.serie_index === serieIndex);
-    const payload = { aluno_id: id, treino_id: treinoId, exercicio_nome: nomeExercicio, carga, repeticoes: reps, serie_index: serieIndex };
-    const { data } = await supabase.from('registro_series').upsert(registroExistente ? { ...payload, id: registroExistente.id } : payload).select();
-    if (data) setRegistros(prev => [...prev.filter(r => r.id !== data[0].id), ...data]);
+    
+    // Payload base sem ID
+    const payload = { 
+      aluno_id: id, 
+      treino_id: treinoId, 
+      exercicio_nome: nomeExercicio, 
+      carga, 
+      repeticoes: reps, 
+      serie_index: serieIndex 
+    };
+
+    // Adiciona o ID apenas se estivermos atualizando um registro existente
+    const upsertData = registroExistente 
+      ? { ...payload, id: registroExistente.id } 
+      : payload;
+
+    const { data, error } = await supabase
+      .from('registro_series')
+      .upsert(upsertData as any) // Asserção para permitir o campo 'id'
+      .select();
+
+    if (!error && data) {
+      setRegistros(prev => [...prev.filter(r => r.id !== data[0].id), ...data]);
+    }
   };
 
   const finalizarSessao = async () => {
     setLoading(true);
-    const registrosParaSalvar = Object.entries(inputValues).map(([key, carga]) => {
-      const [exercicio_nome, serie_index] = key.split('-');
-      return { aluno_id: id, treino_id: treinoId, exercicio_nome, serie_index: Number(serie_index), carga: Number(carga), repeticoes: 12, data_execucao: new Date().toISOString() };
-    });
-    await supabase.from('registro_series').upsert(registrosParaSalvar);
-    await Promise.all([
-      supabase.from('conclusoes_treino').insert({ aluno_id: id, treino_id: treinoId }),
-      supabase.from('historico_treinos').insert({ aluno_id: id, data_treino: new Date().toISOString() })
-    ]);
-    setShowToast(true);
-    setLoading(false);
+    try {
+      const registrosParaSalvar = Object.entries(inputValues).map(([key, carga]) => {
+        const [exercicio_nome, serie_index] = key.split('-');
+        const serieOriginal = registros.find(r => r.exercicio_nome === exercicio_nome && r.serie_index === Number(serie_index));
+        
+        return {
+          ...(serieOriginal?.id ? { id: serieOriginal.id } : {}), // Inclui o ID se já existir no banco
+          aluno_id: id, 
+          treino_id: treinoId, 
+          exercicio_nome, 
+          serie_index: Number(serie_index), 
+          carga: Number(carga) || 0, 
+          repeticoes: serieOriginal?.repeticoes || 12, 
+          data_execucao: new Date().toISOString()
+        };
+      });
+
+      const { error: errorSeries } = await supabase
+        .from('registro_series')
+        .upsert(registrosParaSalvar as any); // Asserção para aceitar o array com IDs
+
+      if (errorSeries) throw new Error("Erro ao salvar séries: " + errorSeries.message);
+
+      await Promise.all([
+        supabase.from('conclusoes_treino').insert({ aluno_id: id, treino_id: treinoId }),
+        supabase.from('historico_treinos').insert({ aluno_id: id, data_treino: new Date().toISOString() })
+      ]);
+      
+      setShowToast(true);
+    } catch (err) {
+      console.error(err);
+      alert("Erro ao finalizar treino.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const renderizarVideo = (url: string) => {
