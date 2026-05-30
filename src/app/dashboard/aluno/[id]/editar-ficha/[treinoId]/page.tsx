@@ -18,6 +18,7 @@ interface Exercicio {
   metodo: string;
   tipoSerie: string;
   series: Serie[];
+  observacao?: string; // <--- Adicione esta linha aqui
 }
 
 export default function EditarFicha() {
