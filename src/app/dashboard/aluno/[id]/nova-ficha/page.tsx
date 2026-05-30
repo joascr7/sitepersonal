@@ -265,16 +265,45 @@ function NovaFichaContent() {
             </div>
 
             <div className="space-y-2">
-              {ex.series.map((s, sIndex) => (
-                <div key={sIndex} className="grid grid-cols-4 gap-2">
-                  <input type="text" className="p-2 bg-gray-50 border border-transparent rounded-lg text-sm text-center focus:bg-white focus:border-gray-200 outline-none transition-all" placeholder="3x12" value={s.reps} onChange={(e) => atualizarSerie(exIndex, sIndex, 'reps', e.target.value)} />
-                  <input type="number" className="p-2 bg-gray-50 border border-transparent rounded-lg text-sm text-center focus:bg-white focus:border-gray-200 outline-none transition-all" placeholder="0" value={s.carga} onChange={(e) => atualizarSerie(exIndex, sIndex, 'carga', e.target.value)} />
-                  <input type="number" className="p-2 bg-gray-50 border border-transparent rounded-lg text-sm text-center focus:bg-white focus:border-gray-200 outline-none transition-all" placeholder="0" value={s.intervalo} onChange={(e) => atualizarSerie(exIndex, sIndex, 'intervalo', e.target.value)} />
-                  <input type="number" className="p-2 bg-gray-50 border border-transparent rounded-lg text-sm text-center focus:bg-white focus:border-gray-200 outline-none transition-all" placeholder="0" value={s.CargaPlanejada} onChange={(e) => atualizarSerie(exIndex, sIndex, 'CargaPlanejada', e.target.value)} />
-                </div>
-              ))}
-            </div>
-            <button onClick={() => adicionarSerie(exIndex)} className="mt-4 text-xs font-bold text-gray-500 hover:text-gray-900 transition-colors"> + Adicionar série </button>
+  {ex.series.map((s, sIndex) => (
+    <div key={sIndex} className="grid grid-cols-4 gap-2">
+      <input 
+        type="text" 
+        className="p-2 bg-gray-50 border border-transparent rounded-lg text-sm text-center focus:bg-white focus:border-gray-200 outline-none transition-all" 
+        placeholder="3x12" 
+        value={s.reps ?? ''} 
+        onChange={(e) => atualizarSerie(exIndex, sIndex, 'reps', e.target.value)} 
+      />
+      <input 
+        type="number" 
+        className="p-2 bg-gray-50 border border-transparent rounded-lg text-sm text-center focus:bg-white focus:border-gray-200 outline-none transition-all" 
+        placeholder="0" 
+        value={s.carga ?? ''} 
+        onChange={(e) => atualizarSerie(exIndex, sIndex, 'carga', e.target.value)} 
+      />
+      <input 
+        type="number" 
+        className="p-2 bg-gray-50 border border-transparent rounded-lg text-sm text-center focus:bg-white focus:border-gray-200 outline-none transition-all" 
+        placeholder="0" 
+        value={s.intervalo ?? ''} 
+        onChange={(e) => atualizarSerie(exIndex, sIndex, 'intervalo', e.target.value)} 
+      />
+      <input 
+        type="number" 
+        className="p-2 bg-gray-50 border border-transparent rounded-lg text-sm text-center focus:bg-white focus:border-gray-200 outline-none transition-all" 
+        placeholder="0" 
+        value={s.CargaPlanejada ?? ''} 
+        onChange={(e) => atualizarSerie(exIndex, sIndex, 'CargaPlanejada', e.target.value)} 
+      />
+    </div>
+  ))}
+</div>
+<button 
+  onClick={() => adicionarSerie(exIndex)} 
+  className="mt-4 text-xs font-bold text-gray-500 hover:text-gray-900 transition-colors"
+> 
+  + Adicionar série 
+</button>
           </div>
         ))}
         

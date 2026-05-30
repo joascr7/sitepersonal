@@ -2,6 +2,7 @@
 import { useEffect, useState, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
+import ToastSucesso from '@/components/ui/ToastSucesso';
 
 export default function DetalheTreino({ params }: { params: Promise<{ id: string; treinoId: string }> }) {
   const resolvedParams = use(params);
@@ -14,7 +15,7 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
   const [loading, setLoading] = useState(true);
   const [sessoesContador, setSessoesContador] = useState(0);
   const [inputValues, setInputValues] = useState<Record<string, string>>({});
-
+  const [showToast, setShowToast] = useState(false);
   const exercicios = ficha?.descricao ? (typeof ficha.descricao === 'string' ? JSON.parse(ficha.descricao) : ficha.descricao) : [];
   const totalExercicios = exercicios.length;
   const progresso = totalExercicios > 0 ? Math.round((concluidos.length / totalExercicios) * 100) : 0;
@@ -66,16 +67,57 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
   };
 
   const finalizarSessao = async () => {
-    const { error } = await supabase.from('conclusoes_treino').insert({ aluno_id: id, treino_id: treinoId });
-    if (error) {
-      alert("Erro ao finalizar: " + error.message);
-    } else { 
-      setSessoesContador(prev => prev + 1);
-      setConcluidos([]);
-      alert("Sessao registrada com sucesso.");
-      router.refresh(); 
+  setLoading(true);
+  try {
+    // 1. Prepara os registros mapeando as cargas dos inputs com os dados originais
+    const registrosParaSalvar = Object.entries(inputValues).map(([key, carga]) => {
+      const [exercicio_nome, serie_index] = key.split('-');
+      
+      const serieOriginal = registros.find(r => 
+        r.exercicio_nome === exercicio_nome && r.serie_index === Number(serie_index)
+      );
+
+      return {
+        ...(serieOriginal?.id ? { id: serieOriginal.id } : {}),
+        aluno_id: id,
+        treino_id: treinoId,
+        exercicio_nome,
+        serie_index: Number(serie_index),
+        carga: Number(carga) || 0,
+        repeticoes: serieOriginal?.repeticoes || 12, 
+        data_execucao: new Date().toISOString()
+      };
+    });
+
+    // 2. Salva em lote no Supabase com Upsert
+    const { error: errorSeries } = await supabase
+      .from('registro_series')
+      .upsert(registrosParaSalvar);
+
+    if (errorSeries) throw new Error("Erro ao salvar séries: " + errorSeries.message);
+
+    // 3. Grava conclusão e histórico simultaneamente
+    const [conclusaoRes, historicoRes] = await Promise.all([
+      supabase.from('conclusoes_treino').insert({ aluno_id: id, treino_id: treinoId }),
+      supabase.from('historico_treinos').insert({ aluno_id: id, data_treino: new Date().toISOString() })
+    ]);
+
+    if (conclusaoRes.error || historicoRes.error) {
+      throw new Error("Erro ao registrar conclusão da sessão.");
     }
-  };
+
+    // 4. Feedback Profissional (Toast em vez de alert)
+    // Certifique-se de ter definido: const [showToast, setShowToast] = useState(false);
+    setShowToast(true); 
+    
+  } catch (err) {
+    console.error("Erro no processo de finalização:", err);
+    // Aqui você também poderia ter um Toast de Erro se desejar
+    alert("Não foi possível finalizar o treino. Verifique sua conexão.");
+  } finally {
+    setLoading(false);
+  }
+};
 
   const renderizarVideo = (url: string) => {
     if (!url || typeof url !== 'string') return null;
@@ -167,6 +209,14 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
       >
         {todosFinalizados ? 'Finalizar Sessão de Treino' : 'Conclua todos os exercícios para finalizar'}
       </button>
+
+      {/* Modal de sucesso ao concluir treino */}
+      {showToast && (
+  <ToastSucesso 
+    mensagem="Treino registrado com sucesso. Dados de progresso consolidados." 
+    onClose={() => router.push(`/aluno/${id}`)} 
+  />
+)}
     </main>
   );
 }

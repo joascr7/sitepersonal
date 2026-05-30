@@ -2,8 +2,9 @@
 import { useEffect, useState, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
+import { ptBR } from 'date-fns/locale';
 import { FaDumbbell, FaClipboardList, FaChartLine, FaFileInvoice, FaFolderOpen, FaUserCircle, FaExclamationTriangle, FaCommentMedical } from 'react-icons/fa';
-import { LineChart, Line, Tooltip, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, Tooltip, YAxis, XAxis, Area, ResponsiveContainer } from 'recharts';
 import { startOfWeek, endOfWeek, eachDayOfInterval, format, isSameDay, parseISO } from 'date-fns';
 
 export default function AreaDoAluno({ params }: { params: Promise<{ id: string }> }) {
@@ -16,6 +17,8 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
   const [avaliacoes, setAvaliacoes] = useState<any[]>([]);
   const [modalAberta, setModalAberta] = useState(false);
   const [diasTreino, setDiasTreino] = useState<Date[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [avaliacaoAtual, setAvaliacaoAtual] = useState<any>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -80,6 +83,8 @@ useEffect(() => {
 
   const fetchData = async () => {
     setLoading(true);
+    
+    // 1. Busca dados do Aluno e Personal
     const { data: alunoData } = await supabase.from('alunos').select('*').eq('id', id).maybeSingle();
     if (alunoData) {
       setAluno(alunoData);
@@ -89,23 +94,55 @@ useEffect(() => {
       }
     }
 
-    const { data: conclusoes } = await supabase
-      .from('conclusoes_treino')
-      .select('created_at')
+    // 2. Busca o histórico de treinos (Consolidado em uma única chamada)
+    // Certifique-se de usar apenas a tabela que você criou: 'historico_treinos'
+    const { data: conclusoes, error: erroTreino } = await supabase
+      .from('historico_treinos') 
+      .select('data_treino')
       .eq('aluno_id', id)
-      .gte('created_at', startOfWeek(new Date()).toISOString());
+      .gte('data_treino', startOfWeek(new Date(), { weekStartsOn: 1 }).toISOString());
     
-    if (conclusoes) setDiasTreino(conclusoes.map(d => parseISO(d.created_at)));
+    if (conclusoes) {
+      setDiasTreino(conclusoes.map(d => parseISO(d.data_treino)));
+    } else if (erroTreino) {
+      console.error("Erro ao buscar treinos:", erroTreino);
+    }
+
     setLoading(false);
   };
 
   const abrirAvaliacoes = async () => {
-    const { data } = await supabase.from('avaliacoes_fisicas').select('*').eq('aluno_id', id).order('data_avaliacao', { ascending: false });
+  setIsLoading(true); // Feedback visual imediato
+
+  try {
+    const { data, error } = await supabase
+      .from('avaliacoes_fisicas')
+      .select('*')
+      .eq('aluno_id', id)
+      .order('data_avaliacao', { ascending: true }); // Crucial para o gráfico
+
+    if (error) throw error;
+
     if (data && data.length > 0) {
+      // 1. O gráfico recebe todo o histórico ordenado
       setAvaliacoes(data);
+      
+      // 2. O Modal exibe a última avaliação (a mais recente) automaticamente
+      const ultimaAvaliacao = data[data.length - 1];
+      setAvaliacaoAtual(ultimaAvaliacao); 
+      
       setModalAberta(true);
-    } else alert("Nenhum registro encontrado.");
-  };
+    } else {
+      // Feedback amigável ao invés de um alert bloqueante
+      alert("Nenhum histórico de avaliação encontrado para este aluno.");
+    }
+  } catch (err) {
+    console.error("Erro ao carregar avaliações:", err);
+    alert("Não foi possível carregar os dados. Tente novamente mais tarde.");
+  } finally {
+    setIsLoading(false); // Remove o estado de carregamento
+  }
+};
 
   if (loading) return <main className="min-h-screen bg-[#FAFAFA] flex items-center justify-center text-gray-400 font-bold">Carregando...</main>;
 
@@ -189,18 +226,35 @@ useEffect(() => {
   <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
     <h2 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-6">Sua semana de treinos</h2>
     <div className="flex justify-between items-center">
-      {eachDayOfInterval({ start: startOfWeek(new Date(), { weekStartsOn: 0 }), end: endOfWeek(new Date(), { weekStartsOn: 0 }) }).map((dia, index) => {
-        const treinou = diasTreino.some(d => isSameDay(d, dia));
-        const hoje = isSameDay(dia, new Date());
-        return (
-          <div key={index} className="flex flex-col items-center gap-3">
-            <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black text-xs ${treinou ? 'bg-gray-900 text-white' : hoje ? 'border-2 border-gray-900 text-gray-900' : 'bg-gray-50 text-gray-300'}`}>
-              {treinou ? '✓' : hoje ? '●' : ''}
-            </div>
-            <span className="text-[9px] font-bold text-gray-400 uppercase">{format(dia, 'EEEEE')}</span>
-          </div>
-        );
-      })}
+      {/* 1. Ajuste: weekStartsOn: 1 (Segunda-feira é o primeiro dia) */}
+     {eachDayOfInterval({ 
+  start: startOfWeek(new Date(), { weekStartsOn: 1 }), 
+  end: endOfWeek(new Date(), { weekStartsOn: 1 }) 
+}).map((dia, index) => {
+  const treinou = diasTreino.some(d => isSameDay(d, dia));
+  const hoje = isSameDay(dia, new Date());
+  const diaPassadoSemTreino = dia < new Date() && !treinou && !hoje; // Verifica dias perdidos
+  
+  return (
+    <div key={index} className="flex flex-col items-center gap-3">
+      <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black text-xs transition-all 
+        ${treinou 
+          ? 'bg-emerald-500 text-white' 
+          : diaPassadoSemTreino 
+            ? 'bg-red-50 text-red-400' // Estilo para dia não treinado
+            : hoje 
+              ? 'border-2 border-gray-900 text-gray-900' 
+              : 'bg-gray-50 text-gray-300'
+        }`}
+      >
+        {treinou ? '✓' : diaPassadoSemTreino ? '✕' : hoje ? '●' : ''}
+      </div>
+      <span className="text-[9px] font-bold text-gray-400 uppercase">
+        {format(dia, 'EEEEE', { locale: ptBR })}
+      </span>
+    </div>
+  );
+})}
     </div>
   </div>
 </section>
@@ -215,17 +269,21 @@ useEffect(() => {
 </div>
 
 {/* Renderização do Modal */}
-        {modalAberta && (
-          <ModalAvaliacao 
-            isOpen={modalAberta} 
-            onClose={() => setModalAberta(false)} 
-            avaliacao={avaliacoes[0]} 
-            historico={avaliacoes.map(a => ({ 
-              data: new Date(a.data_avaliacao).toLocaleDateString(), 
-              peso: a.peso 
-            })).reverse()} 
-          />
-        )}
+       {/* Renderização do Modal */}
+{modalAberta && (
+  <ModalAvaliacao 
+    isOpen={modalAberta} 
+    onClose={() => setModalAberta(false)} 
+    // Avaliação mais recente (último item do array)
+    avaliacao={avaliacoes[avaliacoes.length - 1]} 
+    
+    // Gráfico cronológico: do mais antigo para o mais novo
+    historico={avaliacoes.map(a => ({ 
+      data: new Date(a.data_avaliacao).toLocaleDateString(), 
+      peso: a.peso 
+    }))} 
+  />
+)}
       </div>
     </main>
   );
@@ -236,51 +294,113 @@ useEffect(() => {
 function ModalAvaliacao({ isOpen, onClose, avaliacao, historico }: any) {
   if (!isOpen || !avaliacao) return null;
 
+  // Calcula a variação (Delta) entre a última e a penúltima medição
+  const delta = historico && historico.length > 1 
+    ? historico[historico.length - 1].peso - historico[historico.length - 2].peso 
+    : 0;
+  
+  const ehPositivo = delta > 0;
+
   const medidasList = [
-    { label: 'Torax', value: avaliacao.torax },
+    { label: 'Tórax', value: avaliacao.torax },
     { label: 'Ombros', value: avaliacao.ombros },
-    { label: 'Abdomen', value: avaliacao.abdomen },
+    { label: 'Abdômen', value: avaliacao.abdomen },
     { label: 'Cintura', value: avaliacao.cintura },
     { label: 'Quadril', value: avaliacao.quadril },
     { label: 'Braço Dir.', value: avaliacao.braco_direito },
-    { label: 'Braço Esq.', value: avaliacao.braco_esquerdo },
   ];
-  
+
   return (
-    <div className="fixed inset-0 bg-black/20 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
-      <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl p-8 border border-gray-100 max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-300">
-        <div className="flex justify-between items-center mb-8">
-          <h2 className="text-sm font-black uppercase tracking-[0.2em] text-gray-900">Evolução</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-900 transition-colors text-xl">&times;</button>
-        </div>
-
-        <div className="h-32 w-full mb-10">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={historico} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
-              <Tooltip contentStyle={{ borderRadius: '12px', border: 'none' }} />
-              <Line type="monotone" dataKey="peso" stroke="#000" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4 mb-10">
-          <div className="bg-gray-50 p-5 rounded-2xl">
-            <p className="text-[9px] font-black uppercase text-gray-400 tracking-widest mb-1">Peso Atual</p>
-            <p className="font-black text-2xl tracking-tighter">{avaliacao.peso || 0}<span className="text-sm text-gray-400 ml-1">kg</span></p>
+    <div className="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+      <div className="bg-white w-full max-w-sm rounded-[2rem] shadow-2xl p-8 max-h-[90vh] overflow-y-auto border border-slate-100 animate-in zoom-in-95 duration-300">
+        
+        {/* Header */}
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h2 className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">Análise Corporal</h2>
+            <p className="text-xl font-black text-slate-950 tracking-tighter">Sua Evolução</p>
           </div>
-          <div className="bg-gray-50 p-5 rounded-2xl">
-            <p className="text-[9px] font-black uppercase text-gray-400 tracking-widest mb-1">Gordura</p>
-            <p className="font-black text-2xl tracking-tighter">{avaliacao.gordura || 0}<span className="text-sm text-gray-400 ml-1">%</span></p>
+          <button 
+            onClick={onClose} 
+            className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center hover:bg-slate-200 transition-colors text-slate-600"
+          >
+            &times;
+          </button>
+        </div>
+
+        {/* Gráfico de Evolução de Peso */}
+        <div className="h-40 w-full mb-8 bg-slate-50/50 rounded-[2rem] p-5 border border-slate-100 flex flex-col justify-center">
+          {historico && historico.length > 1 ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={historico} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="gradientPeso" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#0f172a" stopOpacity={0.15}/>
+                    <stop offset="100%" stopColor="#0f172a" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <XAxis dataKey="data" hide />
+                <YAxis hide domain={['auto', 'auto']} />
+                <Tooltip content={({ active, payload }) => {
+                  if (active && payload && payload.length) {
+                    return (
+                      <div className="bg-slate-900 text-white px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl">
+                        {payload[0].value} kg
+                      </div>
+                    );
+                  }
+                  return null;
+                }} />
+                <Area type="monotone" dataKey="peso" stroke="none" fill="url(#gradientPeso)" />
+                <Line 
+                  type="monotone" 
+                  dataKey="peso" 
+                  stroke="#0f172a" 
+                  strokeWidth={4} 
+                  connectNulls={true}
+                  dot={{ fill: '#fff', stroke: '#0f172a', strokeWidth: 3, r: 6 }} 
+                  activeDot={{ r: 8, strokeWidth: 0, fill: '#0f172a' }} 
+                  animationDuration={1500}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex flex-col items-center justify-center gap-2 text-center h-full">
+              <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center">
+                <span className="text-slate-500 text-lg">⚖️</span>
+              </div>
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Dados insuficientes</p>
+            </div>
+          )}
+        </div>
+
+        {/* KPIs em destaque com Delta */}
+        <div className="grid grid-cols-2 gap-3 mb-8">
+          <div className="bg-slate-900 p-5 rounded-2xl text-white relative">
+            <p className="text-[9px] font-bold uppercase tracking-widest text-slate-400 mb-1">Peso Atual</p>
+            <div className="flex items-end gap-2">
+              <p className="font-black text-2xl tracking-tighter">{avaliacao.peso || 0}<span className="text-sm text-slate-500 ml-1">kg</span></p>
+              {delta !== 0 && (
+                <span className={`text-[10px] font-bold mb-1.5 ${ehPositivo ? 'text-red-400' : 'text-emerald-400'}`}>
+                  {ehPositivo ? '+' : ''}{delta.toFixed(1)}kg
+                </span>
+              )}
+            </div>
+          </div>
+          <div className="bg-slate-100 p-5 rounded-2xl">
+            <p className="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-1">Gordura Corp.</p>
+            <p className="font-black text-2xl tracking-tighter text-slate-950">{avaliacao.gordura || 0}<span className="text-sm text-slate-400 ml-1">%</span></p>
           </div>
         </div>
 
-        <div className="space-y-6">
-          <p className="text-[10px] font-black uppercase text-gray-300 tracking-widest border-b border-gray-100 pb-2">Medidas Detalhadas</p>
-          <div className="grid grid-cols-2 gap-x-6 gap-y-6">
+        {/* Grade de Medidas */}
+        <div className="space-y-4">
+          <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest mb-2">Medidas (cm)</p>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-4">
             {medidasList.map((m) => (
-              <div key={m.label}>
-                <p className="text-gray-400 text-[9px] uppercase font-bold tracking-widest">{m.label}</p>
-                <p className="font-black text-gray-900 text-sm">{m.value || 0} <span className="text-[10px] text-gray-400 font-medium">cm</span></p>
+              <div key={m.label} className="flex justify-between items-center bg-slate-50 p-3 rounded-xl border border-slate-100">
+                <span className="text-[10px] font-bold text-slate-500 uppercase">{m.label}</span>
+                <span className="font-black text-slate-950 text-xs">{m.value || 0}</span>
               </div>
             ))}
           </div>
@@ -289,7 +409,6 @@ function ModalAvaliacao({ isOpen, onClose, avaliacao, historico }: any) {
     </div>
   );
 }
-
 function BotaoMenu({ icon, label, onClick }: { icon: any, label: string, onClick?: () => void }) {
   return (
     <button onClick={onClick} className="bg-white border border-gray-100 p-6 rounded-3xl flex flex-col items-center justify-center gap-3 hover:border-gray-200 hover:shadow-lg transition-all active:scale-[0.98]">

@@ -21,7 +21,7 @@ export default function LoginProfessor() {
       password 
     });
 
-    if (error) {
+    if (error || !data.user) {
       setMessage({ type: 'error', text: "Credenciais inválidas. Verifique seus dados." });
       setIsProcessing(false);
       return;
@@ -40,6 +40,10 @@ export default function LoginProfessor() {
       return;
     }
 
+    // --- CORREÇÃO DE PERSISTÊNCIA ---
+    // Salva que este navegador pertence a um "personal"
+    localStorage.setItem('usuario_tipo', 'personal');
+    
     router.push('/dashboard');
   };
 

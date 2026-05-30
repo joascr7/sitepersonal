@@ -3,7 +3,23 @@ import { useEffect, useState, useMemo } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
 import AgendaGeral from '@/components/AgendaGeral';
-import { FaWallet, FaUsers, FaExclamationTriangle, FaSearch, FaPlus, FaChartLine, FaEdit, FaUser } from 'react-icons/fa';
+import { FaWallet, FaUsers, FaExclamationTriangle, FaSearch, FaPlus, FaChartLine, FaEdit, FaUser, FaTimes, FaCalendarAlt } from 'react-icons/fa';
+
+// 1. Função auxiliar para buscar faturamento histórico
+const fetchFaturamentoPorMes = async (supabaseClient: any, personalId: string, mes: number, ano: number) => {
+  const inicio = new Date(ano, mes, 1).toISOString();
+  const fim = new Date(ano, mes + 1, 0, 23, 59, 59).toISOString();
+  
+  const { data, error } = await supabaseClient
+    .from('pagamentos')
+    .select('valor')
+    .eq('personal_id', personalId)
+    .gte('data_pagamento', inicio)
+    .lte('data_pagamento', fim);
+    
+  if (error || !data) return 0;
+  return data.reduce((acc: number, curr: any) => acc + Number(curr.valor), 0);
+};
 
 export default function Dashboard() {
   const [user, setUser] = useState<any>(null);
@@ -14,20 +30,22 @@ export default function Dashboard() {
   const [alunoSelecionado, setAlunoSelecionado] = useState<any>(null);
   const [valorPago, setValorPago] = useState('');
   const [statusMsg, setStatusMsg] = useState<{type: 'success' | 'error', text: string} | null>(null);
+  
+  // Estados para o Relatório Histórico
+  const [faturamentoMes, setFaturamentoMes] = useState(0);
+  const [mesSelecionado, setMesSelecionado] = useState(new Date().getMonth());
+  const [anoSelecionado, setAnoSelecionado] = useState(new Date().getFullYear());
+  
   const router = useRouter();
 
-  // Função para determinar o status visual com tolerância de 2 dias
   const getStatusDisplay = (aluno: any) => {
     if (aluno.status_pagamento === 'bloqueado') return { text: 'BLOQUEADO', color: 'bg-red-50 text-red-600' };
-    
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
     const vencimento = aluno.data_vencimento ? new Date(aluno.data_vencimento + 'T00:00:00') : null;
-    
     if (vencimento) {
       const dataLimite = new Date(vencimento);
       dataLimite.setDate(dataLimite.getDate() + 2);
-      
       if (hoje > vencimento && hoje <= dataLimite) return { text: 'PENDENTE', color: 'bg-amber-50 text-amber-600' };
     }
     return { text: 'ATIVO', color: 'bg-emerald-50 text-emerald-600' };
@@ -46,6 +64,13 @@ export default function Dashboard() {
     init();
   }, [router]);
 
+  useEffect(() => {
+    if (user?.id) {
+      fetchFaturamentoPorMes(supabase, user.id, mesSelecionado, anoSelecionado)
+        .then(setFaturamentoMes);
+    }
+  }, [user, mesSelecionado, anoSelecionado]);
+
   const showStatus = (type: 'success' | 'error', text: string) => {
     setStatusMsg({ type, text });
     setTimeout(() => setStatusMsg(null), 3000);
@@ -63,45 +88,38 @@ export default function Dashboard() {
     if (data) setTotalMes(data.reduce((acc, curr) => acc + Number(curr.valor), 0));
   };
 
+  const calcularNovoVencimento = (dataAtual: string) => {
+    const data = new Date(dataAtual + 'T00:00:00');
+    data.setMonth(data.getMonth() + 1);
+    return data.toISOString().split('T')[0];
+  };
+
   const processarPagamento = async () => {
-    if (!alunoSelecionado || !valorPago) return;
+    if (!alunoSelecionado || !valorPago || !user?.id) return;
+    try {
+      const { error: pgError } = await supabase.from('pagamentos').insert([{ 
+        aluno_id: alunoSelecionado.id, 
+        valor: parseFloat(valorPago), 
+        personal_id: user.id, 
+        data_pagamento: new Date().toISOString()
+      }]);
+      if (pgError) throw pgError;
 
-    const dataVencimentoAtual = alunoSelecionado.data_vencimento;
-    
-    const calcularNovoVencimento = (dataVencimentoAtual: string | null) => {
-      const hoje = new Date();
-      hoje.setHours(0, 0, 0, 0);
-      const vencimento = dataVencimentoAtual ? new Date(dataVencimentoAtual + 'T00:00:00') : null;
+      const novaData = calcularNovoVencimento(alunoSelecionado.data_vencimento);
+      const { error: alError } = await supabase.from('alunos').update({ status_pagamento: 'ativo', data_vencimento: novaData }).eq('id', alunoSelecionado.id);
+      if (alError) throw alError;
 
-      if (vencimento && vencimento >= hoje) {
-        const novo = new Date(vencimento);
-        novo.setMonth(novo.getMonth() + 1);
-        return novo.toISOString();
-      }
-      const novo = new Date();
-      novo.setMonth(novo.getMonth() + 1);
-      return novo.toISOString();
-    };
-
-    const novaData = calcularNovoVencimento(dataVencimentoAtual);
-
-    const { error } = await supabase.from('pagamentos').insert([{ 
-      aluno_id: alunoSelecionado.id, valor: parseFloat(valorPago), personal_id: user.id 
-    }]);
-
-    if (!error) {
-      await supabase.from('alunos').update({ 
-        status_pagamento: 'ativo', data_vencimento: novaData 
-      }).eq('id', alunoSelecionado.id);
-      
-      setIsModalOpen(false); setValorPago(''); fetchAlunos(user.id); fetchFinanceiro(user.id);
+      setIsModalOpen(false); 
+      setValorPago(''); 
+      await Promise.all([fetchAlunos(user.id), fetchFinanceiro(user.id)]);
       showStatus('success', 'Pagamento registrado com sucesso!');
+    } catch (err: any) {
+      showStatus('error', 'Falha ao processar: ' + err.message);
     }
   };
 
   const alunosFiltrados = useMemo(() => alunos.filter(a => a.nome.toLowerCase().includes(busca.toLowerCase())), [alunos, busca]);
   
-  // Lógica para listar alunos vencendo ou pendentes (vencimento + 2 dias)
   const alunosVencendo = alunos.filter(a => {
     if (!a.data_vencimento) return false;
     const hoje = new Date();
@@ -116,6 +134,19 @@ export default function Dashboard() {
       {statusMsg && (
         <div className={`fixed top-6 right-6 p-4 rounded-2xl shadow-2xl z-[100] text-[10px] font-black uppercase tracking-widest ${statusMsg.type === 'success' ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white'}`}>
           {statusMsg.text}
+        </div>
+      )}
+
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black/50 z-[200] flex items-center justify-center p-4">
+          <div className="bg-white p-8 rounded-3xl w-full max-w-sm space-y-4">
+            <div className="flex justify-between items-center">
+              <h3 className="font-black">Registrar Pagamento</h3>
+              <button onClick={() => setIsModalOpen(false)}><FaTimes /></button>
+            </div>
+            <input type="number" value={valorPago} onChange={(e) => setValorPago(e.target.value)} placeholder="Valor (R$)" className="w-full p-4 bg-gray-50 rounded-xl font-bold" />
+            <button onClick={processarPagamento} className="w-full py-4 bg-gray-900 text-white rounded-xl font-black uppercase text-xs">Confirmar Pagamento</button>
+          </div>
         </div>
       )}
 
@@ -137,12 +168,19 @@ export default function Dashboard() {
               <h2 className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Mês Atual</h2>
               <p className="text-lg font-black">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalMes)}</p>
             </div>
+            
             <div className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm">
-              <FaUsers className="text-blue-500 mb-2" />
-              <h2 className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Alunos</h2>
-              <p className="text-lg font-black">{alunos.length}</p>
+              <div className="flex items-center gap-2 mb-3 text-blue-500"><FaCalendarAlt /> <h2 className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Relatório por Mês</h2></div>
+              <div className="flex gap-2">
+                <select className="bg-gray-50 p-2 rounded-xl text-[10px] font-black w-full" value={mesSelecionado} onChange={(e) => setMesSelecionado(Number(e.target.value))}>
+                  {['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'].map((m, i) => <option key={i} value={i}>{m}</option>)}
+                </select>
+                <input type="number" className="bg-gray-50 p-2 rounded-xl text-[10px] font-black w-16 text-center" value={anoSelecionado} onChange={(e) => setAnoSelecionado(Number(e.target.value))} />
+              </div>
+              <p className="text-lg font-black mt-3 text-blue-600">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(faturamentoMes)}</p>
             </div>
           </div>
+          
           <div className="md:col-span-2 bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden">
              <AgendaGeral />
           </div>
@@ -150,7 +188,7 @@ export default function Dashboard() {
 
         {alunosVencendo.length > 0 && (
           <div className="p-6 bg-amber-500 rounded-[2rem] text-white flex items-center justify-between shadow-xl">
-            <div className="flex items-center gap-3"><FaExclamationTriangle /> <span className="font-black text-xs">Renovação próxima/Pendente</span></div>
+            <div className="flex items-center gap-3"><FaExclamationTriangle /> <span className="font-black text-xs">Renovação próxima</span></div>
             <div className="flex gap-2">
               {alunosVencendo.map(a => (
                 <button key={a.id} onClick={() => { setAlunoSelecionado(a); setIsModalOpen(true); }} className="bg-amber-600 px-4 py-2 rounded-xl text-[10px] font-black hover:bg-amber-700 uppercase">{a.nome}</button>
@@ -180,7 +218,6 @@ export default function Dashboard() {
                     </span>
                   </div>
                 </div>
-                
                 <div className="flex gap-2 items-center">
                   <button onClick={() => router.push(`/dashboard/editar-aluno/${a.id}`)} className="bg-gray-100 p-3 rounded-xl text-gray-600 hover:bg-gray-200"><FaEdit /></button>
                   <button onClick={() => router.push(`/dashboard/aluno/${a.id}`)} className="bg-gray-100 p-3 rounded-xl text-gray-600 hover:bg-gray-200"><FaUser /></button>

@@ -21,7 +21,6 @@ serve(async (req) => {
     let paymentId;
     let type;
 
-    // 1. Tenta ler o ID do pagamento com segurança
     try {
       const body = await req.json();
       paymentId = body.data?.id;
@@ -35,7 +34,6 @@ serve(async (req) => {
       return new Response("OK - Evento ignorado", { status: 200 });
     }
 
-    // 2. Busca detalhes no Mercado Pago
     const response = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
       headers: { 
         "Authorization": `Bearer ${Deno.env.get('MP_ACCESS_TOKEN')}`,
@@ -44,38 +42,28 @@ serve(async (req) => {
     });
     
     const paymentData = await response.json();
-    console.log(`Verificando pagamento ${paymentId}: Status ${paymentData.status}, Ref: ${paymentData.external_reference}`);
+    console.log(`Verificando pagamento ${paymentId}: Status ${paymentData.status}`);
 
-    // 3. Processa apenas se aprovado
     if (paymentData.status === 'approved') {
       const alunoId = paymentData.external_reference;
-      
-      if (!alunoId) {
-        console.error("ERRO: O pagamento não possui um 'external_reference' (ID do Aluno).");
-        return new Response("OK - Sem referência", { status: 200 });
-      }
+      if (!alunoId) return new Response("OK - Sem referência", { status: 200 });
 
-      // Busca dados atuais do aluno
+      // 1. Busca dados do aluno (incluindo personal_id para o financeiro)
       const { data: aluno, error: dbError } = await supabase
         .from('alunos')
-        .select('data_vencimento')
+        .select('data_vencimento, personal_id')
         .eq('id', alunoId)
         .single();
 
-      if (dbError) {
-        console.error(`ERRO: Aluno ${alunoId} não encontrado no banco.`, dbError);
-        throw dbError;
-      }
+      if (dbError) throw dbError;
 
-      // 4. Calcula nova data (Lógica à prova de falhas)
+      // 2. Calcula nova data
       const vencimentoAtual = aluno?.data_vencimento ? new Date(aluno.data_vencimento) : new Date();
       const hoje = new Date();
-      
-      // Se a data do banco for futura, soma 30 dias nela. Se for passada, soma 30 dias a partir de hoje.
       let novaData = (vencimentoAtual > hoje) ? vencimentoAtual : hoje;
       novaData.setDate(novaData.getDate() + 30);
 
-      // 5. Atualiza o banco
+      // 3. Atualiza o status do aluno
       const { error: updateError } = await supabase
         .from('alunos')
         .update({ 
@@ -85,8 +73,20 @@ serve(async (req) => {
         .eq('id', alunoId);
 
       if (updateError) throw updateError;
+
+      // 4. CORREÇÃO: Registra no financeiro para o Dashboard somar
+      const { error: financeError } = await supabase
+        .from('pagamentos')
+        .insert([{ 
+          aluno_id: alunoId,
+          valor: paymentData.transaction_amount,
+          personal_id: aluno.personal_id, // Usamos o personal_id do aluno
+          data_pagamento: new Date().toISOString()
+        }]);
+
+      if (financeError) console.error("Erro ao salvar no Financeiro:", financeError);
       
-      console.log(`SUCESSO: Aluno ${alunoId} renovado até ${novaData.toISOString().split('T')[0]}`);
+      console.log(`SUCESSO: Aluno ${alunoId} renovado e financeiro registrado.`);
     }
 
     return new Response("OK", { status: 200 });

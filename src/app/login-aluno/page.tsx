@@ -13,43 +13,44 @@ export default function LoginAluno() {
   
   const router = useRouter();
 
- const handleLogin = async () => {
-  setIsProcessing(true);
-  setMessage(null);
+  const handleLogin = async () => {
+    setIsProcessing(true);
+    setMessage(null);
 
-  // 1. Autenticação inicial
-  const { data, error } = await supabase.auth.signInWithPassword({ 
-    email: email.trim(), 
-    password 
-  });
-
-  if (error) {
-    setMessage({ type: 'error', text: "Credenciais inválidas. Verifique seus dados." });
-    setIsProcessing(false);
-    return;
-  }
-
-  // 2. Verificar se é perfil aluno e se está ATIVO
-  const { data: aluno, error: alunoError } = await supabase
-    .from('alunos')
-    .select('ativo, id')
-    .eq('id', data.user.id)
-    .maybeSingle();
-
-  // Se não achar na tabela alunos ou se 'ativo' for false
-  if (alunoError || !aluno || aluno.ativo === false) {
-    await supabase.auth.signOut(); // Desloga imediatamente
-    setMessage({ 
-      type: 'error', 
-      text: "Sua conta está inativa ou você não possui permissão de aluno. Contate seu treinador." 
+    // 1. Autenticação inicial
+    const { data, error } = await supabase.auth.signInWithPassword({ 
+      email: email.trim(), 
+      password 
     });
-    setIsProcessing(false);
-    return;
-  }
 
-  // 3. Login autorizado
-  router.push(`/aluno/${data.user.id}`);
-};
+    if (error || !data.user) {
+      setMessage({ type: 'error', text: "Credenciais inválidas. Verifique seus dados." });
+      setIsProcessing(false);
+      return;
+    }
+
+    // 2. Verificar se é perfil aluno e se está ATIVO
+    const { data: aluno, error: alunoError } = await supabase
+      .from('alunos')
+      .select('ativo, id')
+      .eq('id', data.user.id)
+      .maybeSingle();
+
+    if (alunoError || !aluno || aluno.ativo === false) {
+      await supabase.auth.signOut();
+      setMessage({ 
+        type: 'error', 
+        text: "Sua conta está inativa ou você não possui permissão de aluno. Contate seu treinador." 
+      });
+      setIsProcessing(false);
+      return;
+    }
+
+    // 3. Login autorizado: SALVA A PERSISTÊNCIA DO TIPO DE USUÁRIO
+    localStorage.setItem('usuario_tipo', 'aluno');
+    
+    router.push(`/aluno/${data.user.id}`);
+  };
 
   return (
     <main className="min-h-screen flex items-center justify-center bg-[#FAFAFA] p-6">

@@ -2,17 +2,29 @@
 
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabaseClient';
 
 export default function Page() {
   const router = useRouter();
   const [isNavigating, setIsNavigating] = useState<string | null>(null);
 
   // EFEITO DE PERSISTÊNCIA: Se já escolheu antes, pula a tela!
-  useEffect(() => {
-    const tipoSalvo = localStorage.getItem('usuario_tipo');
-    if (tipoSalvo) {
-      router.push(tipoSalvo === 'aluno' ? '/login-aluno' : '/login-personal');
-    }
+ useEffect(() => {
+    const checkSessionAndRedirect = async () => {
+      // 1. Verifica se já existe uma sessão ativa no Supabase
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      // 2. Se não estiver logado, não faz nada, deixa o usuário escolher
+      if (!session) return;
+
+      // 3. Se estiver logado, aí sim usamos o localStorage para saber para onde enviar
+      const tipoSalvo = localStorage.getItem('usuario_tipo');
+      if (tipoSalvo) {
+        router.push(tipoSalvo === 'aluno' ? '/login-aluno' : '/login-personal');
+      }
+    };
+
+    checkSessionAndRedirect();
   }, [router]);
 
   const handleNavigation = (path: string, tipo: 'aluno' | 'personal') => {

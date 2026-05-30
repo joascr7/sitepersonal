@@ -51,11 +51,13 @@ serve(async (req) => {
         }],
         // O external_reference é crucial para o webhook funcionar
         external_reference: String(alunoId), 
-        back_urls: { 
-          success: `https://aurafit.usoprime.com/aluno/${alunoId}`,
-          failure: `https://aurafit.usoprime.com/aluno/antecipar`
-        },
-        auto_return: "approved"
+       // Na Edge Function, altere as back_urls para:
+back_urls: { 
+  success: `https://aurafit.usoprime.com/aluno/${alunoId}?status=success`,
+  failure: `https://aurafit.usoprime.com/aluno/antecipar`,
+  pending: `https://aurafit.usoprime.com/aluno/${alunoId}?status=pending`
+},
+auto_return: "approved"
       }),
     });
 

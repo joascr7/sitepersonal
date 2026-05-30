@@ -46,8 +46,18 @@ export default function PerfilAluno({ params }: { params: Promise<{ id: string }
     setSaving(true);
     try {
       // 1. Atualiza Dados Pessoais
-      const { error: dbError } = await supabase.from('alunos').update(perfil).eq('id', id);
-      if (dbError) throw dbError;
+      // 1. Atualiza apenas os campos permitidos
+const { error: dbError } = await supabase
+  .from('alunos')
+  .update({ 
+    nome: perfil.nome, 
+    objetivo: perfil.objetivo, 
+    telefone: perfil.telefone, 
+    avatar_url: perfil.avatar_url 
+  })
+  .eq('id', id);
+
+if (dbError) throw dbError;
 
       // 2. Troca Senha (Se preenchida)
       if (novaSenha) {

@@ -14,34 +14,43 @@ export default function Financeiro() {
   }, []);
 
   const fetchDados = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
 
-    // Busca Financeiro
-    const { data: pData } = await supabase
-      .from('pagamentos')
-      .select(`id, valor, data_pagamento, alunos(nome)`)
-      .eq('alunos.personal_id', user.id)
-      .order('data_pagamento', { ascending: false });
+  // CORREÇÃO: Filtramos pela coluna personal_id diretamente na tabela pagamentos.
+  // Se você não tem 'personal_id' na tabela pagamentos, 
+  // adicione essa coluna lá. É a prática padrão para relatórios financeiros.
+  const { data: pData, error: pError } = await supabase
+    .from('pagamentos')
+    .select(`
+      id, 
+      valor, 
+      data_pagamento, 
+      alunos ( nome )
+    `)
+    .eq('personal_id', user.id) 
+    .order('data_pagamento', { ascending: false });
 
-    // Busca Configuração do Personal
-    const { data: cData } = await supabase
-      .from('personais')
-      .select('chave_pix, mp_access_token, modo_pagamento, valor_mensalidade')
-      .eq('id', user.id)
-      .single();
+  if (pError) console.error("Erro ao buscar pagamentos:", pError);
 
-    setPagamentos(pData || []);
-    if (cData) {
-      setConfig({ 
-        pix: cData.chave_pix || '', 
-        token: cData.mp_access_token || '', 
-        modo: cData.modo_pagamento || 'manual',
-        valor: cData.valor_mensalidade || 150
-      });
-    }
-    setLoading(false);
-  };
+  // Busca Configuração do Personal
+  const { data: cData } = await supabase
+    .from('personais')
+    .select('chave_pix, mp_access_token, modo_pagamento, valor_mensalidade')
+    .eq('id', user.id)
+    .single();
+
+  setPagamentos(pData || []);
+  if (cData) {
+    setConfig({ 
+      pix: cData.chave_pix || '', 
+      token: cData.mp_access_token || '', 
+      modo: cData.modo_pagamento || 'manual',
+      valor: cData.valor_mensalidade || 150
+    });
+  }
+  setLoading(false);
+};
 
   const salvarConfig = async () => {
   setSaving(true);

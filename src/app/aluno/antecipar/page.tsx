@@ -103,9 +103,24 @@ export default function PaginaAntecipar() {
            )}
         </div>
 
-        <button onClick={() => router.back()} className="w-full text-xs font-bold text-gray-500 hover:text-white">
-          Voltar
-        </button>
+        <button 
+  onClick={async () => { // Adicione 'async' aqui
+    // Adicione o 'await' antes da função
+    const { data } = await supabase.auth.getSession();
+    
+    // Acesse a session com segurança
+    const session = data?.session;
+
+    if (session?.user.id) {
+      router.push(`/aluno/${session.user.id}`);
+    } else {
+      router.push('/'); 
+    }
+  }} 
+  className="w-full text-xs font-bold text-gray-500 hover:text-white"
+>
+  Voltar para Perfil
+</button>
       </div>
     </main>
   );
