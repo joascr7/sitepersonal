@@ -21,13 +21,13 @@ export async function middleware(request: NextRequest) {
   const { data: { session } } = await supabase.auth.getSession();
   const pathname = request.nextUrl.pathname;
 
-  // Rotas públicas e exclusões de middleware
+  // 1. Rotas públicas e exclusões de middleware
   if (pathname.startsWith('/_next') || pathname.includes('.') || pathname === '/login' || pathname === '/') {
     return response;
   }
 
-  // Permite acesso à página de pagamento sem bloqueios de loop
-  if (pathname === '/pagamento-pendente') {
+  // 2. Permite acesso a AMBAS as páginas de pagamento sem bloqueios de loop
+  if (pathname === '/pagamento-pendente' || pathname === '/aluno/antecipar') {
     return response;
   }
 
@@ -51,7 +51,7 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL(`/aluno/${session.user.id}`, request.url));
     }
 
-    // Lógica de bloqueio para Alunos
+    // 3. Lógica de bloqueio para Alunos
     if (userRole === 'aluno' && isAlunoRoute) {
       const { data: aluno } = await supabase
         .from('alunos')
@@ -65,14 +65,15 @@ export async function middleware(request: NextRequest) {
         const dataLimite = new Date(vencimento);
         dataLimite.setDate(dataLimite.getDate() + 2);
 
-        // Bloqueia apenas se estiver explicitamente 'bloqueado' OU se estiver vencido E não estiver ativo
-        // Adicionamos a checagem '!pathname.startsWith' para evitar loop
         const estaVencido = hoje.getTime() > dataLimite.getTime();
         
-        if (
-          (aluno.status_pagamento === 'bloqueado' || (estaVencido && aluno.status_pagamento !== 'ativo')) &&
-          !pathname.startsWith('/pagamento-pendente')
-        ) {
+        // Verifica se o status está bloqueado ou vencido
+        const bloqueadoOuVencido = (aluno.status_pagamento === 'bloqueado' || (estaVencido && aluno.status_pagamento !== 'ativo'));
+        
+        // Verifica se o aluno já está tentando acessar uma página de pagamento (evita loop)
+        const estaEmPagamento = pathname.startsWith('/pagamento-pendente') || pathname.startsWith('/aluno/antecipar');
+        
+        if (bloqueadoOuVencido && !estaEmPagamento) {
           return NextResponse.redirect(new URL('/pagamento-pendente?motivo=vencido', request.url));
         }
       }

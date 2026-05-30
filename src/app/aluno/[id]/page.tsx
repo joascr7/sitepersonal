@@ -18,42 +18,42 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
   const [diasTreino, setDiasTreino] = useState<Date[]>([]);
 
   useEffect(() => {
-  const init = async () => {
     if (!id) return;
+    
+    // Verificação de segurança: checa o status financeiro antes de carregar o conteúdo
+    const checkStatus = async () => {
+  const { data: alunoData } = await supabase
+    .from('alunos')
+    .select('status_pagamento, data_vencimento')
+    .eq('id', id)
+    .single();
 
-    // 1. Busca os dados de forma segura
-    const { data: alunoData, error } = await supabase
-      .from('alunos')
-      .select('status_pagamento, data_vencimento')
-      .eq('id', id)
-      .single();
-
-    if (error || !alunoData) {
-      console.error("Erro ao buscar aluno:", error);
-      return;
-    }
-
-    // 2. Lógica de bloqueio com datas validadas
+  if (alunoData) {
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
 
-    // Converte YYYY-MM-DD para Date de forma segura
-    const vencimento = parseISO(alunoData.data_vencimento);
+    // Converte a data do banco para data local (evita fuso horário)
+    const [ano, mes, dia] = alunoData.data_vencimento.split('-').map(Number);
+    const vencimento = new Date(ano, mes - 1, dia);
+
+    // Calcula limite de 2 dias
     const dataLimite = new Date(vencimento);
     dataLimite.setDate(dataLimite.getDate() + 2);
+    dataLimite.setHours(0, 0, 0, 0);
 
+    // Bloqueia APENAS se estiver bloqueado manualmente OU se passou dos 2 dias
     const estaBloqueado = alunoData.status_pagamento === 'bloqueado' || hoje > dataLimite;
 
     if (estaBloqueado) {
       router.push('/pagamento-pendente?motivo=vencido');
-    } else {
-      // Só busca os outros dados se estiver tudo ok
-      fetchData();
+      return;
     }
-  };
+  }
+  fetchData();
+};
 
-  init();
-}, [id, router]);
+    checkStatus();
+  }, [id, router]);
 
 
   // Exemplo dentro da página do aluno
@@ -151,7 +151,7 @@ useEffect(() => {
         </div>
       </div>
       <button 
-  onClick={() => router.push('/aluno/pagamento-pendente?motivo=renovacao')}
+  onClick={() => router.push('/aluno/antecipar?motivo=renovacao')}
   className="text-[10px] font-black uppercase opacity-50 underline decoration-2 underline-offset-4 decoration-current cursor-pointer hover:opacity-100"
 >
   Antecipar Pagamento
