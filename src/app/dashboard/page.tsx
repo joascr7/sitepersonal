@@ -39,7 +39,7 @@ export default function Dashboard() {
   const router = useRouter();
 
   const getStatusDisplay = (aluno: any) => {
-    if (aluno.status_pagamento === 'bloqueado') return { text: 'BLOQUEADO', color: 'bg-red-50 text-red-600' };
+    if (aluno.status_pagamento === 'bloqueado' || aluno.acesso_permitido === false) return { text: 'BLOQUEADO', color: 'bg-red-50 text-red-600' };
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
     const vencimento = aluno.data_vencimento ? new Date(aluno.data_vencimento + 'T00:00:00') : null;
@@ -48,7 +48,7 @@ export default function Dashboard() {
       dataLimite.setDate(dataLimite.getDate() + 2);
       if (hoje > vencimento && hoje <= dataLimite) return { text: 'PENDENTE', color: 'bg-amber-50 text-amber-600' };
     }
-    return { text: 'ATIVO', color: 'bg-emerald-50 text-emerald-600' };
+    return { text: 'ATIVO EM DIA', color: 'bg-emerald-50 text-emerald-600' };
   };
 
   useEffect(() => {
@@ -87,6 +87,27 @@ export default function Dashboard() {
     const { data } = await supabase.from('pagamentos').select('valor').eq('personal_id', personalId).gte('data_pagamento', inicioMes);
     if (data) setTotalMes(data.reduce((acc, curr) => acc + Number(curr.valor), 0));
   };
+
+  const toggleStatus = async (aluno: any) => {
+  const novoStatus = !aluno.ativo; // Inverte o valor atual
+  const confirmMsg = novoStatus 
+    ? `Confirmar reativação do acesso para ${aluno.nome}?` 
+    : `Confirmar bloqueio de acesso para ${aluno.nome}?`;
+
+  if (!confirm(confirmMsg)) return;
+  
+  const { error } = await supabase
+    .from('alunos')
+    .update({ ativo: novoStatus })
+    .eq('id', aluno.id);
+    
+  if (error) {
+    showStatus('error', 'Erro ao alterar status.');
+  } else {
+    showStatus('success', novoStatus ? 'Aluno reativado!' : 'Acesso bloqueado!');
+    if (user?.id) fetchAlunos(user.id);
+  }
+};
 
   const calcularNovoVencimento = (dataAtual: string) => {
     const data = new Date(dataAtual + 'T00:00:00');
@@ -219,6 +240,17 @@ export default function Dashboard() {
                   </div>
                 </div>
                 <div className="flex gap-2 items-center">
+                  <button 
+  onClick={() => toggleStatus(a)} 
+  className={`p-3 rounded-xl transition-colors ${
+    a.ativo 
+      ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100' 
+      : 'bg-red-50 text-red-600 hover:bg-red-100'
+  }`}
+  title={a.ativo ? "Bloquear Acesso" : "Liberar Acesso"}
+>
+  {a.ativo ? <FaTimes /> : <FaUser />} 
+</button>
                   <button onClick={() => router.push(`/dashboard/editar-aluno/${a.id}`)} className="bg-gray-100 p-3 rounded-xl text-gray-600 hover:bg-gray-200"><FaEdit /></button>
                   <button onClick={() => router.push(`/dashboard/aluno/${a.id}`)} className="bg-gray-100 p-3 rounded-xl text-gray-600 hover:bg-gray-200"><FaUser /></button>
                   <button onClick={() => router.push(`/dashboard/aluno/${a.id}/progresso`)} className="bg-gray-900 text-white p-3 rounded-xl"><FaChartLine /></button>

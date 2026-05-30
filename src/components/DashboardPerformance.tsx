@@ -72,7 +72,17 @@ export default function DashboardPerformance({ alunoId }: { alunoId: string }) {
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={Object.entries(dados.frequencia).map(([name, val]) => ({ name, val })).sort((a:any, b:any) => b.val - a.val).slice(0, 5)} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} interval={0} />
+                <XAxis 
+  dataKey="name" 
+  axisLine={false} 
+  tickLine={false} 
+  tick={{ fontSize: 9, fill: '#64748b' }} 
+  interval={0} 
+  angle={-45}        // Rotaciona o texto em 45 graus
+  textAnchor="end"   // Alinha o texto para não cortar
+  height={60}        // Dá altura extra para o texto rotacionado
+  tickFormatter={(value) => value.length > 8 ? `${value.substring(0, 7)}...` : value} // Trunca nomes longos
+/>
                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} />
                 <Tooltip 
                   cursor={{ fill: '#f1f5f9', radius: 12 }} 

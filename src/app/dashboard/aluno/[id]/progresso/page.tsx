@@ -94,30 +94,47 @@ export default function ProgressoPersonalCompleto({ params }: { params: Promise<
           </span>
         </header>
 
-        {/* MÉTRICAS */}
-        <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
-            <p className="text-[9px] uppercase font-bold text-gray-400 mb-2">Carga Máxima (PR)</p>
-            <p className="text-2xl font-bold">{cargaMaxima}<span className="text-xs text-gray-400 ml-1">kg</span></p>
-          </div>
-          <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
-            <p className="text-[9px] uppercase font-bold text-gray-400 mb-2">Séries Totais</p>
-            <p className="text-2xl font-bold">{historico.length}</p>
-          </div>
-          <div className="md:col-span-2 bg-white p-6 rounded-3xl border border-gray-100 shadow-sm flex items-center justify-between">
-            <div className="flex-1">
-              <label className="text-[9px] uppercase font-bold text-gray-400 block mb-1">Análise de Exercício</label>
-              <select className="w-full font-bold text-lg outline-none bg-transparent" value={filtro.exercicio} onChange={(e) => setFiltro({...filtro, exercicio: e.target.value})}>
-                {Array.from(new Set(historico.map(h => h.exercicio_nome))).map(ex => <option key={ex as string} value={ex as string}>{ex as string}</option>)}
-              </select>
-            </div>
-            <div className="flex bg-gray-50 p-1 rounded-xl">
-              {['semana', 'mes'].map(p => (
-                <button key={p} onClick={() => setFiltro({...filtro, periodo: p})} className={`px-4 py-2 rounded-lg text-[9px] font-bold uppercase tracking-widest transition-all ${filtro.periodo === p ? 'bg-white shadow-sm' : 'text-gray-400'}`}>{p}</button>
-              ))}
-            </div>
-          </div>
-        </section>
+       <section className="grid grid-cols-1 md:grid-cols-4 gap-4">
+  {/* Cards de Métricas (Empilhados no mobile, lado a lado no desktop) */}
+  <div className="grid grid-cols-2 gap-4 md:col-span-2">
+    <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
+      <p className="text-[9px] uppercase font-bold text-gray-400 mb-2">Carga Máxima (PR)</p>
+      <p className="text-2xl font-bold">{cargaMaxima}<span className="text-xs text-gray-400 ml-1">kg</span></p>
+    </div>
+    <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
+      <p className="text-[9px] uppercase font-bold text-gray-400 mb-2">Séries Totais</p>
+      <p className="text-2xl font-bold">{historico.length}</p>
+    </div>
+  </div>
+
+  {/* Análise de Exercício (Ocupa a linha toda no mobile) */}
+  <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm md:col-span-2 flex flex-col md:flex-row items-center gap-4">
+    <div className="flex-1 w-full">
+      <label className="text-[9px] uppercase font-bold text-gray-400 block mb-1">Análise de Exercício</label>
+      <select 
+        className="w-full font-bold text-lg outline-none bg-transparent truncate" 
+        value={filtro.exercicio} 
+        onChange={(e) => setFiltro({...filtro, exercicio: e.target.value})}
+      >
+        {Array.from(new Set(historico.map(h => h.exercicio_nome))).map(ex => 
+          <option key={ex as string} value={ex as string}>{ex as string}</option>
+        )}
+      </select>
+    </div>
+    
+    <div className="flex bg-gray-50 p-1 rounded-xl w-full md:w-auto">
+      {['semana', 'mes'].map(p => (
+        <button 
+          key={p} 
+          onClick={() => setFiltro({...filtro, periodo: p})} 
+          className={`flex-1 md:flex-none px-4 py-2 rounded-lg text-[9px] font-bold uppercase tracking-widest transition-all ${filtro.periodo === p ? 'bg-white shadow-sm' : 'text-gray-400'}`}
+        >
+          {p}
+        </button>
+      ))}
+    </div>
+  </div>
+</section>
 
         {/* GRÁFICO */}
         <section className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
