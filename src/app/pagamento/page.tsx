@@ -1,22 +1,23 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { initMercadoPago, CardPayment } from '@mercadopago/sdk-react';
 import { supabase } from '@/lib/supabaseClient';
 
+// Inicialização segura no lado do cliente
 initMercadoPago('APP_USR-aa430b51-73fc-4c01-a415-07749a12c130');
 
-// Interface para garantir tipagem forte e evitar erros de build
 interface FormData {
   email: string;
   nome: string;
   cpf: string;
 }
 
-export default function PagamentoAssinatura() {
+// Criamos um subcomponente para encapsular a lógica que depende de searchParams
+function PaymentFormContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const personalId = searchParams.get('id') || '00000000-0000-0000-0000-000000000000'; 
+  const personalId = searchParams.get('id') || '00000000-0000-0000-0000-000000000000';
   
   const [loading, setLoading] = useState(false);
   const [valorPlano, setValorPlano] = useState<number | null>(null);
@@ -55,45 +56,52 @@ export default function PagamentoAssinatura() {
   };
 
   return (
+    <div className="relative bg-[#0f172a] p-8 rounded-[2rem] border border-white/10 shadow-2xl">
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-white tracking-tight">Checkout AuraFit</h1>
+        <p className="text-slate-400 text-sm mt-1">Pagamento seguro via Mercado Pago</p>
+      </div>
+
+      <div className="space-y-4 mb-8">
+        <input type="text" placeholder="Nome Completo" className="w-full p-4 bg-[#1e293b] rounded-2xl border border-white/5 text-white outline-none focus:border-blue-500/50 transition-all" value={formData.nome} onChange={(e) => setFormData({...formData, nome: e.target.value})} />
+        <div className="flex gap-4">
+          <input type="email" placeholder="E-mail" className="w-full p-4 bg-[#1e293b] rounded-2xl border border-white/5 text-white outline-none focus:border-blue-500/50 transition-all" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} />
+          <input type="text" placeholder="CPF" className="w-1/3 p-4 bg-[#1e293b] rounded-2xl border border-white/5 text-white outline-none focus:border-blue-500/50 transition-all" value={formData.cpf} onChange={(e) => setFormData({...formData, cpf: e.target.value})} />
+        </div>
+      </div>
+
+      <div className="bg-white/5 p-2 rounded-2xl border border-white/5">
+        {valorPlano !== null ? (
+          <CardPayment
+            initialization={{ 
+              amount: valorPlano,
+              payer: { 
+                email: formData.email,
+                identification: { type: "CPF", number: formData.cpf }
+              } 
+            }}
+            onSubmit={onSubmit}
+            customization={{ 
+              visual: { style: { theme: 'dark' } }
+            }}
+          />
+        ) : (
+          <div className="h-48 flex items-center justify-center text-blue-400/50 animate-pulse">Carregando gateway...</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default function PagamentoAssinatura() {
+  return (
     <main className="min-h-screen bg-[#020617] flex items-center justify-center p-6 selection:bg-blue-500/30">
       <div className="max-w-md w-full relative group">
         <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-[2.5rem] opacity-20 blur group-hover:opacity-40 transition duration-1000"></div>
-        
-        <div className="relative bg-[#0f172a] p-8 rounded-[2rem] border border-white/10 shadow-2xl">
-          <div className="mb-8">
-            <h1 className="text-2xl font-bold text-white tracking-tight">Checkout AuraFit</h1>
-            <p className="text-slate-400 text-sm mt-1">Pagamento seguro via Mercado Pago</p>
-          </div>
-
-          <div className="space-y-4 mb-8">
-            <input type="text" placeholder="Nome Completo" className="w-full p-4 bg-[#1e293b] rounded-2xl border border-white/5 text-white outline-none focus:border-blue-500/50 transition-all" value={formData.nome} onChange={(e) => setFormData({...formData, nome: e.target.value})} />
-            <div className="flex gap-4">
-              <input type="email" placeholder="E-mail" className="w-full p-4 bg-[#1e293b] rounded-2xl border border-white/5 text-white outline-none focus:border-blue-500/50 transition-all" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} />
-              <input type="text" placeholder="CPF" className="w-1/3 p-4 bg-[#1e293b] rounded-2xl border border-white/5 text-white outline-none focus:border-blue-500/50 transition-all" value={formData.cpf} onChange={(e) => setFormData({...formData, cpf: e.target.value})} />
-            </div>
-          </div>
-
-          <div className="bg-white/5 p-2 rounded-2xl border border-white/5">
-            {valorPlano !== null ? (
-             <CardPayment
-  initialization={{ 
-    amount: valorPlano,
-    payer: { 
-      email: formData.email,
-      identification: { type: "CPF", number: formData.cpf }
-    } 
-  }}
-  onSubmit={onSubmit}
-  customization={{ 
-    visual: { style: { theme: 'dark' } }
-    // A propriedade paymentMethods foi removida para corrigir o erro de build
-  }}
-/>
-            ) : (
-              <div className="h-48 flex items-center justify-center text-blue-400/50 animate-pulse">Carregando gateway...</div>
-            )}
-          </div>
-        </div>
+        {/* Suspense garante que o Next.js não quebre no build */}
+        <Suspense fallback={<div className="text-white text-center">Carregando checkout...</div>}>
+          <PaymentFormContent />
+        </Suspense>
       </div>
     </main>
   );
