@@ -6,6 +6,13 @@ import { supabase } from '@/lib/supabaseClient';
 
 initMercadoPago('APP_USR-aa430b51-73fc-4c01-a415-07749a12c130');
 
+// Interface para garantir tipagem forte e evitar erros de build
+interface FormData {
+  email: string;
+  nome: string;
+  cpf: string;
+}
+
 export default function PagamentoAssinatura() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -13,9 +20,7 @@ export default function PagamentoAssinatura() {
   
   const [loading, setLoading] = useState(false);
   const [valorPlano, setValorPlano] = useState<number | null>(null);
-  
-  // Estados para dados do pagador (essenciais para passar na validação de risco do MP)
-  const [formData, setFormData] = useState({ email: '', nome: '', cpf: '' });
+  const [formData, setFormData] = useState<FormData>({ email: '', nome: '', cpf: '' });
 
   useEffect(() => {
     supabase.from('configuracoes_pagamento').select('valor_padrao').limit(1).single()
@@ -37,9 +42,13 @@ export default function PagamentoAssinatura() {
       });
       
       const response = await res.json();
-      response.success ? router.push('/dashboard') : alert("Pagamento negado: " + (response.error?.message || "Verifique seus dados"));
+      if (response.success) {
+        router.push('/dashboard');
+      } else {
+        alert("Pagamento negado: " + (response.error?.message || "Verifique seus dados"));
+      }
     } catch {
-      alert("Falha de conexão.");
+      alert("Falha de conexão com servidor seguro.");
     } finally {
       setLoading(false);
     }
@@ -48,7 +57,6 @@ export default function PagamentoAssinatura() {
   return (
     <main className="min-h-screen bg-[#020617] flex items-center justify-center p-6 selection:bg-blue-500/30">
       <div className="max-w-md w-full relative group">
-        {/* Efeito de brilho atrás do card */}
         <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-[2.5rem] opacity-20 blur group-hover:opacity-40 transition duration-1000"></div>
         
         <div className="relative bg-[#0f172a] p-8 rounded-[2rem] border border-white/10 shadow-2xl">
