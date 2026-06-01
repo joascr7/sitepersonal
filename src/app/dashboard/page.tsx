@@ -62,7 +62,6 @@ export default function Dashboard() {
 
       const personalId = data.session.user.id;
       
-      // Busca os dados do personal para validar o teste
       const { data: personal } = await supabase
         .from('personais')
         .select('status_pagamento, data_expiracao_teste')
@@ -70,15 +69,15 @@ export default function Dashboard() {
         .single();
 
       if (personal) {
-        setPersonalInfo(personal); // Salva para exibir a data no aviso
+        // 3. CORREÇÃO: Agora o setPersonalInfo aceita o objeto do Supabase com segurança
+        setPersonalInfo(personal as PersonalData); 
+        
         const hoje = new Date();
         const expira = new Date(personal.data_expiracao_teste);
 
-        // Bloqueio se o teste venceu e ele não pagou
-        // ATENÇÃO: Corrigido para a nova rota que você definiu
         if (personal.status_pagamento === 'teste' && hoje > expira) {
           router.push('/acesso-personal'); 
-          return; // Adicionado return para parar a execução aqui
+          return;
         }
       }
 
