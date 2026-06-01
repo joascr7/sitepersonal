@@ -86,8 +86,7 @@ export default function PagamentoAssinatura() {
   onSubmit={onSubmit}
   customization={{ 
     visual: { style: { theme: 'dark' } }
-    // Remova a linha 'paymentMethods: { creditCard: "all" }' 
-    // O SDK já assume todos os métodos por padrão se não forem especificados.
+    // A propriedade paymentMethods foi removida para corrigir o erro de build
   }}
 />
             ) : (
