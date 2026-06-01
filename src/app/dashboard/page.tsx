@@ -30,7 +30,8 @@ export default function Dashboard() {
   const [alunoSelecionado, setAlunoSelecionado] = useState<any>(null);
   const [valorPago, setValorPago] = useState('');
   const [statusMsg, setStatusMsg] = useState<{type: 'success' | 'error', text: string} | null>(null);
-  
+  const [personalInfo, setPersonalInfo] = useState(null);
+  const [statusAcesso, setStatusAcesso] = useState({ emTeste: true, status: 'ativo' })
   // Estados para o Relatório Histórico
   const [faturamentoMes, setFaturamentoMes] = useState(0);
   const [mesSelecionado, setMesSelecionado] = useState(new Date().getMonth());
@@ -51,18 +52,67 @@ export default function Dashboard() {
     return { text: 'ATIVO EM DIA', color: 'bg-emerald-50 text-emerald-600' };
   };
 
-  useEffect(() => {
+ useEffect(() => {
     const init = async () => {
       const { data } = await supabase.auth.getSession();
-      if (!data.session) router.push('/');
-      else {
-        setUser(data.session.user);
-        fetchAlunos(data.session.user.id);
-        fetchFinanceiro(data.session.user.id);
+      if (!data.session) {
+        router.push('/');
+        return;
       }
+
+      const personalId = data.session.user.id;
+      
+      // Busca os dados do personal para validar o teste
+      const { data: personal } = await supabase
+        .from('personais')
+        .select('status_pagamento, data_expiracao_teste')
+        .eq('id', personalId)
+        .single();
+
+      if (personal) {
+        setPersonalInfo(personal); // Salva para exibir a data no aviso
+        const hoje = new Date();
+        const expira = new Date(personal.data_expiracao_teste);
+
+        // Bloqueio se o teste venceu e ele não pagou
+        // ATENÇÃO: Corrigido para a nova rota que você definiu
+        if (personal.status_pagamento === 'teste' && hoje > expira) {
+          router.push('/acesso-personal'); 
+          return; // Adicionado return para parar a execução aqui
+        }
+      }
+
+      setUser(data.session.user);
+      fetchAlunos(personalId);
+      fetchFinanceiro(personalId);
     };
     init();
   }, [router]);
+
+
+  useEffect(() => {
+  const verificarAcesso = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data: personal } = await supabase
+      .from('personais')
+      .select('data_expiracao_teste, status_pagamento')
+      .eq('id', user.id)
+      .single();
+
+    if (personal) {
+      const hoje = new Date();
+      const dataExpiracao = new Date(personal.data_expiracao_teste);
+      
+      // Se hoje for maior que a data de expiração E o status não for 'pago', ele sai do teste
+      const estaEmTeste = hoje <= dataExpiracao && personal.status_pagamento !== 'pago';
+      
+      setStatusAcesso({ emTeste: estaEmTeste, status: personal.status_pagamento });
+    }
+  };
+  verificarAcesso();
+}, []);
 
   useEffect(() => {
     if (user?.id) {
@@ -182,6 +232,29 @@ export default function Dashboard() {
           </button>
         </header>
 
+{/* 1. Toast de status (corrigido para não dar erro) */}
+{statusMsg && (
+  <div className={`fixed top-6 right-6 p-4 rounded-2xl shadow-2xl z-[100] text-[10px] font-black uppercase tracking-widest ${statusMsg.type === 'success' ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white'}`}>
+    {statusMsg.text}
+  </div>
+)}
+
+{/* 2. Aviso de Teste Grátis */}
+{/* 2. Aviso de Teste Grátis Dinâmico */}
+{statusAcesso.emTeste && (
+  <div className="mb-6 bg-blue-50 border border-blue-100 p-4 rounded-2xl flex justify-between items-center shadow-sm">
+    <p className="text-[10px] font-black text-blue-900 uppercase tracking-widest">
+      Você está no período de teste.
+    </p>
+    <button 
+      onClick={() => router.push('/acesso-personal')} 
+      className="bg-blue-600 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase hover:bg-blue-700 transition-all"
+    >
+      Assinar Plano
+    </button>
+  </div>
+)}
+        
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="space-y-4">
             <div className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm">

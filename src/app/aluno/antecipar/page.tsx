@@ -13,7 +13,7 @@ export default function PaginaAntecipar() {
   useEffect(() => {
     const carregarDados = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) { router.push('/login'); return; }
+      if (!session) { router.push('/login-aluno'); return; }
 
       const { data, error } = await supabase
         .from('alunos')

@@ -81,35 +81,66 @@ useEffect(() => {
   checkStatus();
 }, []);
 
-  const fetchData = async () => {
-    setLoading(true);
-    
-    // 1. Busca dados do Aluno e Personal
-    const { data: alunoData } = await supabase.from('alunos').select('*').eq('id', id).maybeSingle();
-    if (alunoData) {
-      setAluno(alunoData);
-      if (alunoData.personal_id) {
-        const { data: pData } = await supabase.from('personais').select('*').eq('id', alunoData.personal_id).maybeSingle();
-        if (pData) setPersonal(pData);
-      }
-    }
+const fetchData = async () => {
+  setLoading(true);
+  console.log("--- INICIANDO BUSCA DE DADOS ---");
+  console.log("ID do Aluno alvo:", id);
 
-    // 2. Busca o histórico de treinos (Consolidado em uma única chamada)
-    // Certifique-se de usar apenas a tabela que você criou: 'historico_treinos'
-    const { data: conclusoes, error: erroTreino } = await supabase
-      .from('historico_treinos') 
-      .select('data_treino')
-      .eq('aluno_id', id)
-      .gte('data_treino', startOfWeek(new Date(), { weekStartsOn: 1 }).toISOString());
-    
-    if (conclusoes) {
-      setDiasTreino(conclusoes.map(d => parseISO(d.data_treino)));
-    } else if (erroTreino) {
-      console.error("Erro ao buscar treinos:", erroTreino);
-    }
+  // 1. Busca dados do Aluno e Personal
+  const { data: alunoData, error: alunoError } = await supabase
+    .from('alunos')
+    .select('*')
+    .eq('id', id)
+    .maybeSingle();
 
-    setLoading(false);
-  };
+  if (alunoError) console.error("Erro ao buscar Aluno:", alunoError);
+  if (alunoData) {
+    setAluno(alunoData);
+    console.log("Aluno encontrado:", alunoData.nome);
+    
+    if (alunoData.personal_id) {
+      const { data: pData } = await supabase
+        .from('personais')
+        .select('*')
+        .eq('id', alunoData.personal_id)
+        .maybeSingle();
+      if (pData) setPersonal(pData);
+    }
+  }
+
+  // 2. BUSCA CORRETA: Tabela 'conclusoes_treino'
+  // Usando a coluna 'data_conclusao' conforme visto no seu banco de dados
+  const inicioDaSemana = startOfWeek(new Date(), { weekStartsOn: 1 });
+  console.log("Buscando conclusões desde:", inicioDaSemana.toISOString());
+
+  const { data: conclusoes, error: erroTreino } = await supabase
+    .from('conclusoes_treino') 
+    .select('data_conclusao') 
+    .eq('aluno_id', id)
+    .gte('data_conclusao', inicioDaSemana.toISOString());
+  
+  if (erroTreino) {
+    console.error("ERRO AO BUSCAR CONCLUSÕES:", erroTreino);
+  } else if (conclusoes) {
+    console.log("Conclusões encontradas no banco:", conclusoes);
+    
+    // Normaliza as datas para o fuso local ignorando horas
+    const datas = conclusoes.map(d => {
+      const date = parseISO(d.data_conclusao);
+      date.setHours(0, 0, 0, 0);
+      return date;
+    });
+    
+    setDiasTreino(datas);
+    console.log("Datas mapeadas para o estado:", datas);
+  } else {
+    console.log("Nenhuma conclusão encontrada para este aluno.");
+    setDiasTreino([]);
+  }
+
+  setLoading(false);
+  console.log("--- BUSCA FINALIZADA ---");
+};
 
   const abrirAvaliacoes = async () => {
   setIsLoading(true); // Feedback visual imediato

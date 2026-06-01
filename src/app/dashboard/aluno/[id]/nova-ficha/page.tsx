@@ -124,16 +124,24 @@ const [exercicios, setExercicios] = useState<Exercicio[]>([{
   }
 ]);
   const removerExercicio = (index: number) => setExercicios(exercicios.filter((_, i) => i !== index));
-  const adicionarSerie = (exIndex: number) => { 
-  const n = [...exercicios]; 
-  n[exIndex].series.push({ 
-    ordem: '', // Adicione isso aqui
-    reps: '', 
-    carga: '', 
-    CargaPlanejada: '', 
-    intervalo: '' 
-  }); 
-  setExercicios(n); 
+  const adicionarSerie = (exIndex: number) => {
+  const n = [...exercicios];
+  
+  // Garantia de segurança: se series não existir ou não for array, inicializa como array vazio
+  if (!n[exIndex].series || !Array.isArray(n[exIndex].series)) {
+    n[exIndex].series = [];
+  }
+
+  // Agora é seguro dar o push
+  n[exIndex].series.push({
+    ordem: '', 
+    reps: '',
+    carga: '',
+    intervalo: '',
+    CargaPlanejada: ''
+  });
+
+  setExercicios(n);
 };
   
   const atualizarSerie = (exIndex: number, sIndex: number, campo: keyof Serie, valor: string) => { 
@@ -156,23 +164,31 @@ const [exercicios, setExercicios] = useState<Exercicio[]>([{
   };
 
   const salvarFicha = async () => {
-    if (!nome) throw new Error("Dê um nome ao treino!");
-    setLoading(true);
-    const exerciciosLimpos = exercicios.map(ex => ({
-      ...ex, series: ex.series.map(s => ({
-        reps: s.reps, 
-        carga: Number(s.carga) || 0,
-        CargaPlanejada: Number(s.CargaPlanejada) || 0,
-        intervalo: Number(s.intervalo) || 0
-      }))
-    }));
+  if (!nome) throw new Error("Dê um nome ao treino!");
+  setLoading(true);
 
-    const { data: { user } } = await supabase.auth.getUser();
-    const { error } = await supabase.from('fichas').insert([{ 
-      aluno_id: id, nome_treino: nome, descricao: JSON.stringify(exerciciosLimpos), personal_id: user?.id 
-    }]);
-    if (error) throw error;
-  };
+  // CORREÇÃO: Mantenha todos os campos que você adicionou (incluindo 'ordem')
+  const exerciciosLimpos = exercicios.map(ex => ({
+    ...ex, 
+    series: ex.series.map(s => ({
+      ordem: s.ordem || '',
+      reps: s.reps || '', 
+      carga: Number(s.carga) || 0,
+      CargaPlanejada: Number(s.CargaPlanejada) || 0,
+      intervalo: Number(s.intervalo) || 0
+    }))
+  }));
+
+  const { data: { user } } = await supabase.auth.getUser();
+  const { error } = await supabase.from('fichas').insert([{ 
+    aluno_id: id, 
+    nome_treino: nome, 
+    descricao: JSON.stringify(exerciciosLimpos), // JSON completo
+    personal_id: user?.id 
+  }]);
+  
+  if (error) throw error;
+};
 
   const salvarCombo = async () => {
     if (!nome) return alert("Dê um nome ao treino!");
@@ -322,57 +338,71 @@ const [exercicios, setExercicios] = useState<Exercicio[]>([{
       <span>Série</span><span>Reps</span><span>Carga</span><span>Desc.</span><span>Planej.</span>
     </div>
 
-    {/* Linhas de Séries */}
-    <div className="space-y-2">
-      {ex.series.map((s, sIndex) => (
-        <div key={sIndex} className="grid grid-cols-5 gap-2 items-center">
+{/* Linhas de Séries */}
+<div className="space-y-2">
+  {ex && Array.isArray(ex.series) ? (
+    ex.series.map((s, sIndex) => (
+      <div key={sIndex} className="grid grid-cols-5 gap-2 items-center">
+       <input 
+  type="number" 
+  className="p-2 bg-gray-50 border border-transparent rounded-lg text-sm text-center font-bold text-gray-700 focus:bg-white focus:border-gray-200 outline-none transition-all" 
+  value={s.ordem ?? sIndex + 1} // Usa o valor salvo ou o padrão do índice
+  onChange={(e) => atualizarSerie(exIndex, sIndex, 'ordem', e.target.value)}
+/>
+        <input 
+          type="text" 
+          className="p-2 bg-gray-50 border border-transparent rounded-lg text-sm text-center focus:bg-white focus:border-gray-200 outline-none transition-all" 
+          placeholder="12" 
+          value={s?.reps ?? ''} 
+          onChange={(e) => atualizarSerie(exIndex, sIndex, 'reps', e.target.value)} 
+        />
+        <input 
+          type="number" 
+          className="p-2 bg-gray-50 border border-transparent rounded-lg text-sm text-center focus:bg-white focus:border-gray-200 outline-none transition-all" 
+          placeholder="0" 
+          value={s?.carga ?? ''} 
+          onChange={(e) => atualizarSerie(exIndex, sIndex, 'carga', e.target.value)} 
+        />
+        <input 
+          type="number" 
+          className="p-2 bg-gray-50 border border-transparent rounded-lg text-sm text-center focus:bg-white focus:border-gray-200 outline-none transition-all" 
+          placeholder="0" 
+          value={s?.intervalo ?? ''} 
+          onChange={(e) => atualizarSerie(exIndex, sIndex, 'intervalo', e.target.value)} 
+        />
+        <div className="flex items-center gap-1">
           <input 
             type="number" 
-            className="p-2 bg-gray-50 border border-transparent rounded-lg text-sm text-center font-bold text-gray-700 focus:bg-white focus:border-gray-200 outline-none transition-all" 
-            value={sIndex + 1} 
-            readOnly 
-          />
-          <input 
-            type="text" 
-            className="p-2 bg-gray-50 border border-transparent rounded-lg text-sm text-center focus:bg-white focus:border-gray-200 outline-none transition-all" 
-            placeholder="12" 
-            value={s.reps ?? ''} 
-            onChange={(e) => atualizarSerie(exIndex, sIndex, 'reps', e.target.value)} 
-          />
-          <input 
-            type="number" 
-            className="p-2 bg-gray-50 border border-transparent rounded-lg text-sm text-center focus:bg-white focus:border-gray-200 outline-none transition-all" 
+            className="p-2 bg-gray-50 border border-transparent rounded-lg text-sm text-center focus:bg-white focus:border-gray-200 outline-none transition-all w-full" 
             placeholder="0" 
-            value={s.carga ?? ''} 
-            onChange={(e) => atualizarSerie(exIndex, sIndex, 'carga', e.target.value)} 
+            value={s?.CargaPlanejada ?? ''} 
+            onChange={(e) => atualizarSerie(exIndex, sIndex, 'CargaPlanejada', e.target.value)} 
           />
-          <input 
-            type="number" 
-            className="p-2 bg-gray-50 border border-transparent rounded-lg text-sm text-center focus:bg-white focus:border-gray-200 outline-none transition-all" 
-            placeholder="0" 
-            value={s.intervalo ?? ''} 
-            onChange={(e) => atualizarSerie(exIndex, sIndex, 'intervalo', e.target.value)} 
-          />
-          <div className="flex items-center gap-1">
-            <input 
-              type="number" 
-              className="p-2 bg-gray-50 border border-transparent rounded-lg text-sm text-center focus:bg-white focus:border-gray-200 outline-none transition-all w-full" 
-              placeholder="0" 
-              value={s.CargaPlanejada ?? ''} 
-              onChange={(e) => atualizarSerie(exIndex, sIndex, 'CargaPlanejada', e.target.value)} 
-            />
-            <button 
-              onClick={() => { const n = [...exercicios]; n[exIndex].series.splice(sIndex, 1); setExercicios(n); }} 
-              className="text-gray-300 hover:text-red-500 font-bold px-1"
-            > × </button>
-          </div>
+          <button 
+            onClick={() => { 
+              const n = [...exercicios]; 
+              n[exIndex].series.splice(sIndex, 1); 
+              setExercicios(n); 
+            }} 
+            className="text-gray-300 hover:text-red-500 font-bold px-1"
+          > 
+            × 
+          </button>
         </div>
-      ))}
-    </div>
+      </div>
+    ))
+  ) : (
+    <p className="text-[10px] text-gray-400">Nenhuma série definida.</p>
+  )}
+</div>
 
-    {/* Botão Adicionar Série */}
+   {/* Botão Adicionar Série */}
     <button 
-      onClick={() => adicionarSerie(exIndex)} 
+      type="button" // Adicionado para evitar que o botão dispare um submit de formulário acidentalmente
+      onClick={(e) => {
+        e.preventDefault(); // Garante que não recarregue a página
+        adicionarSerie(exIndex);
+      }} 
       className="mt-4 text-xs font-bold text-gray-500 hover:text-gray-900 transition-colors w-full py-2 border-2 border-dashed border-gray-100 rounded-xl"
     > 
       + Adicionar série 

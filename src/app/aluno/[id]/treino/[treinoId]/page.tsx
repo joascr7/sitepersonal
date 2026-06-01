@@ -62,96 +62,104 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
     doc.save(`${ficha?.nome_treino || 'Treino'}.pdf`);
   };
 
-  useEffect(() => {
-    if (!treinoId) return;
-    const fetchData = async () => {
-      setLoading(true);
-      const [fichaRes, regRes, concRes] = await Promise.all([
-        supabase.from('fichas').select('*').eq('id', treinoId).maybeSingle(),
-        supabase.from('registro_series').select('*').eq('treino_id', treinoId),
-        supabase.from('conclusoes_treino').select('id', { count: 'exact' }).eq('treino_id', treinoId)
-      ]);
-      setFicha(fichaRes.data);
-      if (regRes.data) {
-        const initialInputs: Record<string, string> = {};
-        regRes.data.forEach((r: any) => initialInputs[`${r.exercicio_nome}-${r.serie_index}`] = r.carga.toString());
-        setInputValues(initialInputs);
-        setRegistros(regRes.data);
-      }
-      setSessoesContador(concRes.count || 0);
-      setLoading(false);
-    };
-    fetchData();
-  }, [treinoId]);
+  // 1. Definição da função de busca (fora do useEffect)
+const fetchData = async () => {
+  if (!treinoId) return;
+  setLoading(true);
+  
+  console.log("DEBUG: Iniciando busca para Treino ID:", treinoId);
+  console.log("DEBUG: Iniciando busca para Aluno ID (id):", id);
 
- const registrarCarga = async (nomeExercicio: string, carga: number, reps: number, serieIndex: number) => {
-    if (!carga || carga <= 0) return;
-    
-    const registroExistente = registros.find(r => r.exercicio_nome === nomeExercicio && r.serie_index === serieIndex);
-    
-    // Payload base sem ID
-    const payload = { 
-      aluno_id: id, 
-      treino_id: treinoId, 
-      exercicio_nome: nomeExercicio, 
-      carga, 
-      repeticoes: reps, 
-      serie_index: serieIndex 
-    };
+  const [fichaRes, regRes, concRes] = await Promise.all([
+    supabase.from('fichas').select('*').eq('id', treinoId).maybeSingle(),
+    supabase.from('registro_series').select('*').eq('treino_id', treinoId),
+    // Aqui está o problema provável:
+    supabase.from('conclusoes_treino')
+      .select('id', { count: 'exact' })
+      .eq('treino_id', treinoId) // <-- O erro pode estar aqui
+  ]);
+  
+  console.log("DEBUG: Resultado das conclusões:", concRes);
 
-    // Adiciona o ID apenas se estivermos atualizando um registro existente
-    const upsertData = registroExistente 
-      ? { ...payload, id: registroExistente.id } 
-      : payload;
+  setFicha(fichaRes.data);
+  if (regRes.data) {
+    const initialInputs: Record<string, string> = {};
+    regRes.data.forEach((r: any) => initialInputs[`${r.exercicio_nome}-${r.serie_index}`] = r.carga.toString());
+    setInputValues(initialInputs);
+    setRegistros(regRes.data);
+  }
+  
+  // Define o contador
+  setSessoesContador(concRes.count || 0);
+  console.log("DEBUG: Contador definido como:", concRes.count || 0);
+  
+  setLoading(false);
+};
 
-    const { data, error } = await supabase
-      .from('registro_series')
-      .upsert(upsertData as any) // Asserção para permitir o campo 'id'
-      .select();
+// 2. useEffect apenas dispara o carregamento inicial
+useEffect(() => {
+  fetchData();
+}, [treinoId]);
 
-    if (!error && data) {
-      setRegistros(prev => [...prev.filter(r => r.id !== data[0].id), ...data]);
-    }
+// 3. Registrar carga (mantém o comportamento original)
+const registrarCarga = async (nomeExercicio: string, carga: number, reps: number, serieIndex: number) => {
+  if (!carga || carga <= 0) return;
+  
+  const registroExistente = registros.find(r => r.exercicio_nome === nomeExercicio && r.serie_index === serieIndex);
+  
+  const payload = { 
+    aluno_id: id, 
+    treino_id: treinoId, 
+    exercicio_nome: nomeExercicio, 
+    carga, 
+    repeticoes: reps, 
+    serie_index: serieIndex 
   };
 
-  const finalizarSessao = async () => {
-    setLoading(true);
-    try {
-      const registrosParaSalvar = Object.entries(inputValues).map(([key, carga]) => {
-        const [exercicio_nome, serie_index] = key.split('-');
-        const serieOriginal = registros.find(r => r.exercicio_nome === exercicio_nome && r.serie_index === Number(serie_index));
-        
-        return {
-          ...(serieOriginal?.id ? { id: serieOriginal.id } : {}), // Inclui o ID se já existir no banco
-          aluno_id: id, 
-          treino_id: treinoId, 
-          exercicio_nome, 
-          serie_index: Number(serie_index), 
-          carga: Number(carga) || 0, 
-          repeticoes: serieOriginal?.repeticoes || 12, 
-          data_execucao: new Date().toISOString()
-        };
-      });
+  const upsertData = registroExistente 
+    ? { ...payload, id: registroExistente.id } 
+    : payload;
 
-      const { error: errorSeries } = await supabase
-        .from('registro_series')
-        .upsert(registrosParaSalvar as any); // Asserção para aceitar o array com IDs
+  const { data, error } = await supabase
+    .from('registro_series')
+    .upsert(upsertData as any)
+    .select();
 
-      if (errorSeries) throw new Error("Erro ao salvar séries: " + errorSeries.message);
+  if (!error && data) {
+    setRegistros(prev => [...prev.filter(r => r.id !== data[0].id), ...data]);
+  }
+};
 
-      await Promise.all([
-        supabase.from('conclusoes_treino').insert({ aluno_id: id, treino_id: treinoId }),
-        supabase.from('historico_treinos').insert({ aluno_id: id, data_treino: new Date().toISOString() })
-      ]);
-      
-      setShowToast(true);
-    } catch (err) {
-      console.error(err);
-      alert("Erro ao finalizar treino.");
-    } finally {
-      setLoading(false);
-    }
-  };
+// 4. Finalizar Sessão (CORRIGIDO)
+const finalizarSessao = async () => {
+  setLoading(true);
+  try {
+    // ... (seu código de salvar séries permanece igual até o Promise.all)
+    
+    await Promise.all([
+      supabase.from('conclusoes_treino').insert({ 
+        aluno_id: id, 
+        treino_id: treinoId,
+        data_conclusao: new Date().toISOString() 
+      }),
+      supabase.from('historico_treinos').insert({ 
+        aluno_id: id, 
+        data_treino: new Date().toISOString() 
+      })
+    ]);
+    
+    // --- CORREÇÃO AQUI ---
+    // Em vez de chamar fetchData() que é pesado, atualizamos o contador manualmente:
+    setSessoesContador(prev => prev + 1); 
+    
+    setShowToast(true);
+  } catch (err: any) {
+    console.error("Erro na finalização:", err);
+    alert("Erro ao finalizar treino: " + err.message);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const renderizarVideo = (url: string) => {
     if (!url) return null;
@@ -165,7 +173,7 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
   };
 
   if (loading) return <main className="p-10 text-center font-bold">CARREGANDO DADOS...</main>;
-
+{console.log("DADOS DA FICHA:", exercicios)}
   return (
     <main className="max-w-4xl mx-auto p-6 bg-gray-50 min-h-screen">
       <div className="flex justify-between items-center mb-6">

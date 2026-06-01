@@ -1,76 +1,88 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { FaCheckCircle, FaLock, FaBolt, FaDollarSign } from 'react-icons/fa';
+import { FaCheckCircle, FaLock, FaBolt, FaDollarSign, FaPlus } from 'react-icons/fa';
 
 export default function Financeiro() {
   const [pagamentos, setPagamentos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [config, setConfig] = useState({ pix: '', token: '', modo: 'manual', valor: 150 });
   const [saving, setSaving] = useState(false);
+  
+  // Estados para o registro de pagamento manual
+  const [novoValor, setNovoValor] = useState('');
+  const [alunoId, setAlunoId] = useState('');
+  const [listaAlunos, setListaAlunos] = useState<any[]>([]);
 
   useEffect(() => {
     fetchDados();
   }, []);
 
   const fetchDados = async () => {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return;
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
 
-  // CORREÇÃO: Filtramos pela coluna personal_id diretamente na tabela pagamentos.
-  // Se você não tem 'personal_id' na tabela pagamentos, 
-  // adicione essa coluna lá. É a prática padrão para relatórios financeiros.
-  const { data: pData, error: pError } = await supabase
-    .from('pagamentos')
-    .select(`
-      id, 
-      valor, 
-      data_pagamento, 
-      alunos ( nome )
-    `)
-    .eq('personal_id', user.id) 
-    .order('data_pagamento', { ascending: false });
+    const [pRes, cRes, aRes] = await Promise.all([
+      supabase.from('pagamentos').select('id, valor, data_pagamento, alunos(nome)').eq('personal_id', user.id).order('data_pagamento', { ascending: false }),
+      supabase.from('personais').select('chave_pix, mp_access_token, modo_pagamento, valor_mensalidade').eq('id', user.id).single(),
+      supabase.from('alunos').select('id, nome').eq('personal_id', user.id)
+    ]);
 
-  if (pError) console.error("Erro ao buscar pagamentos:", pError);
+    setPagamentos(pRes.data || []);
+    setListaAlunos(aRes.data || []);
+    if (cRes.data) {
+      setConfig({ 
+        pix: cRes.data.chave_pix || '', 
+        token: cRes.data.mp_access_token || '', 
+        modo: cRes.data.modo_pagamento || 'manual',
+        valor: cRes.data.valor_mensalidade || 150
+      });
+    }
+    setLoading(false);
+  };
 
-  // Busca Configuração do Personal
-  const { data: cData } = await supabase
-    .from('personais')
-    .select('chave_pix, mp_access_token, modo_pagamento, valor_mensalidade')
-    .eq('id', user.id)
-    .single();
+  const registrarPagamentoManual = async () => {
+    if (!alunoId || !novoValor) return alert("Selecione um aluno e informe o valor");
+    setSaving(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    const { error } = await supabase.from('pagamentos').insert([{
+      aluno_id: alunoId,
+      personal_id: user?.id,
+      valor: Number(novoValor),
+      data_pagamento: new Date().toISOString(),
+      status: 'pago'
+    }]);
 
-  setPagamentos(pData || []);
-  if (cData) {
-    setConfig({ 
-      pix: cData.chave_pix || '', 
-      token: cData.mp_access_token || '', 
-      modo: cData.modo_pagamento || 'manual',
-      valor: cData.valor_mensalidade || 150
-    });
-  }
-  setLoading(false);
-};
+    if (error) {
+      alert("Erro ao registrar: " + error.message);
+    } else {
+      alert("Pagamento registrado com sucesso!");
+      setNovoValor('');
+      await fetchDados();
+    }
+    setSaving(false);
+  };
 
   const salvarConfig = async () => {
-  setSaving(true);
-  const { data: { user } } = await supabase.auth.getUser();
-  
-  const { error } = await supabase.from('personais').update({ 
-    chave_pix: config.pix, 
-    mp_access_token: config.token, 
-    modo_pagamento: config.modo,
-    valor_mensalidade: config.valor // Garantindo que este dado está sendo enviado
-  }).eq('id', user?.id);
+    setSaving(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    const { error } = await supabase.from('personais').update({ 
+      chave_pix: config.pix, 
+      mp_access_token: config.token, 
+      modo_pagamento: config.modo,
+      valor_mensalidade: config.valor
+    }).eq('id', user?.id);
 
-  if (error) {
-    alert('Erro ao salvar: ' + error.message);
-  } else {
-    alert('Configurações atualizadas!');
-    await fetchDados(); // Adicione isso: força a busca do valor novo logo após salvar
-  }
-  setSaving(false);
-};
+    if (error) {
+      alert('Erro ao salvar: ' + error.message);
+    } else {
+      alert('Configurações atualizadas!');
+      await fetchDados();
+    }
+    setSaving(false);
+  };
 
   const totalGeral = pagamentos.reduce((acc, curr) => acc + Number(curr.valor), 0);
 
@@ -97,12 +109,10 @@ export default function Financeiro() {
 
           <div className="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm">
             <h2 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-4">Configurações</h2>
-            
             <div className="flex gap-2 mb-4">
               <button onClick={() => setConfig({...config, modo: 'manual'})} className={`flex-1 p-3 rounded-xl border-2 font-black text-[10px] uppercase transition-all ${config.modo === 'manual' ? 'border-gray-900 bg-gray-50' : 'border-gray-100'}`}><FaLock className="inline mr-1"/> Manual</button>
               <button onClick={() => setConfig({...config, modo: 'imediata'})} className={`flex-1 p-3 rounded-xl border-2 font-black text-[10px] uppercase transition-all ${config.modo === 'imediata' ? 'border-gray-900 bg-gray-50' : 'border-gray-100'}`}><FaBolt className="inline mr-1"/> Imediata</button>
             </div>
-            
             <div className="space-y-3">
               <div className="relative">
                 <FaDollarSign className="absolute left-4 top-3.5 text-gray-400" />
@@ -116,10 +126,22 @@ export default function Financeiro() {
                 className="w-full p-3 bg-gray-50 rounded-xl border border-gray-100 text-sm font-bold outline-none"
               />
             </div>
-            
             <button onClick={salvarConfig} disabled={saving} className="w-full mt-6 bg-gray-900 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-black transition-all active:scale-[0.98]">
               {saving ? 'Salvando...' : 'Salvar Alterações'}
             </button>
+          </div>
+        </div>
+
+        {/* Bloco de Registro Manual */}
+        <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-gray-100 mb-10">
+          <h2 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-4">Registrar Pagamento Manual</h2>
+          <div className="flex gap-4">
+            <select onChange={(e) => setAlunoId(e.target.value)} className="flex-1 p-4 bg-gray-50 rounded-2xl text-sm font-bold border border-gray-100 outline-none">
+              <option value="">Selecione o aluno...</option>
+              {listaAlunos.map(a => <option key={a.id} value={a.id}>{a.nome}</option>)}
+            </select>
+            <input type="number" placeholder="Valor R$" value={novoValor} onChange={(e) => setNovoValor(e.target.value)} className="w-32 p-4 bg-gray-50 rounded-2xl text-sm font-bold border border-gray-100 outline-none" />
+            <button onClick={registrarPagamentoManual} disabled={saving} className="bg-gray-900 text-white px-8 rounded-2xl font-black text-sm hover:bg-black transition-all"><FaPlus /></button>
           </div>
         </div>
 
@@ -127,11 +149,7 @@ export default function Financeiro() {
           <div className="p-8 border-b border-gray-100"><h2 className="font-black text-lg tracking-tighter">Últimas Transações</h2></div>
           <table className="w-full text-left">
             <thead className="bg-gray-50/50 text-[9px] uppercase font-black text-gray-400 tracking-[0.2em]">
-              <tr>
-                <th className="p-6">Aluno</th>
-                <th className="p-6">Data</th>
-                <th className="p-6 text-right">Valor</th>
-              </tr>
+              <tr><th className="p-6">Aluno</th><th className="p-6">Data</th><th className="p-6 text-right">Valor</th></tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {pagamentos.map((p) => (

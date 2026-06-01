@@ -1,7 +1,8 @@
 'use client';
 import { useState } from 'react';
-import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
+// IMPORTAÇÃO CORRETA: O segredo para não ter instâncias múltiplas
+import { supabase } from '@/lib/supabaseClient';
 
 export default function LoginAluno() {
   const [email, setEmail] = useState('');
@@ -17,7 +18,7 @@ export default function LoginAluno() {
     setIsProcessing(true);
     setMessage(null);
 
-    // 1. Autenticação inicial
+    // 1. Autenticação usando a instância global
     const { data, error } = await supabase.auth.signInWithPassword({ 
       email: email.trim(), 
       password 
@@ -29,10 +30,10 @@ export default function LoginAluno() {
       return;
     }
 
-    // 2. Verificar se é perfil aluno e se está ATIVO
+    // 2. Validação de perfil aluno
     const { data: aluno, error: alunoError } = await supabase
       .from('alunos')
-      .select('ativo, id')
+      .select('ativo')
       .eq('id', data.user.id)
       .maybeSingle();
 
@@ -46,10 +47,9 @@ export default function LoginAluno() {
       return;
     }
 
-    // 3. Login autorizado: SALVA A PERSISTÊNCIA DO TIPO DE USUÁRIO
-    localStorage.setItem('usuario_tipo', 'aluno');
-    
-    router.push(`/aluno/${data.user.id}`);
+    // 3. Redirecionamento forçado
+    // Isso garante que o Middleware leia o novo cookie de sessão
+    window.location.href = `/aluno/${data.user.id}`;
   };
 
   return (

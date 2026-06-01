@@ -45,7 +45,7 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
         }
       } else {
         // Se não encontrar o aluno, segurança extra: redireciona
-        router.push('/login');
+        router.push('/login-aluno');
         return;
       }
 

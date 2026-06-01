@@ -6,27 +6,31 @@ import NavbarAluno from './NavbarAluno';
 export default function ConditionalNavbar() {
   const pathname = usePathname();
 
-  // 1. Defina aqui as rotas que não devem exibir nenhuma barra de navegação
+  // 1. Rotas que não devem exibir nenhuma barra de navegação
+  // Adicionamos /planos e /pagamento aqui para que fiquem focadas no checkout
   const rotasSemNavbar = [
     '/', 
     '/login-personal', 
     '/login-aluno', 
     '/login-professor-cadastro', 
-    '/nova-senha'
+    '/nova-senha',
+    '/login-admin',
+    '/planos',      // Nova página Elite
+    '/pagamento',   // Nova página de Checkout
+    '/acesso-personal' // Página de bloqueio
   ];
 
-  // Se a rota atual estiver na lista de exclusão, não renderiza nada
-  if (rotasSemNavbar.includes(pathname)) {
+  // 2. Se a rota estiver na lista de exclusão OU começar com /admin, não renderiza nada.
+  if (rotasSemNavbar.includes(pathname) || pathname.startsWith('/admin')) {
     return null;
   }
 
-  // 2. Lógica de roteamento: 
-  // Se for uma rota de aluno, renderiza a Navbar do Aluno
+  // 3. Lógica de roteamento para Aluno
+  // Mantemos o padrão atual para os seus alunos
   if (pathname.startsWith('/aluno') || pathname.startsWith('/dashboard/aluno-view')) {
     return <NavbarAluno />;
   }
 
-  // 3. Caso contrário, renderiza a Navbar do Personal
-  // Esta Navbar já deve conter internamente o seu LogoutButton (apenas uma vez)
+  // 4. Caso padrão (Personal logado no sistema)
   return <Navbar />;
 }

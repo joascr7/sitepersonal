@@ -1,0 +1,9 @@
+import ControleFinanceiroPainel from '@/components/ControleFinanceiroPainel';
+
+export default function Page() {
+  return (
+    <main className="min-h-screen bg-gray-50">
+      <ControleFinanceiroPainel />
+    </main>
+  );
+}

@@ -21,13 +21,11 @@ export default function CadastroProfessor() {
     const telefoneLimpo = formData.telefone.replace(/\D/g, '');
     const regexCref = /^\d{6}-[A-Z]\/[A-Z]{2}$/;
 
-    // Validações básicas
     if (!formData.nome.trim() || !formData.email.trim() || formData.password.length < 6 || telefoneLimpo.length < 10) {
-      setMessage({ type: 'error', text: 'Preencha os campos obrigatórios (nome, e-mail, senha e telefone).' });
+      setMessage({ type: 'error', text: 'Preencha os campos obrigatórios corretamente.' });
       return;
     }
 
-    // CREF opcional: se preenchido, valida o formato
     if (formData.cref && !regexCref.test(formData.cref.trim().toUpperCase())) {
       setMessage({ type: 'error', text: 'Formato de CREF inválido. Use: 123456-G/UF' });
       return;
@@ -46,6 +44,7 @@ export default function CadastroProfessor() {
       if (authError) throw authError;
 
       if (data.user) {
+        // Inserção com lógica de 10 dias grátis aplicada automaticamente pelo banco
         const { error: dbError } = await supabase
           .from('personais')
           .insert({
@@ -53,13 +52,15 @@ export default function CadastroProfessor() {
             nome: formData.nome.trim(),
             cref: formData.cref ? formData.cref.trim().toUpperCase() : null,
             email: formData.email.trim(),
-            telefone: `+55${telefoneLimpo}`
+            telefone: `+55${telefoneLimpo}`,
+            ativo: true, // Libera acesso imediato para o teste
+            status_pagamento: 'teste' // Marca como em período de teste
           });
 
         if (dbError) throw dbError;
       }
 
-      setMessage({ type: 'success', text: 'Cadastro realizado! Verifique seu e-mail para confirmar.' });
+      setMessage({ type: 'success', text: 'Cadastro realizado! Seu período de 10 dias grátis foi liberado.' });
       setTimeout(() => router.push('/login-personal'), 3000);
     } catch (err: any) {
       setMessage({ type: 'error', text: err.message || 'Erro ao processar cadastro.' });
@@ -94,7 +95,7 @@ export default function CadastroProfessor() {
           disabled={loading}
           className="w-full mt-8 bg-slate-900 hover:bg-black text-white py-4 rounded-xl font-bold text-sm transition-all active:scale-[0.98] disabled:opacity-50"
         >
-          {loading ? "Processando..." : "Finalizar Cadastro"}
+          {loading ? "Processando..." : "Finalizar Cadastro (10 dias grátis)"}
         </button>
       </div>
     </main>

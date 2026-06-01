@@ -1,7 +1,7 @@
 'use client';
-import { useState } from 'react';
-import { supabase } from '@/lib/supabaseClient';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabaseClient'; 
 
 export default function LoginProfessor() {
   const [email, setEmail] = useState('');
@@ -12,39 +12,57 @@ export default function LoginProfessor() {
   
   const router = useRouter();
 
+  // LIMPEZA: Ao carregar a página de login, descartamos qualquer sessão corrompida.
+  // Isso resolve o erro 'refresh_token_not_found' que ocorre ao tentar recuperar sessões inválidas.
+  useEffect(() => {
+    supabase.auth.signOut();
+  }, []);
+
   const handleLogin = async () => {
     setIsProcessing(true);
     setMessage(null);
 
+    // 1. Autenticação
     const { data, error } = await supabase.auth.signInWithPassword({ 
       email: email.trim(), 
       password 
     });
 
     if (error || !data.user) {
-      setMessage({ type: 'error', text: "Credenciais inválidas. Verifique seus dados." });
+      setMessage({ type: 'error', text: "E-mail ou senha incorretos." });
       setIsProcessing(false);
       return;
     }
 
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('role')
+    // 2. Lógica de Administrador
+    if (email.trim().toLowerCase() === 'contatojoasvieira6@gmail.com') {
+      window.location.href = '/dashboard'; 
+      return;
+    }
+
+    // 3. Verifica perfil na tabela 'personais'
+    const { data: personal, error: profileError } = await supabase
+      .from('personais')
+      .select('id, ativo')
       .eq('id', data.user.id)
       .maybeSingle();
 
-    if (profileError || !profile || profile.role !== 'personal') {
+    if (profileError || !personal) {
       await supabase.auth.signOut();
-      setMessage({ type: 'error', text: "Acesso restrito: Área exclusiva para professores." });
+      setMessage({ type: 'error', text: "Acesso restrito: Você não possui permissão de professor." });
       setIsProcessing(false);
       return;
     }
 
-    // --- CORREÇÃO DE PERSISTÊNCIA ---
-    // Salva que este navegador pertence a um "personal"
-    localStorage.setItem('usuario_tipo', 'personal');
-    
-    router.push('/dashboard');
+    if (personal.ativo === false) {
+      await supabase.auth.signOut();
+      setMessage({ type: 'error', text: "Sua conta está inativa. Entre em contato com o suporte." });
+      setIsProcessing(false);
+      return;
+    }
+
+    // 4. Sucesso - Redirecionamento forçado
+    window.location.href = '/dashboard';
   };
 
   const handleResetPassword = async () => {
@@ -62,7 +80,6 @@ export default function LoginProfessor() {
   return (
     <main className="min-h-screen flex items-center justify-center bg-[#FAFAFA] p-6">
       <div className="w-full max-w-[360px] bg-white p-8 rounded-3xl border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
-        
         <button onClick={() => router.back()} className="text-[10px] font-bold text-gray-400 hover:text-slate-900 transition-colors uppercase tracking-[0.2em] mb-10">
           ← Voltar
         </button>
