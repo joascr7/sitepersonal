@@ -75,20 +75,21 @@ export default function PagamentoAssinatura() {
 
           <div className="bg-white/5 p-2 rounded-2xl border border-white/5">
             {valorPlano !== null ? (
-              <CardPayment
-                initialization={{ 
-                  amount: valorPlano,
-                  payer: { 
-                    email: formData.email,
-                    identification: { type: "CPF", number: formData.cpf }
-                  } 
-                }}
-                onSubmit={onSubmit}
-                customization={{ 
-                  visual: { style: { theme: 'dark' } },
-                  paymentMethods: { creditCard: "all" } 
-                }}
-              />
+             <CardPayment
+  initialization={{ 
+    amount: valorPlano,
+    payer: { 
+      email: formData.email,
+      identification: { type: "CPF", number: formData.cpf }
+    } 
+  }}
+  onSubmit={onSubmit}
+  customization={{ 
+    visual: { style: { theme: 'dark' } }
+    // Remova a linha 'paymentMethods: { creditCard: "all" }' 
+    // O SDK já assume todos os métodos por padrão se não forem especificados.
+  }}
+/>
             ) : (
               <div className="h-48 flex items-center justify-center text-blue-400/50 animate-pulse">Carregando gateway...</div>
             )}
