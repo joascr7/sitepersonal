@@ -5,6 +5,10 @@ import { useRouter } from 'next/navigation';
 import AgendaGeral from '@/components/AgendaGeral';
 import { FaWallet, FaUsers, FaExclamationTriangle, FaSearch, FaPlus, FaChartLine, FaEdit, FaUser, FaTimes, FaCalendarAlt } from 'react-icons/fa';
 
+interface PersonalData {
+  status_pagamento: string;
+  data_expiracao_teste: string;
+}
 // 1. Função auxiliar para buscar faturamento histórico
 const fetchFaturamentoPorMes = async (supabaseClient: any, personalId: string, mes: number, ano: number) => {
   const inicio = new Date(ano, mes, 1).toISOString();
@@ -30,9 +34,11 @@ export default function Dashboard() {
   const [alunoSelecionado, setAlunoSelecionado] = useState<any>(null);
   const [valorPago, setValorPago] = useState('');
   const [statusMsg, setStatusMsg] = useState<{type: 'success' | 'error', text: string} | null>(null);
-  const [personalInfo, setPersonalInfo] = useState(null);
+  
+  // 2. CORREÇÃO: Tipando o estado corretamente com a interface ou null
+  const [personalInfo, setPersonalInfo] = useState<PersonalData | null>(null);
+  
   const [statusAcesso, setStatusAcesso] = useState({ emTeste: true, status: 'ativo' })
-  // Estados para o Relatório Histórico
   const [faturamentoMes, setFaturamentoMes] = useState(0);
   const [mesSelecionado, setMesSelecionado] = useState(new Date().getMonth());
   const [anoSelecionado, setAnoSelecionado] = useState(new Date().getFullYear());
