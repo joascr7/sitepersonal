@@ -4,7 +4,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { initMercadoPago, CardPayment } from '@mercadopago/sdk-react';
 import { supabase } from '@/lib/supabaseClient';
 
-initMercadoPago('APP_USR-aa430b51-73fc-4c01-a415-07749a12c130');
+initMercadoPago('TEST-db78f7e9-ec97-4cb5-b0b0-44ee21e162ff');
 
 interface FormData {
   email: string;
