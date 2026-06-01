@@ -4,7 +4,6 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { initMercadoPago, CardPayment } from '@mercadopago/sdk-react';
 import { supabase } from '@/lib/supabaseClient';
 
-// Inicialização segura no lado do cliente
 initMercadoPago('APP_USR-aa430b51-73fc-4c01-a415-07749a12c130');
 
 interface FormData {
@@ -13,7 +12,6 @@ interface FormData {
   cpf: string;
 }
 
-// Criamos um subcomponente para encapsular a lógica que depende de searchParams
 function PaymentFormContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -31,12 +29,15 @@ function PaymentFormContent() {
   const onSubmit = async (data: any) => {
     setLoading(true);
     try {
+      // CORREÇÃO: Agora enviamos nome e cpf para a Edge Function
       const res = await fetch('https://caaxbbnikrtuzkdrkkqz.supabase.co/functions/v1/criar-assinatura', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           token: data.token, 
-          email: formData.email, 
+          email: formData.email,
+          nome: formData.nome,
+          cpf: formData.cpf,
           personalId, 
           valor: valorPlano 
         }),
@@ -71,7 +72,7 @@ function PaymentFormContent() {
       </div>
 
       <div className="bg-white/5 p-2 rounded-2xl border border-white/5">
-        {valorPlano !== null ? (
+        {valorPlano !== null && formData.cpf.length >= 11 ? (
           <CardPayment
             initialization={{ 
               amount: valorPlano,
@@ -86,7 +87,9 @@ function PaymentFormContent() {
             }}
           />
         ) : (
-          <div className="h-48 flex items-center justify-center text-blue-400/50 animate-pulse">Carregando gateway...</div>
+          <div className="h-48 flex items-center justify-center text-blue-400/50 animate-pulse text-xs text-center p-4">
+            {valorPlano === null ? "Carregando..." : "Insira o CPF completo para habilitar o pagamento"}
+          </div>
         )}
       </div>
     </div>
@@ -98,8 +101,7 @@ export default function PagamentoAssinatura() {
     <main className="min-h-screen bg-[#020617] flex items-center justify-center p-6 selection:bg-blue-500/30">
       <div className="max-w-md w-full relative group">
         <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-[2.5rem] opacity-20 blur group-hover:opacity-40 transition duration-1000"></div>
-        {/* Suspense garante que o Next.js não quebre no build */}
-        <Suspense fallback={<div className="text-white text-center">Carregando checkout...</div>}>
+        <Suspense fallback={<div className="text-white text-center">Carregando...</div>}>
           <PaymentFormContent />
         </Suspense>
       </div>

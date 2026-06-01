@@ -15,10 +15,10 @@ serve(async (req) => {
   }
 
   try {
-    const { token, email, personalId } = await req.json();
+    // Adicionamos 'cpf' e 'nome' para enviar ao MP
+    const { token, email, personalId, nome, cpf } = await req.json();
     
-    // Log para confirmar que recebemos os dados
-    console.log("Processando:", { email, personalId, hasToken: !!token });
+    console.log("Processando pagamento seguro para:", email);
 
     const response = await fetch("https://api.mercadopago.com/preapproval", {
       method: "POST",
@@ -30,17 +30,32 @@ serve(async (req) => {
         preapproval_plan_id: "a0a7aa35113046a6a7d7054adab9dfd7",
         payer_email: email,
         card_token_id: token,
-        external_reference: personalId
+        external_reference: personalId,
+        // Adicionando dados de segurança para subir sua pontuação no painel
+        auto_recurring: {
+          frequency: 1,
+          frequency_type: "months",
+          transaction_amount: 22.90,
+          currency_id: "BRL"
+        },
+        payer: {
+          email: email,
+          identification: {
+            type: "CPF",
+            number: cpf
+          }
+        },
+        // O Mercado Pago valoriza a descrição do que está sendo vendido
+        reason: "Assinatura Mensal Premium AuraFit" 
       })
     });
 
     const data = await response.json();
 
-    // Se o MP retornar erro (ex: 400, 401, 403), vamos capturar aqui
     if (!response.ok) {
       console.error("ERRO DO MERCADO PAGO:", JSON.stringify(data));
       return new Response(JSON.stringify({ success: false, error: data }), {
-        status: 200,
+        status: 400,
         headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }
       });
     }
