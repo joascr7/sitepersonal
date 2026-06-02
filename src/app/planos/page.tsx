@@ -27,16 +27,17 @@ export default function EscolherPlano() {
 const handleAssinar = async () => {
   setIsRedirecting(true);
   const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
 
-  if (!user) {
-    alert("Faça login para assinar!");
-    setIsRedirecting(false);
-    return;
-  }
+  const checkoutId = crypto.randomUUID(); 
 
-  // Adicionamos external_reference e também payer_reference para garantir
-  const checkoutUrl = `https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=a0a7aa35113046a6a7d7054adab9dfd7&external_reference=${user.id}&payer_reference=${user.id}`;
-  
+  // Salva a relação: Este ID de pagamento pertence a este usuário
+  await supabase.from('pendencias_pagamento').insert({ 
+    checkout_id: checkoutId, 
+    user_id: user.id 
+  });
+
+  const checkoutUrl = `https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=a0a7aa35113046a6a7d7054adab9dfd7&external_reference=${checkoutId}`;
   window.location.href = checkoutUrl;
 };
 

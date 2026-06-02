@@ -6,50 +6,69 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 );
 
-async function liberarAcesso(personalId: string) {
-  const novoVencimento = new Date();
-  novoVencimento.setDate(novoVencimento.getDate() + 30);
-
-  const { error } = await supabase
-    .from('personais')
-    .update({ 
-      status_pagamento: 'ativo',
-      vencimento_plano: novoVencimento.toISOString() 
-    })
-    .eq('id', personalId);
-  
-  if (error) throw error;
-  console.log("SUCESSO: Acesso liberado no banco para:", personalId);
-}
-
 serve(async (req) => {
   const body = await req.json();
-  const action = body.action;
-  const objectId = body.data?.id;
+  console.log("Evento recebido:", body.type, "ID:", body.data?.id);
 
-  console.log("--- EVENTO RECEBIDO --- Action:", action, "ID:", objectId);
+  if (body.type === "subscription_preapproval") {
+    const subId = body.data.id;
 
-  if (action === "payment.created") {
-    console.log("Processando pagamento:", objectId);
-    
-    const response = await fetch(`https://api.mercadopago.com/v1/payments/${objectId}`, {
+    const response = await fetch(`https://api.mercadopago.com/preapproval/${subId}`, {
       headers: { "Authorization": `Bearer ${Deno.env.get('MP_ACCESS_TOKEN')}` }
     });
-    const payData = await response.json();
 
-    console.log("Status do pagamento no MP:", payData.status);
-    console.log("External reference:", payData.external_reference);
+    const subData = await response.json();
 
-    // O status precisa ser 'approved'
-    if (payData.status === 'approved') {
-      const personalId = payData.external_reference;
-      if (personalId) {
-        await liberarAcesso(personalId);
+    if (subData.status === 'authorized') {
+      let personalId = subData.external_reference;
+
+      // 1. TENTA BUSCAR PELA TABELA DE PENDÊNCIAS (A MAIS SEGURA)
+      const { data: pendencia } = await supabase
+        .from('pendencias_pagamento')
+        .select('user_id')
+        .eq('checkout_id', personalId)
+        .single();
+
+      if (pendencia) {
+        personalId = pendencia.user_id;
+        console.log("ID recuperado via tabela de pendências:", personalId);
       } else {
-        console.warn("ALERTA: Pagamento aprovado, mas sem personalId.");
+        // 2. BACKUP: Validação de UUID
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(personalId);
+        if (!isUuid) personalId = null;
+
+        // 3. BACKUP: Tenta por e-mail
+        if (!personalId && subData.payer?.email) {
+          const { data: personal } = await supabase
+            .from('personais')
+            .select('id')
+            .eq('email', subData.payer.email)
+            .single();
+          if (personal) personalId = personal.id;
+        }
       }
-    } else {
-      console.log("Pagamento ainda não foi aprovado. Status atual:", payData.status);
+
+      // Finaliza o Update no banco
+      if (personalId) {
+        const novoVencimento = new Date();
+        novoVencimento.setDate(novoVencimento.getDate() + 30);
+
+        const { error } = await supabase
+          .from('personais')
+          .update({ 
+            status_pagamento: 'ativo',
+            vencimento_plano: novoVencimento.toISOString() 
+          })
+          .eq('id', personalId.trim());
+
+        if (error) {
+          console.error(`Erro ao atualizar personal ${personalId}:`, error);
+        } else {
+          console.log(`Sucesso: Assinatura ${subId} aplicada ao personal ${personalId}`);
+        }
+      } else {
+        console.warn(`Falha: Nenhum ID encontrado para ${subId}`);
+      }
     }
   }
 
