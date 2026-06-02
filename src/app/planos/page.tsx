@@ -28,23 +28,18 @@ const handleAssinar = async () => {
   setIsRedirecting(true);
   const { data: { user } } = await supabase.auth.getUser();
 
-  try {
-    const res = await fetch('/api/criar-assinatura', {
-      method: 'POST',
-      body: JSON.stringify({ userId: user?.id, userEmail: user?.email })
-    });
-
-    const { init_point } = await res.json();
-    if (init_point) {
-      window.location.href = init_point;
-    } else {
-      throw new Error("Link não gerado");
-    }
-  } catch (error) {
-    console.error(error);
+  if (!user) {
+    alert("Você precisa estar logado!");
     setIsRedirecting(false);
-    alert("Erro ao conectar com Mercado Pago.");
+    return;
   }
+
+  // Este link abre a página do Mercado Pago.
+  // Como configuramos o plano para ser uma assinatura, 
+  // o MP exibirá os campos de pagamento lá dentro, sem erro.
+  const checkoutUrl = `https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=a0a7aa35113046a6a7d7054adab9dfd7&external_reference=${user.id}`;
+  
+  window.location.href = checkoutUrl;
 };
 
   return (
