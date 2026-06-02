@@ -29,15 +29,13 @@ const handleAssinar = async () => {
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
-    alert("Você precisa estar logado!");
+    alert("Faça login para assinar!");
     setIsRedirecting(false);
     return;
   }
 
-  // Este link abre a página do Mercado Pago.
-  // Como configuramos o plano para ser uma assinatura, 
-  // o MP exibirá os campos de pagamento lá dentro, sem erro.
-  const checkoutUrl = `https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=a0a7aa35113046a6a7d7054adab9dfd7&external_reference=${user.id}`;
+  // Adicionamos external_reference e também payer_reference para garantir
+  const checkoutUrl = `https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=a0a7aa35113046a6a7d7054adab9dfd7&external_reference=${user.id}&payer_reference=${user.id}`;
   
   window.location.href = checkoutUrl;
 };
