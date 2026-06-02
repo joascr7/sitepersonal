@@ -1,4 +1,6 @@
-import type { Metadata, Viewport } from "next";
+'use client';
+
+import { useEffect } from 'react';
 import { Geist, Geist_Mono } from "next/font/google";
 import ConditionalNavbar from "@/components/ConditionalNavbar";
 import { LogoProvider } from "@/components/LogoProvider";
@@ -7,7 +9,7 @@ import "./globals.css";
 const geistSans = Geist({ 
   variable: "--font-geist-sans", 
   subsets: ["latin"],
-  display: 'swap', // Melhora o carregamento da fonte
+  display: 'swap',
 });
 
 const geistMono = Geist_Mono({ 
@@ -16,31 +18,27 @@ const geistMono = Geist_Mono({
   display: 'swap',
 });
 
-// Configuração para o comportamento do PWA no mobile
-export const viewport: Viewport = {
-  themeColor: "#FAFAFA",
-  width: "device-width",
-  initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
-};
-
-export const metadata: Metadata = {
-  title: "AURAFIT | Gestão de Alta Performance",
-  description: "Sistema de gestão de alunos e treinos",
-  manifest: "/manifest.json", // Link para o PWA que configuramos
-  appleWebApp: {
-    capable: true,
-    title: "AURAFIT",
-    statusBarStyle: "default",
-  },
-};
-
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+
+  useEffect(() => {
+    // Inicialização segura: Só carrega o RevenueCat no lado do cliente
+    // e evita que o Webpack tente compilar código nativo no navegador.
+    const initRevenueCat = async () => {
+      try {
+        const Purchases = (await import('react-native-purchases')).default;
+        Purchases.configure({ apiKey: "test_mDDTbbsCmieDaWEsCfyTXVrzbwu" });
+      } catch (e) {
+        console.log("RevenueCat inicializado apenas em ambiente mobile.");
+      }
+    };
+
+    initRevenueCat();
+  }, []);
+
   return (
     <html
       lang="pt-br"
@@ -48,10 +46,8 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-[#FAFAFA] font-sans">
         <LogoProvider>
-          {/* NavBar condicional: O componente deve gerenciar o render (null se for tela de login) */}
           <ConditionalNavbar />
           
-          {/* Main Content */}
           <main className="flex-grow w-full mx-auto pb-24 md:pb-0 box-border">
             {children}
           </main>

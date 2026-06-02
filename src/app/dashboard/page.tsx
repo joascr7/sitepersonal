@@ -3,6 +3,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
 import AgendaGeral from '@/components/AgendaGeral';
+import SubscriptionGuard from '@/components/SubscriptionGuard';
 import { FaWallet, FaUsers, FaExclamationTriangle, FaSearch, FaPlus, FaChartLine, FaEdit, FaUser, FaTimes, FaCalendarAlt } from 'react-icons/fa';
 
 interface PersonalData {
@@ -206,6 +207,7 @@ export default function Dashboard() {
   });
 
   return (
+    <SubscriptionGuard>
     <main className="min-h-screen bg-[#F8F9FA] p-4 md:p-12 pb-24">
       {statusMsg && (
         <div className={`fixed top-6 right-6 p-4 rounded-2xl shadow-2xl z-[100] text-[10px] font-black uppercase tracking-widest ${statusMsg.type === 'success' ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white'}`}>
@@ -339,5 +341,6 @@ export default function Dashboard() {
         </div>
       </div>
     </main>
+    </SubscriptionGuard>
   );
 }
