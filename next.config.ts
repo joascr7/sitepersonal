@@ -1,31 +1,22 @@
-/** @type {import('next').NextConfig} */
-const path = require('path');
+import type { NextConfig } from 'next';
+import path from 'path';
+import type { Configuration } from 'webpack'; // Importando o tipo oficial
 
-const withPWA = require("@ducanh2912/next-pwa").default({
-  dest: "public",
-  disable: process.env.NODE_ENV === "development",
-  register: true,
-});
-
-const nextConfig = {
+const nextConfig: NextConfig = {
   output: 'standalone',
-  transpilePackages: ['react-native-purchases'], 
+  transpilePackages: ['react-native-purchases'],
   
-  /**
-   * @param {import('webpack').Configuration} config
-   * @param {import('next').WebpackConfigContext} context
-   */
-  webpack: (config, { isServer }) => {
-    // Definimos explicitamente o tipo do config como any para evitar o erro de compilação
-    const customConfig = config;
-
-    customConfig.resolve.alias = {
-      ...customConfig.resolve.alias,
+  // Tipando corretamente os argumentos da função webpack
+  webpack: (config: Configuration, context: { isServer: boolean }) => {
+    // Garantindo que o alias exista
+    config.resolve = config.resolve || {};
+    config.resolve.alias = {
+      ...config.resolve.alias,
       'react-native': path.resolve(__dirname, '__mocks__/react-native.js'),
     };
     
-    return customConfig;
+    return config;
   },
 };
 
-module.exports = withPWA(nextConfig);
+export default nextConfig;
