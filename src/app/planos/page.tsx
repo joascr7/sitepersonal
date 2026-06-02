@@ -31,10 +31,11 @@ const handleAssinar = async () => {
 
   const checkoutId = crypto.randomUUID(); 
 
-  // Salva a relação: Este ID de pagamento pertence a este usuário
+  // SALVA O E-MAIL DO USUÁRIO JUNTO COM O CHECKOUT_ID
   await supabase.from('pendencias_pagamento').insert({ 
     checkout_id: checkoutId, 
-    user_id: user.id 
+    user_id: user.id,
+    email: user.email // Salva aqui para usar no Webhook
   });
 
   const checkoutUrl = `https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=a0a7aa35113046a6a7d7054adab9dfd7&external_reference=${checkoutId}`;
