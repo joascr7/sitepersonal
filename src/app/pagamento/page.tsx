@@ -4,9 +4,11 @@ import { useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { motion } from 'framer-motion'; // Requer: npm install framer-motion
 
+
 function PaymentFormContent() {
   const searchParams = useSearchParams();
   const [valorPlano, setValorPlano] = useState<number | null>(null);
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
   useEffect(() => {
     supabase.from('configuracoes_pagamento').select('valor_padrao').limit(1).single()
