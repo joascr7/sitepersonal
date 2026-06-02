@@ -24,9 +24,23 @@ export default function EscolherPlano() {
     fetchConfig();
   }, []);
 
- const handleAssinar = () => {
-  setIsRedirecting(true); // Bloqueia novos cliques e mostra carregando
-  const linkPagamento = "https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=a0a7aa35113046a6a7d7054adab9dfd7";
+ const handleAssinar = async () => {
+  setIsRedirecting(true);
+  
+  // 1. Pega o usuário logado
+  const { data: { user } } = await supabase.auth.getUser();
+  const userId = user?.id; // Este é o UUID que está na sua tabela 'personais'
+
+  if (!userId) {
+    alert("Erro: Usuário não logado.");
+    setIsRedirecting(false);
+    return;
+  }
+
+  // 2. Adiciona o ID como um parâmetro na URL
+  // O Mercado Pago vai "guardar" esse dado e te devolver no Webhook
+  const linkPagamento = `https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=a0a7aa35113046a6a7d7054adab9dfd7&external_reference=${userId}`;
+  
   window.location.href = linkPagamento;
 };
 
