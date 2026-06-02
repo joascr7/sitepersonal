@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
+import { motion } from 'framer-motion'; 
 
 export default function EscolherPlano() {
   const router = useRouter();
@@ -21,6 +22,11 @@ export default function EscolherPlano() {
     };
     fetchConfig();
   }, []);
+
+  const handleAssinar = () => {
+    const linkPagamento = "https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=a0a7aa35113046a6a7d7054adab9dfd7";
+    window.location.href = linkPagamento;
+  };
 
   return (
     <main className="min-h-screen bg-[#0F1117] flex items-center justify-center p-4 md:p-8 selection:bg-indigo-500/30">
@@ -75,15 +81,14 @@ export default function EscolherPlano() {
           ))}
         </section>
 
-        <button 
-          onClick={() => router.push('/pagamento')}
-          className="group relative w-full overflow-hidden py-5 rounded-[1.2rem] font-bold uppercase tracking-widest text-xs transition-all duration-300"
+        <motion.button 
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={handleAssinar}
+          className="w-full p-5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-2xl font-bold transition-all shadow-[0_0_20px_-5px_rgba(37,99,235,0.5)]"
         >
-          <div className="absolute inset-0 bg-indigo-600 transition-transform duration-300 group-hover:scale-105" />
-          <span className="relative text-white group-hover:tracking-[0.2em] transition-all duration-300">
-            Iniciar Assinatura Agora
-          </span>
-        </button>
+          Assinar Agora
+        </motion.button>
 
         <footer className="mt-8 text-center">
           <div className="inline-flex items-center text-[10px] text-slate-600 font-bold uppercase tracking-widest">
