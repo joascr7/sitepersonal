@@ -26,21 +26,25 @@ export default function EscolherPlano() {
 
 const handleAssinar = async () => {
   setIsRedirecting(true);
-  
-  // 1. Pega o usuário logado no Supabase
   const { data: { user } } = await supabase.auth.getUser();
-  
-  if (!user) {
-    alert("Você precisa estar logado para assinar.");
-    setIsRedirecting(false);
-    return;
-  }
 
-  // 2. Monta o link com o ID do usuário (UUID) no external_reference
-  const baseUrl = "https://www.mercadopago.com.br/subscriptions/checkout?preapproval_plan_id=a0a7aa35113046a6a7d7054adab9dfd7";
-  const linkPagamento = `${baseUrl}&external_reference=${user.id}`;
-  
-  window.location.href = linkPagamento;
+  try {
+    const res = await fetch('/api/criar-assinatura', {
+      method: 'POST',
+      body: JSON.stringify({ userId: user?.id, userEmail: user?.email })
+    });
+
+    const { init_point } = await res.json();
+    if (init_point) {
+      window.location.href = init_point;
+    } else {
+      throw new Error("Link não gerado");
+    }
+  } catch (error) {
+    console.error(error);
+    setIsRedirecting(false);
+    alert("Erro ao conectar com Mercado Pago.");
+  }
 };
 
   return (
