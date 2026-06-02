@@ -1,5 +1,5 @@
 /** @type {import('next').NextConfig} */
-const path = require('path'); // Certifique-se de ter essa linha
+const path = require('path');
 
 const withPWA = require("@ducanh2912/next-pwa").default({
   dest: "public",
@@ -10,9 +10,16 @@ const withPWA = require("@ducanh2912/next-pwa").default({
 const nextConfig = {
   output: 'standalone',
   transpilePackages: ['react-native-purchases'], 
+  
+  /**
+   * @param {import('webpack').Configuration} config
+   * @param {import('next').WebpackConfigContext} context
+   */
   webpack: (config, { isServer }) => {
-    // Aponta para o arquivo vazio que criamos na raiz
-    config.resolve.alias['react-native'] = path.resolve(__dirname, '__mocks__/react-native.js');
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      'react-native': path.resolve(__dirname, '__mocks__/react-native.js'),
+    };
     return config;
   },
 };
