@@ -2,7 +2,7 @@
 import { useEffect, useState, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
-import { FaFilePdf, FaTrash, FaCloudUploadAlt } from 'react-icons/fa';
+import { FaFilePdf, FaTrash, FaCloudUploadAlt, FaDownload } from 'react-icons/fa';
 
 export default function ArquivosAluno({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -11,7 +11,6 @@ export default function ArquivosAluno({ params }: { params: Promise<{ id: string
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
 
-  // Carrega os arquivos do banco de dados
   const carregarArquivos = async () => {
     const { data, error } = await supabase
       .from('documentos')
@@ -23,20 +22,7 @@ export default function ArquivosAluno({ params }: { params: Promise<{ id: string
     setLoading(false);
   };
 
-  useEffect(() => {
-    carregarArquivos();
-  }, [id]);
-
-
-  // Na página do Aluno, antes do useEffect:
-useEffect(() => {
-  const verificar = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    console.log("ID do Usuário Logado:", user?.id);
-    console.log("ID que estou tentando buscar:", id); // ID vindo da URL
-  };
-  verificar();
-}, [id]);
+  useEffect(() => { carregarArquivos(); }, [id]);
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -47,14 +33,9 @@ useEffect(() => {
     const filePath = `${id}/${Math.random()}.${fileExt}`;
 
     try {
-      // 1. Upload para o Storage
-      const { error: uploadError } = await supabase.storage
-        .from('documentos-alunos')
-        .upload(filePath, file);
-
+      const { error: uploadError } = await supabase.storage.from('documentos-alunos').upload(filePath, file);
       if (uploadError) throw uploadError;
 
-      // 2. Salvar referência no banco
       const { error: dbError } = await supabase.from('documentos').insert({
         aluno_id: id,
         url: filePath,
@@ -62,72 +43,71 @@ useEffect(() => {
       });
 
       if (dbError) throw dbError;
-
       alert("Arquivo enviado com sucesso!");
       carregarArquivos();
-    } catch (err: any) {
-      alert("Erro ao enviar: " + err.message);
-    } finally {
-      setUploading(false);
-    }
+    } catch (err: any) { alert("Erro ao enviar: " + err.message); } 
+    finally { setUploading(false); }
   };
 
   const deletarArquivo = async (fileId: string, url: string) => {
     if (!confirm("Tem certeza que deseja excluir?")) return;
-
     try {
       await supabase.storage.from('documentos-alunos').remove([url]);
       await supabase.from('documentos').delete().eq('id', fileId);
       carregarArquivos();
-    } catch (err) {
-      alert("Erro ao excluir arquivo.");
-    }
+    } catch (err) { alert("Erro ao excluir arquivo."); }
   };
 
   return (
-    <main className="max-w-3xl mx-auto p-6 md:p-12 min-h-screen bg-gray-50/50">
-      <button onClick={() => router.back()} className="text-sm font-bold text-gray-400 mb-8 hover:text-black">← Voltar</button>
-      
-      <header className="mb-10">
-        <h1 className="text-3xl font-black tracking-tighter">Documentos</h1>
-        <p className="text-gray-500 font-bold">Gerencie exames, atestados e documentos.</p>
-      </header>
+    <main className="min-h-screen bg-black p-6 md:p-12 text-white">
+      <div className="max-w-3xl mx-auto">
+        <button onClick={() => router.back()} className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.3em] mb-8 hover:text-white transition-colors">← Voltar</button>
+        
+        <header className="mb-12">
+          <h1 className="text-4xl font-black tracking-tighter">Documentos</h1>
+          <p className="text-blue-500 font-black text-[10px] uppercase tracking-[0.3em] mt-2">Gestão de Exames e Atestados</p>
+        </header>
 
-      {/* Área de Upload */}
-      <div className="bg-white p-8 rounded-3xl border-2 border-dashed border-gray-200 text-center mb-10">
-        <FaCloudUploadAlt className="mx-auto text-4xl text-gray-300 mb-4" />
-        <label className="cursor-pointer bg-black text-white px-8 py-3 rounded-xl font-black text-sm hover:bg-gray-800 transition-all">
-          {uploading ? 'Enviando...' : 'Selecionar PDF'}
-          <input type="file" accept="application/pdf" className="hidden" onChange={handleUpload} />
-        </label>
-      </div>
+        {/* Área de Upload */}
+        <div className="bg-neutral-950/80 backdrop-blur-xl p-10 rounded-[2.5rem] border-2 border-dashed border-white/5 text-center mb-10 hover:border-blue-500/50 transition-all duration-300">
+          <FaCloudUploadAlt className="mx-auto text-4xl text-neutral-700 mb-4" />
+          <label className="cursor-pointer bg-blue-600 hover:bg-blue-500 text-white px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all shadow-[0_0_20px_rgba(37,99,235,0.3)]">
+            {uploading ? 'Enviando...' : 'Selecionar PDF'}
+            <input type="file" accept="application/pdf" className="hidden" onChange={handleUpload} />
+          </label>
+        </div>
 
-      {/* Lista de Arquivos */}
-      <div className="space-y-4">
-        {loading ? (
-          <p className="text-center text-gray-400">Carregando...</p>
-        ) : arquivos.length === 0 ? (
-          <p className="text-center text-gray-400">Nenhum arquivo enviado ainda.</p>
-        ) : (
-          arquivos.map((arq) => (
-            <div key={arq.id} className="flex items-center justify-between p-4 bg-white rounded-2xl border border-gray-100 shadow-sm">
-              <div className="flex items-center gap-4">
-                <FaFilePdf className="text-red-500 text-2xl" />
-                <span className="font-bold text-gray-700">{arq.nome_arquivo}</span>
+        {/* Lista de Arquivos */}
+        <div className="space-y-4">
+          {loading ? (
+            <p className="text-center text-neutral-500 font-bold tracking-widest text-[10px] uppercase">Carregando...</p>
+          ) : arquivos.length === 0 ? (
+            <p className="text-center text-neutral-700 font-bold tracking-widest text-[10px] uppercase">Nenhum arquivo enviado.</p>
+          ) : (
+            arquivos.map((arq) => (
+              <div key={arq.id} className="flex items-center justify-between p-6 bg-neutral-950/80 backdrop-blur-xl rounded-2xl border border-white/5 hover:border-white/10 transition-all">
+                <div className="flex items-center gap-4">
+                  <FaFilePdf className="text-blue-500 text-2xl" />
+                  <span className="font-bold text-white text-sm">{arq.nome_arquivo}</span>
+                </div>
+                <div className="flex items-center gap-4">
+                    <button 
+                      onClick={() => {
+                        const { data } = supabase.storage.from('documentos-alunos').getPublicUrl(arq.url);
+                        window.open(data.publicUrl, '_blank');
+                      }}
+                      className="text-blue-400 hover:text-blue-300 transition-all"
+                    >
+                      <FaDownload className="text-lg" />
+                    </button>
+                    <button onClick={() => deletarArquivo(arq.id, arq.url)} className="text-red-500 hover:text-red-400 transition-all">
+                      <FaTrash className="text-lg" />
+                    </button>
+                </div>
               </div>
-              <button 
-  onClick={() => {
-    const { data } = supabase.storage.from('documentos-alunos').getPublicUrl(arq.url);
-    console.log("URL gerada:", data.publicUrl); // <--- ABRA O CONSOLE E VEJA O QUE APARECE
-    window.open(data.publicUrl, '_blank');
-  }}
-  className="text-blue-600 font-bold text-sm hover:underline"
->
-  Abrir
-</button>
-            </div>
-          ))
-        )}
+            ))
+          )}
+        </div>
       </div>
     </main>
   );

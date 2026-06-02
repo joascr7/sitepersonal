@@ -44,7 +44,6 @@ export default function CadastroProfessor() {
       if (authError) throw authError;
 
       if (data.user) {
-        // Inserção com lógica de 10 dias grátis aplicada automaticamente pelo banco
         const { error: dbError } = await supabase
           .from('personais')
           .insert({
@@ -53,8 +52,8 @@ export default function CadastroProfessor() {
             cref: formData.cref ? formData.cref.trim().toUpperCase() : null,
             email: formData.email.trim(),
             telefone: `+55${telefoneLimpo}`,
-            ativo: true, // Libera acesso imediato para o teste
-            status_pagamento: 'teste' // Marca como em período de teste
+            ativo: true,
+            status_pagamento: 'teste'
           });
 
         if (dbError) throw dbError;
@@ -70,30 +69,33 @@ export default function CadastroProfessor() {
   };
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-[#FAFAFA] p-6">
-      <div className="w-full max-w-[360px] bg-white p-8 rounded-3xl border border-gray-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
-        <button onClick={() => router.back()} className="text-[10px] font-bold text-gray-400 hover:text-slate-900 uppercase tracking-[0.2em] mb-10">← Voltar</button>
+    <main className="min-h-screen flex items-center justify-center bg-black p-6 relative overflow-hidden">
+      {/* Luzes de fundo */}
+      <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-blue-900/10 rounded-full blur-[128px]" />
+      
+      <div className="w-full max-w-[400px] bg-neutral-950/80 backdrop-blur-xl p-8 rounded-[2.5rem] border border-white/5 shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-10">
+        <button onClick={() => router.back()} className="text-[10px] font-bold text-neutral-500 hover:text-white uppercase tracking-[0.2em] mb-10 transition-colors">← Voltar</button>
         
-        <h1 className="text-xl font-black text-slate-900 mb-6">Criar sua conta AuraFit</h1>
+        <h1 className="text-2xl font-black text-white mb-6 tracking-tight">Criar sua conta AuraFit</h1>
         
         {message && (
-          <div className={`mb-6 p-4 rounded-xl text-[10px] font-bold uppercase tracking-wider ${message.type === 'error' ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'}`}>
+          <div className={`mb-6 p-4 rounded-xl text-[10px] font-bold uppercase tracking-wider ${message.type === 'error' ? 'bg-red-500/10 text-red-500 border border-red-500/20' : 'bg-green-500/10 text-green-500 border border-green-500/20'}`}>
             {message.text}
           </div>
         )}
 
         <div className="space-y-4">
-          <input className="w-full p-4 border border-gray-100 rounded-xl outline-none focus:border-slate-900 transition-all text-sm" placeholder="Nome Completo" value={formData.nome} onChange={(e) => setFormData({...formData, nome: e.target.value})} />
-          <input className="w-full p-4 border border-gray-100 rounded-xl outline-none focus:border-slate-900 transition-all text-sm" placeholder="CREF (Opcional: 123456-G/SP)" value={formData.cref} onChange={(e) => setFormData({...formData, cref: e.target.value})} />
-          <input className="w-full p-4 border border-gray-100 rounded-xl outline-none focus:border-slate-900 transition-all text-sm" placeholder="(00) 00000-0000" value={formData.telefone} onChange={(e) => setFormData({...formData, telefone: formatarTelefone(e.target.value)})} />
-          <input type="email" className="w-full p-4 border border-gray-100 rounded-xl outline-none focus:border-slate-900 transition-all text-sm" placeholder="E-mail profissional" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} />
-          <input type="password" className="w-full p-4 border border-gray-100 rounded-xl outline-none focus:border-slate-900 transition-all text-sm" placeholder="Senha segura" value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})} />
+          <input className="w-full px-5 py-4 bg-white/5 border border-white/5 rounded-2xl outline-none focus:border-blue-500/50 transition-all text-sm text-white placeholder:text-neutral-600" placeholder="Nome Completo" value={formData.nome} onChange={(e) => setFormData({...formData, nome: e.target.value})} />
+          <input className="w-full px-5 py-4 bg-white/5 border border-white/5 rounded-2xl outline-none focus:border-blue-500/50 transition-all text-sm text-white placeholder:text-neutral-600" placeholder="CREF (ex: 123456-G/SP)" value={formData.cref} onChange={(e) => setFormData({...formData, cref: e.target.value})} />
+          <input className="w-full px-5 py-4 bg-white/5 border border-white/5 rounded-2xl outline-none focus:border-blue-500/50 transition-all text-sm text-white placeholder:text-neutral-600" placeholder="(00) 00000-0000" value={formData.telefone} onChange={(e) => setFormData({...formData, telefone: formatarTelefone(e.target.value)})} />
+          <input type="email" className="w-full px-5 py-4 bg-white/5 border border-white/5 rounded-2xl outline-none focus:border-blue-500/50 transition-all text-sm text-white placeholder:text-neutral-600" placeholder="E-mail profissional" value={formData.email} onChange={(e) => setFormData({...formData, email: e.target.value})} />
+          <input type="password" className="w-full px-5 py-4 bg-white/5 border border-white/5 rounded-2xl outline-none focus:border-blue-500/50 transition-all text-sm text-white placeholder:text-neutral-600" placeholder="Senha segura" value={formData.password} onChange={(e) => setFormData({...formData, password: e.target.value})} />
         </div>
         
         <button 
           onClick={handleSignUp}
           disabled={loading}
-          className="w-full mt-8 bg-slate-900 hover:bg-black text-white py-4 rounded-xl font-bold text-sm transition-all active:scale-[0.98] disabled:opacity-50"
+          className="w-full mt-8 bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-2xl font-bold text-sm transition-all duration-300 active:scale-[0.98] disabled:opacity-50 shadow-[0_0_20px_rgba(37,99,235,0.3)]"
         >
           {loading ? "Processando..." : "Finalizar Cadastro (10 dias grátis)"}
         </button>

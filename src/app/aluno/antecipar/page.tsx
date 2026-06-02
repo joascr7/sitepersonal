@@ -1,5 +1,4 @@
 'use client';
-
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
@@ -8,7 +7,6 @@ export default function PaginaAntecipar() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [personal, setPersonal] = useState<any>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
     const carregarDados = async () => {
@@ -17,110 +15,60 @@ export default function PaginaAntecipar() {
 
       const { data, error } = await supabase
         .from('alunos')
-        .select(`
-          status_pagamento, 
-          personais(id, chave_pix, valor_mensalidade, modo_pagamento)
-        `)
+        .select(`status_pagamento, personais(chave_pix, valor_mensalidade)`)
         .eq('id', session.user.id)
         .single();
 
-      if (!error && data) {
-        setPersonal(data.personais);
-      }
+      if (!error && data) setPersonal(data.personais);
       setLoading(false);
     };
     carregarDados();
   }, [router]);
 
-  // Lógica para Mercado Pago Automático
-  const handleMercadoPago = async () => {
-    setIsProcessing(true);
-    try {
-      // Forçamos a busca da sessão exatamente no momento do clique
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      // DEBUG: Se isso imprimir 'undefined' no console do navegador (F12), o problema é a autenticação
-      console.log("ID da sessão para envio:", session?.user.id);
-      
-      if (!session?.user.id) {
-        alert("Erro: Você não está logado!");
-        return;
-      }
-
-      const response = await fetch('https://caaxbbnikrtuzkdrkkqz.supabase.co/functions/v1/criar-pagamento', {
-        method: 'POST',
-        headers: { 
-          'Authorization': `Bearer ${session.access_token}`, 
-          'Content-Type': 'application/json' 
-        },
-        body: JSON.stringify({ 
-          alunoId: session.user.id, // ID extraído diretamente da sessão
-          personalId: personal.id,  
-          valor: personal.valor_mensalidade 
-        })
-      });
-      
-      const data = await response.json();
-      if (data.init_point) {
-        window.location.href = data.init_point;
-      } else {
-        alert("Erro do servidor: " + (data.error || "Tente novamente"));
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-  if (loading) return <div className="min-h-screen flex items-center justify-center text-white">Carregando...</div>;
+  if (loading) return <main className="min-h-screen bg-black flex items-center justify-center text-blue-500 font-black">CARREGANDO...</main>;
 
   return (
-    <main className="min-h-screen bg-gray-950 p-6 flex flex-col items-center justify-center text-white">
-      <div className="max-w-sm w-full space-y-6">
-        <h1 className="text-2xl font-black">Renovação de Plano</h1>
+    <main className="min-h-screen bg-black p-6 flex flex-col items-center justify-center text-white">
+      <div className="max-w-sm w-full animate-in fade-in zoom-in-95 duration-500">
         
-        <div className="bg-gray-900 p-6 rounded-3xl border border-gray-800 space-y-4">
-           <p className="text-gray-400 text-sm font-bold">Valor: R$ {parseFloat(personal?.valor_mensalidade).toFixed(2).replace('.', ',')}</p>
-           
-           {personal?.modo_pagamento === 'imediata' ? (
-             <button 
-               onClick={handleMercadoPago} 
-               disabled={isProcessing}
-               className="w-full py-4 bg-blue-600 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-blue-700 transition-all"
-             >
-               {isProcessing ? "Gerando..." : "Pagar via Pix Automático"}
-             </button>
-           ) : (
-             <div className="space-y-3">
-                <code className="block bg-black p-4 rounded-xl text-blue-400 text-xs break-all">{personal?.chave_pix}</code>
-                <button 
-                  onClick={() => navigator.clipboard.writeText(personal?.chave_pix)}
-                  className="w-full py-3 bg-white text-gray-950 rounded-xl font-bold text-xs uppercase"
-                >
-                  Copiar Chave PIX
-                </button>
-             </div>
-           )}
+        <div className="bg-neutral-950/80 backdrop-blur-xl p-10 rounded-[2.5rem] border border-white/5 shadow-[0_20px_50px_rgba(0,0,0,0.5)] space-y-8">
+          <div className="text-center space-y-2">
+            <h1 className="text-2xl font-black tracking-tighter">Renovação de Plano</h1>
+            <p className="text-[10px] font-black text-blue-500 uppercase tracking-[0.2em]">Status: Assinatura Pendente</p>
+          </div>
+
+          <div className="space-y-6 text-center">
+            <div>
+              <p className="text-[10px] font-black text-neutral-500 uppercase tracking-widest mb-1">Valor da Mensalidade</p>
+              <p className="text-4xl font-black text-white">
+                R$ {parseFloat(personal?.valor_mensalidade || 0).toFixed(2).replace('.', ',')}
+              </p>
+            </div>
+
+            <div className="bg-white/5 p-6 rounded-2xl border border-white/5">
+              <p className="text-[10px] font-black text-neutral-500 uppercase tracking-widest mb-3">Chave PIX</p>
+              <code className="text-blue-400 text-xs font-bold break-all">
+                {personal?.chave_pix || "Não configurada"}
+              </code>
+            </div>
+
+            <div className="p-4 bg-blue-600/10 rounded-2xl border border-blue-600/20">
+              <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest leading-relaxed">
+                Realize o PIX e envie o comprovante ao seu treinador para liberação imediata do seu acesso.
+              </p>
+            </div>
+          </div>
         </div>
 
         <button 
-  onClick={async () => { // Adicione 'async' aqui
-    // Adicione o 'await' antes da função
-    const { data } = await supabase.auth.getSession();
-    
-    // Acesse a session com segurança
-    const session = data?.session;
-
-    if (session?.user.id) {
-      router.push(`/aluno/${session.user.id}`);
-    } else {
-      router.push('/'); 
-    }
-  }} 
-  className="w-full text-xs font-bold text-gray-500 hover:text-white"
->
-  Voltar para Perfil
-</button>
+          onClick={async () => {
+            const { data } = await supabase.auth.getSession();
+            data?.session?.user.id ? router.push(`/aluno/${data.session.user.id}`) : router.push('/');
+          }} 
+          className="w-full mt-8 text-[10px] font-black text-neutral-600 uppercase tracking-widest hover:text-white transition-colors"
+        >
+          Voltar para Perfil
+        </button>
       </div>
     </main>
   );

@@ -1,5 +1,4 @@
 'use client';
-
 import { useEffect } from 'react';
 import { Geist, Geist_Mono } from "next/font/google";
 import ConditionalNavbar from "@/components/ConditionalNavbar";
@@ -25,8 +24,6 @@ export default function RootLayout({
 }>) {
 
   useEffect(() => {
-    // Inicialização segura: Só carrega o RevenueCat no lado do cliente
-    // e evita que o Webpack tente compilar código nativo no navegador.
     const initRevenueCat = async () => {
       try {
         const Purchases = (await import('react-native-purchases')).default;
@@ -35,7 +32,6 @@ export default function RootLayout({
         console.log("RevenueCat inicializado apenas em ambiente mobile.");
       }
     };
-
     initRevenueCat();
   }, []);
 
@@ -44,7 +40,8 @@ export default function RootLayout({
       lang="pt-br"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-[#FAFAFA] font-sans">
+      {/* Classe bg-black aplicada aqui para eliminar o fundo branco global */}
+      <body className="min-h-full flex flex-col bg-black font-sans text-white selection:bg-blue-600 selection:text-white">
         <LogoProvider>
           <ConditionalNavbar />
           

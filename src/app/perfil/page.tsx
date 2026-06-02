@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 
 export default function Perfil() {
@@ -32,10 +32,10 @@ export default function Perfil() {
       if (error) throw error;
       if (data) {
         setFormData({ 
-            nome: data.nome || '', 
-            cref: data.cref || '', 
-            telefone: data.telefone || '', 
-            email: data.email || '' 
+          nome: data.nome || '', 
+          cref: data.cref || '', 
+          telefone: data.telefone || '', 
+          email: data.email || '' 
         });
         setAvatarUrl(data.avatar_url);
       }
@@ -89,8 +89,8 @@ export default function Perfil() {
     if (user) {
       const { error } = await supabase.from('personais')
         .update({ 
-            nome: formData.nome.trim(), 
-            telefone: formData.telefone.trim() 
+          nome: formData.nome.trim(), 
+          telefone: formData.telefone.trim() 
         })
         .eq('id', user.id);
         
@@ -110,23 +110,23 @@ export default function Perfil() {
   };
 
   if (fetching) return (
-    <div className="min-h-screen flex items-center justify-center font-black text-gray-300 tracking-widest">
+    <div className="min-h-screen flex items-center justify-center bg-black font-black text-blue-500 tracking-widest">
       CARREGANDO...
     </div>
   );
 
   return (
-    <main className="min-h-screen bg-gray-50 p-6 md:p-12">
-      <div className="max-w-md mx-auto bg-white p-8 rounded-3xl shadow-lg border border-gray-100 space-y-8">
-        <h1 className="text-2xl font-black text-gray-900">Meu Perfil</h1>
+    <main className="min-h-screen bg-black p-6 md:p-12">
+      <div className="max-w-md mx-auto bg-neutral-950/80 backdrop-blur-xl p-8 rounded-[2.5rem] border border-white/5 shadow-[0_20px_50px_rgba(0,0,0,0.5)] space-y-8">
+        <h1 className="text-2xl font-black text-white text-center">Meu Perfil</h1>
         
         {/* Foto de Perfil */}
         <div className="flex justify-center">
-            <label className="cursor-pointer">
-                <div className="w-28 h-28 rounded-full overflow-hidden bg-gray-100 flex items-center justify-center border-4 border-white shadow-md transition hover:ring-2 ring-black">
-                    {avatarUrl ? <img src={avatarUrl} className="w-full h-full object-cover" /> : <span className="font-black text-gray-400">PT</span>}
-                </div>
-                <input type="file" className="hidden" accept="image/*" onChange={handleAvatarUpload} />
+            <label className="cursor-pointer group">
+              <div className="w-28 h-28 rounded-full overflow-hidden bg-neutral-900 flex items-center justify-center border-4 border-white/5 shadow-xl transition group-hover:border-blue-500/50">
+                  {avatarUrl ? <img src={avatarUrl} className="w-full h-full object-cover" /> : <span className="font-black text-neutral-600">PT</span>}
+              </div>
+              <input type="file" className="hidden" accept="image/*" onChange={handleAvatarUpload} />
             </label>
         </div>
 
@@ -134,21 +134,21 @@ export default function Perfil() {
         <form onSubmit={handleUpdate} className="space-y-4">
           <Input label="Nome Completo" value={formData.nome} onChange={handleChange('nome')} />
           <div className="grid grid-cols-2 gap-4">
-            <Input label="CREF (Bloqueado)" value={formData.cref} disabled className="bg-gray-100 cursor-not-allowed opacity-60" />
+            <Input label="CREF (Bloqueado)" value={formData.cref} disabled className="bg-neutral-900/50 cursor-not-allowed opacity-50" />
             <Input label="Telefone" value={formData.telefone} onChange={handleChange('telefone')} />
           </div>
-          <Input label="E-mail" value={formData.email} disabled className="bg-gray-100 cursor-not-allowed opacity-60" />
-          <button disabled={loading} className="w-full bg-black text-white py-4 rounded-2xl font-bold hover:bg-gray-800 transition">
+          <Input label="E-mail" value={formData.email} disabled className="bg-neutral-900/50 cursor-not-allowed opacity-50" />
+          <button disabled={loading} className="w-full bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-2xl font-bold transition shadow-[0_0_20px_rgba(37,99,235,0.3)]">
             {loading ? 'Salvando...' : 'SALVAR DADOS'}
           </button>
         </form>
 
-        <hr className="border-gray-100" />
+        <hr className="border-white/5" />
 
         {/* Troca de Senha */}
         <div className="space-y-4">
           <Input label="Nova Senha" type="password" value={newPassword} onChange={setNewPassword} placeholder="Mínimo 6 caracteres" />
-          <button onClick={handleUpdatePassword} disabled={loading} className="w-full border-2 border-black py-4 rounded-2xl font-bold hover:bg-gray-50 transition">
+          <button onClick={handleUpdatePassword} disabled={loading} className="w-full border border-white/10 text-white py-4 rounded-2xl font-bold hover:bg-white/5 transition">
             ATUALIZAR SENHA
           </button>
         </div>
@@ -160,11 +160,11 @@ export default function Perfil() {
 function Input({ label, value, onChange, disabled, type = "text", className = "", ...props }: any) {
   return (
     <div>
-      <label className="block text-[10px] font-black uppercase text-gray-400 mb-1.5 tracking-wider">{label}</label>
+      <label className="block text-[10px] font-black uppercase text-neutral-500 mb-1.5 tracking-wider">{label}</label>
       <input 
         type={type}
         disabled={disabled}
-        className={`w-full p-4 bg-gray-50 rounded-xl border border-gray-100 focus:ring-2 focus:ring-black outline-none transition ${className}`}
+        className={`w-full p-4 bg-white/5 rounded-2xl border border-white/5 focus:border-blue-500/50 outline-none transition text-white ${className}`}
         value={value} 
         onChange={(e) => onChange(e.target.value)}
         {...props}

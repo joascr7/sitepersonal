@@ -8,7 +8,6 @@ export default function Navbar() {
   const pathname = usePathname();
   const { logo, nome } = useLogo();
 
-  // Adicionado '/pagamento-pendente' aqui para que a navbar suma nesta tela
   const rotasExcluidas = [
     '/', 
     '/login-professor', 
@@ -18,7 +17,6 @@ export default function Navbar() {
     '/pagamento-pendente'
   ];
   
-  // A condição pathname.startsWith('/aluno') continua protegendo a área de treino dos alunos
   if (rotasExcluidas.includes(pathname) || pathname.startsWith('/aluno')) return null;
 
   const navItems = [
@@ -30,63 +28,51 @@ export default function Navbar() {
   return (
     <>
       {/* --- DESKTOP --- */}
-      <nav className="hidden md:flex sticky top-0 z-50 bg-white/70 backdrop-blur-xl border-b border-gray-100 px-10 py-5 justify-between items-center">
-        <div className="flex items-center gap-3 h-10 w-auto overflow-visible">
+      <nav className="hidden md:flex sticky top-0 z-50 bg-neutral-950/80 backdrop-blur-xl border-b border-white/5 px-10 py-5 justify-between items-center transition-all">
+        <div className="flex items-center gap-3 h-10 w-auto">
           {logo && <img src={logo} className="h-full w-auto object-contain" alt="Logo" />}
-          <span 
-            className="font-black tracking-[0.05em] text-3xl whitespace-nowrap"
-            style={{
-              background: 'linear-gradient(135deg, #007bff 0%, #00c6ff 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              filter: 'drop-shadow(0px 2px 2px rgba(0,0,0,0.1))',
-            }}
-          >
+          <span className="font-black tracking-[0.05em] text-2xl text-white">
             {nome}
           </span>
         </div>
         
-        <div className="flex gap-8 items-center text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">
+        <div className="flex gap-8 items-center text-[10px] font-black uppercase tracking-[0.2em] text-neutral-500">
           {navItems.map((item) => (
-            <a key={item.path} href={item.path} className={`transition-colors hover:text-gray-950 ${pathname === item.path ? 'text-gray-950 underline underline-offset-8' : ''}`}>
+            <a 
+              key={item.path} 
+              href={item.path} 
+              className={`transition-all duration-300 hover:text-white ${pathname === item.path ? 'text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.5)] underline underline-offset-8' : ''}`}
+            >
               {item.name}
             </a>
           ))}
-          <div className="pl-6 border-l border-gray-100"><LogoutButton /></div>
+          <div className="pl-6 border-l border-white/10"><LogoutButton /></div>
         </div>
       </nav>
 
       {/* --- MOBILE --- */}
       <div className="md:hidden">
-        <div className="fixed top-0 w-full h-16 bg-white/80 backdrop-blur-md px-6 z-40 border-b border-gray-50 flex items-center">
-          <div className="flex items-center gap-2 h-8 w-auto overflow-visible">
-            {logo && <img src={logo} className="h-full w-auto object-contain" alt="Logo" />}
-            <span 
-              className="font-black tracking-[0.05em] text-2xl whitespace-nowrap"
-              style={{
-                background: 'linear-gradient(135deg, #007bff 0%, #00c6ff 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-              }}
-            >
-              {nome}
-            </span>
-          </div>
+        <div className="fixed top-0 w-full h-16 bg-neutral-950/80 backdrop-blur-md px-6 z-40 border-b border-white/5 flex items-center">
+          <span className="font-black tracking-[0.05em] text-xl text-white">{nome}</span>
         </div>
 
-        <nav className="fixed bottom-6 left-6 right-6 z-50 bg-white/90 backdrop-blur-2xl border border-gray-100 rounded-3xl py-4 px-8 flex justify-between items-center shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)]">
+        <nav className="fixed bottom-6 left-6 right-6 z-50 bg-neutral-950/90 backdrop-blur-2xl border border-white/10 rounded-[2rem] py-4 px-8 flex justify-between items-center shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
           {navItems.map((item) => (
-            <a key={item.path} href={item.path} className={`flex flex-col items-center gap-1.5 transition-all ${pathname === item.path ? 'text-gray-950' : 'text-gray-400'}`}>
+            <a 
+              key={item.path} 
+              href={item.path} 
+              className={`flex flex-col items-center gap-1.5 transition-all duration-300 ${pathname === item.path ? 'text-blue-500 scale-110 drop-shadow-[0_0_10px_rgba(59,130,246,0.5)]' : 'text-neutral-500'}`}
+            >
               <span className="text-lg">{item.icon}</span>
               <span className="text-[8px] font-black uppercase tracking-widest">{item.name}</span>
             </a>
           ))}
-          <div className="flex flex-col items-center gap-1.5 text-gray-400">
+          <div className="flex flex-col items-center gap-1.5 text-neutral-500">
              <div className="text-lg"><LogoutButton /></div>
              <span className="text-[8px] font-black uppercase tracking-widest">Sair</span>
           </div>
         </nav>
-        <div className="h-20" /> 
+        <div className="h-24" /> 
       </div>
     </>
   );

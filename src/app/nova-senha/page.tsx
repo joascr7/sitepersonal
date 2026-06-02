@@ -27,14 +27,17 @@ export default function NovaSenha() {
   };
 
   return (
-    <main className="flex flex-col items-center justify-center min-h-screen bg-gray-50 p-6">
-      <div className="bg-white p-10 rounded-3xl shadow-sm border border-gray-100 w-full max-w-sm text-center">
-        <h1 className="text-xl font-black text-gray-900 mb-2">Redefinir senha</h1>
-        <p className="text-gray-500 text-sm mb-8">Digite sua nova senha de acesso.</p>
+    <main className="flex flex-col items-center justify-center min-h-screen bg-black p-6 relative overflow-hidden">
+      {/* Luz de foco para destacar a ação central */}
+      <div className="absolute w-[400px] h-[400px] bg-blue-600/5 rounded-full blur-[150px]" />
+      
+      <div className="bg-neutral-950/80 backdrop-blur-xl p-10 rounded-[2.5rem] border border-white/5 shadow-[0_20px_50px_rgba(0,0,0,0.5)] w-full max-w-sm text-center z-10">
+        <h1 className="text-2xl font-black text-white mb-2 tracking-tight">Redefinir senha</h1>
+        <p className="text-neutral-500 text-xs font-medium mb-8 tracking-wide">Digite sua nova senha de acesso.</p>
         
         <input 
           type="password" 
-          className="w-full p-4 mb-8 border border-gray-200 rounded-xl focus:ring-2 focus:ring-gray-900 outline-none transition" 
+          className="w-full px-5 py-4 mb-8 bg-white/5 border border-white/5 rounded-2xl outline-none focus:border-blue-500/50 transition-all text-sm text-white placeholder:text-neutral-700" 
           placeholder="Nova senha" 
           value={password}
           onChange={(e) => setPassword(e.target.value)} 
@@ -43,7 +46,7 @@ export default function NovaSenha() {
         <button 
           onClick={handleUpdatePassword} 
           disabled={loading}
-          className="w-full bg-gray-900 hover:bg-black text-white py-4 rounded-xl font-bold transition-all active:scale-[0.98] shadow-sm disabled:bg-gray-400"
+          className="w-full bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-2xl font-bold text-sm transition-all duration-300 active:scale-[0.98] shadow-[0_0_20px_rgba(37,99,235,0.3)] disabled:bg-neutral-800 disabled:shadow-none"
         >
           {loading ? "Atualizando..." : "Atualizar Senha"}
         </button>
