@@ -56,7 +56,7 @@ export default function Dashboard() {
       dataLimite.setDate(dataLimite.getDate() + 2);
       if (hoje > vencimento && hoje <= dataLimite) return { text: 'PENDENTE', color: 'bg-amber-50 text-amber-600' };
     }
-    return { text: 'ATIVO EM DIA', color: 'bg-emerald-50 text-emerald-600' };
+    return { text: 'ATIVO', color: 'bg-emerald-50 text-emerald-600' };
   };
 
  useEffect(() => {

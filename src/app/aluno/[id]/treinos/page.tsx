@@ -74,7 +74,7 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
 
   return (
     <main className="w-full bg-black text-white pb-10 pt-2 px-4">
-      <div className="max-w-md mx-auto space-y-2">
+      <div className="max-w-md mx-auto space-y-6">
         <header className="py-6">
           <h1 className="text-4xl font-black tracking-tighter">Treinos</h1>
           <p className="text-blue-500 font-black text-[9px] uppercase tracking-[0.2em] mt-1">Sua jornada de alta performance</p>

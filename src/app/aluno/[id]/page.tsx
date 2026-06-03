@@ -139,19 +139,19 @@ useEffect(() => {
   );
 
   return (
-    // Removi pb-10, pt-2 e deixei pt-0 para colar no topo
-    <main className="w-full bg-black text-white pt-20 pb-[env(safe-area-inset-bottom,80px)] px-4">
-  <div className="max-w-md mx-auto flex flex-col space-y-2">
+    // PT-20 compensa a Navbar superior fixa. 
+    // O padding-bottom extra no container interno (pb-32) dá o espaço necessário para a navbar inferior.
+    <main className="w-full bg-black text-white pt-20 px-4">
+      <div className="max-w-md mx-auto flex flex-col space-y-2 pb-32">
 
         {/* Header Ultra Compacto */}
         <header className="px-2 pt-4 pb-0">
-          {/* Agora ele usa o nome dinâmico ou o padrão */}
           <h1 className="text-[9px] font-black text-neutral-600 uppercase tracking-[0.3em]">
-            
+            {nome}
           </h1>
-       </header>
+        </header>
 
-        {/* Perfil (Reduzi margens e paddings) */}
+        {/* Perfil */}
         <header className="flex flex-col items-center pt-0">
           <div className="w-16 h-16 rounded-full bg-neutral-900 border-2 border-blue-600/30 p-1 shadow-lg">
              {personal?.avatar_url ? <img src={personal.avatar_url} className="w-full h-full object-cover rounded-full" /> : <FaUserCircle className="w-full h-full text-neutral-600" />}
@@ -161,41 +161,41 @@ useEffect(() => {
         </header>
 
         {aluno && (
-            <div className="bg-neutral-900/50 p-3 rounded-2xl border border-white/5 flex justify-between items-center">
-                <div>
-                    <p className="text-[8px] font-black uppercase text-neutral-500 tracking-widest">Status</p>
-                    <p className="font-black text-[11px]">{aluno.status_pagamento === 'bloqueado' ? 'Bloqueado' : 'Assinatura Ativa'}</p>
-                </div>
-                <div className="text-right">
-                    <p className="text-[8px] font-black uppercase text-neutral-500 tracking-widest">Vencimento</p>
-                    <p className="font-black text-[11px]">{aluno.data_vencimento ? new Date(aluno.data_vencimento).toLocaleDateString('pt-BR') : 'N/A'}</p>
-                </div>
+          <div className="bg-neutral-900/50 p-3 rounded-2xl border border-white/5 flex justify-between items-center">
+            <div>
+              <p className="text-[8px] font-black uppercase text-neutral-500 tracking-widest">Status</p>
+              <p className="font-black text-[11px]">{aluno.status_pagamento === 'bloqueado' ? 'Bloqueado' : 'Assinatura Ativa'}</p>
             </div>
+            <div className="text-right">
+              <p className="text-[8px] font-black uppercase text-neutral-500 tracking-widest">Vencimento</p>
+              <p className="font-black text-[11px]">{aluno.data_vencimento ? new Date(aluno.data_vencimento).toLocaleDateString('pt-BR') : 'N/A'}</p>
+            </div>
+          </div>
         )}
 
-           {treinoDoDia ? (
-  <section className="bg-gradient-to-br from-blue-600 to-blue-800 p-8 rounded-[2.5rem] shadow-2xl mb-8 border border-white/10">
-    <div className="flex justify-between items-start mb-6">
-      <div>
-        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/60">Treino do dia</p>
-        <h2 className="text-2xl font-black tracking-tighter text-white">{treinoDoDia.nome_treino}</h2>
-      </div>
-      <div className="bg-white/20 p-3 rounded-2xl">
-        <FaDumbbell className="text-white text-xl" />
-      </div>
-    </div>
-    <button 
-      onClick={() => router.push(`/aluno/${id}/treino/${treinoDoDia.id}`)}
-      className="w-full py-5 bg-white text-blue-700 rounded-[1.5rem] font-black text-[10px] uppercase tracking-widest transition-transform active:scale-95"
-    >
-      Iniciar Agora
-    </button>
-  </section>
-) : (
-  <div className="p-8 text-center bg-neutral-900/50 rounded-[2.5rem] border border-dashed border-white/10">
-    <p className="text-neutral-500 text-xs font-bold">Nenhum treino pendente para hoje.</p>
-  </div>
-)}
+        {treinoDoDia ? (
+          <section className="bg-gradient-to-br from-blue-600 to-blue-800 p-8 rounded-[2.5rem] shadow-2xl mb-8 border border-white/10">
+            <div className="flex justify-between items-start mb-6">
+              <div>
+                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/60">Treino do dia</p>
+                <h2 className="text-2xl font-black tracking-tighter text-white">{treinoDoDia.nome_treino}</h2>
+              </div>
+              <div className="bg-white/20 p-3 rounded-2xl">
+                <FaDumbbell className="text-white text-xl" />
+              </div>
+            </div>
+            <button 
+              onClick={() => router.push(`/aluno/${id}/treino/${treinoDoDia.id}`)}
+              className="w-full py-5 bg-white text-blue-700 rounded-[1.5rem] font-black text-[10px] uppercase tracking-widest transition-transform active:scale-95"
+            >
+              Iniciar Agora
+            </button>
+          </section>
+        ) : (
+          <div className="p-8 text-center bg-neutral-900/50 rounded-[2.5rem] border border-dashed border-white/10">
+            <p className="text-neutral-500 text-xs font-bold">Nenhum treino pendente para hoje.</p>
+          </div>
+        )}
 
         <section className="bg-neutral-900/50 p-6 rounded-[2rem] border border-white/10">
             <h2 className="text-[10px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-6">Sua semana de treinos</h2>
@@ -214,13 +214,13 @@ useEffect(() => {
               })}
             </div>
         </section>
-        <button 
-  onClick={() => setCalendarioAberto(true)}
-  className="w-full py-4 bg-neutral-900/50 border border-white/5 rounded-2xl text-[9px] font-black uppercase tracking-widest text-neutral-400 hover:text-white transition-all"
->
-  Ver Histórico Completo
-</button>
 
+        <button 
+          onClick={() => setCalendarioAberto(true)}
+          className="w-full py-4 bg-neutral-900/50 border border-white/5 rounded-2xl text-[9px] font-black uppercase tracking-widest text-neutral-400 hover:text-white transition-all"
+        >
+          Ver Histórico Completo
+        </button>
 
         <div className="grid grid-cols-2 gap-4">
           <BotaoMenu icon={<FaDumbbell />} label="Treinos" onClick={() => router.push(`/aluno/${id}/treinos`)} />
@@ -237,22 +237,22 @@ useEffect(() => {
         {modalAberta && (
           <ModalAvaliacao isOpen={modalAberta} onClose={() => setModalAberta(false)} avaliacao={avaliacoes[avaliacoes.length - 1]} historico={avaliacoes.map(a => ({ data: new Date(a.data_avaliacao).toLocaleDateString(), peso: a.peso }))} />
         )}
+        
+        {/* ESPAÇADOR DE SEGURANÇA (Adicionado para garantir o scroll final) */}
+        <div className="h-40 w-full shrink-0" aria-hidden="true" />
       </div>
 
       {calendarioAberto && (
-  <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-[100] flex items-center justify-center p-4">
-    <div className="bg-neutral-900 w-full max-w-sm p-8 rounded-[2.5rem] border border-white/10 shadow-2xl">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-[10px] font-black uppercase tracking-widest text-blue-500">Histórico de Treinos</h2>
-        <button onClick={() => setCalendarioAberto(false)} className="text-white text-xl">&times;</button>
-      </div>
-      
-      {/* Aqui vai o calendário que geramos anteriormente */}
-      <CalendarioTreino diasTreinados={diasTreino} />
-    </div>
-    <div className="h-32 w-full shrink-0" aria-hidden="true" />
-  </div>
-)}
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+          <div className="bg-neutral-900 w-full max-w-sm p-8 rounded-[2.5rem] border border-white/10 shadow-2xl">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-[10px] font-black uppercase tracking-widest text-blue-500">Histórico de Treinos</h2>
+              <button onClick={() => setCalendarioAberto(false)} className="text-white text-xl">&times;</button>
+            </div>
+            <CalendarioTreino diasTreinados={diasTreino} />
+          </div>
+        </div>
+      )}
     </main>
   );
 }
