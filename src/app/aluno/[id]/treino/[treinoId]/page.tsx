@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabaseClient';
 import ToastSucesso from '@/components/ui/ToastSucesso';
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
-import { FaFilePdf, FaCheck, FaInfoCircle } from "react-icons/fa";
+import { FaFilePdf, FaCheck, FaInfoCircle, FaPlay } from "react-icons/fa";
 
 export default function DetalheTreino({ params }: { params: Promise<{ id: string; treinoId: string }> }) {
   const resolvedParams = use(params);
@@ -25,6 +25,22 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
   const progresso = totalExercicios > 0 ? Math.round((concluidos.length / totalExercicios) * 100) : 0;
   const todosFinalizados = totalExercicios > 0 && concluidos.length === totalExercicios;
 
+  // Função restaurada para renderizar o vídeo corretamente
+  const renderizarVideo = (url: string) => {
+    if (!url) return null;
+    const isYoutube = url.includes("youtube.com") || url.includes("youtu.be");
+    const embedUrl = url.includes("shorts/") ? url.replace("shorts/", "embed/") : url.replace("watch?v=", "embed/");
+    return (
+      <div className="w-full h-full bg-black">
+        {isYoutube ? (
+          <iframe className="w-full h-full" src={embedUrl.split('&')[0]} allowFullScreen />
+        ) : (
+          <video controls className="w-full h-full object-cover" src={url} />
+        )}
+      </div>
+    );
+  };
+
   const gerarPDF = () => {
     const doc = new jsPDF();
     doc.setFont("helvetica", "bold");
@@ -37,18 +53,8 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
     exercicios.forEach((ex: any) => {
       (ex.series || []).forEach((s: any, idx: number) => {
         const key = `${ex.nome}-${idx}`;
-        tabelaDados.push([
-          idx === 0 ? ex.nome : "",
-          s.ordem || idx + 1,
-          s.reps || '-',
-          s.carga ? `${s.carga}kg` : '-',
-          s.intervalo ? `${s.intervalo}s` : '-',
-          inputValues[key] ? `${inputValues[key]}kg` : '-'
-        ]);
+        tabelaDados.push([idx === 0 ? ex.nome : "", s.ordem || idx + 1, s.reps || '-', s.carga ? `${s.carga}kg` : '-', s.intervalo ? `${s.intervalo}s` : '-', inputValues[key] ? `${inputValues[key]}kg` : '-']);
       });
-      if (ex.observacao) {
-        tabelaDados.push([{ content: `Obs: ${ex.observacao}`, colSpan: 6, styles: { fontStyle: 'italic', textColor: [100, 100, 100], fillColor: [245, 245, 245] } }]);
-      }
     });
 
     autoTable(doc, {
@@ -58,14 +64,12 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
       theme: 'striped',
       headStyles: { fillColor: [37, 99, 235] },
     });
-
     doc.save(`${ficha?.nome_treino || 'Treino'}.pdf`);
   };
 
   const fetchData = async () => {
     if (!treinoId) return;
     setLoading(true);
-    
     const [fichaRes, regRes, concRes] = await Promise.all([
       supabase.from('fichas').select('*').eq('id', treinoId).maybeSingle(),
       supabase.from('registro_series').select('*').eq('treino_id', treinoId),
@@ -79,145 +83,96 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
       setInputValues(initialInputs);
       setRegistros(regRes.data);
     }
-    
     setSessoesContador(concRes.count || 0);
     setLoading(false);
   };
 
-  useEffect(() => {
-    fetchData();
-  }, [treinoId]);
+  useEffect(() => { fetchData(); }, [treinoId]);
 
   const registrarCarga = async (nomeExercicio: string, carga: number, reps: number, serieIndex: number) => {
     if (!carga || carga <= 0) return;
-    
     const registroExistente = registros.find(r => r.exercicio_nome === nomeExercicio && r.serie_index === serieIndex);
-    
-    const payload = { 
-      aluno_id: id, 
-      treino_id: treinoId, 
-      exercicio_nome: nomeExercicio, 
-      carga, 
-      repeticoes: reps, 
-      serie_index: serieIndex 
-    };
-
-    const upsertData = registroExistente 
-      ? { ...payload, id: registroExistente.id } 
-      : payload;
-
-    const { data, error } = await supabase
-      .from('registro_series')
-      .upsert(upsertData as any)
-      .select();
-
-    if (!error && data) {
-      setRegistros(prev => [...prev.filter(r => r.id !== data[0].id), ...data]);
-    }
+    const payload = { aluno_id: id, treino_id: treinoId, exercicio_nome: nomeExercicio, carga, repeticoes: reps, serie_index: serieIndex };
+    const { data, error } = await supabase.from('registro_series').upsert(registroExistente ? { ...payload, id: registroExistente.id } : payload).select();
+    if (!error && data) setRegistros(prev => [...prev.filter(r => r.id !== data[0].id), ...data]);
   };
 
   const finalizarSessao = async () => {
     setLoading(true);
     try {
       await Promise.all([
-        supabase.from('conclusoes_treino').insert({ 
-          aluno_id: id, 
-          treino_id: treinoId,
-          data_conclusao: new Date().toISOString() 
-        }),
-        supabase.from('historico_treinos').insert({ 
-          aluno_id: id, 
-          data_treino: new Date().toISOString() 
-        })
+        supabase.from('conclusoes_treino').insert({ aluno_id: id, treino_id: treinoId, data_conclusao: new Date().toISOString() }),
+        supabase.from('historico_treinos').insert({ aluno_id: id, data_treino: new Date().toISOString() })
       ]);
-      
       setSessoesContador(prev => prev + 1); 
       setShowToast(true);
-    } catch (err: any) {
-      console.error("Erro na finalização:", err);
-      alert("Erro ao finalizar treino: " + err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const renderizarVideo = (url: string) => {
-    if (!url) return null;
-    const isYoutube = url.includes("youtube.com") || url.includes("youtu.be");
-    const embedUrl = url.includes("shorts/") ? url.replace("shorts/", "embed/") : url.replace("watch?v=", "embed/");
-    return (
-      <div className="w-full bg-black rounded-3xl overflow-hidden mb-6 aspect-video border border-white/5 shadow-2xl">
-        {isYoutube ? <iframe className="w-full h-full" src={embedUrl.split('&')[0]} allowFullScreen /> : <video controls className="w-full h-full" src={url} />}
-      </div>
-    );
+    } catch (err: any) { alert("Erro ao finalizar: " + err.message); } finally { setLoading(false); }
   };
 
   if (loading) return <main className="min-h-screen bg-black flex items-center justify-center text-blue-500 font-black">CARREGANDO DADOS...</main>;
 
   return (
-    <main className="min-h-screen bg-black p-6 md:p-12 text-white">
+    <main className="min-h-screen bg-black text-white p-4 pb-24">
       <div className="max-w-2xl mx-auto">
-        <header className="flex justify-between items-center mb-10">
-          <button onClick={() => router.back()} className="text-[9px] font-black uppercase tracking-[0.3em] text-neutral-500 hover:text-white">← Voltar</button>
-          <button onClick={gerarPDF} className="flex items-center gap-2 bg-white/5 hover:bg-white/10 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all"><FaFilePdf /> Exportar PDF</button>
+        <header className="flex justify-between items-center mb-8 px-2">
+          <button onClick={() => router.back()} className="text-[9px] font-black uppercase text-neutral-500">← Voltar</button>
+          <button onClick={gerarPDF} className="bg-white/5 px-4 py-2 rounded-xl text-[9px] font-black uppercase"><FaFilePdf className="inline mr-2"/> BAIXAR TREINO</button>
         </header>
 
-        <div className="mb-12">
-          <h1 className="text-4xl font-black tracking-tighter">{ficha?.nome_treino || "Treino"}</h1>
-          <p className="text-blue-500 font-black text-[10px] uppercase tracking-[0.3em] mt-2">Sessões Totais: {sessoesContador}</p>
-          <div className="w-full h-2 bg-neutral-900 rounded-full mt-6 overflow-hidden">
-            <div className="h-full bg-gradient-to-r from-blue-600 to-cyan-400 transition-all duration-500 shadow-[0_0_15px_rgba(37,99,235,0.5)]" style={{ width: `${progresso}%` }} />
+        <div className="mb-8 px-2">
+          <h1 className="text-3xl font-black tracking-tighter">{ficha?.nome_treino || "Treino"}</h1>
+          <p className="text-blue-500 font-black text-[10px] uppercase tracking-widest mt-2">Sessões Totais: {sessoesContador}</p>
+          <div className="w-full h-1.5 bg-neutral-900 mt-4 rounded-full overflow-hidden">
+            <div className="h-full bg-blue-600 transition-all duration-500" style={{ width: `${progresso}%` }} />
           </div>
         </div>
         
         {exercicios.map((ex: any, exIndex: number) => (
-          <div key={exIndex} className={`mb-8 p-8 bg-neutral-950/80 backdrop-blur-xl rounded-[2.5rem] border ${concluidos.includes(exIndex) ? 'border-blue-500/50' : 'border-white/5'}`}>
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-lg font-black">{ex.nome}</h3>
-              <button onClick={() => !concluidos.includes(exIndex) && setConcluidos([...concluidos, exIndex])} className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase ${concluidos.includes(exIndex) ? 'bg-blue-600 text-white' : 'bg-white/5 text-neutral-400'}`}>
-                {concluidos.includes(exIndex) ? <><FaCheck /> Finalizado</> : 'Marcar Exercício'}
-              </button>
-            </div>
-            
-            {ex.observacao && <div className="mb-6 p-4 bg-blue-600/10 text-blue-400 text-[10px] font-bold rounded-2xl flex items-center gap-2"><FaInfoCircle /> {ex.observacao}</div>}
-            {ex.video && renderizarVideo(ex.video)}
+          <div key={exIndex} className={`mb-6 bg-neutral-900/50 backdrop-blur-xl rounded-[2rem] border overflow-hidden ${concluidos.includes(exIndex) ? 'border-blue-500/30' : 'border-white/5'}`}>
+            <div className="flex flex-col md:flex-row">
+              {/* Vídeo Estilo SmartFit */}
+              {ex.video && (
+                <div className="md:w-1/3 aspect-video md:aspect-square bg-black shrink-0 relative">
+                    {renderizarVideo(ex.video)}
+                </div>
+              )}
+              
+              <div className="p-6 flex-1">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="font-black text-lg">{ex.nome}</h3>
+                  <button onClick={() => !concluidos.includes(exIndex) && setConcluidos([...concluidos, exIndex])} 
+                          className={`p-3 rounded-2xl ${concluidos.includes(exIndex) ? 'bg-blue-600' : 'bg-white/5'}`}>
+                    <FaCheck />
+                  </button>
+                </div>
+                
+                {ex.observacao && <div className="mb-4 p-3 bg-blue-600/10 text-blue-400 text-[10px] font-bold rounded-xl flex items-center gap-2"><FaInfoCircle /> {ex.observacao}</div>}
 
-            <table className="w-full text-center text-xs">
-              <thead className="text-[9px] uppercase font-black text-neutral-500 tracking-widest border-b border-white/5">
-                <tr><th className="pb-3 text-left">Série</th><th>Reps</th><th>Carga</th><th>Desc.</th><th>Sua Carga</th></tr>
-              </thead>
-              <tbody className="text-xs font-medium">
-                {ex.series?.map((s: any, sIndex: number) => {
-                  const key = `${ex.nome}-${sIndex}`;
-                  return (
-                    <tr key={sIndex} className="border-b border-white/5">
-                      <td className="py-4 font-black text-left">{s.ordem || sIndex + 1}</td>
-                      <td className="py-4 text-neutral-400">{s.reps || '-'}</td>
-                      <td className="py-4 text-neutral-400">{s.carga || 0}kg</td>
-                      <td className="py-4 font-black">{s.intervalo || 0}s</td>
-                      <td className="py-4">
-  <input 
-    type="number" 
-    placeholder="0"
-    value={inputValues[key] || ''} 
-    onChange={(e) => setInputValues(prev => ({ ...prev, [key]: e.target.value }))} 
-    onBlur={(e) => registrarCarga(ex.nome, Number(e.target.value), s.reps, sIndex)} 
-    className="w-20 py-2.5 bg-white/5 border border-white/10 rounded-xl text-center font-black text-white placeholder-neutral-600 focus:bg-white/10 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all duration-300"
-  />
-</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                <div className="space-y-2">
+                  {ex.series?.map((s: any, sIndex: number) => {
+                    const key = `${ex.nome}-${sIndex}`;
+                    return (
+                      <div key={sIndex} className="grid grid-cols-4 items-center gap-2 bg-black/40 p-3 rounded-xl border border-white/5 text-center">
+                        <span className="text-[9px] font-black text-neutral-500">{s.ordem || sIndex + 1}ª</span>
+                        <span className="text-[10px] font-bold">{s.reps}x</span>
+                        <span className="text-[10px] font-bold">{s.carga || 0}kg</span>
+                        <input 
+                          type="number" placeholder="Carga" value={inputValues[key] || ''} 
+                          onChange={(e) => setInputValues(prev => ({ ...prev, [key]: e.target.value }))}
+                          onBlur={(e) => registrarCarga(ex.nome, Number(e.target.value), s.reps, sIndex)}
+                          className="bg-white/5 rounded-lg py-2 text-[10px] font-bold text-center border border-white/10 outline-none focus:border-blue-500"
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
           </div>
         ))}
 
-        <button 
-          onClick={finalizarSessao} 
-          disabled={!todosFinalizados} 
-          className={`w-full py-5 rounded-2xl font-black text-xs uppercase tracking-widest transition-all ${todosFinalizados ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-[0_0_20px_rgba(37,99,235,0.3)]' : 'bg-neutral-800 text-neutral-500 cursor-not-allowed'}`}
-        >
+        <button onClick={finalizarSessao} disabled={!todosFinalizados} 
+                className={`w-full py-5 rounded-[2rem] font-black text-[10px] uppercase tracking-widest transition-all ${todosFinalizados ? 'bg-blue-600 shadow-xl' : 'bg-neutral-800 text-neutral-500'}`}>
           {todosFinalizados ? 'Finalizar Sessão' : 'Conclua todos os exercícios'}
         </button>
 
