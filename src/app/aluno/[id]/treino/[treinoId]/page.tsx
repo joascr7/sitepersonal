@@ -113,15 +113,49 @@ const { data, error } = await supabase
     } catch (err: any) { alert("Erro ao finalizar: " + err.message); } finally { setLoading(false); }
   };
 
-  if (loading) return <main className="min-h-screen bg-black flex items-center justify-center text-blue-500 font-black">CARREGANDO DADOS...</main>;
+ if (loading) return (
+    <main className="min-h-screen bg-black p-6 space-y-8 animate-pulse">
+      {/* Header Skeleton */}
+      <div className="flex justify-between items-center mb-10">
+        <div className="w-16 h-4 bg-neutral-900 rounded-full" />
+        <div className="w-24 h-8 bg-neutral-900 rounded-xl" />
+      </div>
+
+      {/* Título e Barra de Progresso Skeleton */}
+      <div className="space-y-4">
+        <div className="w-48 h-8 bg-neutral-900 rounded-full" />
+        <div className="w-32 h-3 bg-neutral-900 rounded-full" />
+        <div className="w-full h-2 bg-neutral-900 rounded-full" />
+      </div>
+
+      {/* Cards de Exercícios Skeleton */}
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="p-8 bg-neutral-900/50 rounded-[2.5rem] border border-white/5 space-y-4">
+          <div className="w-full h-40 bg-neutral-900 rounded-2xl" />
+          <div className="w-1/2 h-6 bg-neutral-900 rounded-full" />
+        </div>
+      ))}
+    </main>
+  );
 
   return (
     <main className="min-h-screen bg-black text-white p-4 pb-24">
       <div className="max-w-2xl mx-auto">
-        <header className="flex justify-between items-center mb-8 px-2">
-          <button onClick={() => router.back()} className="text-[9px] font-black uppercase text-neutral-500">← Voltar</button>
-          <button onClick={gerarPDF} className="bg-white/5 px-4 py-2 rounded-xl text-[9px] font-black uppercase"><FaFilePdf className="inline mr-2"/> BAIXAR TREINO</button>
-        </header>
+       <header className="flex justify-between items-center mb-8 px-2">
+  <button 
+    onClick={() => router.back()} 
+    className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-white bg-white/5 hover:bg-white/10 px-4 py-2 rounded-xl transition-all"
+  >
+    <span className="text-blue-500">←</span> Voltar
+  </button>
+  
+  <button 
+    onClick={gerarPDF} 
+    className="bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border border-blue-600/20 transition-all"
+  >
+    <FaFilePdf className="inline mr-2 text-blue-500"/> Baixar Treino
+  </button>
+</header>
 
         <div className="mb-8 px-2">
           <h1 className="text-3xl font-black tracking-tighter">{ficha?.nome_treino || "Treino"}</h1>
@@ -132,48 +166,51 @@ const { data, error } = await supabase
         </div>
         
         {exercicios.map((ex: any, exIndex: number) => (
-          <div key={exIndex} className={`mb-6 bg-neutral-900/50 backdrop-blur-xl rounded-[2rem] border overflow-hidden ${concluidos.includes(exIndex) ? 'border-blue-500/30' : 'border-white/5'}`}>
-            <div className="flex flex-col md:flex-row">
-              {/* Vídeo Estilo SmartFit */}
-              {ex.video && (
-                <div className="md:w-1/3 aspect-video md:aspect-square bg-black shrink-0 relative">
-                    {renderizarVideo(ex.video)}
-                </div>
-              )}
-              
-              <div className="p-6 flex-1">
-                <div className="flex justify-between items-center mb-4">
-                  <h3 className="font-black text-lg">{ex.nome}</h3>
-                  <button onClick={() => !concluidos.includes(exIndex) && setConcluidos([...concluidos, exIndex])} 
-                          className={`p-3 rounded-2xl ${concluidos.includes(exIndex) ? 'bg-blue-600' : 'bg-white/5'}`}>
-                    <FaCheck />
-                  </button>
-                </div>
-                
-                {ex.observacao && <div className="mb-4 p-3 bg-blue-600/10 text-blue-400 text-[10px] font-bold rounded-xl flex items-center gap-2"><FaInfoCircle /> {ex.observacao}</div>}
+  <div key={exIndex} className={`mb-6 bg-neutral-900/50 backdrop-blur-xl rounded-[2rem] border overflow-hidden ${concluidos.includes(exIndex) ? 'border-blue-500/30' : 'border-white/5'}`}>
+    {/* Estrutura Alterada: 'flex-row' fixo para manter vídeo na lateral */}
+    <div className="flex flex-row">
+      
+      {/* Vídeo Lateral - Largura menor (w-1/3) */}
+      {ex.video && (
+        <div className="w-1/3 bg-black shrink-0">
+            {renderizarVideo(ex.video)}
+        </div>
+      )}
+      
+      {/* Conteúdo ao lado */}
+      <div className="p-4 flex-1">
+        <div className="flex justify-between items-center mb-2">
+          <h3 className="font-black text-sm">{ex.nome}</h3>
+          <button onClick={() => !concluidos.includes(exIndex) && setConcluidos([...concluidos, exIndex])} 
+                  className={`p-2 rounded-xl ${concluidos.includes(exIndex) ? 'bg-blue-600' : 'bg-white/5'}`}>
+            <FaCheck className="text-[10px]" />
+          </button>
+        </div>
+        
+        {ex.observacao && <div className="mb-2 p-2 bg-blue-600/10 text-blue-400 text-[8px] font-bold rounded-lg"><FaInfoCircle className="inline mr-1"/> {ex.observacao}</div>}
 
-                <div className="space-y-2">
-                  {ex.series?.map((s: any, sIndex: number) => {
-                    const key = `${ex.nome}-${sIndex}`;
-                    return (
-                      <div key={sIndex} className="grid grid-cols-4 items-center gap-2 bg-black/40 p-3 rounded-xl border border-white/5 text-center">
-                        <span className="text-[9px] font-black text-neutral-500">{s.ordem || sIndex + 1}ª</span>
-                        <span className="text-[10px] font-bold">{s.reps}x</span>
-                        <span className="text-[10px] font-bold">{s.carga || 0}kg</span>
-                        <input 
-                          type="number" placeholder="Carga" value={inputValues[key] || ''} 
-                          onChange={(e) => setInputValues(prev => ({ ...prev, [key]: e.target.value }))}
-                          onBlur={(e) => registrarCarga(ex.nome, Number(e.target.value), s.reps, sIndex)}
-                          className="bg-white/5 rounded-lg py-2 text-[10px] font-bold text-center border border-white/10 outline-none focus:border-blue-500"
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
+        <div className="space-y-1.5">
+          {ex.series?.map((s: any, sIndex: number) => {
+            const key = `${ex.nome}-${sIndex}`;
+            return (
+              <div key={sIndex} className="grid grid-cols-4 items-center gap-1 bg-black/40 p-2 rounded-lg border border-white/5 text-center">
+                <span className="text-[8px] font-bold">{s.ordem || sIndex + 1}ª</span>
+                <span className="text-[9px] font-bold">{s.reps}x</span>
+                <span className="text-[9px] font-bold">{s.carga || 0}kg</span>
+                <input 
+                  type="number" placeholder="kg" value={inputValues[key] || ''} 
+                  onChange={(e) => setInputValues(prev => ({ ...prev, [key]: e.target.value }))}
+                  onBlur={(e) => registrarCarga(ex.nome, Number(e.target.value), s.reps, sIndex)}
+                  className="bg-white/5 rounded-md py-1 text-[9px] font-bold text-center border border-white/10 outline-none focus:border-blue-500"
+                />
               </div>
-            </div>
-          </div>
-        ))}
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  </div>
+))}
 
         <button onClick={finalizarSessao} disabled={!todosFinalizados} 
                 className={`w-full py-5 rounded-[2rem] font-black text-[10px] uppercase tracking-widest transition-all ${todosFinalizados ? 'bg-blue-600 shadow-xl' : 'bg-neutral-800 text-neutral-500'}`}>
