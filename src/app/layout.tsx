@@ -40,12 +40,17 @@ export default function RootLayout({
       lang="pt-br"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      {/* Classe bg-black aplicada aqui para eliminar o fundo branco global */}
-      <body className="min-h-full flex flex-col bg-black font-sans text-white selection:bg-blue-600 selection:text-white">
+      {/* Removi o bg-black fixo e mantive a flex col para layout 
+        O reset de margens vem do globals.css que criamos.
+      */}
+      <body className="flex flex-col min-h-screen font-sans selection:bg-blue-600 selection:text-white">
         <LogoProvider>
           <ConditionalNavbar />
           
-          <main className="flex-grow w-full mx-auto pb-24 md:pb-0 box-border">
+          {/* Removido mx-auto para evitar comportamentos de centralização 
+            indesejada em telas pequenas.
+          */}
+          <main className="flex-grow w-full box-border">
             {children}
           </main>
         </LogoProvider>
