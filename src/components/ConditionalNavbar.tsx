@@ -6,31 +6,36 @@ import NavbarAluno from './NavbarAluno';
 export default function ConditionalNavbar() {
   const pathname = usePathname();
 
-  // 1. Rotas que não devem exibir nenhuma barra de navegação
-  // Adicionamos /planos e /pagamento aqui para que fiquem focadas no checkout
-  const rotasSemNavbar = [
+  // 1. Definição de rotas exatas que não exibem nav
+  const rotasExclusao = [
     '/', 
     '/login-personal', 
     '/login-aluno', 
     '/login-professor-cadastro', 
     '/nova-senha',
     '/login-admin',
-    '/planos',      // Nova página Elite
-    '/pagamento',   // Nova página de Checkout
-    '/acesso-personal' // Página de bloqueio
+    '/planos',
+    '/acesso-personal'
   ];
 
-  // 2. Se a rota estiver na lista de exclusão OU começar com /admin, não renderiza nada.
-  if (rotasSemNavbar.includes(pathname) || pathname.startsWith('/admin')) {
+  // 2. Lógica de bloqueio: 
+  // - Rotas de exclusão exata
+  // - Qualquer coisa dentro de /admin
+  // - O início do processo de pagamento
+  if (
+    rotasExclusao.includes(pathname) || 
+    pathname.startsWith('/admin') || 
+    pathname.startsWith('/pagamento') 
+  ) {
     return null;
   }
 
   // 3. Lógica de roteamento para Aluno
-  // Mantemos o padrão atual para os seus alunos
-  if (pathname.startsWith('/aluno') || pathname.startsWith('/dashboard/aluno-view')) {
+  // Agora pega qualquer rota que comece com /aluno ou /dashboard/aluno
+  if (pathname.startsWith('/aluno') || pathname.startsWith('/dashboard/aluno')) {
     return <NavbarAluno />;
   }
 
-  // 4. Caso padrão (Personal logado no sistema)
+  // 4. Caso padrão (Personal)
   return <Navbar />;
 }

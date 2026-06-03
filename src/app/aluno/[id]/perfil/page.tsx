@@ -2,19 +2,20 @@
 import { useEffect, useState, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
+import { FaSignOutAlt, FaUser, FaLock } from 'react-icons/fa';
 
 export default function PerfilAluno({ params }: { params: Promise<{ id: string }> }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [activeTab, setActiveTab] = useState('dados'); 
   const [perfil, setPerfil] = useState({ nome: '', objetivo: '', telefone: '', avatar_url: '' });
   const [novaSenha, setNovaSenha] = useState('');
 
   const id = use(params).id;
+  const router = useRouter();
 
-  useEffect(() => { 
-    if (id) fetchPerfil(); 
-  }, [id]);
+  useEffect(() => { if (id) fetchPerfil(); }, [id]);
 
   const fetchPerfil = async () => {
     const { data } = await supabase.from('alunos').select('*').eq('id', id).maybeSingle();
@@ -22,115 +23,109 @@ export default function PerfilAluno({ params }: { params: Promise<{ id: string }
     setLoading(false);
   };
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push('/');
+  };
+
   const uploadAvatar = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     try {
       setUploading(true);
       const fileExt = file.name.split('.').pop();
       const fileName = `${id}/${Date.now()}.${fileExt}`;
       const { error: uploadError } = await supabase.storage.from('avatars').upload(fileName, file, { upsert: true });
       if (uploadError) throw uploadError;
-
       const { data } = supabase.storage.from('avatars').getPublicUrl(fileName);
       setPerfil(p => ({ ...p, avatar_url: data.publicUrl }));
-    } catch (err: any) {
-      alert('Erro no upload: ' + err.message);
-    } finally {
-      setUploading(false);
-    }
+    } catch (err: any) { alert('Erro no upload: ' + err.message); } finally { setUploading(false); }
   };
 
   const updatePerfil = async () => {
     setSaving(true);
     try {
-      const { error: dbError } = await supabase
-        .from('alunos')
-        .update({ 
-          nome: perfil.nome, 
-          objetivo: perfil.objetivo, 
-          telefone: perfil.telefone, 
-          avatar_url: perfil.avatar_url 
-        })
-        .eq('id', id);
-
-      if (dbError) throw dbError;
-
-      if (novaSenha) {
-        const { error: authError } = await supabase.auth.updateUser({ password: novaSenha });
-        if (authError) throw authError;
-        setNovaSenha('');
-      }
+      const { error } = await supabase.from('alunos').update({ 
+        nome: perfil.nome, objetivo: perfil.objetivo, telefone: perfil.telefone, avatar_url: perfil.avatar_url 
+      }).eq('id', id);
+      if (error) throw error;
+      if (novaSenha) await supabase.auth.updateUser({ password: novaSenha });
       alert("Perfil atualizado com sucesso!");
-    } catch (err: any) {
-      alert("Erro ao salvar: " + err.message);
-    } finally {
-      setSaving(false);
-    }
+    } catch (err: any) { alert("Erro ao salvar: " + err.message); } finally { setSaving(false); }
   };
 
- 
- if (loading) return (
-    <main className="min-h-screen bg-black p-6 space-y-8 animate-pulse">
-      {/* Header Skeleton */}
-      <div className="flex justify-between items-center mb-10">
-        <div className="w-16 h-4 bg-neutral-900 rounded-full" />
-        <div className="w-24 h-8 bg-neutral-900 rounded-xl" />
-      </div>
-
-      {/* Título e Barra de Progresso Skeleton */}
-      <div className="space-y-4">
-        <div className="w-48 h-8 bg-neutral-900 rounded-full" />
-        <div className="w-32 h-3 bg-neutral-900 rounded-full" />
-        <div className="w-full h-2 bg-neutral-900 rounded-full" />
-      </div>
-
-      {/* Cards de Exercícios Skeleton */}
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="p-8 bg-neutral-900/50 rounded-[2.5rem] border border-white/5 space-y-4">
-          <div className="w-full h-40 bg-neutral-900 rounded-2xl" />
-          <div className="w-1/2 h-6 bg-neutral-900 rounded-full" />
-        </div>
-      ))}
-    </main>
-  );
+  if (loading) return <main className="min-h-screen bg-black flex items-center justify-center text-blue-600 font-black animate-pulse">CARREGANDO...</main>;
 
   return (
-    <main className="min-h-screen bg-black p-6 md:p-12 text-white">
-      <div className="max-w-xl mx-auto bg-neutral-950/80 backdrop-blur-xl p-10 rounded-[2.5rem] border border-white/5 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
-        <h1 className="text-2xl font-black mb-8 tracking-tighter">Configurações de Perfil</h1>
+    <main className="min-h-screen bg-black text-white p-4 pb-10">
+      <div className="max-w-md mx-auto space-y-6">
         
-        {/* Avatar Section */}
-        <div className="flex items-center gap-6 mb-10 p-6 bg-white/5 rounded-3xl border border-white/5">
-          <img src={perfil.avatar_url || `https://ui-avatars.com/api/?name=${perfil.nome}&background=2563eb&color=fff`} className="w-20 h-20 rounded-full object-cover border-4 border-white/5 shadow-xl" />
-          <label className="cursor-pointer bg-blue-600 hover:bg-blue-500 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all">
-            {uploading ? 'Enviando...' : 'Trocar Foto'}
-            <input type="file" className="hidden" onChange={uploadAvatar} />
-          </label>
+        {/* Header Profissional */}
+       <header className="flex justify-between items-center py-4 mb-4">
+  <button 
+    onClick={() => router.back()} 
+    className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-white bg-white/5 hover:bg-white/10 px-4 py-2.5 rounded-2xl transition-all border border-white/5"
+  >
+    <span className="text-blue-500">←</span> Voltar
+  </button>
+  
+  <h1 className="font-black text-sm uppercase tracking-widest text-neutral-400">Meu Perfil</h1>
+  
+  <div className="w-16" /> {/* Espaçador para manter o título centralizado */}
+</header>
+
+        {/* Card do Usuário */}
+        <div className="bg-neutral-900/50 p-8 rounded-[2.5rem] border border-white/5 flex flex-col items-center gap-4 text-center">
+            <img src={perfil.avatar_url || `https://ui-avatars.com/api/?name=${perfil.nome}`} className="w-24 h-24 rounded-full border-4 border-black shadow-2xl" />
+            <h2 className="font-black text-xl">{perfil.nome}</h2>
+            <label className="cursor-pointer text-[9px] font-black uppercase tracking-widest text-blue-500 underline underline-offset-4">
+                {uploading ? 'Enviando...' : 'Trocar foto'}
+                <input type="file" className="hidden" onChange={uploadAvatar} />
+            </label>
         </div>
 
-        {/* Inputs */}
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <InputField label="Nome Completo" value={perfil.nome} onChange={(v: string) => setPerfil({...perfil, nome: v})} />
-            <InputField label="Telefone" value={perfil.telefone} onChange={(v: string) => setPerfil({...perfil, telefone: v})} />
-          </div>
-          <InputField label="Objetivo do Aluno" value={perfil.objetivo} onChange={(v: string) => setPerfil({...perfil, objetivo: v})} />
-          
-          <div className="pt-6 border-t border-white/5">
-            <h2 className="text-[10px] font-black mb-6 text-neutral-500 uppercase tracking-widest">Segurança</h2>
-            <InputField label="Nova Senha (deixar vazio para manter)" type="password" value={novaSenha} onChange={(v: string) => setNovaSenha(v)} />
-          </div>
-
-          <button 
-            onClick={updatePerfil} 
-            disabled={saving}
-            className="w-full bg-blue-600 hover:bg-blue-500 text-white py-5 rounded-2xl font-black text-xs uppercase tracking-widest transition-all shadow-[0_0_20px_rgba(37,99,235,0.3)] disabled:bg-neutral-800"
-          >
-            {saving ? "Salvando..." : "Salvar Alterações"}
-          </button>
+        {/* Sistema de Abas */}
+        <div className="bg-neutral-900/50 p-2 rounded-[2rem] border border-white/5 flex gap-2">
+            <button onClick={() => setActiveTab('dados')} className={`flex-1 py-3 rounded-[1.5rem] text-[9px] font-black uppercase tracking-widest transition-all ${activeTab === 'dados' ? 'bg-blue-600' : 'text-neutral-500'}`}>Dados</button>
+            <button onClick={() => setActiveTab('seguranca')} className={`flex-1 py-3 rounded-[1.5rem] text-[9px] font-black uppercase tracking-widest transition-all ${activeTab === 'seguranca' ? 'bg-blue-600' : 'text-neutral-500'}`}>Segurança</button>
         </div>
+
+        {/* Conteúdo dinâmico das abas */}
+        <div className="bg-neutral-900/50 p-8 rounded-[2.5rem] border border-white/5 min-h-[200px]">
+            {activeTab === 'dados' ? (
+                <div className="space-y-4 animate-in fade-in">
+                    <InputField label="Nome Completo" value={perfil.nome} onChange={(v: string) => setPerfil({...perfil, nome: v})} />
+                    <div className="grid grid-cols-2 gap-3">
+                        <InputField label="Telefone" value={perfil.telefone} onChange={(v: string) => setPerfil({...perfil, telefone: v})} />
+                        <InputField label="Objetivo" value={perfil.objetivo} onChange={(v: string) => setPerfil({...perfil, objetivo: v})} />
+                    </div>
+                </div>
+            ) : (
+                <div className="space-y-4 animate-in fade-in">
+                    <InputField label="Nova Senha" type="password" value={novaSenha} onChange={(v: string) => setNovaSenha(v)} />
+                    <button onClick={updatePerfil} disabled={saving} className="w-full py-4 bg-blue-600 rounded-[1.5rem] text-[10px] font-black uppercase tracking-widest hover:bg-blue-500 transition-all">
+                        {saving ? "Salvando..." : "Atualizar Senha"}
+                    </button>
+                </div>
+            )}
+        </div>
+
+        {/* Ações Finais */}
+        {activeTab === 'dados' && (
+            <button onClick={updatePerfil} disabled={saving} className="w-full bg-blue-600 py-5 rounded-[2rem] font-black text-[10px] uppercase tracking-widest transition-all active:scale-[0.98]">
+                {saving ? "Salvando..." : "Salvar Dados"}
+            </button>
+        )}
+
+        <button 
+  onClick={handleLogout}
+  className="group w-full flex items-center justify-center gap-3 py-4 mt-8 rounded-[2rem] border border-red-500/10 bg-red-500/5 hover:bg-red-500/10 transition-all duration-300"
+>
+  <FaSignOutAlt className="text-red-500 group-hover:scale-110 transition-transform" />
+  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-red-500">
+    Encerrar Sessão
+  </span>
+</button>
       </div>
     </main>
   );
@@ -139,13 +134,8 @@ export default function PerfilAluno({ params }: { params: Promise<{ id: string }
 function InputField({ label, value, onChange, type = "text" }: any) {
   return (
     <div>
-      <label className="block text-[10px] font-black text-neutral-500 uppercase mb-2 px-1 tracking-widest">{label}</label>
-      <input 
-        type={type}
-        className="w-full p-4 bg-white/5 border border-white/5 rounded-2xl outline-none focus:border-blue-500/50 transition-all text-white placeholder:text-neutral-700" 
-        value={value} 
-        onChange={(e) => onChange(e.target.value)} 
-      />
+      <label className="block text-[8px] font-black text-neutral-500 uppercase mb-2 px-1 tracking-widest">{label}</label>
+      <input type={type} className="w-full p-4 bg-black/40 border border-white/5 rounded-2xl text-sm font-bold text-white focus:border-blue-500 outline-none transition-all" value={value} onChange={(e) => onChange?.(e.target.value)} />
     </div>
   );
 }
