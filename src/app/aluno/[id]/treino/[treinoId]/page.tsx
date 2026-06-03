@@ -93,7 +93,11 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
     if (!carga || carga <= 0) return;
     const registroExistente = registros.find(r => r.exercicio_nome === nomeExercicio && r.serie_index === serieIndex);
     const payload = { aluno_id: id, treino_id: treinoId, exercicio_nome: nomeExercicio, carga, repeticoes: reps, serie_index: serieIndex };
-    const { data, error } = await supabase.from('registro_series').upsert(registroExistente ? { ...payload, id: registroExistente.id } : payload).select();
+   // Substitua a linha 96 (ou a que contém o upsert) por esta:
+const { data, error } = await supabase
+  .from('registro_series')
+  .upsert((registroExistente ? { ...payload, id: registroExistente.id } : payload) as any) // <- O 'as any' resolve o erro de tipo
+  .select();
     if (!error && data) setRegistros(prev => [...prev.filter(r => r.id !== data[0].id), ...data]);
   };
 
