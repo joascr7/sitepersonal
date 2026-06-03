@@ -59,12 +59,6 @@ export default function DashboardPerformance({ alunoId }: { alunoId: string }) {
     <main className="w-full min-h-screen bg-black text-white pt-20 pb-32 px-4">
       <div className="max-w-4xl mx-auto space-y-8">
         
-        {/* Header da Página */}
-        <div className="px-2">
-          <h1 className="text-4xl font-black tracking-tighter">Progresso</h1>
-          <p className="text-blue-500 font-black text-[9px] uppercase tracking-[0.2em] mt-1">Análise de performance</p>
-        </div>
-
         {/* Cards de Métricas */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <MetricCard title="Treinos Realizados" value={dados.totalTreinos.toString()} unit="sessões" icon={<FaCalendarCheck className="text-blue-500" />} />
