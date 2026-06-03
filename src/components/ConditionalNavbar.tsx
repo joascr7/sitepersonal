@@ -6,7 +6,6 @@ import NavbarAluno from './NavbarAluno';
 export default function ConditionalNavbar() {
   const pathname = usePathname();
 
-  // 1. Definição de rotas exatas que não exibem nav
   const rotasExclusao = [
     '/', 
     '/login-personal', 
@@ -18,10 +17,6 @@ export default function ConditionalNavbar() {
     '/acesso-personal'
   ];
 
-  // 2. Lógica de bloqueio: 
-  // - Rotas de exclusão exata
-  // - Qualquer coisa dentro de /admin
-  // - O início do processo de pagamento
   if (
     rotasExclusao.includes(pathname) || 
     pathname.startsWith('/admin') || 
@@ -30,12 +25,15 @@ export default function ConditionalNavbar() {
     return null;
   }
 
-  // 3. Lógica de roteamento para Aluno
-  // Agora pega qualquer rota que comece com /aluno ou /dashboard/aluno
-  if (pathname.startsWith('/aluno') || pathname.startsWith('/dashboard/aluno')) {
-    return <NavbarAluno />;
-  }
-
-  // 4. Caso padrão (Personal)
-  return <Navbar />;
+  // Envolvemos as navs em um container fixo no topo.
+  // z-50 garante que ela fique acima de qualquer elemento da página.
+  return (
+    <div className="fixed top-0 left-0 w-full z-50">
+      {pathname.startsWith('/aluno') || pathname.startsWith('/dashboard/aluno') ? (
+        <NavbarAluno />
+      ) : (
+        <Navbar />
+      )}
+    </div>
+  );
 }

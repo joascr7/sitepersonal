@@ -27,7 +27,13 @@ body {
 main {
   width: 100%;
 }
-
-main {
+/* Força o topo da tela a ignorar o espaço da navbar se necessário */
+body {
   padding-top: 0 !important;
+  margin-top: 0 !important;
+}
+
+/* Garante que o container principal comece do pixel 0 */
+main {
+  margin-top: 0 !important;
 }
