@@ -16,11 +16,12 @@ import {
 } from 'react-icons/fa';
 import { LineChart, Line, Tooltip, ResponsiveContainer, YAxis, XAxis } from 'recharts';
 import { startOfWeek, endOfWeek, eachDayOfInterval, format, isSameDay, parseISO, startOfMonth, endOfMonth, addMonths, subMonths, isSameMonth } from 'date-fns';
+import { useLogo } from '@/components/LogoProvider';
 
 export default function AreaDoAluno({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
-
+  const { nome } = useLogo();
   const [aluno, setAluno] = useState<any>(null);
   const [personal, setPersonal] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -29,6 +30,7 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
   const [diasTreino, setDiasTreino] = useState<Date[]>([]);
   const [calendarioAberto, setCalendarioAberto] = useState(false);
   const [treinoDoDia, setTreinoDoDia] = useState<any>(null);
+  
 
   // Memoiza processamento de dias para evitar lentidão
   const diasSemana = useMemo(() => 
@@ -144,8 +146,11 @@ useEffect(() => {
 
         {/* Header Ultra Compacto */}
         <header className="px-2 pt-4 pb-0">
-           <h1 className="text-[9px] font-black text-neutral-600 uppercase tracking-[0.3em]">AURAFIT</h1>
-        </header>
+          {/* Agora ele usa o nome dinâmico ou o padrão */}
+          <h1 className="text-[9px] font-black text-neutral-600 uppercase tracking-[0.3em]">
+            {nome}
+          </h1>
+       </header>
 
         {/* Perfil (Reduzi margens e paddings) */}
         <header className="flex flex-col items-center pt-0">
