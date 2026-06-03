@@ -3,9 +3,19 @@ import { useEffect, useState, use, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { ptBR } from 'date-fns/locale';
-import { FaDumbbell, FaClipboardList, FaChartLine, FaFileInvoice, FaFolderOpen, FaUserCircle, FaCommentMedical } from 'react-icons/fa';
+import { 
+  FaDumbbell, 
+  FaClipboardList, 
+  FaChartLine, 
+  FaFileInvoice, 
+  FaFolderOpen, 
+  FaUserCircle, 
+  FaCommentMedical, 
+  FaChevronLeft, 
+  FaChevronRight 
+} from 'react-icons/fa';
 import { LineChart, Line, Tooltip, ResponsiveContainer, YAxis, XAxis } from 'recharts';
-import { startOfWeek, endOfWeek, eachDayOfInterval, format, isSameDay, parseISO } from 'date-fns';
+import { startOfWeek, endOfWeek, eachDayOfInterval, format, isSameDay, parseISO, startOfMonth, endOfMonth, addMonths, subMonths, isSameMonth } from 'date-fns';
 
 export default function AreaDoAluno({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -17,29 +27,88 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
   const [avaliacoes, setAvaliacoes] = useState<any[]>([]);
   const [modalAberta, setModalAberta] = useState(false);
   const [diasTreino, setDiasTreino] = useState<Date[]>([]);
+  const [calendarioAberto, setCalendarioAberto] = useState(false);
+  const [treinoDoDia, setTreinoDoDia] = useState<any>(null);
 
   // Memoiza processamento de dias para evitar lentidão
   const diasSemana = useMemo(() => 
     eachDayOfInterval({ start: startOfWeek(new Date(), { weekStartsOn: 1 }), end: endOfWeek(new Date(), { weekStartsOn: 1 }) }), 
   []);
 
-  useEffect(() => {
+useEffect(() => {
     if (!id) return;
+    
     async function init() {
+      // 1. Busca dados do aluno
       const { data: alunoData } = await supabase.from('alunos').select('*').eq('id', id).maybeSingle();
       if (!alunoData) return;
       setAluno(alunoData);
 
+      // 2. Busca dados do personal
       if (alunoData.personal_id) {
         const { data: pData } = await supabase.from('personais').select('*').eq('id', alunoData.personal_id).maybeSingle();
         setPersonal(pData);
       }
 
-      const { data: conclusoes } = await supabase.from('conclusoes_treino').select('data_conclusao').eq('aluno_id', id).gte('data_conclusao', startOfWeek(new Date(), { weekStartsOn: 1 }).toISOString());
-      if (conclusoes) setDiasTreino(conclusoes.map(d => parseISO(d.data_conclusao)));
+      // 3. Busca todo o histórico para o calendário e para definir o último treino
+      const { data: conclusoes } = await supabase
+        .from('conclusoes_treino')
+        .select('data_conclusao, treino_id')
+        .eq('aluno_id', id);
+      
+      if (conclusoes) {
+        const inicioSemana = startOfWeek(new Date(), { weekStartsOn: 1 }).toISOString();
+        const treinosSemana = conclusoes.filter(c => c.data_conclusao >= inicioSemana);
+        setDiasTreino(treinosSemana.map(d => parseISO(d.data_conclusao)));
+      }
+
+      // 4. Lógica de Avanço Sequencial (Corrigida)
+      // Identifica o último treino concluído pelo aluno
+      let ordemUltimoTreino = 0;
+      if (conclusoes && conclusoes.length > 0) {
+        // Ordena pelo mais recente e pega o ID do treino
+        const ultimaConclusao = conclusoes.sort((a, b) => 
+          new Date(b.data_conclusao).getTime() - new Date(a.data_conclusao).getTime()
+        )[0];
+
+        // Busca qual era a ordem desse treino
+        const { data: fichaAnterior } = await supabase
+          .from('fichas')
+          .select('ordem')
+          .eq('id', ultimaConclusao.treino_id)
+          .single();
+        
+        ordemUltimoTreino = fichaAnterior?.ordem || 0;
+      }
+
+      // Busca o próximo treino (ordem maior que a última feita)
+      let { data: treinoSugerido } = await supabase
+        .from('fichas')
+        .select('*')
+        .eq('aluno_id', id)
+        .gt('ordem', ordemUltimoTreino) // Pega apenas os treinos com ordem superior
+        .order('ordem', { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      // FALLBACK: Se chegou ao fim ou nunca treinou, volta para o primeiro (reinicia o ciclo)
+      if (!treinoSugerido) {
+        const { data: fallback } = await supabase
+          .from('fichas')
+          .select('*')
+          .eq('aluno_id', id)
+          .order('ordem', { ascending: true })
+          .limit(1)
+          .maybeSingle();
+        treinoSugerido = fallback;
+      }
+
+      console.log("Treino sugerido (seguinte na ordem):", treinoSugerido);
+      setTreinoDoDia(treinoSugerido);
       
       setLoading(false);
     }
+    
     init();
   }, [id]);
 
@@ -93,6 +162,30 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
             </div>
         )}
 
+           {treinoDoDia ? (
+  <section className="bg-gradient-to-br from-blue-600 to-blue-800 p-8 rounded-[2.5rem] shadow-2xl mb-8 border border-white/10">
+    <div className="flex justify-between items-start mb-6">
+      <div>
+        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/60">Treino do dia</p>
+        <h2 className="text-2xl font-black tracking-tighter text-white">{treinoDoDia.nome_treino}</h2>
+      </div>
+      <div className="bg-white/20 p-3 rounded-2xl">
+        <FaDumbbell className="text-white text-xl" />
+      </div>
+    </div>
+    <button 
+      onClick={() => router.push(`/aluno/${id}/treino/${treinoDoDia.id}`)}
+      className="w-full py-5 bg-white text-blue-700 rounded-[1.5rem] font-black text-[10px] uppercase tracking-widest transition-transform active:scale-95"
+    >
+      Iniciar Agora
+    </button>
+  </section>
+) : (
+  <div className="p-8 text-center bg-neutral-900/50 rounded-[2.5rem] border border-dashed border-white/10">
+    <p className="text-neutral-500 text-xs font-bold">Nenhum treino pendente para hoje.</p>
+  </div>
+)}
+
         <section className="bg-neutral-900/50 p-6 rounded-[2rem] border border-white/10">
             <h2 className="text-[10px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-6">Sua semana de treinos</h2>
             <div className="flex justify-between items-center">
@@ -110,6 +203,13 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
               })}
             </div>
         </section>
+        <button 
+  onClick={() => setCalendarioAberto(true)}
+  className="w-full py-4 bg-neutral-900/50 border border-white/5 rounded-2xl text-[9px] font-black uppercase tracking-widest text-neutral-400 hover:text-white transition-all"
+>
+  Ver Histórico Completo
+</button>
+
 
         <div className="grid grid-cols-2 gap-4">
           <BotaoMenu icon={<FaDumbbell />} label="Treinos" onClick={() => router.push(`/aluno/${id}/treinos`)} />
@@ -127,6 +227,20 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
           <ModalAvaliacao isOpen={modalAberta} onClose={() => setModalAberta(false)} avaliacao={avaliacoes[avaliacoes.length - 1]} historico={avaliacoes.map(a => ({ data: new Date(a.data_avaliacao).toLocaleDateString(), peso: a.peso }))} />
         )}
       </div>
+
+      {calendarioAberto && (
+  <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+    <div className="bg-neutral-900 w-full max-w-sm p-8 rounded-[2.5rem] border border-white/10 shadow-2xl">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-[10px] font-black uppercase tracking-widest text-blue-500">Histórico de Treinos</h2>
+        <button onClick={() => setCalendarioAberto(false)} className="text-white text-xl">&times;</button>
+      </div>
+      
+      {/* Aqui vai o calendário que geramos anteriormente */}
+      <CalendarioTreino diasTreinados={diasTreino} />
+    </div>
+  </div>
+)}
     </main>
   );
 }
@@ -137,6 +251,39 @@ function BotaoMenu({ icon, label, onClick }: any) {
       <div className="text-2xl text-blue-500">{icon}</div>
       <span className="font-black text-[11px] uppercase tracking-widest text-white">{label}</span>
     </button>
+  );
+}
+
+
+function CalendarioTreino({ diasTreinados }: { diasTreinados: Date[] }) {
+  const [dataAtual, setDataAtual] = useState(new Date());
+  const diasDoMes = useMemo(() => 
+    eachDayOfInterval({ start: startOfMonth(dataAtual), end: endOfMonth(dataAtual) }), 
+  [dataAtual]);
+
+  return (
+    <div className="bg-neutral-900 p-6 rounded-[2rem] border border-white/5">
+      <div className="flex justify-between items-center mb-6">
+        <button onClick={() => setDataAtual(subMonths(dataAtual, 1))} className="text-neutral-500"><FaChevronLeft /></button>
+        <h3 className="font-black text-sm uppercase tracking-widest">{format(dataAtual, 'MMMM yyyy', { locale: ptBR })}</h3>
+        <button onClick={() => setDataAtual(addMonths(dataAtual, 1))} className="text-neutral-500"><FaChevronRight /></button>
+      </div>
+      <div className="grid grid-cols-7 gap-2 text-center">
+        {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((d, i) => (
+  <div key={i} className="text-[8px] font-black text-neutral-600 uppercase">
+    {d}
+  </div>
+))}
+        {diasDoMes.map((dia, i) => {
+          const treinou = diasTreinados.some(d => isSameDay(d, dia));
+          return (
+            <div key={i} className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold transition-all relative ${treinou ? 'bg-blue-600 text-white shadow-[0_0_15px_rgba(37,99,235,0.4)]' : 'text-neutral-600'} ${!isSameMonth(dia, dataAtual) ? 'opacity-20' : ''}`}>
+              {format(dia, 'd')}
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
@@ -180,6 +327,7 @@ function ModalAvaliacao({ isOpen, onClose, avaliacao, historico }: any) {
             </ResponsiveContainer>
           </div>
 
+
           {/* KPIs */}
           <div className="grid grid-cols-2 gap-4 mb-8">
             <div className="bg-blue-600 p-6 rounded-[2rem]">
@@ -208,6 +356,7 @@ function ModalAvaliacao({ isOpen, onClose, avaliacao, historico }: any) {
           {/* Espaço extra para não ficar colado no final */}
           <div className="h-6" />
         </div>
+        
       </div>
     </div>
   );

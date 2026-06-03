@@ -184,7 +184,9 @@ const [exercicios, setExercicios] = useState<Exercicio[]>([{
     aluno_id: id, 
     nome_treino: nome, 
     descricao: JSON.stringify(exerciciosLimpos), // JSON completo
+    ordem: 1,
     personal_id: user?.id 
+    
   }]);
   
   if (error) throw error;
