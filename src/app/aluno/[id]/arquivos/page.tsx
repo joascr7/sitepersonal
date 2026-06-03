@@ -58,8 +58,9 @@ export default function ArquivosAluno({ params }: { params: Promise<{ id: string
     } catch (err) { alert("Erro ao excluir arquivo."); }
   };
 
-  return (
-    <main className="min-h-screen bg-black p-6 md:p-12 text-white">
+ return (
+    // pt-20: compensa o Header superior (AuraFit), pb-32: reserva o espaço da Navbar inferior
+    <main className="w-full min-h-screen bg-black text-white pt-20 px-4 pb-32">
       <div className="max-w-3xl mx-auto">
         <button onClick={() => router.back()} className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.3em] mb-8 hover:text-white transition-colors">← Voltar</button>
         
@@ -88,7 +89,7 @@ export default function ArquivosAluno({ params }: { params: Promise<{ id: string
               <div key={arq.id} className="flex items-center justify-between p-6 bg-neutral-950/80 backdrop-blur-xl rounded-2xl border border-white/5 hover:border-white/10 transition-all">
                 <div className="flex items-center gap-4">
                   <FaFilePdf className="text-blue-500 text-2xl" />
-                  <span className="font-bold text-white text-sm">{arq.nome_arquivo}</span>
+                  <span className="font-bold text-white text-sm truncate max-w-[150px]">{arq.nome_arquivo}</span>
                 </div>
                 <div className="flex items-center gap-4">
                     <button 
@@ -108,6 +109,9 @@ export default function ArquivosAluno({ params }: { params: Promise<{ id: string
             ))
           )}
         </div>
+
+        {/* ESPAÇADOR DE SEGURANÇA: Garante que o scroll ultrapasse a Navbar inferior */}
+        <div className="h-40 w-full shrink-0" aria-hidden="true" />
       </div>
     </main>
   );
