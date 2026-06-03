@@ -76,7 +76,7 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
     if (!carga || carga <= 0) return;
     const registroExistente = registros.find(r => r.exercicio_nome === nomeExercicio && r.serie_index === serieIndex);
     const payload = { aluno_id: id, treino_id: treinoId, exercicio_nome: nomeExercicio, carga, repeticoes: reps, serie_index: serieIndex };
-    const { data } = await supabase.from('registro_series').upsert(registroExistente ? { ...payload, id: registroExistente.id } : payload).select();
+    const { data } = await supabase.from('registro_series').upsert((registroExistente ? { ...payload, id: registroExistente.id } : payload) as any).select();
     if (data) setRegistros(prev => [...prev.filter(r => r.id !== data[0].id), ...data]);
   };
 
