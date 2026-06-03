@@ -40,17 +40,22 @@ export default function RootLayout({
       lang="pt-br"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      {/* Removi o bg-black fixo e mantive a flex col para layout 
-        O reset de margens vem do globals.css que criamos.
+      {/* Ajuste do Body:
+        - min-h-screen: Garante que o fundo preto cubra toda a tela.
+        - flex-col: Organiza o layout.
+        - Não há margens/paddings aqui para não criar espaços no topo.
       */}
-      <body className="flex flex-col min-h-screen font-sans selection:bg-blue-600 selection:text-white">
+      <body className="min-h-screen flex flex-col bg-[var(--background)] text-[var(--foreground)] font-sans selection:bg-blue-600 selection:text-white">
         <LogoProvider>
+          {/* IMPORTANTE: Se o espaço continuar, abra o arquivo ConditionalNavbar.tsx
+            e certifique-se de que ele não possui classes como 'pt-10' ou 'mt-10'.
+          */}
           <ConditionalNavbar />
           
-          {/* Removido mx-auto para evitar comportamentos de centralização 
-            indesejada em telas pequenas.
+          {/* flex-grow: Garante que o conteúdo principal ocupe o espaço disponível 
+            sem margens laterais automáticas (mx-auto removido).
           */}
-          <main className="flex-grow w-full box-border">
+          <main className="flex-grow w-full">
             {children}
           </main>
         </LogoProvider>

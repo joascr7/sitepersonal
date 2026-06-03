@@ -138,8 +138,14 @@ useEffect(() => {
   );
 
   return (
+    
     <main className="min-h-screen bg-black p-4 text-white pb-10">
       <div className="max-w-md mx-auto space-y-8">
+
+        
+<div className="px-4 pt-2 pb-2">
+  <h1 className="text-sm font-semibold tracking-wide text-gray-500 uppercase">AuraFit</h1>
+</div>
         
         <header className="flex flex-col items-center pt-8">
           <div className="w-28 h-28 rounded-full bg-neutral-900 border-2 border-blue-600/30 p-1 mb-4 shadow-[0_0_30px_rgba(37,99,235,0.2)]">
