@@ -37,3 +37,8 @@ body {
 main {
   margin-top: 0 !important;
 }
+
+main {
+  /* Isso adiciona automaticamente espaço se o celular tiver notch ou barra de home */
+  padding-bottom: env(safe-area-inset-bottom);
+}

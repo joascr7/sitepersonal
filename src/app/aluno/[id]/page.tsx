@@ -139,7 +139,7 @@ useEffect(() => {
 
   return (
     // Removi pb-10, pt-2 e deixei pt-0 para colar no topo
-    <main className="w-full bg-black text-white pb-8 pt-0 px-4">
+    <main className="w-full bg-black text-white pb-24 pt-0 px-4">
       <div className="max-w-md mx-auto flex flex-col space-y-2"> {/* space-y-2 é muito mais compacto */}
 
         {/* Header Ultra Compacto */}
