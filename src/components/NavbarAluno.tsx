@@ -22,7 +22,7 @@ export default function NavbarAluno() {
   return (
     <>
       {/* --- DESKTOP --- */}
-      <nav className="hidden md:flex sticky top-0 z-50 bg-neutral-950/80 backdrop-blur-xl border-b border-white/5 px-10 py-5 justify-between items-center transition-all">
+      <nav className="hidden md:flex sticky top-0 z-50 bg-neutral-950/80 backdrop-blur-xl border-b border-white/5 px-10 py-5 justify-between items-center">
         <div className="flex items-center gap-3 h-10">
           {logo && <img src={logo} className="h-full w-auto" alt="Logo" />}
           <span className="font-black text-2xl text-blue-500">{nome}</span>
@@ -39,15 +39,15 @@ export default function NavbarAluno() {
 
       {/* --- MOBILE --- */}
       <div className="md:hidden">
-        {/* BARRA SUPERIOR FIXA (Agora com o nome AuraFit visível) */}
-        <header className="fixed top-0 left-0 w-full h-16 bg-black/80 backdrop-blur-md px-6 z-50 flex items-center border-b border-white/5">
-          <span className="font-black tracking-[0.05em] text-xl text-white uppercase">
+        {/* CABEÇALHO SUPERIOR - AGORA COM TAMANHO FIXO E POSICIONAMENTO CORRETO */}
+        <header className="fixed top-0 left-0 w-full h-16 bg-black/80 backdrop-blur-md z-[60] flex items-center px-6 border-b border-white/5">
+          <span className="font-black tracking-[0.05em] text-xl text-white uppercase truncate">
             {nome}
           </span>
         </header>
 
-        {/* BARRA INFERIOR (Mantida conforme seu design) */}
-        <nav className="fixed bottom-4 left-4 right-4 z-50 bg-neutral-900/90 backdrop-blur-2xl border border-white/5 rounded-[2rem] py-3 px-6 flex justify-between items-center shadow-2xl">
+        {/* BARRA INFERIOR - SEM DIVs EXTRA QUE PODEM CAUSAR BUGS */}
+        <nav className="fixed bottom-4 left-4 right-4 z-[60] bg-neutral-900/90 backdrop-blur-2xl border border-white/5 rounded-[2rem] py-3 px-6 flex justify-between items-center shadow-2xl">
           {navLinks.map((link) => {
             const isActive = pathname === link.path;
             return (
@@ -58,9 +58,6 @@ export default function NavbarAluno() {
             );
           })}
         </nav>
-        
-        {/* Espaçador para o conteúdo não ficar escondido sob a navbar inferior */}
-        <div className="h-24" /> 
       </div>
     </>
   );

@@ -6,7 +6,7 @@ import NavbarAluno from './NavbarAluno';
 export default function ConditionalNavbar() {
   const pathname = usePathname();
 
-  // 1. Definição de rotas exatas que não exibem nav
+  // 1. Rotas onde nenhuma navbar deve aparecer
   const rotasExclusao = [
     '/', 
     '/login-personal', 
@@ -18,8 +18,7 @@ export default function ConditionalNavbar() {
     '/acesso-personal'
   ];
 
-  // 2. Lógica de exclusão: 
-  // Se a rota for exata ou iniciar com prefixos proibidos, não renderiza nada
+  // 2. Lógica de exclusão
   if (
     rotasExclusao.includes(pathname) || 
     pathname.startsWith('/admin') || 
@@ -28,15 +27,17 @@ export default function ConditionalNavbar() {
     return null;
   }
 
-  // 3. Renderização flutuante (Fixed)
-  // O container garante que a navbar flutue sobre o conteúdo sem empurrá-lo
+  // 3. Renderização simples.
+  // IMPORTANTE: Removi a div "fixed top-0" daqui. 
+  // O posicionamento (fixed) deve estar DENTRO do NavbarAluno e Navbar.
+  // Isso evita que o ConditionalNavbar crie uma camada extra que causa o bug.
   return (
-    <div className="fixed top-0 left-0 w-full z-50 bg-black/80 backdrop-blur-md">
+    <>
       {pathname.startsWith('/aluno') || pathname.startsWith('/dashboard/aluno') ? (
         <NavbarAluno />
       ) : (
         <Navbar />
       )}
-    </div>
+    </>
   );
 }
