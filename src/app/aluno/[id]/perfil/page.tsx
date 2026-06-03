@@ -57,7 +57,7 @@ export default function PerfilAluno({ params }: { params: Promise<{ id: string }
   if (loading) return <main className="min-h-screen bg-black flex items-center justify-center text-blue-600 font-black animate-pulse">CARREGANDO...</main>;
 
   return (
-    <main className="min-h-screen bg-black text-white p-4 pb-10">
+    <main className="w-full bg-black text-white pb-10 pt-2 px-4">
       <div className="max-w-md mx-auto space-y-6">
         
         {/* Header Profissional */}

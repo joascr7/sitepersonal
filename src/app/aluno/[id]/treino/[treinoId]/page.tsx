@@ -116,7 +116,7 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
   );
 
   return (
-    <main className="min-h-screen bg-black text-white p-4 pb-24">
+    <main className="w-full bg-black text-white pb-10 pt-2 px-4">
       <div className="max-w-2xl mx-auto">
         <header className="flex justify-between items-center mb-8 px-2">
           <button onClick={() => router.back()} className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-white bg-white/5 px-4 py-2 rounded-xl">← Voltar</button>

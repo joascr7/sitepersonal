@@ -27,3 +27,7 @@ body {
 main {
   width: 100%;
 }
+
+main {
+  padding-top: 0 !important;
+}
