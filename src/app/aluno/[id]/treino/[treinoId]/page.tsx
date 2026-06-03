@@ -114,10 +114,12 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
       ))}
     </main>
   );
-
-  return (
-    <main className="w-full bg-black text-white pb-10 pt-2 px-4">
-      <div className="max-w-2xl mx-auto">
+  
+    return (
+    // Adicionado pb-0 aqui, pois o padding será controlado no container interno.
+    // pt-20 compensa a barra superior fixa.
+    <main className="w-full bg-black text-white pt-20 px-4 pb-0">
+      <div className="max-w-2xl mx-auto pb-32">
         <header className="flex justify-between items-center mb-8 px-2">
           <button onClick={() => router.back()} className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-white bg-white/5 px-4 py-2 rounded-xl">← Voltar</button>
           <button onClick={gerarPDF} className="bg-blue-600/10 text-blue-400 px-4 py-2 rounded-xl text-[9px] font-black uppercase border border-blue-600/20"><FaFilePdf className="inline mr-2"/> BAIXAR TREINO</button>
@@ -181,6 +183,9 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
         </button>
 
         {showToast && <ToastSucesso mensagem="Treino registrado." onClose={() => router.push(`/aluno/${id}`)} />}
+        
+        {/* ESPAÇADOR DE SEGURANÇA (Adicionado para garantir o scroll final abaixo da navbar fixa) */}
+        <div className="h-40 w-full shrink-0" aria-hidden="true" />
       </div>
     </main>
   );

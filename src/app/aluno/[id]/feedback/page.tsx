@@ -47,12 +47,15 @@ export default function RegistrarEvolucaoAluno({ params }: { params: Promise<{ i
   };
 
   return (
-    <main className="min-h-screen bg-black p-6 md:p-12 text-white">
-      <div className="max-w-md mx-auto bg-neutral-950/80 backdrop-blur-xl p-10 rounded-[2.5rem] border border-white/5 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+    // Mantemos pt-20 para compensar a Navbar superior fixa e pb-0 pois o respiro está no container interno
+    <main className="w-full min-h-screen bg-black text-white pt-20 px-4">
+      {/* Container com max-w-md para centralizar e pb-32 para o scroll da navbar inferior */}
+      <div className="max-w-md mx-auto bg-neutral-900/50 backdrop-blur-xl p-8 md:p-10 rounded-[2.5rem] border border-white/5 shadow-2xl pb-32">
         <h2 className="text-2xl font-black mb-2 tracking-tighter">Feedback do Treino</h2>
         <p className="text-neutral-500 mb-10 text-[10px] uppercase tracking-widest">Como você se sentiu hoje?</p>
         
         <div className="space-y-8">
+          {/* Intensidade */}
           <div>
             <label className="text-[10px] font-black uppercase text-neutral-500 tracking-widest">Intensidade (1 a 10)</label>
             <div className="grid grid-cols-5 gap-2 mt-4">
@@ -60,7 +63,11 @@ export default function RegistrarEvolucaoAluno({ params }: { params: Promise<{ i
                 <button 
                   key={num}
                   onClick={() => setForm({...form, intensidade: num})}
-                  className={`h-12 rounded-xl text-xs font-black transition-all duration-300 ${form.intensidade === num ? 'bg-blue-600 text-white shadow-[0_0_15px_rgba(37,99,235,0.5)]' : 'bg-white/5 text-neutral-400 hover:bg-white/10'}`}
+                  className={`h-12 rounded-xl text-xs font-black transition-all duration-300 ${
+                    form.intensidade === num 
+                      ? 'bg-blue-600 text-white shadow-[0_0_15px_rgba(37,99,235,0.5)]' 
+                      : 'bg-white/5 text-neutral-400 hover:bg-white/10'
+                  }`}
                 >
                   {num}
                 </button>
@@ -68,6 +75,7 @@ export default function RegistrarEvolucaoAluno({ params }: { params: Promise<{ i
             </div>
           </div>
 
+          {/* Desempenho */}
           <div>
             <label className="text-[10px] font-black uppercase text-neutral-500 tracking-widest">Como foi seu desempenho?</label>
             <select 
@@ -82,6 +90,7 @@ export default function RegistrarEvolucaoAluno({ params }: { params: Promise<{ i
             </select>
           </div>
 
+          {/* Anotações */}
           <div>
             <label className="text-[10px] font-black uppercase text-neutral-500 tracking-widest">Anotações para o Personal</label>
             <textarea 
@@ -92,6 +101,7 @@ export default function RegistrarEvolucaoAluno({ params }: { params: Promise<{ i
           </div>
         </div>
         
+        {/* Botão de Enviar */}
         <button 
           onClick={salvarFeedback} 
           disabled={loading}
@@ -99,6 +109,9 @@ export default function RegistrarEvolucaoAluno({ params }: { params: Promise<{ i
         >
           {loading ? "Enviando..." : "Enviar Feedback"}
         </button>
+
+        {/* ESPAÇADOR DE SEGURANÇA (Garante folga para a navbar inferior) */}
+        <div className="h-20 w-full shrink-0" aria-hidden="true" />
       </div>
     </main>
   );

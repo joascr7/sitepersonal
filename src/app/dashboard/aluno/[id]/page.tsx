@@ -146,8 +146,8 @@ const fetchArquivos = async () => {
 
   
    return (
-    <main className="min-h-screen bg-black p-4 md:p-12 transition-colors text-white">
-  <div className="max-w-4xl mx-auto">
+    <main className="w-full min-h-screen bg-black text-white pt-20 px-4 pb-32">
+      <div className="max-w-4xl mx-auto space-y-8">
     {/* Header do Aluno - Ajustado para mobile */}
     <section className="bg-neutral-900/60 backdrop-blur-xl p-6 rounded-[2rem] border border-white/5 shadow-2xl mb-8 flex flex-col items-center text-center gap-4">
       <img src={aluno?.avatar_url || 'https://via.placeholder.com/150'} className="w-24 h-24 rounded-[2rem] object-cover shadow-2xl border border-white/10" />
@@ -428,6 +428,7 @@ const fetchArquivos = async () => {
     </div>
   </section>
 )}
+
         {/* MODAL DE AVALIAÇÃO OTIMIZADO PARA MOBILE */}
 {isModalAvaliacaoOpen && (
   <div className="fixed inset-0 bg-black/80 backdrop-blur-xl z-50 flex items-end md:items-center justify-center p-0 md:p-4">
@@ -474,9 +475,12 @@ const fetchArquivos = async () => {
         >
           Salvar
         </button>
+        <div className="h-40 w-full shrink-0" aria-hidden="true" />
       </div>
+      <div className="h-20 w-full" /> {/* Respiro final no modal */}
+          </div>
     </div>
-  </div>
+ 
 )}
       </div>
     </main>

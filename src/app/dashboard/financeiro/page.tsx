@@ -96,7 +96,8 @@ export default function Financeiro() {
   );
 
   return (
-    <main className="min-h-screen bg-black p-6 md:p-12 text-white">
+    // PT-20 e PB-32 garantem que o conteúdo não fique escondido pelas navs fixas
+    <main className="w-full min-h-screen bg-black text-white pt-20 px-4 pb-32">
       <div className="max-w-4xl mx-auto space-y-8">
         <h1 className="text-4xl font-black tracking-tighter">Financeiro</h1>
         
@@ -123,35 +124,41 @@ export default function Financeiro() {
           </div>
         </div>
 
+        {/* Pagamento Manual - FLEX WRAP para mobile */}
         <div className="bg-neutral-950/80 backdrop-blur-xl p-8 rounded-[2.5rem] border border-white/5 shadow-xl">
           <h2 className="text-[10px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-6">Registrar Pagamento Manual</h2>
-          <div className="flex gap-4">
-            <select onChange={(e) => setAlunoId(e.target.value)} className="flex-1 p-4 bg-white/5 rounded-2xl text-sm font-bold border border-white/5 outline-none focus:border-blue-500">
+          <div className="flex flex-wrap gap-3">
+            <select onChange={(e) => setAlunoId(e.target.value)} className="flex-[2] min-w-[200px] p-4 bg-white/5 rounded-2xl text-sm font-bold border border-white/5 outline-none focus:border-blue-500 text-white">
               <option value="" className="text-black">Selecione o aluno...</option>
               {listaAlunos.map(a => <option key={a.id} value={a.id} className="text-black">{a.nome}</option>)}
             </select>
-            <input type="number" placeholder="Valor R$" value={novoValor} onChange={(e) => setNovoValor(e.target.value)} className="w-32 p-4 bg-white/5 rounded-2xl text-sm font-bold border border-white/5 outline-none focus:border-blue-500" />
+            <input type="number" placeholder="Valor R$" value={novoValor} onChange={(e) => setNovoValor(e.target.value)} className="flex-1 min-w-[100px] p-4 bg-white/5 rounded-2xl text-sm font-bold border border-white/5 outline-none focus:border-blue-500" />
             <button onClick={registrarPagamentoManual} disabled={saving} className="bg-blue-600 text-white px-8 rounded-2xl font-black text-sm hover:bg-blue-500 transition-all"><FaPlus /></button>
           </div>
         </div>
 
         <div className="bg-neutral-950/80 backdrop-blur-xl rounded-[2.5rem] border border-white/5 shadow-xl overflow-hidden">
           <div className="p-8 border-b border-white/5"><h2 className="font-black text-lg tracking-tighter">Últimas Transações</h2></div>
-          <table className="w-full text-left">
-            <thead className="bg-white/5 text-[9px] uppercase font-black text-neutral-500 tracking-[0.2em]">
-              <tr><th className="p-8">Aluno</th><th className="p-8">Data</th><th className="p-8 text-right">Valor</th></tr>
-            </thead>
-            <tbody className="divide-y divide-white/5">
-              {pagamentos.map((p) => (
-                <tr key={p.id}>
-                  <td className="p-8 font-bold text-sm">{p.alunos?.nome || 'Sem nome'}</td>
-                  <td className="p-8 text-xs text-neutral-500">{p.data_pagamento ? new Date(p.data_pagamento).toLocaleDateString('pt-BR') : '-'}</td>
-                  <td className="p-8 text-right font-black text-sm text-emerald-400">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(p.valor))}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead className="bg-white/5 text-[9px] uppercase font-black text-neutral-500 tracking-[0.2em]">
+                <tr><th className="p-8">Aluno</th><th className="p-8">Data</th><th className="p-8 text-right">Valor</th></tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {pagamentos.map((p) => (
+                  <tr key={p.id}>
+                    <td className="p-8 font-bold text-sm">{p.alunos?.nome || 'Sem nome'}</td>
+                    <td className="p-8 text-xs text-neutral-500">{p.data_pagamento ? new Date(p.data_pagamento).toLocaleDateString('pt-BR') : '-'}</td>
+                    <td className="p-8 text-right font-black text-sm text-emerald-400">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(p.valor))}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
+        
+        {/* Espaçador de segurança final */}
+        <div className="h-24 w-full shrink-0" aria-hidden="true" />
       </div>
     </main>
   );

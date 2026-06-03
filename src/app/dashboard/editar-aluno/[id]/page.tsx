@@ -96,9 +96,13 @@ export default function FormularioAluno({ params }: { params?: Promise<{ id?: st
   };
 
   return (
-    <main className="min-h-screen bg-black flex flex-col items-center p-6 md:p-12 text-white">
+    // PT-20: Reserva o topo para o Header AuraFit
+    // PB-32: Reserva a base para a Navbar inferior fixa
+    <main className="w-full min-h-screen bg-black flex flex-col items-center px-4 pt-20 pb-32">
+      
+      {/* Toast de status */}
       {statusMsg && (
-        <div className={`fixed top-6 right-6 p-4 rounded-2xl shadow-2xl z-[100] text-[10px] font-black uppercase tracking-widest ${statusMsg.type === 'success' ? 'bg-emerald-600' : 'bg-red-600'}`}>
+        <div className={`fixed top-24 right-6 p-4 rounded-2xl shadow-2xl z-[100] text-[10px] font-black uppercase tracking-widest ${statusMsg.type === 'success' ? 'bg-emerald-600' : 'bg-red-600'}`}>
           {statusMsg.text}
         </div>
       )}
@@ -129,6 +133,9 @@ export default function FormularioAluno({ params }: { params?: Promise<{ id?: st
         >
           {loading ? "Processando..." : isEditing ? "Salvar Alterações" : "Confirmar Cadastro"}
         </button>
+
+        {/* ESPAÇADOR DE SEGURANÇA: Garante scroll livre no final da página */}
+        <div className="h-20 w-full shrink-0" aria-hidden="true" />
       </div>
     </main>
   );

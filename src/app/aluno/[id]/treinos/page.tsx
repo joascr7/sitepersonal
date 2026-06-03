@@ -71,13 +71,18 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
       ))}
     </main>
   );
-
-  return (
-    <main className="w-full bg-black text-white pb-10 pt-2 px-4">
+  
+    return (
+    // PT-20: Reserva o espaço para a Navbar superior fixa.
+    // PB-32: Reserva o espaço necessário para a Navbar inferior fixa.
+    <main className="w-full bg-black text-white pt-20 pb-32 px-4">
       <div className="max-w-md mx-auto space-y-6">
+        
         <header className="py-6">
           <h1 className="text-4xl font-black tracking-tighter">Treinos</h1>
-          <p className="text-blue-500 font-black text-[9px] uppercase tracking-[0.2em] mt-1">Sua jornada de alta performance</p>
+          <p className="text-blue-500 font-black text-[9px] uppercase tracking-[0.2em] mt-1">
+            Sua jornada de alta performance
+          </p>
         </header>
 
         <div className="space-y-4">
@@ -89,7 +94,9 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
                 <div className="flex justify-between items-start mb-4">
                   <div>
                     <h2 className="font-black text-white text-md">{f.nome_treino}</h2>
-                    <p className="text-[9px] font-black uppercase tracking-widest text-neutral-500 mt-1">{f.count} Exercícios</p>
+                    <p className="text-[9px] font-black uppercase tracking-widest text-neutral-500 mt-1">
+                      {f.count} Exercícios
+                    </p>
                   </div>
                   <div className="text-right">
                     <p className="text-[8px] font-black uppercase text-neutral-600">Última</p>
@@ -120,9 +127,15 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
           })}
         </div>
         
-        <button onClick={() => router.back()} className="w-full text-neutral-700 hover:text-white transition-all text-[9px] font-black uppercase tracking-[0.2em] mt-4">
+        <button 
+          onClick={() => router.back()} 
+          className="w-full text-neutral-700 hover:text-white transition-all text-[9px] font-black uppercase tracking-[0.2em] mt-4"
+        >
           Voltar para Perfil
         </button>
+
+        {/* ESPAÇADOR DE SEGURANÇA: Garante que o scroll ultrapasse a Navbar inferior */}
+        <div className="h-16 w-full shrink-0" aria-hidden="true" />
       </div>
     </main>
   );

@@ -66,7 +66,9 @@ export default function AdicionarAluno() {
   };
 
   return (
-    <main className="min-h-screen bg-black flex flex-col items-center p-4 md:p-12 pb-20 box-border text-white">
+    // pt-20: compensa o Header superior (AuraFit), pb-32: compensa a Navbar inferior
+    <main className="w-full min-h-screen bg-black flex flex-col items-center px-4 pt-20 pb-32 box-border text-white">
+      
       <div className="w-full max-w-lg bg-neutral-950/80 backdrop-blur-xl p-8 md:p-10 rounded-[2.5rem] border border-white/5 shadow-2xl box-border">
         <header className="mb-10">
           <h1 className="text-3xl font-black tracking-tighter">Adicionar Aluno</h1>
@@ -103,6 +105,9 @@ export default function AdicionarAluno() {
         >
           {loading ? "Cadastrando..." : "Confirmar Cadastro"}
         </button>
+
+        {/* ESPAÇADOR DE SEGURANÇA: Garante que o scroll ultrapasse a Navbar inferior */}
+        <div className="h-20 w-full shrink-0" aria-hidden="true" />
       </div>
     </main>
   );

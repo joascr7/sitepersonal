@@ -208,17 +208,19 @@ export default function Dashboard() {
 
   return (
     <SubscriptionGuard>
-  <main className="min-h-screen bg-black p-4 md:p-12 pb-24 text-white">
+  {/* PT-20 compensa a Navbar superior fixa. PB-32 reserva espaço para a Navbar inferior. */}
+  <main className="min-h-screen bg-black text-white pt-20 pb-32 px-4">
+    
     {/* Toast de status */}
     {statusMsg && (
-      <div className={`fixed top-6 right-6 p-4 rounded-2xl shadow-2xl z-[100] text-[10px] font-black uppercase tracking-widest ${statusMsg.type === 'success' ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'}`}>
+      <div className={`fixed top-24 right-6 p-4 rounded-2xl shadow-2xl z-[200] text-[10px] font-black uppercase tracking-widest ${statusMsg.type === 'success' ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'}`}>
         {statusMsg.text}
       </div>
     )}
 
     {/* Modal de Pagamento */}
     {isModalOpen && (
-      <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[200] flex items-center justify-center p-4">
+      <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[300] flex items-center justify-center p-4">
         <div className="bg-neutral-950/90 p-8 rounded-[2.5rem] w-full max-w-sm border border-white/10 space-y-4">
           <div className="flex justify-between items-center">
             <h3 className="font-black tracking-tighter">Registrar Pagamento</h3>
@@ -250,46 +252,45 @@ export default function Dashboard() {
       )}
         
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-  <div className="space-y-4">
-    {/* Card Mês Atual */}
-    <div className="bg-neutral-950/80 backdrop-blur-xl p-8 rounded-[2.5rem] border border-white/5 shadow-xl">
-      <FaWallet className="text-emerald-500 mb-2 text-xl" />
-      <h2 className="text-[9px] font-black text-neutral-500 uppercase tracking-widest">Mês Atual</h2>
-      <p className="text-xl font-black text-white">
-        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalMes)}
-      </p>
-    </div>
-    
-    {/* Card Relatório por Mês */}
-    <div className="bg-neutral-950/80 backdrop-blur-xl p-8 rounded-[2.5rem] border border-white/5 shadow-xl">
-      <div className="flex items-center gap-2 mb-3 text-blue-500">
-        <FaCalendarAlt /> 
-        <h2 className="text-[9px] font-black text-neutral-500 uppercase tracking-widest">Relatório por Mês</h2>
-      </div>
-      <div className="flex gap-2">
-        <select 
-          className="bg-white/5 p-3 rounded-2xl text-[10px] font-black w-full outline-none text-white transition-all focus:border-blue-500 border border-white/5 [&>option]:bg-neutral-900 [&>option]:text-white" 
-          value={mesSelecionado} 
-          onChange={(e) => setMesSelecionado(Number(e.target.value))}
-        >
-          {['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'].map((m, i) => (
-            <option key={i} value={i} className="bg-neutral-900 text-white">{m}</option>
-          ))}
-        </select>
-        <input 
-          type="number" 
-          className="bg-white/5 p-3 rounded-2xl text-[10px] font-black w-20 text-center outline-none text-white transition-all focus:border-blue-500 border border-white/5" 
-          value={anoSelecionado} 
-          onChange={(e) => setAnoSelecionado(Number(e.target.value))} 
-        />
-      </div>
-      <p className="text-xl font-black mt-3 text-blue-500">
-        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(faturamentoMes)}
-      </p>
-    </div>
-  </div>
+        <div className="space-y-4">
+          {/* Card Mês Atual */}
+          <div className="bg-neutral-950/80 backdrop-blur-xl p-8 rounded-[2.5rem] border border-white/5 shadow-xl">
+            <FaWallet className="text-emerald-500 mb-2 text-xl" />
+            <h2 className="text-[9px] font-black text-neutral-500 uppercase tracking-widest">Mês Atual</h2>
+            <p className="text-xl font-black text-white">
+              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalMes)}
+            </p>
+          </div>
+          
+          {/* Card Relatório por Mês */}
+          <div className="bg-neutral-950/80 backdrop-blur-xl p-8 rounded-[2.5rem] border border-white/5 shadow-xl">
+            <div className="flex items-center gap-2 mb-3 text-blue-500">
+              <FaCalendarAlt /> 
+              <h2 className="text-[9px] font-black text-neutral-500 uppercase tracking-widest">Relatório por Mês</h2>
+            </div>
+            <div className="flex gap-2">
+              <select 
+                className="bg-white/5 p-3 rounded-2xl text-[10px] font-black w-full outline-none text-white transition-all focus:border-blue-500 border border-white/5 [&>option]:bg-neutral-900 [&>option]:text-white" 
+                value={mesSelecionado} 
+                onChange={(e) => setMesSelecionado(Number(e.target.value))}
+              >
+                {['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'].map((m, i) => (
+                  <option key={i} value={i} className="bg-neutral-900 text-white">{m}</option>
+                ))}
+              </select>
+              <input 
+                type="number" 
+                className="bg-white/5 p-3 rounded-2xl text-[10px] font-black w-20 text-center outline-none text-white transition-all focus:border-blue-500 border border-white/5" 
+                value={anoSelecionado} 
+                onChange={(e) => setAnoSelecionado(Number(e.target.value))} 
+              />
+            </div>
+            <p className="text-xl font-black mt-3 text-blue-500">
+              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(faturamentoMes)}
+            </p>
+          </div>
+        </div>
 
-        
         <div className="md:col-span-2 bg-neutral-950/80 backdrop-blur-xl p-8 rounded-[2.5rem] border border-white/5 shadow-xl overflow-hidden">
            <AgendaGeral />
         </div>
@@ -339,6 +340,9 @@ export default function Dashboard() {
           );
         })}
       </div>
+      
+      {/* ESPAÇADOR FINAL DE SEGURANÇA */}
+      <div className="h-20 w-full shrink-0" aria-hidden="true" />
     </div>
   </main>
 </SubscriptionGuard>

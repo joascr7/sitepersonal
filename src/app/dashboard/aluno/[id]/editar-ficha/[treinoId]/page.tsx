@@ -124,11 +124,13 @@ export default function EditarFicha() {
     </main>
   );
 
-  return (
-    <main className="min-h-screen bg-black p-6 md:p-12 text-white">
+ return (
+    // pt-20: compensa o Header superior (AuraFit), pb-32: compensa a Navbar inferior
+    <main className="w-full min-h-screen bg-black p-6 md:p-12 text-white pt-20 pb-32">
       <div className="max-w-3xl mx-auto">
-        <div className="flex justify-between items-center mb-10">
-          <button onClick={() => router.back()} className="text-[10px] font-black text-neutral-500 uppercase tracking-widest hover:text-white">← Voltar</button>
+        <div className="flex items-center justify-between mb-10">
+          <button onClick={() => router.back()} className="text-[10px] font-black uppercase tracking-widest text-neutral-500 hover:text-white transition-colors">← Voltar</button>
+          <h1 className="text-xl font-black tracking-tighter">Editar Ficha</h1>
           <button onClick={excluirFicha} className="text-red-500 font-black text-[10px] uppercase tracking-widest hover:text-red-400">Excluir Ficha</button>
         </div>
 
@@ -144,6 +146,7 @@ export default function EditarFicha() {
             <div className="flex justify-between items-center mb-8">
               <input 
                 className="font-black text-white text-lg w-full outline-none bg-transparent" 
+                placeholder="Nome do Exercício"
                 value={ex.nome} 
                 onChange={(e) => { const n = [...exercicios]; n[exIndex].nome = e.target.value; setExercicios(n); }} 
               />
@@ -178,6 +181,9 @@ export default function EditarFicha() {
         ))}
 
         <button onClick={atualizarFicha} className="w-full bg-blue-600 text-white p-6 rounded-[2.5rem] font-black text-xs uppercase tracking-widest shadow-2xl hover:bg-blue-500 transition-all active:scale-[0.98]"> SALVAR ALTERAÇÕES </button>
+        
+        {/* ESPAÇADOR DE SEGURANÇA: Garante scroll total até o final */}
+        <div className="h-40 w-full shrink-0" aria-hidden="true" />
       </div>
     </main>
   );

@@ -239,7 +239,7 @@ useEffect(() => {
         )}
         
         {/* ESPAÇADOR DE SEGURANÇA (Adicionado para garantir o scroll final) */}
-        <div className="h-40 w-full shrink-0" aria-hidden="true" />
+        <div className="h40 w-full shrink-0" aria-hidden="true" />
       </div>
 
       {calendarioAberto && (
