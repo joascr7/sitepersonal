@@ -106,8 +106,31 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
     }
   };
 
-  if (loading) return <main className="min-h-screen bg-black flex items-center justify-center text-blue-500 font-black">CARREGANDO...</main>;
-  if (errorMsg) return <main className="min-h-screen bg-black flex items-center justify-center text-red-500 font-black">ERRO: {errorMsg}</main>;
+ 
+ if (loading) return (
+    <main className="min-h-screen bg-black p-6 space-y-8 animate-pulse">
+      {/* Header Skeleton */}
+      <div className="flex justify-between items-center mb-10">
+        <div className="w-16 h-4 bg-neutral-900 rounded-full" />
+        <div className="w-24 h-8 bg-neutral-900 rounded-xl" />
+      </div>
+
+      {/* Título e Barra de Progresso Skeleton */}
+      <div className="space-y-4">
+        <div className="w-48 h-8 bg-neutral-900 rounded-full" />
+        <div className="w-32 h-3 bg-neutral-900 rounded-full" />
+        <div className="w-full h-2 bg-neutral-900 rounded-full" />
+      </div>
+
+      {/* Cards de Exercícios Skeleton */}
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="p-8 bg-neutral-900/50 rounded-[2.5rem] border border-white/5 space-y-4">
+          <div className="w-full h-40 bg-neutral-900 rounded-2xl" />
+          <div className="w-1/2 h-6 bg-neutral-900 rounded-full" />
+        </div>
+      ))}
+    </main>
+  );
 
   return (
     <main className="min-h-screen bg-black p-6 md:p-12 text-white">
