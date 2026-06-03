@@ -39,12 +39,14 @@ export default function NavbarAluno() {
 
       {/* --- MOBILE --- */}
       <div className="md:hidden">
-        {/* BARRA SUPERIOR FIXA (Adicionada para mostrar o nome AuraFit) */}
+        {/* BARRA SUPERIOR FIXA (Agora com o nome AuraFit visível) */}
         <header className="fixed top-0 left-0 w-full h-16 bg-black/80 backdrop-blur-md px-6 z-50 flex items-center border-b border-white/5">
-          <span className="font-black tracking-[0.05em] text-xl text-white uppercase">{nome}</span>
+          <span className="font-black tracking-[0.05em] text-xl text-white uppercase">
+            {nome}
+          </span>
         </header>
 
-        {/* BARRA INFERIOR */}
+        {/* BARRA INFERIOR (Mantida conforme seu design) */}
         <nav className="fixed bottom-4 left-4 right-4 z-50 bg-neutral-900/90 backdrop-blur-2xl border border-white/5 rounded-[2rem] py-3 px-6 flex justify-between items-center shadow-2xl">
           {navLinks.map((link) => {
             const isActive = pathname === link.path;
@@ -56,6 +58,9 @@ export default function NavbarAluno() {
             );
           })}
         </nav>
+        
+        {/* Espaçador para o conteúdo não ficar escondido sob a navbar inferior */}
+        <div className="h-24" /> 
       </div>
     </>
   );
