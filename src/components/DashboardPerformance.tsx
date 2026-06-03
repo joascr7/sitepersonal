@@ -57,10 +57,10 @@ export default function DashboardPerformance({ alunoId }: { alunoId: string }) {
   return (
     // pt-20 compensa o Header superior, pb-32 compensa a Navbar inferior
     <main className="w-full min-h-screen bg-black text-white pt-20 pb-32 px-4">
-      <div className="max-w-4xl mx-auto space-y-8">
+      <div className="max-w-4xl mx-auto space-y-2">
         
         {/* Cards de Métricas */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
           <MetricCard title="Treinos Realizados" value={dados.totalTreinos.toString()} unit="sessões" icon={<FaCalendarCheck className="text-blue-500" />} />
           <MetricCard title="Variedade" value={Object.keys(dados.frequencia).length.toString()} unit="exercícios" icon={<FaDumbbell className="text-blue-500" />} />
           <MetricCard title="Recordes Batidos" value={dados.prs.length.toString()} unit="vitórias" icon={<FaMedal className="text-blue-500" />} />

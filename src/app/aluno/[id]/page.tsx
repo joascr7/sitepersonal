@@ -223,23 +223,28 @@ useEffect(() => {
         </button>
 
         <div className="grid grid-cols-2 gap-4">
-          <BotaoMenu icon={<FaDumbbell />} label="Treinos" onClick={() => router.push(`/aluno/${id}/treinos`)} />
-          <BotaoMenu icon={<FaClipboardList />} label="Avaliações" onClick={async () => { 
-            const { data } = await supabase.from('avaliacoes_fisicas').select('*').eq('aluno_id', id); 
-            if(data) { setAvaliacoes(data); setModalAberta(true); } 
-          }} />
-          <BotaoMenu icon={<FaChartLine />} label="Progresso" onClick={() => router.push(`/aluno/${id}/progresso`)} />
-          <BotaoMenu icon={<FaCommentMedical />} label="Feedback" onClick={() => router.push(`/aluno/${id}/feedback`)} />
-          <BotaoMenu icon={<FaFileInvoice />} label="Faturas" onClick={() => router.push(`/aluno/${id}/faturas`)} />
-          <BotaoMenu icon={<FaFolderOpen />} label="Arquivos" onClick={() => router.push(`/aluno/${id}/arquivos`)} />
-        </div>
+  <BotaoMenu icon={<FaDumbbell />} label="Treinos" onClick={() => router.push(`/aluno/${id}/treinos`)} />
+  <BotaoMenu icon={<FaClipboardList />} label="Avaliações" onClick={async () => { 
+    const { data } = await supabase.from('avaliacoes_fisicas').select('*').eq('aluno_id', id); 
+    if(data) { setAvaliacoes(data); setModalAberta(true); } 
+  }} />
+  <BotaoMenu icon={<FaChartLine />} label="Progresso" onClick={() => router.push(`/aluno/${id}/progresso`)} />
+  <BotaoMenu icon={<FaCommentMedical />} label="Feedback" onClick={() => router.push(`/aluno/${id}/feedback`)} />
+  <BotaoMenu icon={<FaFileInvoice />} label="Faturas" onClick={() => router.push(`/aluno/${id}/faturas`)} />
+  <BotaoMenu icon={<FaFolderOpen />} label="Arquivos" onClick={() => router.push(`/aluno/${id}/arquivos`)} />
+</div>
 
-        {modalAberta && (
-          <ModalAvaliacao isOpen={modalAberta} onClose={() => setModalAberta(false)} avaliacao={avaliacoes[avaliacoes.length - 1]} historico={avaliacoes.map(a => ({ data: new Date(a.data_avaliacao).toLocaleDateString(), peso: a.peso }))} />
-        )}
-        
-        {/* ESPAÇADOR DE SEGURANÇA (Adicionado para garantir o scroll final) */}
-        <div className="h40 w-full shrink-0" aria-hidden="true" />
+{modalAberta && (
+  <ModalAvaliacao 
+    isOpen={modalAberta} 
+    onClose={() => setModalAberta(false)} 
+    avaliacao={avaliacoes[avaliacoes.length - 1]} 
+    historico={avaliacoes.map(a => ({ data: new Date(a.data_avaliacao).toLocaleDateString(), peso: a.peso }))} 
+  />
+)}
+
+{/* O ESPAÇADOR AGORA TEM A CLASSE CORRETA: h-40 */}
+<div className="h-40 w-full shrink-0" aria-hidden="true" />
       </div>
 
       {calendarioAberto && (
