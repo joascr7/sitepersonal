@@ -147,7 +147,7 @@ useEffect(() => {
         {/* Header Ultra Compacto */}
         <header className="px-2 pt-4 pb-0">
           <h1 className="text-[9px] font-black text-neutral-600 uppercase tracking-[0.3em]">
-            {nome}
+            
           </h1>
         </header>
 
