@@ -40,6 +40,7 @@ export default function NavbarAluno() {
       {/* --- MOBILE (Barra Inferior Premium) --- */}
       <div className="md:hidden">
         <nav className="fixed bottom-4 left-4 right-4 z-50 bg-neutral-900/90 backdrop-blur-2xl border border-white/5 rounded-[2rem] py-3 px-6 flex justify-between items-center shadow-2xl">
+          {logo && <img src={logo} className="h-full w-auto" alt="Logo" />}
           {navLinks.map((link) => {
             const isActive = pathname === link.path;
             return (
