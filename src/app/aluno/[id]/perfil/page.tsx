@@ -3,6 +3,7 @@ import { useEffect, useState, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { FaSignOutAlt, FaUser, FaLock } from 'react-icons/fa';
+import InputField from '@/components/InputField';
 
 export default function PerfilAluno({ params }: { params: Promise<{ id: string }> }) {
   const [loading, setLoading] = useState(true);
