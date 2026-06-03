@@ -91,7 +91,7 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
   };
 
   if (loading) return (
-    <main className="min-h-screen bg-black p-6 space-y-8 animate-pulse">
+    <main className="min-h-screen bg-black p-6 space-y-2 animate-pulse">
       {/* Header Skeleton */}
       <div className="flex justify-between items-center mb-10">
         <div className="w-16 h-4 bg-neutral-900 rounded-full" />

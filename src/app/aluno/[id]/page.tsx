@@ -136,35 +136,35 @@ useEffect(() => {
       ))}
     </main>
   );
-  
-   return (
-    // Removi min-h-screen e p-6. Adicionei pt-2 e px-4 para um topo compacto.
-    <main className="w-full bg-black text-white pb-10 pt-2 px-4">
-      <div className="max-w-md mx-auto space-y-6">
- 
-        {/* Título do App Compacto */}
-        <header className="px-2 pt-2">
-           <h1 className="text-[10px] font-black text-neutral-500 uppercase tracking-[0.2em]">AuraFit</h1>
+
+  return (
+    // Removi pb-10, pt-2 e deixei pt-0 para colar no topo
+    <main className="w-full bg-black text-white pb-8 pt-0 px-4">
+      <div className="max-w-md mx-auto flex flex-col space-y-2"> {/* space-y-2 é muito mais compacto */}
+
+        {/* Header Ultra Compacto */}
+        <header className="px-2 pt-4 pb-0">
+           <h1 className="text-[9px] font-black text-neutral-600 uppercase tracking-[0.3em]">AURAFIT</h1>
         </header>
 
-        {/* Perfil do Personal (Compactado) */}
-        <header className="flex flex-col items-center pt-2">
-          <div className="w-20 h-20 rounded-full bg-neutral-900 border-2 border-blue-600/30 p-1 mb-2 shadow-[0_0_20px_rgba(37,99,235,0.15)]">
+        {/* Perfil (Reduzi margens e paddings) */}
+        <header className="flex flex-col items-center pt-0">
+          <div className="w-16 h-16 rounded-full bg-neutral-900 border-2 border-blue-600/30 p-1 shadow-lg">
              {personal?.avatar_url ? <img src={personal.avatar_url} className="w-full h-full object-cover rounded-full" /> : <FaUserCircle className="w-full h-full text-neutral-600" />}
           </div>
-          <h1 className="font-black text-xl tracking-tighter">{personal?.nome || 'Personal Trainer'}</h1>
-          <p className="text-blue-500 text-[10px] font-black uppercase tracking-[0.2em] mt-0.5">CREF: {personal?.cref || 'N/A'}</p>
+          <h1 className="font-black text-lg mt-1 tracking-tighter">{personal?.nome || 'Personal'}</h1>
+          <p className="text-blue-500 text-[9px] font-black uppercase tracking-[0.2em]">CREF: {personal?.cref || 'N/A'}</p>
         </header>
 
         {aluno && (
-            <div className="bg-neutral-900/50 p-4 rounded-2xl border border-white/10 flex justify-between items-center">
+            <div className="bg-neutral-900/50 p-3 rounded-2xl border border-white/5 flex justify-between items-center">
                 <div>
-                    <p className="text-[9px] font-black uppercase text-neutral-500 tracking-widest">Status</p>
-                    <p className="font-black text-xs">{aluno.status_pagamento === 'bloqueado' ? 'Bloqueado' : 'Assinatura Ativa'}</p>
+                    <p className="text-[8px] font-black uppercase text-neutral-500 tracking-widest">Status</p>
+                    <p className="font-black text-[11px]">{aluno.status_pagamento === 'bloqueado' ? 'Bloqueado' : 'Assinatura Ativa'}</p>
                 </div>
                 <div className="text-right">
-                    <p className="text-[9px] font-black uppercase text-neutral-500 tracking-widest">Vencimento</p>
-                    <p className="font-black text-xs">{aluno.data_vencimento ? new Date(aluno.data_vencimento).toLocaleDateString('pt-BR') : 'N/A'}</p>
+                    <p className="text-[8px] font-black uppercase text-neutral-500 tracking-widest">Vencimento</p>
+                    <p className="font-black text-[11px]">{aluno.data_vencimento ? new Date(aluno.data_vencimento).toLocaleDateString('pt-BR') : 'N/A'}</p>
                 </div>
             </div>
         )}
