@@ -136,29 +136,35 @@ useEffect(() => {
       ))}
     </main>
   );
-
-  return (
-    
+  
+   return (
+    // Removi min-h-screen e p-6. Adicionei pt-2 e px-4 para um topo compacto.
     <main className="w-full bg-black text-white pb-10 pt-2 px-4">
-      <div className="max-w-md mx-auto space-y-8">
+      <div className="max-w-md mx-auto space-y-6">
  
-        <header className="flex flex-col items-center pt-8">
-          <div className="w-28 h-28 rounded-full bg-neutral-900 border-2 border-blue-600/30 p-1 mb-4 shadow-[0_0_30px_rgba(37,99,235,0.2)]">
+        {/* Título do App Compacto */}
+        <header className="px-2 pt-2">
+           <h1 className="text-[10px] font-black text-neutral-500 uppercase tracking-[0.2em]">AuraFit</h1>
+        </header>
+
+        {/* Perfil do Personal (Compactado) */}
+        <header className="flex flex-col items-center pt-2">
+          <div className="w-20 h-20 rounded-full bg-neutral-900 border-2 border-blue-600/30 p-1 mb-2 shadow-[0_0_20px_rgba(37,99,235,0.15)]">
              {personal?.avatar_url ? <img src={personal.avatar_url} className="w-full h-full object-cover rounded-full" /> : <FaUserCircle className="w-full h-full text-neutral-600" />}
           </div>
-          <h1 className="font-black text-2xl tracking-tighter">{personal?.nome || 'Personal Trainer'}</h1>
-          <p className="text-blue-500 text-[11px] font-black uppercase tracking-[0.2em] mt-1">CREF: {personal?.cref || 'N/A'}</p>
+          <h1 className="font-black text-xl tracking-tighter">{personal?.nome || 'Personal Trainer'}</h1>
+          <p className="text-blue-500 text-[10px] font-black uppercase tracking-[0.2em] mt-0.5">CREF: {personal?.cref || 'N/A'}</p>
         </header>
 
         {aluno && (
-            <div className="bg-neutral-900/50 p-6 rounded-[2rem] border border-white/10 flex justify-between items-center">
+            <div className="bg-neutral-900/50 p-4 rounded-2xl border border-white/10 flex justify-between items-center">
                 <div>
-                    <p className="text-[10px] font-black uppercase text-neutral-500 tracking-widest">Status</p>
-                    <p className="font-black text-sm">{aluno.status_pagamento === 'bloqueado' ? 'Bloqueado' : 'Assinatura Ativa'}</p>
+                    <p className="text-[9px] font-black uppercase text-neutral-500 tracking-widest">Status</p>
+                    <p className="font-black text-xs">{aluno.status_pagamento === 'bloqueado' ? 'Bloqueado' : 'Assinatura Ativa'}</p>
                 </div>
                 <div className="text-right">
-                    <p className="text-[10px] font-black uppercase text-neutral-500 tracking-widest">Vencimento</p>
-                    <p className="font-black text-sm">{aluno.data_vencimento ? new Date(aluno.data_vencimento).toLocaleDateString('pt-BR') : 'N/A'}</p>
+                    <p className="text-[9px] font-black uppercase text-neutral-500 tracking-widest">Vencimento</p>
+                    <p className="font-black text-xs">{aluno.data_vencimento ? new Date(aluno.data_vencimento).toLocaleDateString('pt-BR') : 'N/A'}</p>
                 </div>
             </div>
         )}
