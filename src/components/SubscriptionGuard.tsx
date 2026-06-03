@@ -1,7 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { getPurchases } from '@/services/subscription';
 import { supabase } from '@/lib/supabaseClient';
 
 export default function SubscriptionGuard({ children }: { children: React.ReactNode }) {
@@ -12,38 +11,35 @@ export default function SubscriptionGuard({ children }: { children: React.ReactN
   useEffect(() => {
     async function checkSubscription() {
       try {
-        // 1. CHECAGEM RÁPIDA NO BANCO (Supabase)
         const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const { data: personal } = await supabase
-            .from('personais')
-            .select('is_pro')
-            .eq('id', user.id)
-            .single();
-
-          if (personal?.is_pro) {
-            setIsPro(true);
-            setLoading(false);
-            return;
-          }
-        }
-
-        // 2. CHECAGEM NO REVENUECAT (Se não for pro no banco, checa o SDK)
-        const Purchases = await getPurchases();
-        if (!Purchases) {
-          router.push('/planos');
+        
+        if (!user) {
+          router.push('/login');
           return;
         }
 
-        const customerInfo = await Purchases.getCustomerInfo();
-        if (customerInfo.entitlements.active['pro_access']) {
+        // --- EXCEÇÃO PARA O ADMIN (Acesso imediato) ---
+        if (user.email === 'admin@aurafit.com') {
+          setIsPro(true);
+          setLoading(false);
+          return;
+        }
+        // ----------------------------------------------
+
+        const { data: personal, error: dbError } = await supabase
+          .from('personais')
+          .select('is_pro')
+          .eq('id', user.id)
+          .maybeSingle();
+
+        if (personal && personal.is_pro === true) {
           setIsPro(true);
         } else {
+          console.log("Acesso negado: Usuário não é PRO.");
           router.push('/planos');
         }
-      } catch (error) {
-        console.error("Erro na verificação:", error);
-        router.push('/planos');
+      } catch (err) {
+        console.error("Erro no SubscriptionGuard:", err);
       } finally {
         setLoading(false);
       }
@@ -54,8 +50,8 @@ export default function SubscriptionGuard({ children }: { children: React.ReactN
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0F0F0F] text-white">
-        <p className="animate-pulse">Validando acesso...</p>
+      <div className="min-h-screen bg-black flex items-center justify-center text-white font-black animate-pulse">
+        VALIDANDO ACESSO...
       </div>
     );
   }

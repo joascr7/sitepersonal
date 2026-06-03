@@ -60,9 +60,10 @@ export async function middleware(request: NextRequest) {
     }*/
 
     // Se tentar acessar área administrativa e NÃO for admin, joga pro dashboard
-    if (pathname.startsWith('/admin/')) {
-      return NextResponse.redirect(new URL('/dashboard', request.url));
-    }
+   // Substitua o seu if pelo código abaixo
+if (pathname === '/admin' || pathname === '/admin/') {
+  return NextResponse.redirect(new URL('/admin/financeiro?aba=gestao', request.url));
+}
     
     // NOTA: A validação de assinatura (is_pro) agora é feita pelo SubscriptionGuard 
     // diretamente nas páginas. Isso remove a dependência de banco de dados no middleware, 

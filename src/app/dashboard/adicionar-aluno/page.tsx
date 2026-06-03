@@ -4,11 +4,9 @@ import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
 import { cadastrarAlunoAction } from '../../actions/aluno';
 
-// CORREÇÃO: InputField movido para fora do componente principal.
-// Isso evita que o React recrie o componente a cada letra digitada, o que trava o teclado.
 const InputField = ({ label, name, value, onChange, type = "text", placeholder, autoComplete }: any) => (
-  <div className="flex flex-col gap-1.5 w-full min-w-0"> {/* Adicionado min-w-0 */}
-    <label className="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] px-1 truncate">
+  <div className="flex flex-col gap-2 w-full min-w-0">
+    <label className="text-[9px] font-black text-neutral-500 uppercase tracking-[0.2em] px-1 truncate">
       {label}
     </label>
     <input 
@@ -18,8 +16,7 @@ const InputField = ({ label, name, value, onChange, type = "text", placeholder, 
       placeholder={placeholder}
       value={value}
       onChange={onChange}
-      // Adicionado block e w-full para forçar o limite do container pai
-      className="block w-full px-4 py-3.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:bg-white focus:ring-2 focus:ring-black/5 transition-all text-sm font-medium box-border"
+      className="block w-full px-5 py-4 bg-white/5 border border-white/5 rounded-2xl outline-none focus:border-blue-500 transition-all text-sm font-bold text-white placeholder:text-neutral-700 box-border"
     />
   </div>
 );
@@ -69,28 +66,26 @@ export default function AdicionarAluno() {
   };
 
   return (
-    // CORREÇÃO: Adicionado box-border para o container não vazar da tela no mobile
-    <main className="min-h-screen bg-gray-50 flex flex-col items-center p-4 md:p-6 pb-20 box-border">
-      <div className="w-full max-w-lg bg-white p-6 md:p-10 rounded-3xl shadow-sm border border-gray-100 box-border">
-        <header className="mb-8">
-          <h1 className="text-2xl font-black text-gray-900 tracking-tighter">Adicionar Aluno</h1>
-          <p className="text-gray-500 text-sm mt-1">Preencha as informações do novo aluno.</p>
+    <main className="min-h-screen bg-black flex flex-col items-center p-4 md:p-12 pb-20 box-border text-white">
+      <div className="w-full max-w-lg bg-neutral-950/80 backdrop-blur-xl p-8 md:p-10 rounded-[2.5rem] border border-white/5 shadow-2xl box-border">
+        <header className="mb-10">
+          <h1 className="text-3xl font-black tracking-tighter">Adicionar Aluno</h1>
+          <p className="text-neutral-500 text-[10px] font-black uppercase tracking-[0.2em] mt-2">Preencha os dados do novo membro</p>
         </header>
         
-        <div className="space-y-6">
+        <div className="space-y-8">
           <section className="space-y-4">
-            <h2 className="text-[10px] font-black uppercase text-gray-300 tracking-widest">Acesso</h2>
+            <h2 className="text-[9px] font-black uppercase text-blue-500 tracking-widest">Acesso</h2>
             <InputField label="E-mail" name="email" type="email" autoComplete="email" value={formData.email} onChange={handleInputChange} placeholder="aluno@email.com" />
             <InputField label="Senha" name="password" type="password" autoComplete="new-password" value={formData.password} onChange={handleInputChange} placeholder="••••••••" />
           </section>
 
-          <div className="h-px bg-gray-100" />
+          <div className="h-px bg-white/5" />
 
           <section className="space-y-4">
-            <h2 className="text-[10px] font-black uppercase text-gray-300 tracking-widest">Perfil</h2>
+            <h2 className="text-[9px] font-black uppercase text-blue-500 tracking-widest">Perfil</h2>
             <InputField label="Nome Completo" name="nome" autoComplete="name" value={formData.nome} onChange={handleInputChange} placeholder="Nome do aluno" />
             
-            {/* CORREÇÃO: grid-cols-1 md:grid-cols-2 garante que no celular fique um embaixo do outro */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <InputField label="WhatsApp" name="telefone" type="tel" value={formData.telefone} onChange={handleInputChange} placeholder="(00) 00000-0000" />
               <InputField label="Vencimento" name="dataVencimento" type="date" value={formData.dataVencimento} onChange={handleInputChange} />
@@ -104,7 +99,7 @@ export default function AdicionarAluno() {
         <button 
           onClick={handleAddAluno}
           disabled={loading}
-          className="w-full mt-8 bg-gray-900 text-white py-4 rounded-2xl font-bold active:scale-[0.98] transition-transform disabled:opacity-50"
+          className="w-full mt-10 bg-blue-600 text-white py-5 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-500 transition-all active:scale-[0.98] disabled:opacity-50"
         >
           {loading ? "Cadastrando..." : "Confirmar Cadastro"}
         </button>

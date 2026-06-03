@@ -208,139 +208,140 @@ export default function Dashboard() {
 
   return (
     <SubscriptionGuard>
-    <main className="min-h-screen bg-[#F8F9FA] p-4 md:p-12 pb-24">
-      {statusMsg && (
-        <div className={`fixed top-6 right-6 p-4 rounded-2xl shadow-2xl z-[100] text-[10px] font-black uppercase tracking-widest ${statusMsg.type === 'success' ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white'}`}>
-          {statusMsg.text}
-        </div>
-      )}
+  <main className="min-h-screen bg-black p-4 md:p-12 pb-24 text-white">
+    {/* Toast de status */}
+    {statusMsg && (
+      <div className={`fixed top-6 right-6 p-4 rounded-2xl shadow-2xl z-[100] text-[10px] font-black uppercase tracking-widest ${statusMsg.type === 'success' ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'}`}>
+        {statusMsg.text}
+      </div>
+    )}
 
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black/50 z-[200] flex items-center justify-center p-4">
-          <div className="bg-white p-8 rounded-3xl w-full max-w-sm space-y-4">
-            <div className="flex justify-between items-center">
-              <h3 className="font-black">Registrar Pagamento</h3>
-              <button onClick={() => setIsModalOpen(false)}><FaTimes /></button>
-            </div>
-            <input type="number" value={valorPago} onChange={(e) => setValorPago(e.target.value)} placeholder="Valor (R$)" className="w-full p-4 bg-gray-50 rounded-xl font-bold" />
-            <button onClick={processarPagamento} className="w-full py-4 bg-gray-900 text-white rounded-xl font-black uppercase text-xs">Confirmar Pagamento</button>
+    {/* Modal de Pagamento */}
+    {isModalOpen && (
+      <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[200] flex items-center justify-center p-4">
+        <div className="bg-neutral-950/90 p-8 rounded-[2.5rem] w-full max-w-sm border border-white/10 space-y-4">
+          <div className="flex justify-between items-center">
+            <h3 className="font-black tracking-tighter">Registrar Pagamento</h3>
+            <button onClick={() => setIsModalOpen(false)} className="text-neutral-500 hover:text-white"><FaTimes /></button>
           </div>
-        </div>
-      )}
-
-      <div className="max-w-6xl mx-auto space-y-6">
-        <header className="flex justify-between items-end">
-          <div>
-            <h1 className="text-4xl font-black text-gray-950 tracking-tighter">Dashboard</h1>
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 mt-1">Gestão de Alta Performance</p>
-          </div>
-          <button onClick={() => router.push('/dashboard/adicionar-aluno')} className="bg-gray-900 text-white p-4 rounded-2xl shadow-lg active:scale-95 transition-all">
-            <FaPlus />
-          </button>
-        </header>
-
-{/* 1. Toast de status (corrigido para não dar erro) */}
-{statusMsg && (
-  <div className={`fixed top-6 right-6 p-4 rounded-2xl shadow-2xl z-[100] text-[10px] font-black uppercase tracking-widest ${statusMsg.type === 'success' ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white'}`}>
-    {statusMsg.text}
-  </div>
-)}
-
-{/* 2. Aviso de Teste Grátis */}
-{/* 2. Aviso de Teste Grátis Dinâmico */}
-{statusAcesso.emTeste && (
-  <div className="mb-6 bg-blue-50 border border-blue-100 p-4 rounded-2xl flex justify-between items-center shadow-sm">
-    <p className="text-[10px] font-black text-blue-900 uppercase tracking-widest">
-      Você está no período de teste.
-    </p>
-    <button 
-      onClick={() => router.push('/acesso-personal')} 
-      className="bg-blue-600 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase hover:bg-blue-700 transition-all"
-    >
-      Assinar Plano
-    </button>
-  </div>
-)}
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="space-y-4">
-            <div className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm">
-              <FaWallet className="text-emerald-500 mb-2" />
-              <h2 className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Mês Atual</h2>
-              <p className="text-lg font-black">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalMes)}</p>
-            </div>
-            
-            <div className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm">
-              <div className="flex items-center gap-2 mb-3 text-blue-500"><FaCalendarAlt /> <h2 className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Relatório por Mês</h2></div>
-              <div className="flex gap-2">
-                <select className="bg-gray-50 p-2 rounded-xl text-[10px] font-black w-full" value={mesSelecionado} onChange={(e) => setMesSelecionado(Number(e.target.value))}>
-                  {['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'].map((m, i) => <option key={i} value={i}>{m}</option>)}
-                </select>
-                <input type="number" className="bg-gray-50 p-2 rounded-xl text-[10px] font-black w-16 text-center" value={anoSelecionado} onChange={(e) => setAnoSelecionado(Number(e.target.value))} />
-              </div>
-              <p className="text-lg font-black mt-3 text-blue-600">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(faturamentoMes)}</p>
-            </div>
-          </div>
-          
-          <div className="md:col-span-2 bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden">
-             <AgendaGeral />
-          </div>
-        </div>
-
-        {alunosVencendo.length > 0 && (
-          <div className="p-6 bg-amber-500 rounded-[2rem] text-white flex items-center justify-between shadow-xl">
-            <div className="flex items-center gap-3"><FaExclamationTriangle /> <span className="font-black text-xs">Renovação próxima</span></div>
-            <div className="flex gap-2">
-              {alunosVencendo.map(a => (
-                <button key={a.id} onClick={() => { setAlunoSelecionado(a); setIsModalOpen(true); }} className="bg-amber-600 px-4 py-2 rounded-xl text-[10px] font-black hover:bg-amber-700 uppercase">{a.nome}</button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div className="relative">
-          <FaSearch className="absolute left-6 top-5 text-gray-400" />
-          <input className="w-full bg-white p-5 pl-14 rounded-[2rem] border border-gray-100 shadow-sm outline-none text-sm font-bold" placeholder="Buscar aluno..." value={busca} onChange={(e) => setBusca(e.target.value)} />
-        </div>
-
-        <div className="space-y-4">
-          {alunosFiltrados.map((a) => {
-            const statusDisplay = getStatusDisplay(a);
-            return (
-              <div key={a.id} className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center font-black text-gray-500 overflow-hidden">
-                    {a.avatar_url ? <img src={a.avatar_url} className="w-full h-full object-cover" /> : a.nome.charAt(0)}
-                  </div>
-                  <div>
-                    <h3 className="font-black text-gray-900">{a.nome}</h3>
-                    <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-md ${statusDisplay.color}`}>
-                      {statusDisplay.text}
-                    </span>
-                  </div>
-                </div>
-                <div className="flex gap-2 items-center">
-                  <button 
-  onClick={() => toggleStatus(a)} 
-  className={`p-3 rounded-xl transition-colors ${
-    a.ativo 
-      ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100' 
-      : 'bg-red-50 text-red-600 hover:bg-red-100'
-  }`}
-  title={a.ativo ? "Bloquear Acesso" : "Liberar Acesso"}
->
-  {a.ativo ? <FaTimes /> : <FaUser />} 
-</button>
-                  <button onClick={() => router.push(`/dashboard/editar-aluno/${a.id}`)} className="bg-gray-100 p-3 rounded-xl text-gray-600 hover:bg-gray-200"><FaEdit /></button>
-                  <button onClick={() => router.push(`/dashboard/aluno/${a.id}`)} className="bg-gray-100 p-3 rounded-xl text-gray-600 hover:bg-gray-200"><FaUser /></button>
-                  <button onClick={() => router.push(`/dashboard/aluno/${a.id}/progresso`)} className="bg-gray-900 text-white p-3 rounded-xl"><FaChartLine /></button>
-                </div>
-              </div>
-            );
-          })}
+          <input type="number" value={valorPago} onChange={(e) => setValorPago(e.target.value)} placeholder="Valor (R$)" className="w-full p-4 bg-white/5 rounded-2xl font-bold border border-white/5 outline-none focus:border-blue-500" />
+          <button onClick={processarPagamento} className="w-full py-4 bg-blue-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-blue-500 transition-all">Confirmar Pagamento</button>
         </div>
       </div>
-    </main>
-    </SubscriptionGuard>
+    )}
+
+    <div className="max-w-6xl mx-auto space-y-8">
+      <header className="flex justify-between items-end">
+        <div>
+          <h1 className="text-4xl font-black tracking-tighter">Dashboard</h1>
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-500 mt-1">Gestão de Alta Performance</p>
+        </div>
+        <button onClick={() => router.push('/dashboard/adicionar-aluno')} className="bg-blue-600 text-white p-4 rounded-2xl shadow-xl hover:bg-blue-500 active:scale-95 transition-all">
+          <FaPlus />
+        </button>
+      </header>
+
+      {/* Aviso de Teste Grátis */}
+      {statusAcesso.emTeste && (
+        <div className="bg-blue-600/10 border border-blue-600/20 p-6 rounded-[2rem] flex justify-between items-center">
+          <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest">Você está no período de teste.</p>
+          <button onClick={() => router.push('/acesso-personal')} className="bg-blue-600 text-white px-6 py-3 rounded-2xl text-[10px] font-black uppercase hover:bg-blue-500 transition-all">Assinar Plano</button>
+        </div>
+      )}
+        
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+  <div className="space-y-4">
+    {/* Card Mês Atual */}
+    <div className="bg-neutral-950/80 backdrop-blur-xl p-8 rounded-[2.5rem] border border-white/5 shadow-xl">
+      <FaWallet className="text-emerald-500 mb-2 text-xl" />
+      <h2 className="text-[9px] font-black text-neutral-500 uppercase tracking-widest">Mês Atual</h2>
+      <p className="text-xl font-black text-white">
+        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalMes)}
+      </p>
+    </div>
+    
+    {/* Card Relatório por Mês */}
+    <div className="bg-neutral-950/80 backdrop-blur-xl p-8 rounded-[2.5rem] border border-white/5 shadow-xl">
+      <div className="flex items-center gap-2 mb-3 text-blue-500">
+        <FaCalendarAlt /> 
+        <h2 className="text-[9px] font-black text-neutral-500 uppercase tracking-widest">Relatório por Mês</h2>
+      </div>
+      <div className="flex gap-2">
+        <select 
+          className="bg-white/5 p-3 rounded-2xl text-[10px] font-black w-full outline-none text-white transition-all focus:border-blue-500 border border-white/5 [&>option]:bg-neutral-900 [&>option]:text-white" 
+          value={mesSelecionado} 
+          onChange={(e) => setMesSelecionado(Number(e.target.value))}
+        >
+          {['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'].map((m, i) => (
+            <option key={i} value={i} className="bg-neutral-900 text-white">{m}</option>
+          ))}
+        </select>
+        <input 
+          type="number" 
+          className="bg-white/5 p-3 rounded-2xl text-[10px] font-black w-20 text-center outline-none text-white transition-all focus:border-blue-500 border border-white/5" 
+          value={anoSelecionado} 
+          onChange={(e) => setAnoSelecionado(Number(e.target.value))} 
+        />
+      </div>
+      <p className="text-xl font-black mt-3 text-blue-500">
+        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(faturamentoMes)}
+      </p>
+    </div>
+  </div>
+
+        
+        <div className="md:col-span-2 bg-neutral-950/80 backdrop-blur-xl p-8 rounded-[2.5rem] border border-white/5 shadow-xl overflow-hidden">
+           <AgendaGeral />
+        </div>
+      </div>
+
+      {alunosVencendo.length > 0 && (
+        <div className="p-8 bg-amber-600/10 border border-amber-600/20 rounded-[2.5rem] flex items-center justify-between shadow-xl">
+          <div className="flex items-center gap-4 text-amber-500"><FaExclamationTriangle /> <span className="font-black text-xs uppercase tracking-widest">Renovação próxima</span></div>
+          <div className="flex gap-3">
+            {alunosVencendo.map(a => (
+              <button key={a.id} onClick={() => { setAlunoSelecionado(a); setIsModalOpen(true); }} className="bg-amber-600 px-6 py-3 rounded-2xl text-[10px] font-black hover:bg-amber-500 uppercase tracking-widest">{a.nome}</button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="relative">
+        <FaSearch className="absolute left-8 top-6 text-neutral-600" />
+        <input className="w-full bg-neutral-950/80 backdrop-blur-xl p-6 pl-16 rounded-[2.5rem] border border-white/5 shadow-xl outline-none text-sm font-bold text-white placeholder:text-neutral-700" placeholder="Buscar aluno..." value={busca} onChange={(e) => setBusca(e.target.value)} />
+      </div>
+
+      <div className="space-y-4">
+        {alunosFiltrados.map((a) => {
+          const statusDisplay = getStatusDisplay(a);
+          return (
+            <div key={a.id} className="bg-neutral-950/80 backdrop-blur-xl p-8 rounded-[2.5rem] border border-white/5 flex items-center justify-between shadow-xl">
+              <div className="flex items-center gap-6">
+                <div className="w-14 h-14 rounded-full bg-white/5 flex items-center justify-center font-black text-neutral-500 overflow-hidden border border-white/5">
+                  {a.avatar_url ? <img src={a.avatar_url} className="w-full h-full object-cover" /> : a.nome.charAt(0)}
+                </div>
+                <div>
+                  <h3 className="font-black text-white">{a.nome}</h3>
+                  <span className={`text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-full bg-white/5 ${statusDisplay.color}`}>
+                    {statusDisplay.text}
+                  </span>
+                </div>
+              </div>
+              <div className="flex gap-2 items-center">
+                <button onClick={() => toggleStatus(a)} className={`p-4 rounded-2xl transition-all ${a.ativo ? 'bg-blue-600/10 text-blue-400 hover:bg-blue-600/20' : 'bg-red-600/10 text-red-400 hover:bg-red-600/20'}`}>
+                  {a.ativo ? <FaTimes /> : <FaUser />} 
+                </button>
+                <button onClick={() => router.push(`/dashboard/editar-aluno/${a.id}`)} className="bg-white/5 p-4 rounded-2xl text-neutral-400 hover:text-white"><FaEdit /></button>
+                <button onClick={() => router.push(`/dashboard/aluno/${a.id}`)} className="bg-white/5 p-4 rounded-2xl text-neutral-400 hover:text-white"><FaUser /></button>
+                <button onClick={() => router.push(`/dashboard/aluno/${a.id}/progresso`)} className="bg-blue-600 text-white p-4 rounded-2xl"><FaChartLine /></button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  </main>
+</SubscriptionGuard>
+    
   );
 }

@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { format, parseISO, subMonths, startOfWeek } from 'date-fns';
-import { FaFilePdf, FaArrowLeft, FaChartLine, FaHistory } from 'react-icons/fa';
+import { FaArrowLeft, FaChartLine } from 'react-icons/fa';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -20,7 +20,6 @@ export default function ProgressoPersonalCompleto({ params }: { params: Promise<
   useEffect(() => {
     async function carregarTudo() {
       setLoading(true);
-      // Busca paralela para máxima performance
       const [alunoRes, seriesRes] = await Promise.all([
         supabase.from('alunos').select('*').eq('id', id).single(),
         supabase.from('registro_series')
@@ -42,7 +41,6 @@ export default function ProgressoPersonalCompleto({ params }: { params: Promise<
     carregarTudo();
   }, [id]);
 
-  // Filtro inteligente: garante que pegamos dados mesmo se o nome tiver variações de case ou espaços
   const dadosFiltrados = useMemo(() => {
     const limite = filtro.periodo === 'semana' ? startOfWeek(new Date()) : subMonths(new Date(), 1);
     return historico.filter(h => 
@@ -68,91 +66,91 @@ export default function ProgressoPersonalCompleto({ params }: { params: Promise<
     doc.save(`Performance_${aluno?.nome || 'aluno'}.pdf`);
   };
 
-  if (loading) return <div className="flex h-screen items-center justify-center font-mono text-xs uppercase tracking-[0.3em] animate-pulse">Carregando interface...</div>;
+  if (loading) return <main className="min-h-screen bg-black flex items-center justify-center text-blue-500 font-black">CARREGANDO DADOS...</main>;
 
   return (
-    <main className="min-h-screen bg-[#FDFDFD] pb-20">
+    <main className="min-h-screen bg-black pb-20 text-white">
       {/* NAVBAR */}
-      <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-gray-100 px-8 py-4 flex justify-between items-center">
-        <button onClick={() => router.back()} className="flex items-center gap-2 text-[9px] font-bold uppercase tracking-widest hover:text-emerald-600 transition-colors"><FaArrowLeft /> Voltar</button>
-        <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400">Dashboard de Performance</span>
-        <button onClick={exportarPDF} className="bg-zinc-900 text-white px-5 py-2 rounded-lg text-[9px] font-bold uppercase tracking-widest hover:bg-black transition-all">PDF</button>
+      <nav className="sticky top-0 z-50 bg-neutral-950/80 backdrop-blur-xl border-b border-white/5 px-8 py-5 flex justify-between items-center">
+        <button onClick={() => router.back()} className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-neutral-500 hover:text-white transition-colors">
+          <FaArrowLeft /> Voltar
+        </button>
+        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-600">Dashboard de Performance</span>
+        <button onClick={exportarPDF} className="bg-blue-600 text-white px-6 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-blue-500 transition-all">Exportar PDF</button>
       </nav>
 
       <div className="max-w-7xl mx-auto px-6 py-10 space-y-8">
         {/* PERFIL */}
-        <header className="flex items-center justify-between bg-white border border-gray-100 p-6 rounded-3xl shadow-sm">
-          <div className="flex items-center gap-5">
-            <img src={aluno?.avatar_url || '/placeholder.png'} className="w-16 h-16 rounded-2xl object-cover ring-2 ring-gray-100"/>
+        <header className="flex items-center justify-between bg-neutral-950/80 backdrop-blur-xl p-8 rounded-[2.5rem] border border-white/5 shadow-2xl">
+          <div className="flex items-center gap-6">
+            <img src={aluno?.avatar_url || '/placeholder.png'} className="w-16 h-16 rounded-full object-cover border border-white/10"/>
             <div>
-              <h1 className="text-xl font-bold tracking-tight">{aluno?.nome}</h1>
-              <p className="text-[11px] font-medium text-gray-400 uppercase tracking-widest">{aluno?.objetivo || 'Sem objetivo'}</p>
+              <h1 className="text-xl font-black tracking-tighter">{aluno?.nome}</h1>
+              <p className="text-[10px] font-black text-neutral-500 uppercase tracking-widest">{aluno?.objetivo || 'Sem objetivo'}</p>
             </div>
           </div>
-          <span className={`px-4 py-1.5 rounded-full text-[10px] font-bold uppercase ${aluno?.status_pagamento === 'ativo' ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
+          <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest ${aluno?.status_pagamento === 'ativo' ? 'bg-blue-600/10 text-blue-400' : 'bg-red-600/10 text-red-400'}`}>
              {aluno?.status_pagamento}
           </span>
         </header>
 
-       <section className="grid grid-cols-1 md:grid-cols-4 gap-4">
-  {/* Cards de Métricas (Empilhados no mobile, lado a lado no desktop) */}
-  <div className="grid grid-cols-2 gap-4 md:col-span-2">
-    <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
-      <p className="text-[9px] uppercase font-bold text-gray-400 mb-2">Carga Máxima (PR)</p>
-      <p className="text-2xl font-bold">{cargaMaxima}<span className="text-xs text-gray-400 ml-1">kg</span></p>
-    </div>
-    <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
-      <p className="text-[9px] uppercase font-bold text-gray-400 mb-2">Séries Totais</p>
-      <p className="text-2xl font-bold">{historico.length}</p>
-    </div>
-  </div>
+        <section className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 gap-6 md:col-span-2">
+            <div className="bg-neutral-950/80 backdrop-blur-xl p-8 rounded-[2.5rem] border border-white/5 shadow-xl">
+              <p className="text-[9px] uppercase font-black text-neutral-500 mb-2 tracking-widest">Carga Máxima (PR)</p>
+              <p className="text-2xl font-black">{cargaMaxima}<span className="text-xs text-neutral-500 ml-1">kg</span></p>
+            </div>
+            <div className="bg-neutral-950/80 backdrop-blur-xl p-8 rounded-[2.5rem] border border-white/5 shadow-xl">
+              <p className="text-[9px] uppercase font-black text-neutral-500 mb-2 tracking-widest">Séries Totais</p>
+              <p className="text-2xl font-black">{historico.length}</p>
+            </div>
+          </div>
 
-  {/* Análise de Exercício (Ocupa a linha toda no mobile) */}
-  <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm md:col-span-2 flex flex-col md:flex-row items-center gap-4">
-    <div className="flex-1 w-full">
-      <label className="text-[9px] uppercase font-bold text-gray-400 block mb-1">Análise de Exercício</label>
-      <select 
-        className="w-full font-bold text-lg outline-none bg-transparent truncate" 
-        value={filtro.exercicio} 
-        onChange={(e) => setFiltro({...filtro, exercicio: e.target.value})}
-      >
-        {Array.from(new Set(historico.map(h => h.exercicio_nome))).map(ex => 
-          <option key={ex as string} value={ex as string}>{ex as string}</option>
-        )}
-      </select>
-    </div>
-    
-    <div className="flex bg-gray-50 p-1 rounded-xl w-full md:w-auto">
-      {['semana', 'mes'].map(p => (
-        <button 
-          key={p} 
-          onClick={() => setFiltro({...filtro, periodo: p})} 
-          className={`flex-1 md:flex-none px-4 py-2 rounded-lg text-[9px] font-bold uppercase tracking-widest transition-all ${filtro.periodo === p ? 'bg-white shadow-sm' : 'text-gray-400'}`}
-        >
-          {p}
-        </button>
-      ))}
-    </div>
-  </div>
-</section>
+          <div className="bg-neutral-950/80 backdrop-blur-xl p-8 rounded-[2.5rem] border border-white/5 shadow-xl md:col-span-2 flex flex-col md:flex-row items-center gap-6">
+            <div className="flex-1 w-full">
+              <label className="text-[9px] uppercase font-black text-neutral-500 block mb-2 tracking-widest">Análise de Exercício</label>
+              <select 
+                className="w-full font-black text-lg outline-none bg-transparent truncate" 
+                value={filtro.exercicio} 
+                onChange={(e) => setFiltro({...filtro, exercicio: e.target.value})}
+              >
+                {Array.from(new Set(historico.map(h => h.exercicio_nome))).map(ex => 
+                  <option key={ex as string} value={ex as string} className="bg-neutral-900">{ex as string}</option>
+                )}
+              </select>
+            </div>
+            
+            <div className="flex bg-white/5 p-1 rounded-2xl w-full md:w-auto">
+              {['semana', 'mes'].map(p => (
+                <button 
+                  key={p} 
+                  onClick={() => setFiltro({...filtro, periodo: p})} 
+                  className={`flex-1 md:flex-none px-6 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${filtro.periodo === p ? 'bg-blue-600 text-white' : 'text-neutral-500'}`}
+                >
+                  {p}
+                </button>
+              ))}
+            </div>
+          </div>
+        </section>
 
         {/* GRÁFICO */}
-        <section className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
-          <h2 className="flex items-center gap-2 text-[9px] uppercase font-bold text-gray-400 mb-6 tracking-widest"><FaChartLine /> Evolução de Carga (kg)</h2>
+        <section className="bg-neutral-950/80 backdrop-blur-xl p-8 rounded-[2.5rem] border border-white/5 shadow-xl">
+          <h2 className="flex items-center gap-2 text-[9px] uppercase font-black text-neutral-500 mb-8 tracking-widest"><FaChartLine /> Evolução de Carga (kg)</h2>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={dadosFiltrados.slice(0, 15).reverse()}>
                 <defs>
                   <linearGradient id="colorCarga" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.1}/>
-                    <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="#2563eb" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#2563eb" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f9fafb" />
-                <XAxis dataKey="data_execucao" tickFormatter={(v) => format(parseISO(v), 'dd/MM')} tick={{fontSize: 9}} axisLine={false} tickLine={false} />
-                <YAxis tick={{fontSize: 9}} axisLine={false} tickLine={false} />
-                <Tooltip />
-                <Area type="monotone" dataKey="carga" stroke="#10b981" strokeWidth={3} fill="url(#colorCarga)" />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#333" />
+                <XAxis dataKey="data_execucao" tickFormatter={(v) => format(parseISO(v), 'dd/MM')} tick={{fontSize: 9, fill: '#666'}} axisLine={false} tickLine={false} />
+                <YAxis tick={{fontSize: 9, fill: '#666'}} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={{ backgroundColor: '#000', border: '1px solid #333' }} />
+                <Area type="monotone" dataKey="carga" stroke="#2563eb" strokeWidth={3} fill="url(#colorCarga)" />
               </AreaChart>
             </ResponsiveContainer>
           </div>

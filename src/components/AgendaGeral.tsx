@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 
 export default function AgendaGeral() {
@@ -21,14 +22,14 @@ export default function AgendaGeral() {
     fetchAgenda();
   }, []);
 
-  if (loading) return <div className="text-gray-400 text-sm">Carregando agenda...</div>;
+  if (loading) return <div className="text-neutral-500 text-[10px] font-black uppercase tracking-widest">Carregando agenda...</div>;
 
   return (
-    <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
-      <h2 className="text-xl font-black text-gray-900 mb-6 tracking-tight">Próximos Agendamentos</h2>
+    <div className="bg-neutral-950/80 backdrop-blur-xl p-8 rounded-[2.5rem] border border-white/5 shadow-2xl">
+      <h2 className="text-xl font-black text-white mb-6 tracking-tight">Próximos Agendamentos</h2>
       
       {agendamentos.length === 0 ? (
-        <p className="text-sm text-gray-500">Nenhum agendamento para hoje.</p>
+        <p className="text-[10px] font-black uppercase tracking-widest text-neutral-600">Nenhum agendamento para hoje.</p>
       ) : (
         <div className="space-y-3">
           {agendamentos.map((ag) => {
@@ -41,21 +42,21 @@ export default function AgendaGeral() {
                 key={ag.id} 
                 className={`p-4 rounded-2xl flex justify-between items-center border transition-all ${
                   isHoje 
-                    ? 'bg-blue-50 border-blue-100' 
-                    : 'bg-gray-50 border-gray-100'
+                    ? 'bg-blue-600/10 border-blue-600/20' 
+                    : 'bg-white/5 border-white/5'
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <span className={`font-bold ${isHoje ? 'text-blue-900' : 'text-gray-900'}`}>
+                  <span className={`font-black ${isHoje ? 'text-white' : 'text-neutral-300'}`}>
                     {ag.alunos?.nome}
                   </span>
                   {isHoje && (
-                    <span className="text-[10px] bg-blue-600 text-white px-2 py-0.5 rounded-lg uppercase font-black tracking-wider">
+                    <span className="text-[9px] bg-blue-600 text-white px-2 py-0.5 rounded-lg uppercase font-black tracking-wider">
                       Hoje
                     </span>
                   )}
                 </div>
-                <span className="text-sm font-bold text-gray-500">
+                <span className="text-sm font-black text-neutral-500">
                   {dataAula.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </span>
               </div>

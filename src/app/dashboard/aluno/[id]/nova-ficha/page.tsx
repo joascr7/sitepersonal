@@ -214,207 +214,158 @@ const [exercicios, setExercicios] = useState<Exercicio[]>([{
     }
   };
 
-  return (
-    <main className="min-h-screen bg-gray-50/50 p-4 md:p-12 transition-colors">
+ return (
+    <main className="min-h-screen bg-black p-4 md:p-12 transition-colors text-white">
       <div className="max-w-3xl mx-auto">
         <div className="flex items-center justify-between mb-10">
-          <button onClick={() => router.back()} className="text-sm font-semibold text-gray-400 hover:text-gray-900 transition-colors">← Voltar</button>
-          <h1 className="text-xl font-bold tracking-tight text-gray-900">Nova Ficha</h1>
+          <button onClick={() => router.back()} className="text-[10px] font-black uppercase tracking-widest text-neutral-500 hover:text-white transition-colors">← Voltar</button>
+          <h1 className="text-xl font-black tracking-tighter">Nova Ficha</h1>
           <div className="w-16" />
         </div>
 
-        {toast && <div className="fixed top-5 right-5 z-[100] bg-gray-900 text-white px-6 py-3 rounded-full font-bold shadow-2xl animate-in fade-in">{toast}</div>}
+        {toast && <div className="fixed top-5 right-5 z-[100] bg-blue-600 text-white px-6 py-3 rounded-full font-black text-xs animate-in fade-in">{toast}</div>}
 
-        <button onClick={() => setIsModalOpen(true)} className="w-full mb-8 py-4 bg-white border border-gray-200 text-gray-900 rounded-xl font-semibold shadow-sm hover:shadow-md transition-all active:scale-[0.99] text-sm">
+        <button onClick={() => setIsModalOpen(true)} className="w-full mb-8 py-4 bg-white/5 border border-white/5 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-white/10 transition-all active:scale-[0.99]">
           + Adicionar de "Meus Modelos" ou "Padrão"
         </button>
 
         {isModalOpen && (
-  <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-    <div className="bg-white w-full max-w-lg rounded-3xl p-6 shadow-2xl flex flex-col max-h-[85vh]">
-      {/* Header Fixo */}
-      <div className="flex justify-between items-center mb-6 shrink-0">
-        <h2 className="text-xl font-black text-gray-900">Biblioteca de Treinos</h2>
-        <button 
-          onClick={() => setIsModalOpen(false)} 
-          className="text-xs font-bold text-gray-400 hover:text-gray-900 transition-colors uppercase tracking-widest"
-        >
-          Fechar
-        </button>
-      </div>
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+            <div className="bg-neutral-950 w-full max-w-lg rounded-[2.5rem] p-8 shadow-2xl border border-white/10 flex flex-col max-h-[85vh]">
+              <div className="flex justify-between items-center mb-6 shrink-0">
+                <h2 className="text-xl font-black text-white">Biblioteca de Treinos</h2>
+                <button onClick={() => setIsModalOpen(false)} className="text-[10px] font-bold text-neutral-500 hover:text-white transition-colors uppercase tracking-widest">Fechar</button>
+              </div>
 
-      {/* Conteúdo com Scroll Customizado */}
-      <div className="overflow-y-auto pr-2 space-y-8 custom-scrollbar">
-        
-        {/* Agrupamento Meus Modelos */}
-        <div>
-          <h3 className="font-bold text-blue-600 uppercase text-[10px] tracking-widest mb-3">Meus Modelos</h3>
-          <div className="grid gap-2">
-            {meusModelos.map((m) => (
-              <button 
-                key={m.id} 
-                onClick={() => aplicarModelo(m, false)} 
-                className="w-full p-4 bg-blue-50/50 hover:bg-blue-50 border border-blue-100 rounded-xl text-sm font-bold text-blue-900 text-left transition-all"
-              >
-                {m.nome_modelo}
-              </button>
-            ))}
+              <div className="overflow-y-auto pr-2 space-y-8 custom-scrollbar">
+                <div>
+                  <h3 className="font-black text-blue-500 uppercase text-[9px] tracking-widest mb-3">Meus Modelos</h3>
+                  <div className="grid gap-2">
+                    {meusModelos.map((m) => (
+                      <button key={m.id} onClick={() => aplicarModelo(m, false)} className="w-full p-4 bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl text-sm font-bold text-white text-left transition-all">
+                        {m.nome_modelo}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <h3 className="font-black text-neutral-500 uppercase text-[9px] tracking-widest mb-3">Treinos Padrão</h3>
+                  <div className="grid gap-2">
+                    {treinosPadrao.map((m) => (
+                      <button key={m.id} onClick={() => aplicarModelo(m, true)} className="w-full p-4 bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl text-sm font-bold text-white text-left transition-all">
+                        {m.nome_modelo || m.nome}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
+        )}
+        
+        <input className="w-full p-6 mb-8 bg-white/5 border border-white/5 rounded-[2rem] outline-none focus:border-blue-500 transition-all placeholder:text-neutral-600 font-bold text-white" placeholder="Nome do Treino" value={nome} onChange={(e) => setNome(e.target.value)} />
 
-        {/* Agrupamento Treinos Padrão */}
-        <div>
-          <h3 className="font-bold text-gray-400 uppercase text-[10px] tracking-widest mb-3">Treinos Padrão</h3>
-          <div className="grid gap-2">
-            {treinosPadrao.map((m) => (
+        {exercicios.map((ex, exIndex) => (
+          <div key={exIndex} className="bg-neutral-950/80 backdrop-blur-xl p-8 rounded-[2.5rem] border border-white/5 mb-8 shadow-2xl">
+            <div className="flex justify-between items-center mb-6">
+              <input 
+                className="font-black text-white w-full outline-none bg-transparent" 
+                placeholder="Nome do Exercício" 
+                value={ex.nome} 
+                onChange={(e) => { const n = [...exercicios]; n[exIndex].nome = e.target.value; setExercicios(n); }} 
+                onBlur={() => buscarVideo(ex.nome, exIndex)} 
+              />
+              <button onClick={() => removerExercicio(exIndex)} className="text-neutral-600 hover:text-red-500 font-black text-xs ml-4">REMOVER</button>
+            </div>
+
+            <div className="mb-6 space-y-4">
+              <input 
+                className="w-full p-4 bg-white/5 border border-white/5 rounded-2xl text-sm outline-none text-white" 
+                placeholder="Link do vídeo" 
+                value={ex.video} 
+                onChange={(e) => { const n = [...exercicios]; n[exIndex].video = e.target.value; setExercicios(n); }} 
+              />
               <button 
-                key={m.id} 
-                onClick={() => aplicarModelo(m, true)} 
-                className="w-full p-4 bg-gray-50 hover:bg-gray-100 border border-gray-100 rounded-xl text-sm font-bold text-gray-700 text-left transition-all"
-              >
-                {m.nome_modelo || m.nome}
+                type="button" 
+                onClick={() => document.getElementById(`file-${exIndex}`)?.click()} 
+                className="w-full py-4 bg-blue-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-500 transition-all"
+              > 
+                {uploading ? 'ENVIANDO...' : 'UPLOAD DE VÍDEO (MÁX 10MB)'} 
               </button>
-            ))}
+              <input type="file" id={`file-${exIndex}`} className="hidden" accept="video/*" onChange={(e) => e.target.files && uploadVideo(exIndex, e.target.files[0])} />
+            
+              {ex.video && (ex.video.includes('youtube') || ex.video.includes('youtu.be')) && (
+                <div className="w-full h-40 bg-white/5 rounded-2xl overflow-hidden border border-white/5">
+                  <iframe className="w-full h-full" src={ex.video.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/').replace('/shorts/', '/embed/').split('&')[0]} frameBorder="0" allowFullScreen></iframe>
+                </div>
+              )}
+
+              <input 
+                className="w-full text-xs text-white bg-white/5 p-4 rounded-2xl border border-white/5 outline-none placeholder:text-neutral-600 italic"
+                placeholder="Adicionar observação..." 
+                value={ex.observacao || ''}
+                onChange={(e) => { const n = [...exercicios]; n[exIndex].observacao = e.target.value; setExercicios(n); }}
+              />
+            </div>
+
+            <div className="grid grid-cols-5 gap-2 text-[9px] font-black text-neutral-500 uppercase tracking-widest mb-3 px-1 text-center">
+              <span>Série</span><span>Reps</span><span>Carga</span><span>Desc.</span><span>Planej.</span>
+            </div>
+
+            <div className="space-y-2">
+              {ex && Array.isArray(ex.series) ? (
+                ex.series.map((s, sIndex) => (
+                  <div key={sIndex} className="grid grid-cols-5 gap-2 items-center">
+                    <input 
+                      type="number" 
+                      className="p-3 bg-white/5 border border-white/5 rounded-xl text-sm text-center font-bold text-white outline-none focus:border-blue-500 transition-all" 
+                      value={s.ordem ?? sIndex + 1} 
+                      onChange={(e) => atualizarSerie(exIndex, sIndex, 'ordem', e.target.value)}
+                    />
+                    <input 
+                      type="text" 
+                      className="p-3 bg-white/5 border border-white/5 rounded-xl text-sm text-center text-white outline-none" 
+                      value={s?.reps ?? ''} 
+                      onChange={(e) => atualizarSerie(exIndex, sIndex, 'reps', e.target.value)} 
+                    />
+                    <input 
+                      type="number" 
+                      className="p-3 bg-white/5 border border-white/5 rounded-xl text-sm text-center text-white outline-none" 
+                      value={s?.carga ?? ''} 
+                      onChange={(e) => atualizarSerie(exIndex, sIndex, 'carga', e.target.value)} 
+                    />
+                    <input 
+                      type="number" 
+                      className="p-3 bg-white/5 border border-white/5 rounded-xl text-sm text-center text-white outline-none" 
+                      value={s?.intervalo ?? ''} 
+                      onChange={(e) => atualizarSerie(exIndex, sIndex, 'intervalo', e.target.value)} 
+                    />
+                    <div className="flex items-center gap-1">
+                      <input 
+                        type="number" 
+                        className="p-3 bg-white/5 border border-white/5 rounded-xl text-sm text-center text-white outline-none w-full" 
+                        value={s?.CargaPlanejada ?? ''} 
+                        onChange={(e) => atualizarSerie(exIndex, sIndex, 'CargaPlanejada', e.target.value)} 
+                      />
+                      <button 
+                        onClick={() => { const n = [...exercicios]; n[exIndex].series.splice(sIndex, 1); setExercicios(n); }} 
+                        className="text-neutral-600 hover:text-red-500 font-black px-1"
+                      > × </button>
+                    </div>
+                  </div>
+                ))
+              ) : <p className="text-[10px] text-neutral-500">Nenhuma série definida.</p>}
+            </div>
+
+            <button type="button" onClick={(e) => { e.preventDefault(); adicionarSerie(exIndex); }} className="mt-4 text-[10px] font-black uppercase tracking-widest text-neutral-500 hover:text-white transition-all w-full py-3 border-2 border-dashed border-white/5 rounded-2xl"> + ADICIONAR SÉRIE </button>
           </div>
-        </div>
-      </div>
-    </div>
-  </div>
-)}
+        ))}
         
-        <input className="w-full p-4 mb-8 bg-white border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-gray-200 transition-all placeholder:text-gray-400" placeholder="Nome do Treino" value={nome} onChange={(e) => setNome(e.target.value)} />
-
-       {/* Lista de Exercícios */}
-{exercicios.map((ex, exIndex) => (
-  <div key={exIndex} className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm mb-6 transition-all hover:shadow-md">
-    
-    <div className="flex justify-between items-center mb-6">
-      <input 
-        className="font-semibold text-gray-900 w-full outline-none border-b border-transparent focus:border-gray-200 pb-1" 
-        placeholder="Nome do Exercício" 
-        value={ex.nome} 
-        onChange={(e) => { const n = [...exercicios]; n[exIndex].nome = e.target.value; setExercicios(n); }} 
-        onBlur={() => buscarVideo(ex.nome, exIndex)} 
-      />
-      <button onClick={() => removerExercicio(exIndex)} className="text-gray-400 hover:text-red-500 font-bold text-xs ml-4">Remover</button>
-    </div>
-
-    {/* Campo de Vídeo e Observação */}
-    <div className="mb-6 space-y-4">
-      <input 
-        className="w-full p-3 bg-gray-50 border border-gray-100 rounded-xl text-sm outline-none focus:border-gray-300 transition-all" 
-        placeholder="Link do vídeo" 
-        value={ex.video} 
-        onChange={(e) => { const n = [...exercicios]; n[exIndex].video = e.target.value; setExercicios(n); }} 
-      />
-      
-      <button 
-        type="button" 
-        onClick={() => document.getElementById(`file-${exIndex}`)?.click()} 
-        className="w-full py-2 bg-gray-900 text-white rounded-xl text-xs font-bold hover:bg-gray-800 transition-all"
-      > 
-        {uploading ? 'Enviando...' : 'Upload de Vídeo (Máx 10MB)'} 
-      </button>
-      
-      <input type="file" id={`file-${exIndex}`} className="hidden" accept="video/*" onChange={(e) => e.target.files && uploadVideo(exIndex, e.target.files[0])} />
-    
-      {ex.video && (ex.video.includes('youtube') || ex.video.includes('youtu.be')) && (
-        <div className="w-full h-40 bg-gray-100 rounded-xl overflow-hidden border border-gray-200">
-          <iframe className="w-full h-full" src={ex.video.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/').replace('/shorts/', '/embed/').split('&')[0]} frameBorder="0" allowFullScreen></iframe>
-        </div>
-      )}
-
-      {/* Campo de Observação Integrado */}
-      <input 
-        className="w-full text-xs text-gray-500 bg-gray-50 p-3 rounded-xl border border-gray-100 outline-none focus:border-gray-300 transition-all placeholder:italic"
-        placeholder="Adicionar observação (ex: foco na negativa, pausa de 2s...)"
-        value={ex.observacao || ''}
-        onChange={(e) => { const n = [...exercicios]; n[exIndex].observacao = e.target.value; setExercicios(n); }}
-      />
-    </div>
-
-    {/* Header da Tabela */}
-    <div className="grid grid-cols-5 gap-2 text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-3 px-1 text-center">
-      <span>Série</span><span>Reps</span><span>Carga</span><span>Desc.</span><span>Planej.</span>
-    </div>
-
-{/* Linhas de Séries */}
-<div className="space-y-2">
-  {ex && Array.isArray(ex.series) ? (
-    ex.series.map((s, sIndex) => (
-      <div key={sIndex} className="grid grid-cols-5 gap-2 items-center">
-       <input 
-  type="number" 
-  className="p-2 bg-gray-50 border border-transparent rounded-lg text-sm text-center font-bold text-gray-700 focus:bg-white focus:border-gray-200 outline-none transition-all" 
-  value={s.ordem ?? sIndex + 1} // Usa o valor salvo ou o padrão do índice
-  onChange={(e) => atualizarSerie(exIndex, sIndex, 'ordem', e.target.value)}
-/>
-        <input 
-          type="text" 
-          className="p-2 bg-gray-50 border border-transparent rounded-lg text-sm text-center focus:bg-white focus:border-gray-200 outline-none transition-all" 
-          placeholder="12" 
-          value={s?.reps ?? ''} 
-          onChange={(e) => atualizarSerie(exIndex, sIndex, 'reps', e.target.value)} 
-        />
-        <input 
-          type="number" 
-          className="p-2 bg-gray-50 border border-transparent rounded-lg text-sm text-center focus:bg-white focus:border-gray-200 outline-none transition-all" 
-          placeholder="0" 
-          value={s?.carga ?? ''} 
-          onChange={(e) => atualizarSerie(exIndex, sIndex, 'carga', e.target.value)} 
-        />
-        <input 
-          type="number" 
-          className="p-2 bg-gray-50 border border-transparent rounded-lg text-sm text-center focus:bg-white focus:border-gray-200 outline-none transition-all" 
-          placeholder="0" 
-          value={s?.intervalo ?? ''} 
-          onChange={(e) => atualizarSerie(exIndex, sIndex, 'intervalo', e.target.value)} 
-        />
-        <div className="flex items-center gap-1">
-          <input 
-            type="number" 
-            className="p-2 bg-gray-50 border border-transparent rounded-lg text-sm text-center focus:bg-white focus:border-gray-200 outline-none transition-all w-full" 
-            placeholder="0" 
-            value={s?.CargaPlanejada ?? ''} 
-            onChange={(e) => atualizarSerie(exIndex, sIndex, 'CargaPlanejada', e.target.value)} 
-          />
-          <button 
-            onClick={() => { 
-              const n = [...exercicios]; 
-              n[exIndex].series.splice(sIndex, 1); 
-              setExercicios(n); 
-            }} 
-            className="text-gray-300 hover:text-red-500 font-bold px-1"
-          > 
-            × 
-          </button>
-        </div>
-      </div>
-    ))
-  ) : (
-    <p className="text-[10px] text-gray-400">Nenhuma série definida.</p>
-  )}
-</div>
-
-   {/* Botão Adicionar Série */}
-    <button 
-      type="button" // Adicionado para evitar que o botão dispare um submit de formulário acidentalmente
-      onClick={(e) => {
-        e.preventDefault(); // Garante que não recarregue a página
-        adicionarSerie(exIndex);
-      }} 
-      className="mt-4 text-xs font-bold text-gray-500 hover:text-gray-900 transition-colors w-full py-2 border-2 border-dashed border-gray-100 rounded-xl"
-    > 
-      + Adicionar série 
-    </button>
-  </div>
-))}
-        
-        <button onClick={adicionarExercicio} className="w-full py-4 rounded-xl font-bold text-sm text-gray-500 border-2 border-dashed border-gray-200 hover:border-gray-300 hover:text-gray-900 transition-all mb-8"> + Adicionar Exercício </button>
+        <button onClick={adicionarExercicio} className="w-full py-6 rounded-[2rem] font-black text-xs uppercase tracking-widest text-neutral-500 border-2 border-dashed border-white/5 hover:border-blue-500 transition-all mb-8"> + ADICIONAR EXERCÍCIO </button>
         
         <div className="flex flex-col gap-3">
-            <button onClick={async () => { setLoading(true); try { await salvarFicha(); router.back(); } catch(e: any) { alert(e.message); } finally { setLoading(false); }}} disabled={loading} className="w-full bg-gray-900 text-white p-4 rounded-xl font-bold shadow-lg hover:bg-black transition-all"> {loading ? 'Salvando...' : 'Finalizar e Salvar'} </button>
-            <button onClick={salvarCombo} disabled={loading} className="w-full bg-white border border-gray-900 text-gray-900 p-4 rounded-xl font-bold hover:bg-gray-50 transition-all"> Salvar para Aluno + Modelo </button>
+            <button onClick={async () => { setLoading(true); try { await salvarFicha(); router.back(); } catch(e: any) { alert(e.message); } finally { setLoading(false); }}} disabled={loading} className="w-full bg-blue-600 text-white p-6 rounded-[2.5rem] font-black text-xs uppercase tracking-widest hover:bg-blue-500 transition-all"> {loading ? 'SALVANDO...' : 'FINALIZAR E SALVAR'} </button>
+            <button onClick={salvarCombo} disabled={loading} className="w-full bg-white/5 border border-white/5 text-white p-6 rounded-[2.5rem] font-black text-xs uppercase tracking-widest hover:bg-white/10 transition-all"> SALVAR COMO MODELO </button>
         </div>
       </div>
     </main>
@@ -423,7 +374,7 @@ const [exercicios, setExercicios] = useState<Exercicio[]>([{
 
 export default function NovaFicha() {
   return (
-    <Suspense fallback={<div className="p-10 text-center font-medium">Carregando...</div>}>
+    <Suspense fallback={<div className="p-10 text-center font-black text-blue-500 bg-black min-h-screen">CARREGANDO...</div>}>
       <NovaFichaContent />
     </Suspense>
   );
