@@ -116,8 +116,9 @@ export default function Perfil() {
   );
 
   return (
-    <main className="min-h-screen bg-black p-6 md:p-12">
-      <div className="max-w-md mx-auto bg-neutral-950/80 backdrop-blur-xl p-8 rounded-[2.5rem] border border-white/5 shadow-[0_20px_50px_rgba(0,0,0,0.5)] space-y-8">
+    // pt-20 compensa o Header superior (AuraFit), pb-32 reserva o espaço da Navbar inferior
+    <main className="w-full min-h-screen bg-black flex flex-col items-center px-4 pt-20 pb-32 box-border text-white">
+      <div className="w-full max-w-md bg-neutral-950/80 backdrop-blur-xl p-8 md:p-10 rounded-[2.5rem] border border-white/5 shadow-2xl space-y-8">
         <h1 className="text-2xl font-black text-white text-center">Meu Perfil</h1>
         
         {/* Foto de Perfil */}
@@ -138,7 +139,7 @@ export default function Perfil() {
             <Input label="Telefone" value={formData.telefone} onChange={handleChange('telefone')} />
           </div>
           <Input label="E-mail" value={formData.email} disabled className="bg-neutral-900/50 cursor-not-allowed opacity-50" />
-          <button disabled={loading} className="w-full bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-2xl font-bold transition shadow-[0_0_20px_rgba(37,99,235,0.3)]">
+          <button disabled={loading} className="w-full bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs transition shadow-[0_0_20px_rgba(37,99,235,0.3)]">
             {loading ? 'Salvando...' : 'SALVAR DADOS'}
           </button>
         </form>
@@ -148,10 +149,13 @@ export default function Perfil() {
         {/* Troca de Senha */}
         <div className="space-y-4">
           <Input label="Nova Senha" type="password" value={newPassword} onChange={setNewPassword} placeholder="Mínimo 6 caracteres" />
-          <button onClick={handleUpdatePassword} disabled={loading} className="w-full border border-white/10 text-white py-4 rounded-2xl font-bold hover:bg-white/5 transition">
+          <button onClick={handleUpdatePassword} disabled={loading} className="w-full border border-white/10 text-white py-4 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-white/5 transition">
             ATUALIZAR SENHA
           </button>
         </div>
+
+        {/* ESPAÇADOR DE SEGURANÇA: Garante scroll livre no final */}
+        <div className="h-20 w-full shrink-0" aria-hidden="true" />
       </div>
     </main>
   );
