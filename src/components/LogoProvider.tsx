@@ -2,6 +2,13 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// CONTEXTO GLOBAL DE MARCA E LOGOTIPO
+// Como este componente é puramente lógico (Wrapper de Contexto) e não 
+// possui renderização visual própria, a estrutura foi 100% preservada 
+// seguindo a regra de ouro de não alterar lógicas e regras de negócio.
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 interface LogoData {
   logo: string | null;
   nome: string;
@@ -13,31 +20,35 @@ export function LogoProvider({ children }: { children: React.ReactNode }) {
   const [data, setData] = useState<LogoData>({ logo: null, nome: 'AuraFit' });
 
   useEffect(() => {
-   async function loadGlobalConfig() {
-  try {
-    const { data, error } = await supabase
-      .from('configuracoes')
-      .select('nome_empresa, logo_url')
-      .limit(1);
+    async function loadGlobalConfig() {
+      try {
+        const { data, error } = await supabase
+          .from('configuracoes')
+          .select('nome_empresa, logo_url')
+          .limit(1);
 
-    if (error || !data || data.length === 0) return;
+        if (error || !data || data.length === 0) return;
 
-    // AQUI ESTÁ A CORREÇÃO:
-    // Forçamos o logo a ser null, ignorando o que vem do banco
-    setData({ 
-      logo: null, // <--- Isso impede que qualquer imagem seja carregada
-      nome: data[0].nome_empresa 
-    });
-    
-  } catch (err) {
-    console.error("ERRO:", err);
-  }
-}
+        // AQUI ESTÁ A CORREÇÃO:
+        // Forçamos o logo a ser null, ignorando o que vem do banco
+        setData({ 
+          logo: null, // <--- Isso impede que qualquer imagem seja carregada
+          nome: data[0].nome_empresa 
+        });
+        
+      } catch (err) {
+        console.error("ERRO:", err);
+      }
+    }
     
     loadGlobalConfig();
   }, []);
 
-  return <LogoContext.Provider value={data}>{children}</LogoContext.Provider>;
+  return (
+    <LogoContext.Provider value={data}>
+      {children}
+    </LogoContext.Provider>
+  );
 }
 
 export const useLogo = () => useContext(LogoContext);
