@@ -93,11 +93,12 @@ export default function NavbarAluno() {
   if (!mounted) return null;
 
   return (
-    <div style={themeStyles} className="transition-colors duration-500">
-      
+    <>
       {/* ━━━━━━━━━━ DESKTOP NAVBAR ━━━━━━━━━━ */}
-      <nav className="hidden md:flex sticky top-0 z-50 bg-[var(--surface)]/90 backdrop-blur-2xl border-b border-[var(--border)] px-10 py-4 justify-between items-center transition-all shadow-sm">
-        
+      <nav 
+        style={themeStyles} 
+        className="hidden md:flex sticky top-0 z-50 bg-[var(--surface)]/90 backdrop-blur-2xl border-b border-[var(--border)] px-10 py-4 justify-between items-center transition-colors duration-500 shadow-sm"
+      >
         {/* Branding */}
         <div className="flex items-center gap-4 h-10 w-auto group cursor-pointer">
           {logo ? (
@@ -135,54 +136,52 @@ export default function NavbarAluno() {
         </div>
       </nav>
 
-      {/* ━━━━━━━━━━ MOBILE NAVBAR ━━━━━━━━━━ */}
-      <div className="md:hidden">
-        
-        {/* TOP HEADER (Fixo e com Suporte a Notch/Safe Area) */}
-        <header className="fixed top-0 left-0 right-0 bg-[var(--bg)]/80 backdrop-blur-xl z-40 border-b border-[var(--border)] flex items-center justify-center pb-3 pt-[max(env(safe-area-inset-top),1rem)] shadow-sm">
-          <div className="flex items-center gap-2">
-            {logo && <img src={logo} className="h-6 w-auto object-contain" alt="Logo" />}
-            <span className="font-black tracking-tight text-lg text-[var(--text-primary)] uppercase truncate max-w-[200px]">
-              {nome || 'AuraFit'}
-            </span>
-          </div>
-        </header>
+      {/* ━━━━━━━━━━ MOBILE HEADER (AGORA STICKY DE FATO) ━━━━━━━━━━ */}
+      <header 
+        style={themeStyles} 
+        className="md:hidden sticky top-0 z-40 bg-[var(--surface)]/95 backdrop-blur-xl border-b border-[var(--border)] flex items-center justify-center pb-3 pt-[max(env(safe-area-inset-top),1rem)] shadow-sm transition-colors duration-500"
+      >
+        <div className="flex items-center gap-2">
+          {logo && <img src={logo} className="h-6 w-auto object-contain" alt="Logo" />}
+          <span className="font-black tracking-tight text-lg text-[var(--text-primary)] uppercase truncate max-w-[200px]">
+            {nome || 'AuraFit'}
+          </span>
+        </div>
+      </header>
 
-        {/* BOTTOM NAVIGATION (Floating Pill Premium) */}
-        <nav 
-          className="fixed left-5 right-5 z-50 bg-[var(--surface)]/90 backdrop-blur-2xl border border-[var(--border)] rounded-[2rem] py-3 px-6 flex justify-between items-center shadow-[0_20px_40px_-10px_rgba(0,0,0,0.3)]"
-          style={{ bottom: 'max(env(safe-area-inset-bottom, 20px), 20px)' }}
-        >
-          {navLinks.map((link) => {
-            const isActive = pathname === link.path;
-            return (
-              <a 
-                key={link.name} 
-                href={link.path} 
-                className={`flex flex-col items-center gap-1.5 transition-all duration-300 w-16 group ${
-                  isActive ? 'text-[var(--primary)]' : 'text-[var(--text-secondary)]'
-                }`}
-              >
-                {/* Ícone com Active Pill */}
-                <div className={`relative flex items-center justify-center w-12 h-8 rounded-full transition-all duration-300 ${
-                  isActive ? 'bg-[var(--primary)]/15 scale-110' : 'group-hover:bg-[var(--surface-sec)] group-hover:scale-105'
-                }`}>
-                  <span className={`text-lg ${isActive ? 'drop-shadow-[0_0_8px_rgba(59,130,246,0.6)]' : ''}`}>
-                    {link.icon}
-                  </span>
-                </div>
-                {/* Rótulo */}
-                <span className={`text-[8px] font-black uppercase tracking-widest transition-all ${
-                  isActive ? 'opacity-100' : 'opacity-70'
-                }`}>
-                  {link.name}
+      {/* ━━━━━━━━━━ MOBILE BOTTOM NAVIGATION ━━━━━━━━━━ */}
+      <nav 
+        style={{ ...themeStyles, bottom: 'max(env(safe-area-inset-bottom, 20px), 20px)' }}
+        className="md:hidden fixed left-5 right-5 z-50 bg-[var(--surface)]/90 backdrop-blur-2xl border border-[var(--border)] rounded-[2rem] py-3 px-6 flex justify-between items-center shadow-[0_20px_40px_-10px_rgba(0,0,0,0.3)] transition-colors duration-500"
+      >
+        {navLinks.map((link) => {
+          const isActive = pathname === link.path;
+          return (
+            <a 
+              key={link.name} 
+              href={link.path} 
+              className={`flex flex-col items-center gap-1.5 transition-all duration-300 w-16 group ${
+                isActive ? 'text-[var(--primary)]' : 'text-[var(--text-secondary)]'
+              }`}
+            >
+              {/* Ícone com Active Pill */}
+              <div className={`relative flex items-center justify-center w-12 h-8 rounded-full transition-all duration-300 ${
+                isActive ? 'bg-[var(--primary)]/15 scale-110' : 'group-hover:bg-[var(--surface-sec)] group-hover:scale-105'
+              }`}>
+                <span className={`text-lg ${isActive ? 'drop-shadow-[0_0_8px_rgba(59,130,246,0.6)]' : ''}`}>
+                  {link.icon}
                 </span>
-              </a>
-            );
-          })}
-        </nav>
-        
-      </div>
-    </div>
+              </div>
+              {/* Rótulo */}
+              <span className={`text-[8px] font-black uppercase tracking-widest transition-all ${
+                isActive ? 'opacity-100' : 'opacity-70'
+              }`}>
+                {link.name}
+              </span>
+            </a>
+          );
+        })}
+      </nav>
+    </>
   );
 }
