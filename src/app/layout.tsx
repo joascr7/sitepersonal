@@ -26,15 +26,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
 
-  // Estado para garantir que a hidratação ocorra após montar o tema no client
   const [mounted, setMounted] = useState(false);
   const [isDark, setIsDark] = useState(true);
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  // INICIALIZAÇÃO DE REVENUE CAT E SISTEMA GLOBAL DE TEMA (PWA/MOBILE)
+  // INICIALIZAÇÃO DE REVENUE CAT E SISTEMA GLOBAL DE TEMA
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   useEffect(() => {
-    // 1. RevenueCat Original Preservado
+    // 1. RevenueCat Original
     const initRevenueCat = async () => {
       try {
         const Purchases = (await import('react-native-purchases')).default;
@@ -48,10 +47,9 @@ export default function RootLayout({
     // 2. Inicialização Global do Tema Premium
     const initTheme = () => {
       const savedTheme = localStorage.getItem('@premium_theme');
-      const isDarkMode = savedTheme ? savedTheme === 'dark' : true; // Dark by default
+      const isDarkMode = savedTheme ? savedTheme === 'dark' : true; 
       setIsDark(isDarkMode);
       
-      // Injeta as variáveis de design system premium diretamente no :root para uso global
       const root = document.documentElement;
       
       if (isDarkMode) {
@@ -80,7 +78,6 @@ export default function RootLayout({
         root.style.setProperty('--danger', '#DC2626');
       }
       
-      // Inicializa o idioma padrão caso não exista
       if (!localStorage.getItem('@premium_lang')) {
         localStorage.setItem('@premium_lang', 'pt-BR');
       }
@@ -89,11 +86,9 @@ export default function RootLayout({
     initTheme();
     setMounted(true);
 
-    // Observer para escutar mudanças no localStorage (ex: quando o botão de tema for clicado em outras páginas)
     const handleStorageChange = () => initTheme();
     window.addEventListener('storage', handleStorageChange);
     
-    // Custom event para o mesmo contexto de aba
     const originalSetItem = localStorage.setItem;
     localStorage.setItem = function(key, value) {
       originalSetItem.apply(this, [key, value]);
@@ -113,25 +108,12 @@ export default function RootLayout({
       style={{ backgroundColor: isDark ? '#0F1115' : '#F3F6FB' }}
     >
       <head>
-        {/* VIEWPORT PWA / CAPACITOR / MOBILE PREMIUM */}
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-        
-        {/* iOS NATIVE WEB APP TAGS */}
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="AuraFit" />
-        
-        {/* DYNAMIC THEME COLOR FOR NOTCH/STATUS BAR */}
         <meta name="theme-color" content={isDark ? '#0F1115' : '#F3F6FB'} />
       </head>
-      
-      {/* 
-        Ajuste do Body Premium:
-        - min-h-screen & flex-col: Garante que o layout ocupe a tela inteira.
-        - overscroll-none: Previne o efeito "bounce" indesejado do iOS Safari ao fazer scroll nos limites.
-        - bg-[var(--bg)]: Aplica o sistema dinâmico de cores automaticamente.
-        - transições suaves aplicadas de forma global.
-      */}
       <body 
         className={`
           min-h-screen flex flex-col bg-[var(--bg)] text-[var(--text-primary)] font-sans 
@@ -140,15 +122,9 @@ export default function RootLayout({
         `}
       >
         <LogoProvider>
-          {/* ConditionalNavbar injetada com o contexto correto de theme */}
+          {/* Se a barra superior ainda aparecer, verifique o ConditionalNavbar */}
           <ConditionalNavbar />
           
-          {/* 
-            Container Principal (AppLayout Architecture)
-            - flex-grow: Permite que o conteúdo ocupe o espaço livre sem distorções.
-            - w-full: Previne scroll horizontal acidental.
-            - relative: Cria contexto de empilhamento para overlays e modais nativas.
-          */}
           <main className="flex-grow w-full relative">
             {children}
           </main>
