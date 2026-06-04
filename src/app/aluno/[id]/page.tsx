@@ -307,6 +307,10 @@ function CalendarioTreino({ diasTreinados }: { diasTreinados: Date[] }) {
 function ModalAvaliacao({ isOpen, onClose, avaliacao, historico }: any) {
   if (!isOpen || !avaliacao) return null;
 
+  // Busca o peso anterior no histórico (penúltimo registro)
+  const pesoAnterior = historico.length > 1 ? historico[historico.length - 2].peso : 0;
+  const diferenca = avaliacao.peso - pesoAnterior;
+
   const medidasList = [
     { label: 'Tórax', value: avaliacao.torax },
     { label: 'Ombros', value: avaliacao.ombros },
@@ -317,11 +321,7 @@ function ModalAvaliacao({ isOpen, onClose, avaliacao, historico }: any) {
   ];
 
   return (
-    // 1. O flex items-center justify-center garante o centro absoluto
-    // 2. z-[500] garante que fique acima de qualquer navbar
     <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-[500] flex items-center justify-center p-4">
-      
-      {/* Container principal com altura máxima */}
       <div className="bg-neutral-900 w-full max-w-sm rounded-[2.5rem] p-8 max-h-[90vh] flex flex-col shadow-2xl border border-white/10 overflow-hidden">
         
         {/* Header Fixo */}
@@ -330,16 +330,19 @@ function ModalAvaliacao({ isOpen, onClose, avaliacao, historico }: any) {
             <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-500">Análise Corporal</h2>
             <p className="text-xl font-black text-white tracking-tighter">Sua Evolução</p>
           </div>
-          <button 
-            onClick={onClose} 
-            className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white text-xl hover:bg-white/10 transition-all"
-          >
+          <button onClick={onClose} className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white text-xl hover:bg-white/10 transition-all">
             &times;
           </button>
         </div>
 
-        {/* Conteúdo com Scroll (Flex-1) */}
-        <div className="overflow-y-auto flex-1 pr-2 -mr-2 custom-scrollbar">
+        {/* Conteúdo com Scroll */}
+        <div className="overflow-y-auto flex-1 pr-2 -mr-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+          
+          <div className="mb-6">
+             <p className="text-[9px] font-black uppercase text-neutral-500 tracking-widest">
+               Data do registro: {new Date(avaliacao.data_avaliacao).toLocaleDateString('pt-BR')}
+             </p>
+          </div>
           
           {/* Gráfico */}
           <div className="h-40 w-full mb-8 bg-neutral-950 rounded-[2rem] p-5 border border-white/5">
@@ -350,20 +353,26 @@ function ModalAvaliacao({ isOpen, onClose, avaliacao, historico }: any) {
             </ResponsiveContainer>
           </div>
 
-          {/* KPIs */}
+          {/* KPIs: Peso Atual + Peso Anterior */}
           <div className="grid grid-cols-2 gap-4 mb-8">
             <div className="bg-blue-600 p-6 rounded-[2rem]">
               <p className="text-[9px] font-bold uppercase opacity-80 mb-1">Peso Atual</p>
-              <p className="font-black text-3xl text-white">{avaliacao.peso || 0}<span className="text-sm opacity-70 ml-1">kg</span></p>
+              <p className="font-black text-2xl text-white">{avaliacao.peso || 0}<span className="text-xs opacity-70 ml-1">kg</span></p>
+              {pesoAnterior > 0 && (
+                <p className={`text-[9px] font-bold mt-1 ${diferenca <= 0 ? 'text-green-300' : 'text-orange-300'}`}>
+                  {diferenca <= 0 ? '↓' : '↑'} {Math.abs(diferenca).toFixed(1)}kg desde a última
+                </p>
+              )}
             </div>
             <div className="bg-neutral-800 p-6 rounded-[2rem]">
-              <p className="text-[9px] font-bold uppercase opacity-60 mb-1">Gordura Corp.</p>
-              <p className="font-black text-3xl text-white">{avaliacao.gordura || 0}<span className="text-sm opacity-50 ml-1">%</span></p>
+              <p className="text-[9px] font-bold uppercase opacity-60 mb-1">Peso Anterior</p>
+              <p className="font-black text-2xl text-white">{pesoAnterior || 0}<span className="text-xs opacity-50 ml-1">kg</span></p>
+              <p className="text-[9px] font-bold text-neutral-500 mt-1">Última marca</p>
             </div>
           </div>
 
-          {/* Grade de Medidas Detalhadas */}
-          <div className="space-y-4">
+          {/* Grade de Medidas */}
+          <div className="space-y-4 mb-8">
             <p className="text-[9px] font-black uppercase text-neutral-500 tracking-widest mb-2">Medidas Detalhadas (cm)</p>
             <div className="grid grid-cols-2 gap-3">
               {medidasList.map((m) => (
@@ -374,11 +383,16 @@ function ModalAvaliacao({ isOpen, onClose, avaliacao, historico }: any) {
               ))}
             </div>
           </div>
+
+          {avaliacao.observacoes && (
+            <div className="bg-white/5 p-5 rounded-2xl border border-white/5 mb-8">
+              <p className="text-[9px] font-black uppercase text-neutral-500 tracking-widest mb-2">Observações do Personal</p>
+              <p className="text-xs text-neutral-300 italic leading-relaxed">"{avaliacao.observacoes}"</p>
+            </div>
+          )}
           
-          {/* Espaçador final dentro do scroll para evitar corte */}
           <div className="h-8" />
         </div>
-        
       </div>
     </div>
   );
