@@ -136,6 +136,7 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
     const newTheme = !isDark;
     setIsDark(newTheme);
     localStorage.setItem('@premium_theme', newTheme ? 'dark' : 'light');
+    window.dispatchEvent(new Event('storage'));
   };
 
   const toggleLang = () => {
@@ -145,7 +146,7 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
     localStorage.setItem('@premium_lang', nextLang);
   };
 
-  const t = translations[lang];
+  const t = translations[lang] || translations['pt-BR'];
 
   // Configuração das Variáveis CSS Globais (Design System)
   const themeStyles = isDark ? {
@@ -275,9 +276,9 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
       <div className="max-w-md mx-auto flex flex-col pt-[max(env(safe-area-inset-top),1.5rem)] px-5 pb-32 space-y-6">
 
         {/* ━━━━━━━━━━ HEADER & PREFERENCES ━━━━━━━━━━ */}
-        <header className="flex justify-between items-center w-full">
+        <header className="flex justify-between items-center w-full mt-4">
           <div className="flex items-center gap-4">
-            <div className="relative w-14 h-14 rounded-full p-[2px] bg-gradient-to-tr from-[var(--primary)] to-[var(--primary-soft)] shadow-lg shadow-[var(--primary)]/20">
+            <div className="relative w-14 h-14 rounded-full p-[2px] bg-gradient-to-tr from-[var(--primary)] to-[var(--primary-soft)] shadow-lg shadow-[var(--primary)]/20 shrink-0">
               <div className="w-full h-full rounded-full bg-[var(--surface)] p-[2px]">
                 {personal?.avatar_url ? (
                   <img src={personal.avatar_url} alt="Personal Avatar" className="w-full h-full object-cover rounded-full" />
@@ -286,17 +287,17 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
                 )}
               </div>
             </div>
-            <div className="flex flex-col">
+            <div className="flex flex-col truncate">
               <span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-0.5">Personal Trainer</span>
-              <h1 className="font-black text-lg leading-none tracking-tight">{personal?.nome || 'Personal'}</h1>
+              <h1 className="font-black text-lg leading-none tracking-tight truncate">{personal?.nome || 'Personal'}</h1>
               <p className="text-[var(--primary)] text-[9px] font-black uppercase tracking-[0.2em] mt-1">CREF: {personal?.cref || 'N/A'}</p>
             </div>
           </div>
           
-          <div className="flex gap-2">
-            <button onClick={toggleLang} className="w-10 h-10 rounded-full bg-[var(--surface)] border border-[var(--border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--primary)] transition-all active:scale-95 shadow-sm">
+          <div className="flex gap-2 shrink-0">
+            <button onClick={toggleLang} className="w-10 h-10 rounded-full bg-[var(--surface)] border border-[var(--border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--primary)] transition-all active:scale-95 shadow-sm relative">
               <FaGlobe size={16} />
-              <span className="absolute -top-1 -right-1 bg-[var(--primary)] text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full">{lang.split('-')[0].toUpperCase()}</span>
+              <span className="absolute -top-1 -right-1 bg-[var(--primary)] text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full leading-none flex items-center">{lang.split('-')[0].toUpperCase()}</span>
             </button>
             <button onClick={toggleTheme} className="w-10 h-10 rounded-full bg-[var(--surface)] border border-[var(--border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--primary)] transition-all active:scale-95 shadow-sm">
               {isDark ? <FaSun size={16} /> : <FaMoon size={16} />}
@@ -306,11 +307,11 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
 
         {/* ━━━━━━━━━━ STATUS ALUNO ━━━━━━━━━━ */}
         {aluno && (
-          <div className="bg-[var(--surface)] p-4 rounded-3xl border border-[var(--border)] flex justify-between items-center shadow-sm">
+          <div className="bg-[var(--surface)] p-4 rounded-[1.5rem] border border-[var(--border)] flex justify-between items-center shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="flex flex-col">
               <span className="text-[9px] font-bold uppercase text-[var(--text-secondary)] tracking-widest mb-1">{t.status}</span>
               <div className="flex items-center gap-2">
-                <div className={`w-2 h-2 rounded-full ${aluno.status_pagamento === 'bloqueado' ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]' : 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]'}`} />
+                <div className={`w-2 h-2 rounded-full ${aluno.status_pagamento === 'bloqueado' ? 'bg-[var(--danger)] shadow-[0_0_8px_var(--danger)]' : 'bg-[var(--success)] shadow-[0_0_8px_var(--success)]'}`} />
                 <span className="font-black text-[12px]">{aluno.status_pagamento === 'bloqueado' ? t.blocked : t.active}</span>
               </div>
             </div>
@@ -323,34 +324,34 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
 
         {/* ━━━━━━━━━━ HERO: TREINO DO DIA ━━━━━━━━━━ */}
         {treinoDoDia ? (
-          <section className="relative overflow-hidden bg-gradient-to-br from-[var(--primary)] to-blue-800 p-8 rounded-[2rem] shadow-[0_10px_40px_-10px_var(--primary)] border border-white/10 group">
+          <section className="relative overflow-hidden bg-gradient-to-br from-[var(--primary)] to-blue-800 p-8 rounded-[2rem] shadow-[0_10px_30px_-10px_var(--primary)] border border-white/10 group animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">
             {/* Efeito Glow Premium */}
             <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 blur-[50px] rounded-full transform translate-x-1/2 -translate-y-1/2" />
             
             <div className="relative z-10 flex justify-between items-start mb-8">
-              <div className="flex flex-col">
+              <div className="flex flex-col flex-1 pr-4">
                 <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/70 mb-1">{t.today}</span>
-                <h2 className="text-3xl font-black tracking-tight text-white leading-tight">{treinoDoDia.nome_treino}</h2>
+                <h2 className="text-3xl font-black tracking-tight text-white leading-tight break-words">{treinoDoDia.nome_treino}</h2>
               </div>
-              <div className="bg-white/20 backdrop-blur-md p-3.5 rounded-2xl shadow-inner">
+              <div className="bg-white/20 backdrop-blur-md p-3.5 rounded-2xl shadow-inner shrink-0">
                 <FaDumbbell className="text-white text-xl" />
               </div>
             </div>
             <button 
               onClick={() => router.push(`/aluno/${id}/treino/${treinoDoDia.id}`)}
-              className="relative z-10 w-full py-4 bg-white text-[var(--primary)] rounded-2xl font-black text-[12px] uppercase tracking-widest transition-transform active:scale-[0.98] shadow-xl hover:shadow-2xl"
+              className="relative z-10 w-full py-4 bg-white text-[var(--primary)] rounded-2xl font-black text-[12px] uppercase tracking-widest transition-transform active:scale-[0.98] shadow-xl hover:shadow-2xl flex items-center justify-center gap-2"
             >
               {t.start}
             </button>
           </section>
         ) : (
-          <div className="p-8 text-center bg-[var(--surface)] rounded-[2rem] border border-dashed border-[var(--border)]">
+          <div className="p-8 text-center bg-[var(--surface)] rounded-[2rem] border border-dashed border-[var(--border)] animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">
             <p className="text-[var(--text-secondary)] text-sm font-bold">{t.none}</p>
           </div>
         )}
 
         {/* ━━━━━━━━━━ WEEK CALENDAR ━━━━━━━━━━ */}
-        <section className="bg-[var(--surface)] p-6 rounded-[2rem] border border-[var(--border)] shadow-sm">
+        <section className="bg-[var(--surface)] p-6 rounded-[2rem] border border-[var(--border)] shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500 delay-150">
           <div className="flex justify-between items-center mb-5">
             <h2 className="text-[11px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.2em]">{t.week}</h2>
           </div>
@@ -382,13 +383,13 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
 
         <button 
           onClick={() => setCalendarioAberto(true)}
-          className="w-full py-4 bg-[var(--surface)] border border-[var(--border)] rounded-[1.5rem] text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all active:scale-95 shadow-sm"
+          className="w-full py-4 bg-[var(--surface)] border border-[var(--border)] rounded-[1.5rem] text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all active:scale-95 shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500 delay-200"
         >
           {t.historyBtn}
         </button>
 
         {/* ━━━━━━━━━━ GRID MENU ━━━━━━━━━━ */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-300">
           <BotaoMenu icon={<FaDumbbell />} label={t.trainings} onClick={() => router.push(`/aluno/${id}/treinos`)} />
           <BotaoMenu icon={<FaClipboardList />} label={t.evaluations} onClick={async () => { 
             const { data } = await supabase.from('avaliacoes_fisicas').select('*').eq('aluno_id', id); 
@@ -413,16 +414,17 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
           />
         )}
 
-        <div className="h-40 w-full shrink-0" aria-hidden="true" />
+        {/* Espaçador inferior para não colar na Navbar */}
+        <div className="h-20 w-full shrink-0" aria-hidden="true" />
       </div>
 
       {/* ━━━━━━━━━━ MODAL: CALENDÁRIO ━━━━━━━━━━ */}
       {calendarioAberto && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xl z-[100] flex items-center justify-center p-4 transition-opacity">
-          <div style={themeStyles} className="bg-[var(--bg)] w-full max-w-sm p-6 rounded-[2rem] border border-[var(--border)] shadow-2xl transform transition-transform animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex justify-between items-center mb-6">
+          <div style={themeStyles} className="bg-[var(--surface)] w-full max-w-sm p-6 sm:p-8 rounded-[2.5rem] border border-[var(--border)] shadow-2xl transform transition-transform animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex justify-between items-center mb-8">
               <h2 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--primary)]">{t.historyTitle}</h2>
-              <button onClick={() => setCalendarioAberto(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-[var(--surface)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all">
+              <button onClick={() => setCalendarioAberto(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-[var(--surface-sec)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all active:scale-95">
                 <span className="text-xl leading-none">&times;</span>
               </button>
             </div>
@@ -440,8 +442,8 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
 
 function BotaoMenu({ icon, label, onClick }: any) {
   return (
-    <button onClick={onClick} className="bg-[var(--surface)] border border-[var(--border)] p-6 rounded-[2rem] flex flex-col items-center justify-center gap-4 active:scale-95 transition-all shadow-sm hover:shadow-md group">
-      <div className="text-2xl text-[var(--text-secondary)] group-hover:text-[var(--primary)] transition-colors">{icon}</div>
+    <button onClick={onClick} className="bg-[var(--surface)] border border-[var(--border)] p-6 rounded-[2rem] flex flex-col items-center justify-center gap-4 active:scale-95 transition-all shadow-sm hover:shadow-[0_10px_30px_-15px_var(--primary)] hover:border-[var(--primary)]/50 group">
+      <div className="text-2xl text-[var(--text-secondary)] group-hover:text-[var(--primary)] transition-colors group-hover:scale-110 duration-300">{icon}</div>
       <span className="font-bold text-[11px] uppercase tracking-widest text-[var(--text-primary)]">{label}</span>
     </button>
   );
@@ -456,15 +458,15 @@ function CalendarioTreino({ diasTreinados, lang }: { diasTreinados: Date[], lang
   const localeObj = lang === 'pt-BR' ? ptBR : lang === 'pt-PT' ? pt : enUS;
 
   return (
-    <div className="bg-[var(--surface)] p-5 rounded-[1.5rem] border border-[var(--border)]">
-      <div className="flex justify-between items-center mb-6">
-        <button onClick={() => setDataAtual(subMonths(dataAtual, 1))} className="p-2 text-[var(--text-secondary)] active:scale-90 transition-transform"><FaChevronLeft size={14}/></button>
+    <div className="bg-[var(--surface-sec)] p-6 rounded-[1.5rem] border border-[var(--border)] shadow-inner">
+      <div className="flex justify-between items-center mb-6 bg-[var(--surface)] p-2 rounded-full border border-[var(--border)]">
+        <button onClick={() => setDataAtual(subMonths(dataAtual, 1))} className="p-2 w-10 h-10 flex items-center justify-center rounded-full bg-[var(--surface-sec)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-90 transition-all"><FaChevronLeft size={12}/></button>
         <h3 className="font-black text-xs uppercase tracking-widest text-[var(--text-primary)]">{format(dataAtual, 'MMMM yyyy', { locale: localeObj })}</h3>
-        <button onClick={() => setDataAtual(addMonths(dataAtual, 1))} className="p-2 text-[var(--text-secondary)] active:scale-90 transition-transform"><FaChevronRight size={14}/></button>
+        <button onClick={() => setDataAtual(addMonths(dataAtual, 1))} className="p-2 w-10 h-10 flex items-center justify-center rounded-full bg-[var(--surface-sec)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-90 transition-all"><FaChevronRight size={12}/></button>
       </div>
-      <div className="grid grid-cols-7 gap-2 text-center mb-2">
+      <div className="grid grid-cols-7 gap-2 text-center mb-4 border-b border-[var(--border)] pb-4">
         {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((d, i) => (
-          <div key={i} className="text-[9px] font-bold text-[var(--text-secondary)] uppercase">
+          <div key={i} className="text-[10px] font-black text-[var(--text-secondary)] uppercase">
             {d}
           </div>
         ))}
@@ -473,10 +475,10 @@ function CalendarioTreino({ diasTreinados, lang }: { diasTreinados: Date[], lang
         {diasDoMes.map((dia, i) => {
           const treinou = diasTreinados.some(d => isSameDay(d, dia));
           return (
-            <div key={i} className={`w-9 h-9 mx-auto rounded-full flex items-center justify-center text-xs font-bold transition-all relative ${
+            <div key={i} className={`w-9 h-9 sm:w-10 sm:h-10 mx-auto rounded-[12px] flex items-center justify-center text-xs font-bold transition-all relative ${
               treinou 
                 ? 'bg-[var(--primary)] text-white shadow-[0_0_12px_rgba(37,99,235,0.4)]' 
-                : 'text-[var(--text-primary)] bg-[var(--surface-sec)]'
+                : 'text-[var(--text-primary)] bg-[var(--surface)] border border-[var(--border)]'
             } ${!isSameMonth(dia, dataAtual) ? 'opacity-20' : ''}`}>
               {format(dia, 'd')}
             </div>
@@ -508,7 +510,7 @@ function ModalAvaliacao({ isOpen, onClose, avaliacao, historico, themeStyles, t,
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-xl z-[500] flex items-end sm:items-center justify-center p-0 sm:p-4 transition-opacity">
-      <div style={themeStyles} className="bg-[var(--bg)] w-full max-w-md rounded-t-[2.5rem] sm:rounded-[2.5rem] p-6 pt-8 sm:p-8 max-h-[90vh] flex flex-col shadow-2xl border border-[var(--border)] overflow-hidden animate-in slide-in-from-bottom-full sm:zoom-in-95 duration-300 pb-[env(safe-area-inset-bottom)]">
+      <div style={themeStyles} className="bg-[var(--surface)] w-full max-w-md rounded-t-[2.5rem] sm:rounded-[2.5rem] p-6 pt-8 sm:p-8 max-h-[90vh] flex flex-col shadow-2xl border border-[var(--border)] overflow-hidden animate-in slide-in-from-bottom-full sm:zoom-in-95 duration-300 pb-[env(safe-area-inset-bottom)]">
         
         {/* Notch indicador (Mobile) */}
         <div className="w-12 h-1.5 bg-[var(--border)] rounded-full absolute top-3 left-1/2 -translate-x-1/2 sm:hidden" />
@@ -519,7 +521,7 @@ function ModalAvaliacao({ isOpen, onClose, avaliacao, historico, themeStyles, t,
             <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--primary)]">{t.analysis}</h2>
             <p className="text-2xl font-black text-[var(--text-primary)] tracking-tight">{t.evolution}</p>
           </div>
-          <button onClick={onClose} className="w-10 h-10 rounded-full bg-[var(--surface)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all active:scale-90 border border-[var(--border)]">
+          <button onClick={onClose} className="w-10 h-10 rounded-full bg-[var(--surface-sec)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all active:scale-90 border border-[var(--border)]">
             <span className="text-xl leading-none">&times;</span>
           </button>
         </div>
@@ -527,14 +529,14 @@ function ModalAvaliacao({ isOpen, onClose, avaliacao, historico, themeStyles, t,
         {/* Conteúdo com Scroll */}
         <div className="overflow-y-auto flex-1 pr-2 -mr-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           
-          <div className="mb-6 bg-[var(--surface)] px-4 py-3 rounded-2xl border border-[var(--border)] inline-block">
+          <div className="mb-6 bg-[var(--surface-sec)] px-4 py-3 rounded-2xl border border-[var(--border)] inline-block shadow-inner">
              <p className="text-[10px] font-bold uppercase text-[var(--text-secondary)] tracking-widest">
                {t.dateOfRecord}: <span className="text-[var(--text-primary)]">{new Date(avaliacao.data_avaliacao).toLocaleDateString(lang)}</span>
              </p>
           </div>
           
           {/* Gráfico Premium */}
-          <div className="h-48 w-full mb-8 bg-[var(--surface)] rounded-[2rem] p-4 sm:p-5 border border-[var(--border)] relative overflow-hidden group shadow-inner">
+          <div className="h-48 w-full mb-8 bg-[var(--surface-sec)] rounded-[2rem] p-4 sm:p-5 border border-[var(--border)] relative overflow-hidden group shadow-inner">
             <div className="absolute inset-0 bg-gradient-to-t from-[var(--primary)]/5 to-transparent opacity-50" />
             
             <ResponsiveContainer width="100%" height="100%">
@@ -552,7 +554,7 @@ function ModalAvaliacao({ isOpen, onClose, avaliacao, historico, themeStyles, t,
                 <Tooltip 
                   cursor={{ stroke: 'var(--primary)', strokeWidth: 1, strokeDasharray: '4 4' }}
                   contentStyle={{ 
-                    backgroundColor: 'var(--surface-sec)', 
+                    backgroundColor: 'var(--surface)', 
                     borderRadius: '1rem', 
                     border: '1px solid var(--border)',
                     padding: '8px 12px',
@@ -583,30 +585,31 @@ function ModalAvaliacao({ isOpen, onClose, avaliacao, historico, themeStyles, t,
 
           {/* KPIs */}
           <div className="grid grid-cols-2 gap-4 mb-8">
-            <div className="bg-gradient-to-br from-[var(--primary)] to-blue-700 p-5 sm:p-6 rounded-[2rem] shadow-lg text-white">
-              <p className="text-[9px] font-bold uppercase opacity-80 mb-1">{t.currentWeight}</p>
-              <p className="font-black text-3xl leading-none">{avaliacao.peso || 0}<span className="text-sm opacity-70 ml-1 font-bold">kg</span></p>
+            <div className="bg-gradient-to-br from-[var(--primary)] to-blue-700 p-5 sm:p-6 rounded-[2rem] shadow-[0_10px_20px_-10px_var(--primary)] text-white relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 blur-[30px] rounded-full transform translate-x-1/2 -translate-y-1/2" />
+              <p className="text-[9px] font-bold uppercase opacity-80 mb-1 relative z-10">{t.currentWeight}</p>
+              <p className="font-black text-3xl leading-none relative z-10">{avaliacao.peso || 0}<span className="text-sm opacity-70 ml-1 font-bold">kg</span></p>
               {pesoAnterior > 0 && (
-                <div className="mt-3 inline-flex items-center bg-black/20 px-2 py-1 rounded-lg backdrop-blur-sm">
+                <div className="mt-3 inline-flex items-center bg-black/20 px-2 py-1.5 rounded-[0.8rem] backdrop-blur-md border border-white/10 relative z-10">
                   <p className={`text-[10px] font-bold ${diferenca <= 0 ? 'text-green-300' : 'text-orange-300'}`}>
                     {diferenca <= 0 ? '↓' : '↑'} {Math.abs(diferenca).toFixed(1)}kg
                   </p>
                 </div>
               )}
             </div>
-            <div className="bg-[var(--surface-sec)] p-5 sm:p-6 rounded-[2rem] border border-[var(--border)]">
+            <div className="bg-[var(--surface-sec)] p-5 sm:p-6 rounded-[2rem] border border-[var(--border)] shadow-inner">
               <p className="text-[9px] font-bold uppercase text-[var(--text-secondary)] mb-1">{t.prevWeight}</p>
               <p className="font-black text-3xl leading-none text-[var(--text-primary)]">{pesoAnterior || 0}<span className="text-sm text-[var(--text-secondary)] ml-1 font-bold">kg</span></p>
-              <p className="text-[10px] font-bold text-[var(--text-secondary)] mt-3">{t.lastMark}</p>
+              <p className="text-[10px] font-bold text-[var(--text-secondary)] mt-3 opacity-70">{t.lastMark}</p>
             </div>
           </div>
 
           {/* Grade de Medidas */}
           <div className="space-y-4 mb-8">
-            <p className="text-[10px] font-bold uppercase text-[var(--text-secondary)] tracking-widest mb-3">{t.details}</p>
+            <p className="text-[10px] font-black uppercase text-[var(--text-secondary)] tracking-widest mb-3">{t.details}</p>
             <div className="grid grid-cols-2 gap-3">
               {medidasList.map((m) => (
-                <div key={m.label} className="flex justify-between items-center bg-[var(--surface)] p-4 rounded-[1.2rem] border border-[var(--border)] shadow-sm">
+                <div key={m.label} className="flex justify-between items-center bg-[var(--surface-sec)] p-4 rounded-[1.2rem] border border-[var(--border)] shadow-sm hover:border-[var(--primary)]/30 transition-colors">
                   <span className="text-[11px] font-bold text-[var(--text-secondary)] uppercase">{m.label}</span>
                   <span className="font-black text-[var(--text-primary)] text-sm">{m.value || 0}</span>
                 </div>
@@ -615,11 +618,11 @@ function ModalAvaliacao({ isOpen, onClose, avaliacao, historico, themeStyles, t,
           </div>
 
           {avaliacao.observacoes && (
-            <div className="bg-[var(--surface-sec)] p-5 rounded-[1.5rem] border border-[var(--border)] mb-8">
-              <p className="text-[10px] font-bold uppercase text-[var(--text-secondary)] tracking-widest mb-2 flex items-center gap-2">
+            <div className="bg-[var(--primary)]/10 p-5 sm:p-6 rounded-[1.5rem] border border-[var(--primary)]/20 mb-8">
+              <p className="text-[10px] font-black uppercase text-[var(--primary)] tracking-widest mb-2 flex items-center gap-2">
                 <FaCommentMedical className="text-[var(--primary)]" /> {t.obs}
               </p>
-              <p className="text-sm text-[var(--text-primary)] italic leading-relaxed">"{avaliacao.observacoes}"</p>
+              <p className="text-sm text-[var(--text-primary)] italic leading-relaxed font-medium">"{avaliacao.observacoes}"</p>
             </div>
           )}
           
