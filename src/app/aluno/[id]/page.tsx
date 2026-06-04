@@ -307,7 +307,6 @@ function CalendarioTreino({ diasTreinados }: { diasTreinados: Date[] }) {
 function ModalAvaliacao({ isOpen, onClose, avaliacao, historico }: any) {
   if (!isOpen || !avaliacao) return null;
 
-  // Lista completa conforme o seu código original
   const medidasList = [
     { label: 'Tórax', value: avaliacao.torax },
     { label: 'Ombros', value: avaliacao.ombros },
@@ -318,8 +317,12 @@ function ModalAvaliacao({ isOpen, onClose, avaliacao, historico }: any) {
   ];
 
   return (
-    <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-[100] flex items-end md:items-center justify-center p-0 md:p-4">
-      <div className="bg-neutral-900 w-full max-w-sm rounded-t-[2.5rem] md:rounded-[2.5rem] p-8 max-h-[90vh] flex flex-col shadow-2xl border-t border-white/10">
+    // 1. O flex items-center justify-center garante o centro absoluto
+    // 2. z-[500] garante que fique acima de qualquer navbar
+    <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-[500] flex items-center justify-center p-4">
+      
+      {/* Container principal com altura máxima */}
+      <div className="bg-neutral-900 w-full max-w-sm rounded-[2.5rem] p-8 max-h-[90vh] flex flex-col shadow-2xl border border-white/10 overflow-hidden">
         
         {/* Header Fixo */}
         <div className="flex justify-between items-center mb-6 shrink-0">
@@ -327,13 +330,16 @@ function ModalAvaliacao({ isOpen, onClose, avaliacao, historico }: any) {
             <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-500">Análise Corporal</h2>
             <p className="text-xl font-black text-white tracking-tighter">Sua Evolução</p>
           </div>
-          <button onClick={onClose} className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white text-xl">
+          <button 
+            onClick={onClose} 
+            className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white text-xl hover:bg-white/10 transition-all"
+          >
             &times;
           </button>
         </div>
 
-        {/* Conteúdo com Scroll */}
-        <div className="overflow-y-auto flex-1 pr-2 -mr-2">
+        {/* Conteúdo com Scroll (Flex-1) */}
+        <div className="overflow-y-auto flex-1 pr-2 -mr-2 custom-scrollbar">
           
           {/* Gráfico */}
           <div className="h-40 w-full mb-8 bg-neutral-950 rounded-[2rem] p-5 border border-white/5">
@@ -343,7 +349,6 @@ function ModalAvaliacao({ isOpen, onClose, avaliacao, historico }: any) {
               </LineChart>
             </ResponsiveContainer>
           </div>
-
 
           {/* KPIs */}
           <div className="grid grid-cols-2 gap-4 mb-8">
@@ -370,8 +375,8 @@ function ModalAvaliacao({ isOpen, onClose, avaliacao, historico }: any) {
             </div>
           </div>
           
-          {/* Espaço extra para não ficar colado no final */}
-          <div className="h-6" />
+          {/* Espaçador final dentro do scroll para evitar corte */}
+          <div className="h-8" />
         </div>
         
       </div>
