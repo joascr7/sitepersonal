@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { Geist, Geist_Mono } from "next/font/google";
 import ConditionalNavbar from "@/components/ConditionalNavbar";
 import { LogoProvider } from "@/components/LogoProvider";
-import { AlunoProvider } from "@/context/AlunoContext"; // Importação do Contexto que criamos
+import { AlunoProvider } from "@/components/context/AlunoContext";
 import "./globals.css";
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
