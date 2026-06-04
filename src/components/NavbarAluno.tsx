@@ -2,7 +2,6 @@
 import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { FaHome, FaUser, FaDumbbell, FaCommentDots } from 'react-icons/fa';
-import { useLogo } from '@/components/LogoProvider';
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // DICIONÁRIO DE INTERNACIONALIZAÇÃO (i18n)
@@ -30,7 +29,6 @@ const translations = {
 
 export default function NavbarAluno() {
   const pathname = usePathname();
-  const { logo, nome } = useLogo();
 
   // Estados de Tema e i18n
   const [isDark, setIsDark] = useState(true);
@@ -99,17 +97,13 @@ export default function NavbarAluno() {
         style={themeStyles} 
         className="hidden md:flex sticky top-0 z-50 bg-[var(--surface)]/90 backdrop-blur-2xl border-b border-[var(--border)] px-10 py-4 justify-between items-center transition-colors duration-500 shadow-sm"
       >
-        {/* Branding */}
+        {/* Branding Estático */}
         <div className="flex items-center gap-4 h-10 w-auto group cursor-pointer">
-          {logo ? (
-            <img src={logo} className="h-full w-auto object-contain group-hover:scale-105 transition-transform" alt="Logo" />
-          ) : (
-            <div className="w-10 h-10 bg-[var(--primary)]/10 rounded-xl flex items-center justify-center">
-              <span className="font-black text-[var(--primary)]">AF</span>
-            </div>
-          )}
+          <div className="w-10 h-10 bg-[var(--primary)]/10 rounded-xl flex items-center justify-center transition-transform group-hover:scale-105">
+            <span className="font-black text-[var(--primary)]">AF</span>
+          </div>
           <span className="font-black tracking-tight text-2xl text-[var(--primary)]">
-            {nome || 'AuraFit'}
+            AURAFIT
           </span>
         </div>
         
@@ -136,15 +130,14 @@ export default function NavbarAluno() {
         </div>
       </nav>
 
-      {/* ━━━━━━━━━━ MOBILE HEADER (AGORA STICKY DE FATO) ━━━━━━━━━━ */}
+      {/* ━━━━━━━━━━ MOBILE HEADER (STICKY) ━━━━━━━━━━ */}
       <header 
         style={themeStyles} 
         className="md:hidden sticky top-0 z-40 bg-[var(--surface)]/95 backdrop-blur-xl border-b border-[var(--border)] flex items-center justify-center pb-3 pt-[max(env(safe-area-inset-top),1rem)] shadow-sm transition-colors duration-500"
       >
         <div className="flex items-center gap-2">
-          {logo && <img src={logo} className="h-6 w-auto object-contain" alt="Logo" />}
           <span className="font-black tracking-tight text-lg text-[var(--text-primary)] uppercase truncate max-w-[200px]">
-            {nome || 'AuraFit'}
+            AURAFIT
           </span>
         </div>
       </header>
