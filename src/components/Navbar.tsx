@@ -8,30 +8,13 @@ import { FaChartLine, FaWallet, FaUser } from 'react-icons/fa';
 // DICIONÁRIO DE INTERNACIONALIZAÇÃO (i18n)
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 const translations = {
-  'pt-BR': {
-    dashboard: 'Dashboard',
-    financial: 'Financeiro',
-    profile: 'Perfil',
-    logout: 'Sair'
-  },
-  'pt-PT': {
-    dashboard: 'Dashboard',
-    financial: 'Financeiro',
-    profile: 'Perfil',
-    logout: 'Sair'
-  },
-  'en': {
-    dashboard: 'Dashboard',
-    financial: 'Financial',
-    profile: 'Profile',
-    logout: 'Logout'
-  }
+  'pt-BR': { dashboard: 'Dashboard', financial: 'Financeiro', profile: 'Perfil', logout: 'Sair' },
+  'pt-PT': { dashboard: 'Dashboard', financial: 'Financeiro', profile: 'Perfil', logout: 'Sair' },
+  'en': { dashboard: 'Dashboard', financial: 'Financial', profile: 'Profile', logout: 'Logout' }
 };
 
 export default function Navbar() {
   const pathname = usePathname();
-
-  // Estados de Tema e i18n
   const [lang, setLang] = useState<'pt-BR' | 'pt-PT' | 'en'>('pt-BR');
   const [mounted, setMounted] = useState(false);
 
@@ -40,10 +23,8 @@ export default function Navbar() {
       const savedLang = localStorage.getItem('@premium_lang') as 'pt-BR' | 'pt-PT' | 'en';
       if (savedLang) setLang(savedLang);
     };
-
     updateLang();
     setMounted(true);
-
     window.addEventListener('storage', updateLang);
     return () => window.removeEventListener('storage', updateLang);
   }, []);
@@ -51,12 +32,7 @@ export default function Navbar() {
   const t = translations[lang] || translations['pt-BR'];
 
   const rotasExcluidas = [
-    '/', 
-    '/login-professor', 
-    '/login-aluno', 
-    '/login-professor-cadastro', 
-    '/nova-senha',
-    '/pagamento-pendente'
+    '/', '/login-professor', '/login-aluno', '/login-professor-cadastro', '/nova-senha', '/pagamento-pendente'
   ];
   
   if (rotasExcluidas.includes(pathname) || pathname.startsWith('/aluno')) return null;
@@ -71,8 +47,7 @@ export default function Navbar() {
 
   return (
     <>
-      {/* ━━━━━━━━━━ DESKTOP NAVBAR ━━━━━━━━━━ */}
-      {/* (Invisível no celular) */}
+      {/* ━━━━━━━━━━ DESKTOP NAVBAR (OCULTA NO MOBILE) ━━━━━━━━━━ */}
       <nav 
         className="hidden md:flex sticky top-0 z-[100] bg-[var(--surface)]/90 backdrop-blur-2xl border-b border-[var(--border)] px-10 py-4 justify-between items-center transition-colors duration-500 shadow-sm"
       >
@@ -111,7 +86,6 @@ export default function Navbar() {
       </nav>
 
       {/* ━━━━━━━━━━ MOBILE BOTTOM NAVIGATION ━━━━━━━━━━ */}
-      {/* O Header superior foi deletado. Apenas esta barra inferior aparece no mobile. */}
       <nav 
         style={{ bottom: 'max(env(safe-area-inset-bottom, 20px), 20px)' }}
         className="md:hidden fixed left-5 right-5 z-[100] bg-[var(--surface)]/90 backdrop-blur-3xl border border-[var(--border)] rounded-[2rem] py-3 px-6 flex justify-between items-center shadow-[0_20px_40px_-10px_rgba(0,0,0,0.3)] transition-colors duration-500"
