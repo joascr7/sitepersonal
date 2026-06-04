@@ -68,6 +68,7 @@ export default function NavbarAluno() {
   return (
     <>
       {/* ━━━━━━━━━━ DESKTOP NAVBAR ━━━━━━━━━━ */}
+      {/* (Fica invisível no celular, aparece só no PC) */}
       <nav 
         className="hidden md:flex sticky top-0 z-[100] bg-[var(--surface)]/90 backdrop-blur-2xl border-b border-[var(--border)] px-10 py-4 justify-between items-center transition-colors duration-500 shadow-sm"
       >
@@ -102,7 +103,7 @@ export default function NavbarAluno() {
       </nav>
 
       {/* ━━━━━━━━━━ MOBILE BOTTOM NAVIGATION ━━━━━━━━━━ */}
-      {/* Removemos o Header superior do Mobile. Agora apenas a Bottom Bar é exibida. */}
+      {/* O Header superior foi deletado. Apenas esta barra inferior será renderizada no celular. */}
       <nav 
         style={{ bottom: 'max(env(safe-area-inset-bottom, 20px), 20px)' }}
         className="md:hidden fixed left-5 right-5 z-[100] bg-[var(--surface)]/90 backdrop-blur-3xl border border-[var(--border)] rounded-[2rem] py-3 px-6 flex justify-between items-center shadow-[0_20px_40px_-10px_rgba(0,0,0,0.3)] transition-colors duration-500"
