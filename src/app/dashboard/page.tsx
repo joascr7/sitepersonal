@@ -74,12 +74,7 @@ export default function Dashboard() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [alunoSelecionado, setAlunoSelecionado] = useState<any>(null);
   const [valorPago, setValorPago] = useState('');
-  const [statusMsg, setStatusMsg] = useState<{type: 'success' | 'error', text: string} | null>(null);
-  
-  // 2. CORREÇÃO: Tipando o estado corretamente com a interface ou null
-  const [personalInfo, setPersonalInfo] = useState<PersonalData | null>(null);
-  
-  const [statusAcesso, setStatusAcesso] = useState({ emTeste: true, status: 'ativo' })
+  const [toast, setToast] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   const [faturamentoMes, setFaturamentoMes] = useState(0);
   const [mesSelecionado, setMesSelecionado] = useState(new Date().getMonth());
   const [anoSelecionado, setAnoSelecionado] = useState(new Date().getFullYear());
@@ -169,25 +164,24 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (user?.id) {
-      fetchFaturamentoPorMes(supabase, user.id, mesSelecionado, anoSelecionado)
-        .then(setFaturamentoMes);
+      const fetchFat = async () => {
+        const inicio = new Date(anoSelecionado, mesSelecionado, 1).toISOString();
+        const fim = new Date(anoSelecionado, mesSelecionado + 1, 0, 23, 59, 59).toISOString();
+        const { data } = await supabase.from('pagamentos').select('valor').eq('personal_id', user.id).gte('data_pagamento', inicio).lte('data_pagamento', fim);
+        setFaturamentoMes(data ? data.reduce((acc, curr) => acc + Number(curr.valor), 0) : 0);
+      };
+      fetchFat();
     }
   }, [user, mesSelecionado, anoSelecionado]);
 
-  const showStatus = (type: 'success' | 'error', text: string) => {
-    setStatusMsg({ type, text });
-    setTimeout(() => setStatusMsg(null), 3000);
-  };
-
-  const fetchAlunos = async (personalId: string) => {
-    const { data } = await supabase.from('alunos').select('*').eq('personal_id', personalId).order('nome');
+  const fetchAlunos = async (pId: string) => {
+    const { data } = await supabase.from('alunos').select('*').eq('personal_id', pId).order('nome');
     if (data) setAlunos(data);
   };
 
-  const fetchFinanceiro = async (personalId: string) => {
-    const hoje = new Date();
-    const inicioMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1).toISOString();
-    const { data } = await supabase.from('pagamentos').select('valor').eq('personal_id', personalId).gte('data_pagamento', inicioMes);
+  const fetchFinanceiro = async (pId: string) => {
+    const inicioMes = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
+    const { data } = await supabase.from('pagamentos').select('valor').eq('personal_id', pId).gte('data_pagamento', inicioMes);
     if (data) setTotalMes(data.reduce((acc, curr) => acc + Number(curr.valor), 0));
   };
 
@@ -224,8 +218,7 @@ export default function Dashboard() {
       const { error: alError } = await supabase.from('alunos').update({ status_pagamento: 'ativo', data_vencimento: novaData }).eq('id', alunoSelecionado.id);
       if (alError) throw alError;
 
-      setIsModalOpen(false); 
-      setValorPago(''); 
+      setIsModalOpen(false); setValorPago(''); 
       await Promise.all([fetchAlunos(user.id), fetchFinanceiro(user.id)]);
       showStatus('success', t.successPay);
     } catch (err: any) {
@@ -234,7 +227,6 @@ export default function Dashboard() {
   };
 
   const alunosFiltrados = useMemo(() => alunos.filter(a => a.nome.toLowerCase().includes(busca.toLowerCase())), [alunos, busca]);
-  
   const alunosVencendo = alunos.filter(a => {
     if (!a.data_vencimento) return false;
     const hoje = new Date();
