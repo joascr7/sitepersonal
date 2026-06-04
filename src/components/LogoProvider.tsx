@@ -17,7 +17,7 @@ interface LogoData {
 const LogoContext = createContext<LogoData>({ logo: null, nome: 'AuraFit' });
 
 export function LogoProvider({ children }: { children: React.ReactNode }) {
-  const [data, setData] = useState<LogoData>({ logo: null, nome: 'AuraFit' });
+  const [data, setData] = useState<LogoData>({ logo: null, nome: 'FANTASMA' });
 
   useEffect(() => {
     async function loadGlobalConfig() {
