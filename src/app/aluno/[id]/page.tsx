@@ -367,17 +367,18 @@ function ModalAvaliacao({ isOpen, onClose, avaliacao, historico }: any) {
       />
       
       <Tooltip 
-        cursor={{ stroke: '#3b82f6', strokeWidth: 1, strokeDasharray: '4 4' }}
-        contentStyle={{ 
-          backgroundColor: '#0a0a0a', 
-          borderRadius: '1rem', 
-          border: '1px solid rgba(255,255,255,0.1)',
-          padding: '8px 12px',
-          boxShadow: '0 10px 25px rgba(0,0,0,0.5)'
-        }}
-        labelStyle={{ display: 'none' }}
-        formatter={(value: number) => [`${value} kg`, 'Peso']}
-      />
+  cursor={{ stroke: '#3b82f6', strokeWidth: 1, strokeDasharray: '4 4' }}
+  contentStyle={{ 
+    backgroundColor: '#0a0a0a', 
+    borderRadius: '1rem', 
+    border: '1px solid rgba(255,255,255,0.1)',
+    padding: '8px 12px',
+    boxShadow: '0 10px 25px rgba(0,0,0,0.5)'
+  }}
+  labelStyle={{ display: 'none' }}
+  // Mudamos a tipagem para aceitar 'any' ou validar se o valor existe
+  formatter={(value: any) => [value ? `${value} kg` : '-', 'Peso']}
+/>
       
       {/* Linha com suavização extrema */}
       <Line 
