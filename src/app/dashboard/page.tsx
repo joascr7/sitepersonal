@@ -32,7 +32,9 @@ const translations = {
     errStatus: 'Erro ao alterar status.',
     successStatus: 'Status atualizado!',
     errProcess: 'Falha ao processar: ',
-    successPay: 'Pagamento registrado com sucesso!'
+    successPay: 'Pagamento registrado com sucesso!',
+    confirmPagamento: 'Confirmar Pagamento',
+    valorPlaceholder: 'Valor (R$)'
   },
   'pt-PT': {
     title: 'Dashboard',
@@ -52,7 +54,9 @@ const translations = {
     errStatus: 'Erro ao alterar status.',
     successStatus: 'Status atualizado!',
     errProcess: 'Falha ao processar: ',
-    successPay: 'Pagamento registado com sucesso!'
+    successPay: 'Pagamento registado com sucesso!',
+    confirmPagamento: 'Confirmar Pagamento',
+    valorPlaceholder: 'Valor'
   },
   'en': {
     title: 'Dashboard',
@@ -72,7 +76,9 @@ const translations = {
     errStatus: 'Error changing status.',
     successStatus: 'Status updated!',
     errProcess: 'Failed to process: ',
-    successPay: 'Payment registered successfully!'
+    successPay: 'Payment registered successfully!',
+    confirmPagamento: 'Confirm Payment',
+    valorPlaceholder: 'Value'
   }
 };
 
@@ -202,8 +208,7 @@ export default function Dashboard() {
       const { error: alError } = await supabase.from('alunos').update({ status_pagamento: 'ativo', data_vencimento: novaData }).eq('id', alunoSelecionado.id);
       if (alError) throw alError;
 
-      setIsModalOpen(false); 
-      setValorPago(''); 
+      setIsModalOpen(false); setValorPago(''); 
       await Promise.all([fetchAlunos(user.id), fetchFinanceiro(user.id)]);
       showToast('success', t.successPay);
     } catch (err: any) {
@@ -234,10 +239,10 @@ export default function Dashboard() {
 
         {isModalOpen && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[300] flex items-center justify-center p-4">
-            <div className="bg-[#151A22] p-8 rounded-[2rem] w-full max-w-sm border border-white/10 space-y-4">
-              <div className="flex justify-between items-center"><h3 className="font-black">Registrar Pagamento</h3><button onClick={() => setIsModalOpen(false)}><FaTimes /></button></div>
-              <input type="number" value={valorPago} onChange={(e) => setValorPago(e.target.value)} placeholder="Valor (R$)" className="w-full p-4 bg-white/5 rounded-xl font-bold border border-white/5 outline-none" />
-              <button onClick={processarPagamento} className="w-full py-4 bg-blue-600 rounded-xl font-black uppercase text-xs hover:bg-blue-500">Confirmar</button>
+            <div className={`p-8 rounded-[2rem] w-full max-w-sm border shadow-2xl ${isDark ? 'bg-[#151A22] border-white/5' : 'bg-white border-black/5'}`}>
+              <div className="flex justify-between items-center mb-6"><h3 className="font-black">{t.confirmPagamento}</h3><button onClick={() => setIsModalOpen(false)}><FaTimes /></button></div>
+              <input type="number" value={valorPago} onChange={(e) => setValorPago(e.target.value)} placeholder={t.valorPlaceholder} className="w-full p-4 mb-4 rounded-xl font-bold border border-white/10 bg-black/10 outline-none" />
+              <button onClick={processarPagamento} className="w-full py-4 bg-[var(--primary)] text-white rounded-xl font-black uppercase text-xs">{t.confirmPagamento}</button>
             </div>
           </div>
         )}
@@ -249,8 +254,8 @@ export default function Dashboard() {
               <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-60">{t.subtitle}</p>
             </div>
             <div className="flex gap-2">
-              <button onClick={toggleLang} className="p-4 rounded-[1.2rem] bg-black/5 hover:bg-black/10"><FaGlobe /></button>
-              <button onClick={toggleTheme} className="p-4 rounded-[1.2rem] bg-black/5 hover:bg-black/10">{isDark ? <FaSun /> : <FaMoon />}</button>
+              <button onClick={toggleLang} className="p-4 rounded-[1.2rem] bg-black/5"><FaGlobe /></button>
+              <button onClick={toggleTheme} className="p-4 rounded-[1.2rem] bg-black/5">{isDark ? <FaSun /> : <FaMoon />}</button>
               <button onClick={() => router.push('/dashboard/adicionar-aluno')} className="bg-[var(--primary)] text-white p-4 rounded-[1.2rem] shadow-lg"><FaPlus /></button>
             </div>
           </header>
@@ -310,7 +315,7 @@ export default function Dashboard() {
                 <div key={a.id} className="bg-[#151A22] p-6 rounded-[2rem] border border-white/5 flex items-center justify-between hover:border-[var(--primary)]/30 transition-all">
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 rounded-full bg-[#1B2330] flex items-center justify-center font-black text-xs border border-white/5 overflow-hidden">
-                      {a.avatar_url ? <img src={a.avatar_url} className="w-full h-full object-cover" /> : a.nome.charAt(0)}
+                      {a.avatar_url ? <img src={a.avatar_url} className="w-full h-full rounded-full object-cover" /> : a.nome.charAt(0)}
                     </div>
                     <div>
                       <h3 className="font-black text-sm">{a.nome}</h3>
