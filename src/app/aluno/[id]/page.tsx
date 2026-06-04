@@ -344,14 +344,56 @@ function ModalAvaliacao({ isOpen, onClose, avaliacao, historico }: any) {
              </p>
           </div>
           
-          {/* Gráfico */}
-          <div className="h-40 w-full mb-8 bg-neutral-950 rounded-[2rem] p-5 border border-white/5">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={historico}>
-                <Line type="monotone" dataKey="peso" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4 }} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
+          {/* Gráfico Melhorado */}
+<div className="h-40 w-full mb-8 bg-gradient-to-br from-neutral-900/50 to-black/20 rounded-[2rem] p-5 border border-white/5 relative overflow-hidden group">
+  {/* Efeito de brilho sutil no fundo */}
+  <div className="absolute inset-0 bg-blue-500/5 blur-3xl" />
+  
+  <ResponsiveContainer width="100%" height="100%">
+    <LineChart data={historico} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+      <defs>
+        <linearGradient id="colorPeso" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
+          <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+        </linearGradient>
+      </defs>
+      
+      <XAxis dataKey="data" hide />
+      <YAxis 
+        domain={['auto', 'auto']} 
+        hide 
+        // Adiciona um padding dinâmico para a linha não bater nas bordas
+        padding={{ top: 20, bottom: 20 }} 
+      />
+      
+      <Tooltip 
+        cursor={{ stroke: '#3b82f6', strokeWidth: 1, strokeDasharray: '4 4' }}
+        contentStyle={{ 
+          backgroundColor: '#0a0a0a', 
+          borderRadius: '1rem', 
+          border: '1px solid rgba(255,255,255,0.1)',
+          padding: '8px 12px',
+          boxShadow: '0 10px 25px rgba(0,0,0,0.5)'
+        }}
+        labelStyle={{ display: 'none' }}
+        formatter={(value: number) => [`${value} kg`, 'Peso']}
+      />
+      
+      {/* Linha com suavização extrema */}
+      <Line 
+        type="monotone" 
+        dataKey="peso" 
+        stroke="#3b82f6" 
+        strokeWidth={4}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        dot={{ fill: '#3b82f6', r: 4, strokeWidth: 2, stroke: '#171717' }} 
+        activeDot={{ r: 6, fill: '#fff', stroke: '#3b82f6', strokeWidth: 2 }}
+        animationDuration={1500}
+      />
+    </LineChart>
+  </ResponsiveContainer>
+</div>
 
           {/* KPIs: Peso Atual + Peso Anterior */}
           <div className="grid grid-cols-2 gap-4 mb-8">

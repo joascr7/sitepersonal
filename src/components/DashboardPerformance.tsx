@@ -56,7 +56,7 @@ export default function DashboardPerformance({ alunoId }: { alunoId: string }) {
 
   return (
     // pt-20 compensa o Header superior, pb-32 compensa a Navbar inferior
-    <main className="w-full min-h-screen bg-black text-white pt-20 pb-32 px-4">
+    <main className="w-full min-h-screen bg-black text-white pt-20 pb-10 px-4">
       <div className="max-w-4xl mx-auto space-y-2">
         
         {/* Cards de Métricas */}
@@ -99,7 +99,7 @@ export default function DashboardPerformance({ alunoId }: { alunoId: string }) {
         </div>
 
         {/* ESPAÇADOR DE SEGURANÇA */}
-        <div className="h-20 w-full shrink-0" aria-hidden="true" />
+        <div className="h-5 w-full shrink-0" aria-hidden="true" />
       </div>
     </main>
   );

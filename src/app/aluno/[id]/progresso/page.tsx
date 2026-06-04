@@ -22,7 +22,7 @@ export default function ProgressoPage({ params }: { params: Promise<{ id: string
         <DashboardPerformance alunoId={id} />
 
         {/* ESPAÇADOR DE SEGURANÇA: Garante scroll livre no final da página */}
-        <div className="h-20 w-full shrink-0" aria-hidden="true" />
+        <div className="h-5 w-full shrink-0" aria-hidden="true" />
       </div>
     </main>
   );
