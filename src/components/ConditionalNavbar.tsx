@@ -5,15 +5,14 @@ import NavbarAluno from './NavbarAluno';
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // ROTEADOR ESTRUTURAL DE NAVEGAÇÃO
-// Este componente gerencia a exibição condicional das barras de navegação
-// garantindo que não crie camadas extras de layout (wrapper divs) 
-// que possam quebrar o Safe Area ou o scroll nativo.
+// Gerencia a exibição condicional das barras de navegação sem criar 
+// wrappers que quebrem o Safe Area mobile.
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 export default function ConditionalNavbar() {
   const pathname = usePathname();
 
-  // 1. Rotas onde nenhuma navbar deve aparecer (Telas de Autenticação/Públicas)
+  // 1. Rotas onde nenhuma navbar deve aparecer (Autenticação/Públicas)
   const rotasExclusao = [
     '/', 
     '/login-personal', 
@@ -25,7 +24,7 @@ export default function ConditionalNavbar() {
     '/acesso-personal'
   ];
 
-  // 2. Lógica de exclusão baseada na rota atual
+  // 2. Lógica de exclusão baseada na rota
   if (
     rotasExclusao.includes(pathname) || 
     pathname.startsWith('/admin') || 
@@ -34,10 +33,7 @@ export default function ConditionalNavbar() {
     return null;
   }
 
-  // 3. Renderização Condicional Limpa
-  // IMPORTANTE: O posicionamento (fixed/sticky) e o Safe Area insets
-  // são tratados internamente pelos componentes <NavbarAluno /> e <Navbar />.
-  // O uso do Fragment (<></>) previne bugs de sobreposição de camadas de renderização.
+  // 3. Renderização Condicional Limpa (Fragmentos evitam bugs de CSS/Z-Index)
   return (
     <>
       {pathname.startsWith('/aluno') || pathname.startsWith('/dashboard/aluno') ? (
