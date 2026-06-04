@@ -1,44 +1,111 @@
 @import "tailwindcss";
 
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   SISTEMA GLOBAL DE TEMAS PREMIUM (Design Tokens)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 :root {
-  --background: #000000;
-  --foreground: #ffffff;
-  --card-bg: #171717;
+  /* Dark Premium (Sofisticado / Fitness) */
+  --bg: #0F1115;
+  --surface: #151A22;
+  --surface-sec: #1B2330;
+  --primary: #3B82F6;
+  --primary-soft: #60A5FA;
+  --text-primary: #F8FAFC;
+  --text-secondary: #94A3B8;
+  --border: rgba(255, 255, 255, 0.05);
+  --success: #22C55E;
+  --warning: #F59E0B;
+  --danger: #EF4444;
+
+  /* Variáveis de Herança (Preservando 100% o funcionamento legado) */
+  --background: var(--bg);
+  --foreground: var(--text-primary);
+  --card-bg: var(--surface);
 }
 
-[data-theme='classic'] {
-  --background: #f4f4f4;
-  --foreground: #1a1a1a;
-  --card-bg: #ffffff;
+/* Mantendo o data-theme classic e mapeando para o Light Premium (Apple Fitness Style) */
+[data-theme='classic'],
+[data-theme='light'] {
+  --bg: #F3F6FB;
+  --surface: #FFFFFF;
+  --surface-sec: #E8EEF9;
+  --primary: #2563EB;
+  --primary-soft: #60A5FA;
+  --text-primary: #111827;
+  --text-secondary: #6B7280;
+  --border: rgba(15, 23, 42, 0.06);
+  --success: #16A34A;
+  --warning: #D97706;
+  --danger: #DC2626;
+
+  /* Variáveis de Herança (Preservando 100% o funcionamento legado) */
+  --background: var(--bg);
+  --foreground: var(--text-primary);
+  --card-bg: var(--surface);
 }
 
-/* Aplicamos o reset apenas no body e elementos críticos */
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   BASE E RESET PREMIUM NATIVO
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 body {
-  background: var(--background);
+  background-color: var(--background);
   color: var(--foreground);
-  transition: background 0.3s ease, color 0.3s ease;
-  font-family: Arial, Helvetica, sans-serif;
+  
+  /* Transição suave de temas */
+  transition: background-color 0.5s ease, color 0.5s ease;
+  
+  /* Tipografia Nativa Fallback (Caso a fonte externa não carregue) */
+  font-family: var(--font-geist-sans), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+  
   min-height: 100vh;
-  margin: 0; /* Remove margem do body */
+  margin: 0;
   padding: 0;
+
+  /* EXPERIÊNCIA NATIVA MOBILE (PWA / iOS / Android) */
+  /* Remove aquele tap highlight azul padrão ao clicar em links/botões no mobile */
+  -webkit-tap-highlight-color: transparent;
+  
+  /* Previne o "elastic bounce" no topo/fundo da tela no Safari iOS, sensação de site comum */
+  overscroll-behavior-y: none;
+  
+  /* Textos absurdamente nítidos no iOS e telas Retina */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Garante que o layout não tenha recuos indesejados */
-main {
-  width: 100%;
-}
-/* Força o topo da tela a ignorar o espaço da navbar se necessário */
+/* Força o topo da tela a ignorar o espaço da navbar se necessário (Regra mantida) */
 body {
   padding-top: 0 !important;
   margin-top: 0 !important;
 }
 
-/* Garante que o container principal comece do pixel 0 */
+/* Garante que o container principal comece do pixel 0 (Regra mantida) */
 main {
+  width: 100%;
   margin-top: 0 !important;
+  
+  /* Isso adiciona automaticamente espaço se o celular tiver notch ou barra de home */
+  /* Além de respeitar as diretrizes da Apple (Human Interface Guidelines) */
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-top: env(safe-area-inset-top); /* Respeito ao Notch superior */
 }
 
-main {
-  /* Isso adiciona automaticamente espaço se o celular tiver notch ou barra de home */
-  padding-bottom: env(safe-area-inset-bottom);
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   OTIMIZAÇÕES DE UI (CLEAN SCROLL)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+html {
+  /* Scroll macio em links de âncora */
+  scroll-behavior: smooth;
+}
+
+/* Esconde as scrollbars padrão para aparência limpa de aplicativo, mas mantém o scroll funcional */
+::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  background: transparent;
+}
+
+* {
+  -ms-overflow-style: none; /* IE e Edge */
+  scrollbar-width: none;    /* Firefox */
 }
