@@ -2,6 +2,10 @@
 import { useEffect, useState, use } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
+import { 
+  FaChevronLeft, FaGlobe, FaMoon, FaSun, FaExclamationCircle, 
+  FaCheckCircle, FaTrash, FaUpload, FaPlus, FaSave 
+} from 'react-icons/fa';
 
 interface Serie {
   ordem: string;
@@ -20,6 +24,64 @@ interface Exercicio {
   observacao?: string;
 }
 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// SKELETON SCREEN (UX PREMIUM)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const DashboardSkeleton = () => (
+  <div className="max-w-3xl mx-auto space-y-8 animate-pulse pt-8">
+    <div className="flex justify-between items-center mb-10">
+      <div className="w-16 h-4 bg-[var(--surface-sec)] rounded-full" />
+      <div className="w-48 h-8 bg-[var(--surface-sec)] rounded-xl" />
+      <div className="w-24 h-4 bg-[var(--surface-sec)] rounded-full" />
+    </div>
+    <div className="w-full h-12 bg-[var(--surface-sec)] rounded-2xl mb-10" />
+    {[1, 2, 3].map((i) => (
+      <div key={i} className="p-8 bg-[var(--surface)] rounded-[2.5rem] border border-[var(--border)] space-y-6">
+        <div className="flex justify-between"><div className="w-1/2 h-8 bg-[var(--surface-sec)] rounded-xl" /><div className="w-8 h-8 bg-[var(--surface-sec)] rounded-lg" /></div>
+        <div className="w-full h-12 bg-[var(--surface-sec)] rounded-2xl" />
+        <div className="w-full h-12 bg-[var(--surface-sec)] rounded-2xl" />
+        <div className="w-full h-32 bg-[var(--surface-sec)] rounded-2xl" />
+      </div>
+    ))}
+  </div>
+);
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// DICIONÁRIO DE INTERNACIONALIZAÇÃO (i18n)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const translations = {
+  'pt-BR': {
+    back: 'Voltar', title: 'Editar Ficha', deleteWorkout: 'Excluir Ficha',
+    workoutName: 'Nome do Treino', exName: 'Nome do Exercício', delete: 'Excluir',
+    videoUrl: 'URL do vídeo', uploadBtn: 'Upload de Vídeo', uploading: 'Enviando...',
+    obs: 'Observação técnica...',
+    series: 'Série', reps: 'Reps', load: 'Carga', rest: 'Desc.', planned: 'Planej.',
+    addSeries: '+ Adicionar Série', save: 'Salvar Alterações',
+    errLimit: 'Limite de 10MB excedido!', errDefault: 'Erro: ', successSave: 'Ficha atualizada com sucesso!',
+    confirmDelete: 'Tem certeza que deseja excluir esta ficha?'
+  },
+  'pt-PT': {
+    back: 'Voltar', title: 'Editar Ficha', deleteWorkout: 'Eliminar Ficha',
+    workoutName: 'Nome do Treino', exName: 'Nome do Exercício', delete: 'Eliminar',
+    videoUrl: 'URL do vídeo', uploadBtn: 'Upload de Vídeo', uploading: 'A enviar...',
+    obs: 'Observação técnica...',
+    series: 'Série', reps: 'Reps', load: 'Carga', rest: 'Desc.', planned: 'Planej.',
+    addSeries: '+ Adicionar Série', save: 'Guardar Alterações',
+    errLimit: 'Limite de 10MB excedido!', errDefault: 'Erro: ', successSave: 'Ficha atualizada com sucesso!',
+    confirmDelete: 'Tem certeza que deseja eliminar esta ficha?'
+  },
+  'en': {
+    back: 'Back', title: 'Edit Workout', deleteWorkout: 'Delete Workout',
+    workoutName: 'Workout Name', exName: 'Exercise Name', delete: 'Delete',
+    videoUrl: 'Video URL', uploadBtn: 'Upload Video', uploading: 'Uploading...',
+    obs: 'Technical observation...',
+    series: 'Set', reps: 'Reps', load: 'Load', rest: 'Rest', planned: 'Target',
+    addSeries: '+ Add Set', save: 'Save Changes',
+    errLimit: '10MB limit exceeded!', errDefault: 'Error: ', successSave: 'Workout updated successfully!',
+    confirmDelete: 'Are you sure you want to delete this workout?'
+  }
+};
+
 export default function EditarFicha() {
   const params = useParams();
   const id = params?.id as string;
@@ -30,6 +92,33 @@ export default function EditarFicha() {
   const [exercicios, setExercicios] = useState<Exercicio[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [toast, setToast] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+
+  // Estados UI Premium
+  const [isDark, setIsDark] = useState(true);
+  const [lang, setLang] = useState<'pt-BR' | 'pt-PT' | 'en'>('pt-BR');
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('@premium_theme');
+    const savedLang = localStorage.getItem('@premium_lang') as 'pt-BR' | 'pt-PT' | 'en';
+    if (savedTheme) setIsDark(savedTheme === 'dark');
+    if (savedLang) setLang(savedLang);
+    setMounted(true);
+  }, []);
+
+  const toggleTheme = () => { const newTheme = !isDark; setIsDark(newTheme); localStorage.setItem('@premium_theme', newTheme ? 'dark' : 'light'); window.dispatchEvent(new Event('storage')); };
+  const toggleLang = () => { const langs: ('pt-BR' | 'pt-PT' | 'en')[] = ['pt-BR', 'pt-PT', 'en']; const nextLang = langs[(langs.indexOf(lang) + 1) % langs.length]; setLang(nextLang); localStorage.setItem('@premium_lang', nextLang); };
+  
+  const t = translations[lang] || translations['pt-BR'];
+  const showToast = (type: 'success' | 'error', text: string) => { setToast({ type, text }); setTimeout(() => setToast(null), 4000); };
+
+  // Configuração Dinâmica do Tema Premium
+  const themeStyles = isDark ? {
+    '--bg': '#0F1115', '--surface': '#151A22', '--surface-sec': '#1B2330', '--primary': '#3B82F6', '--danger': '#EF4444', '--success': '#22C55E', '--text-primary': '#F8FAFC', '--text-secondary': '#94A3B8', '--border': 'rgba(255,255,255,0.05)',
+  } as React.CSSProperties : {
+    '--bg': '#F3F6FB', '--surface': '#FFFFFF', '--surface-sec': '#E8EEF9', '--primary': '#2563EB', '--danger': '#DC2626', '--success': '#16A34A', '--text-primary': '#111827', '--text-secondary': '#6B7280', '--border': 'rgba(15,23,42,0.06)',
+  } as React.CSSProperties;
 
   useEffect(() => {
     if (!treinoId) return;
@@ -57,7 +146,7 @@ export default function EditarFicha() {
   };
 
   const uploadVideo = async (exIndex: number, file: File) => {
-    if (file.size > 10 * 1024 * 1024) return alert("Limite de 10MB excedido!");
+    if (file.size > 10 * 1024 * 1024) return showToast('error', t.errLimit);
     try {
       setUploading(true);
       const filePath = `exercicios/${Math.random()}-${file.name}`;
@@ -67,7 +156,7 @@ export default function EditarFicha() {
       const n = [...exercicios];
       n[exIndex].video = data.publicUrl;
       setExercicios(n);
-    } catch (err: any) { alert('Erro: ' + err.message); } finally { setUploading(false); }
+    } catch (err: any) { showToast('error', t.errDefault + err.message); } finally { setUploading(false); }
   };
 
   const atualizarFicha = async () => {
@@ -75,116 +164,134 @@ export default function EditarFicha() {
     const exerciciosLimpos = exercicios.map(ex => ({
       ...ex,
       series: ex.series.map(s => ({
-        ordem: String(s.ordem || ""),
-        reps: String(s.reps || ""),
-        carga: Number(s.carga) || 0,
-        CargaPlanejada: Number(s.CargaPlanejada) || 0,
-        intervalo: Number(s.intervalo) || 0
+        ordem: String(s.ordem || ""), reps: String(s.reps || ""), carga: Number(s.carga) || 0, CargaPlanejada: Number(s.CargaPlanejada) || 0, intervalo: Number(s.intervalo) || 0
       }))
     }));
 
     const { error } = await supabase.from('fichas').update({ nome_treino: nome, descricao: JSON.stringify(exerciciosLimpos) }).eq('id', treinoId);
-    if (error) alert('Erro: ' + error.message);
-    else router.push(`/dashboard/aluno/${id}?aba=treinos`);
-    setLoading(false);
+    if (error) {
+      showToast('error', t.errDefault + error.message);
+      setLoading(false);
+    } else {
+      router.push(`/dashboard/aluno/${id}?aba=treinos`);
+    }
   };
 
   const excluirFicha = async () => {
-    if (!confirm("Tem certeza?")) return;
+    if (!window.confirm(t.confirmDelete)) return;
     setLoading(true);
     const { error } = await supabase.from('fichas').delete().eq('id', treinoId);
     if (!error) router.push(`/dashboard/aluno/${id}`);
-    else alert("Erro: " + error.message);
+    else showToast('error', t.errDefault + error.message);
     setLoading(false);
   };
 
-  
- if (loading) return (
-    <main className="min-h-screen bg-black p-6 space-y-8 animate-pulse">
-      {/* Header Skeleton */}
-      <div className="flex justify-between items-center mb-10">
-        <div className="w-16 h-4 bg-neutral-900 rounded-full" />
-        <div className="w-24 h-8 bg-neutral-900 rounded-xl" />
-      </div>
+  if (!mounted) return <main className="min-h-screen bg-[#0F1115]" />;
 
-      {/* Título e Barra de Progresso Skeleton */}
-      <div className="space-y-4">
-        <div className="w-48 h-8 bg-neutral-900 rounded-full" />
-        <div className="w-32 h-3 bg-neutral-900 rounded-full" />
-        <div className="w-full h-2 bg-neutral-900 rounded-full" />
-      </div>
-
-      {/* Cards de Exercícios Skeleton */}
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="p-8 bg-neutral-900/50 rounded-[2.5rem] border border-white/5 space-y-4">
-          <div className="w-full h-40 bg-neutral-900 rounded-2xl" />
-          <div className="w-1/2 h-6 bg-neutral-900 rounded-full" />
+  return (
+    <main style={themeStyles} className="w-full min-h-[100dvh] bg-[var(--bg)] text-[var(--text-primary)] px-5 pt-[calc(env(safe-area-inset-top)+2rem)] pb-[calc(env(safe-area-inset-bottom)+8rem)] transition-colors duration-500 font-sans relative overflow-hidden">
+      
+      {/* Background Orbs */}
+      <div className="absolute top-[-10%] left-[-10%] w-[120vw] sm:w-[400px] h-[120vw] sm:h-[400px] bg-[var(--primary)]/10 rounded-full blur-[100px] pointer-events-none" />
+      
+      {/* Toast Flutuante */}
+      {toast && (
+        <div className={`fixed top-[max(env(safe-area-inset-top,24px),24px)] left-1/2 -translate-x-1/2 px-6 py-4 rounded-[1.2rem] shadow-2xl z-[500] flex items-center gap-3 backdrop-blur-md border animate-in slide-in-from-top-4 fade-in ${toast.type === 'success' ? 'bg-[var(--success)]/10 text-[var(--success)] border-[var(--success)]/20' : 'bg-[var(--danger)]/10 text-[var(--danger)] border-[var(--danger)]/20'}`}>
+          {toast.type === 'success' ? <FaCheckCircle size={16} /> : <FaExclamationCircle size={16} />}
+          <span className="text-[10px] font-black uppercase tracking-widest">{toast.text}</span>
         </div>
-      ))}
-    </main>
-  );
+      )}
 
- return (
-    // pt-20: compensa o Header superior (AuraFit), pb-32: compensa a Navbar inferior
-    <main className="w-full min-h-screen bg-black p-6 md:p-12 text-white pt-20 pb-32">
-      <div className="max-w-3xl mx-auto">
-        <div className="flex items-center justify-between mb-10">
-          <button onClick={() => router.back()} className="text-[10px] font-black uppercase tracking-widest text-neutral-500 hover:text-white transition-colors">← Voltar</button>
-          <h1 className="text-xl font-black tracking-tighter">Editar Ficha</h1>
-          <button onClick={excluirFicha} className="text-red-500 font-black text-[10px] uppercase tracking-widest hover:text-red-400">Excluir Ficha</button>
-        </div>
-
-        <input 
-          className="w-full text-4xl font-black bg-transparent mb-10 outline-none placeholder:text-neutral-800" 
-          value={nome} 
-          onChange={(e) => setNome(e.target.value)} 
-          placeholder="Nome do Treino" 
-        />
-
-        {exercicios.map((ex, exIndex) => (
-          <div key={exIndex} className="bg-neutral-950/80 backdrop-blur-xl p-8 rounded-[2.5rem] border border-white/5 mb-8 shadow-2xl">
-            <div className="flex justify-between items-center mb-8">
-              <input 
-                className="font-black text-white text-lg w-full outline-none bg-transparent" 
-                placeholder="Nome do Exercício"
-                value={ex.nome} 
-                onChange={(e) => { const n = [...exercicios]; n[exIndex].nome = e.target.value; setExercicios(n); }} 
-              />
-              <button onClick={() => { const n = exercicios.filter((_, i) => i !== exIndex); setExercicios(n); }} className="text-neutral-600 text-xs font-black ml-4 hover:text-red-500">EXCLUIR</button>
-            </div>
-            
-            <div className="mb-8 space-y-4">
-              <input className="w-full p-4 bg-white/5 border border-white/5 rounded-2xl text-sm outline-none" placeholder="URL do vídeo" value={ex.video || ''} onChange={(e) => { const n = [...exercicios]; n[exIndex].video = e.target.value; setExercicios(n); }} />
-              <button type="button" onClick={() => document.getElementById(`file-${exIndex}`)?.click()} className="w-full py-4 bg-blue-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-500 transition-all"> {uploading ? 'ENVIANDO...' : 'UPLOAD DE VÍDEO'} </button>
-              <input type="file" id={`file-${exIndex}`} className="hidden" accept="video/*" onChange={(e) => e.target.files && uploadVideo(exIndex, e.target.files[0])} />
-              <input className="w-full p-4 bg-white/5 border border-white/5 rounded-2xl text-xs italic outline-none placeholder:text-neutral-600" placeholder="Observação técnica..." value={ex.observacao || ''} onChange={(e) => { const n = [...exercicios]; n[exIndex].observacao = e.target.value; setExercicios(n); }} />
-            </div>
-
-            <div className="grid grid-cols-6 gap-2 text-[9px] font-black text-neutral-500 uppercase tracking-widest mb-3 px-1 text-center">
-              <span>Série</span><span>Reps</span><span>Carga</span><span>Desc.</span><span>Planej.</span><span></span>
-            </div>
-
-            <div className="space-y-3">
-              {ex.series?.map((s, sIndex) => (
-                <div key={sIndex} className="grid grid-cols-6 gap-2 items-center">
-                  <input type="text" className="p-3 bg-white/5 border border-white/5 rounded-xl text-sm text-center font-bold text-white outline-none focus:border-blue-500" value={s.ordem ?? ''} onChange={(e) => atualizarSerie(exIndex, sIndex, 'ordem', e.target.value)} />
-                  <input type="text" className="p-3 bg-white/5 border border-white/5 rounded-xl text-sm text-center outline-none" value={s.reps ?? ''} onChange={(e) => atualizarSerie(exIndex, sIndex, 'reps', e.target.value)} />
-                  <input type="number" className="p-3 bg-white/5 border border-white/5 rounded-xl text-sm text-center outline-none" value={s.carga ?? ''} onChange={(e) => atualizarSerie(exIndex, sIndex, 'carga', e.target.value)} />
-                  <input type="number" className="p-3 bg-white/5 border border-white/5 rounded-xl text-sm text-center outline-none" value={s.intervalo ?? ''} onChange={(e) => atualizarSerie(exIndex, sIndex, 'intervalo', e.target.value)} />
-                  <input type="number" className="p-3 bg-white/5 border border-white/5 rounded-xl text-sm text-center outline-none" value={s.CargaPlanejada ?? ''} onChange={(e) => atualizarSerie(exIndex, sIndex, 'CargaPlanejada', e.target.value)} />
-                  <button onClick={() => { const n = [...exercicios]; n[exIndex].series.splice(sIndex, 1); setExercicios(n); }} className="text-neutral-600 hover:text-red-500 font-black text-lg">×</button>
-                </div>
-              ))}
-              <button onClick={() => { const n = [...exercicios]; n[exIndex].series.push({ordem: '', reps: '', carga: '', intervalo: '', CargaPlanejada: ''}); setExercicios(n); }} className="w-full mt-6 py-4 border-2 border-dashed border-white/10 rounded-2xl text-neutral-500 text-[10px] font-black uppercase hover:border-white/20 transition-all"> + ADICIONAR SÉRIE </button>
-            </div>
+      {loading ? <DashboardSkeleton /> : (
+        <div className="max-w-3xl mx-auto animate-in fade-in duration-700 relative z-10">
+          
+          {/* Toggles */}
+          <div className="flex justify-end gap-2 mb-6">
+            <button onClick={toggleLang} className="w-10 h-10 rounded-full bg-[var(--surface)] border border-[var(--border)] shadow-sm flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--primary)] transition-all active:scale-95 relative">
+              <FaGlobe size={14} />
+              <span className="absolute -top-1 -right-1 bg-[var(--primary)] text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full">{lang.split('-')[0].toUpperCase()}</span>
+            </button>
+            <button onClick={toggleTheme} className="w-10 h-10 rounded-full bg-[var(--surface)] border border-[var(--border)] shadow-sm flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--primary)] transition-all active:scale-95">
+              {isDark ? <FaSun size={14} /> : <FaMoon size={14} />}
+            </button>
           </div>
-        ))}
 
-        <button onClick={atualizarFicha} className="w-full bg-blue-600 text-white p-6 rounded-[2.5rem] font-black text-xs uppercase tracking-widest shadow-2xl hover:bg-blue-500 transition-all active:scale-[0.98]"> SALVAR ALTERAÇÕES </button>
-        
-        {/* ESPAÇADOR DE SEGURANÇA: Garante scroll total até o final */}
-        <div className="h-40 w-full shrink-0" aria-hidden="true" />
-      </div>
+          {/* Header */}
+          <div className="flex items-center justify-between mb-8">
+            <button onClick={() => router.back()} className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-[var(--text-secondary)] hover:text-[var(--primary)] transition-colors active:scale-95">
+              <FaChevronLeft size={10} /> {t.back}
+            </button>
+            <h1 className="text-xl sm:text-2xl font-black tracking-tighter">{t.title}</h1>
+            <button onClick={excluirFicha} className="flex items-center gap-1 text-[var(--danger)] font-black text-[10px] uppercase tracking-widest hover:brightness-110 active:scale-95 bg-[var(--danger)]/10 px-3 py-1.5 rounded-lg">
+              <FaTrash size={10} /> <span className="hidden sm:inline">{t.deleteWorkout}</span>
+            </button>
+          </div>
+
+          <input 
+            className="w-full text-3xl sm:text-4xl font-black bg-transparent border-b border-[var(--border)] pb-4 mb-10 outline-none placeholder:text-[var(--text-secondary)] focus:border-[var(--primary)] transition-colors text-[var(--text-primary)]" 
+            value={nome} 
+            onChange={(e) => setNome(e.target.value)} 
+            placeholder={t.workoutName} 
+          />
+
+          {exercicios.map((ex, exIndex) => (
+            <div key={exIndex} className="bg-[var(--surface)]/90 backdrop-blur-xl p-6 sm:p-8 rounded-[2.5rem] border border-[var(--border)] mb-8 shadow-xl">
+              
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
+                <input 
+                  className="font-black text-[var(--text-primary)] text-lg sm:text-xl w-full outline-none bg-transparent placeholder:text-[var(--text-secondary)]" 
+                  placeholder={t.exName}
+                  value={ex.nome} 
+                  onChange={(e) => { const n = [...exercicios]; n[exIndex].nome = e.target.value; setExercicios(n); }} 
+                />
+                <button onClick={() => { const n = exercicios.filter((_, i) => i !== exIndex); setExercicios(n); }} className="self-end sm:self-auto text-[var(--danger)] bg-[var(--danger)]/10 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-[var(--danger)]/20 transition-colors flex items-center gap-2">
+                  <FaTrash size={12} /> {t.delete}
+                </button>
+              </div>
+              
+              <div className="mb-8 space-y-3">
+                <div className="relative group">
+                  <input className="w-full pl-5 pr-12 py-4 bg-[var(--surface-sec)] border border-[var(--border)] rounded-[1.2rem] text-sm font-bold outline-none placeholder:text-[var(--text-secondary)] text-[var(--text-primary)] focus:border-[var(--primary)] transition-colors" placeholder={t.videoUrl} value={ex.video || ''} onChange={(e) => { const n = [...exercicios]; n[exIndex].video = e.target.value; setExercicios(n); }} />
+                  <button type="button" onClick={() => document.getElementById(`file-${exIndex}`)?.click()} className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-[var(--primary)] text-white rounded-xl flex items-center justify-center hover:brightness-110 transition-all active:scale-95" title={t.uploadBtn}>
+                    {uploading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <FaUpload size={14} />}
+                  </button>
+                  <input type="file" id={`file-${exIndex}`} className="hidden" accept="video/*" onChange={(e) => e.target.files && uploadVideo(exIndex, e.target.files[0])} />
+                </div>
+                <input className="w-full p-4 bg-[var(--surface-sec)] border border-[var(--border)] rounded-[1.2rem] text-xs font-medium outline-none placeholder:text-[var(--text-secondary)] text-[var(--text-primary)] focus:border-[var(--primary)] transition-colors" placeholder={t.obs} value={ex.observacao || ''} onChange={(e) => { const n = [...exercicios]; n[exIndex].observacao = e.target.value; setExercicios(n); }} />
+              </div>
+
+              {/* Grid Headers */}
+              <div className="grid grid-cols-6 gap-2 text-[8px] sm:text-[9px] font-black text-[var(--text-secondary)] uppercase tracking-widest mb-3 px-1 text-center">
+                <span>{t.series}</span><span>{t.reps}</span><span>{t.load}</span><span>{t.rest}</span><span>{t.planned}</span><span></span>
+              </div>
+
+              {/* Grid Inputs */}
+              <div className="space-y-3">
+                {ex.series?.map((s, sIndex) => (
+                  <div key={sIndex} className="grid grid-cols-6 gap-1 sm:gap-2 items-center">
+                    <input type="text" className="w-full py-3 sm:p-3 bg-[var(--surface-sec)] border border-[var(--border)] rounded-xl text-xs sm:text-sm text-center font-bold text-[var(--text-primary)] outline-none focus:border-[var(--primary)] transition-colors" value={s.ordem ?? ''} onChange={(e) => atualizarSerie(exIndex, sIndex, 'ordem', e.target.value)} />
+                    <input type="text" className="w-full py-3 sm:p-3 bg-[var(--surface-sec)] border border-[var(--border)] rounded-xl text-xs sm:text-sm text-center font-bold text-[var(--text-primary)] outline-none focus:border-[var(--primary)] transition-colors" value={s.reps ?? ''} onChange={(e) => atualizarSerie(exIndex, sIndex, 'reps', e.target.value)} />
+                    <input type="number" className="w-full py-3 sm:p-3 bg-[var(--surface-sec)] border border-[var(--border)] rounded-xl text-xs sm:text-sm text-center font-bold text-[var(--text-primary)] outline-none focus:border-[var(--primary)] transition-colors" value={s.carga ?? ''} onChange={(e) => atualizarSerie(exIndex, sIndex, 'carga', e.target.value)} />
+                    <input type="number" className="w-full py-3 sm:p-3 bg-[var(--surface-sec)] border border-[var(--border)] rounded-xl text-xs sm:text-sm text-center font-bold text-[var(--text-primary)] outline-none focus:border-[var(--primary)] transition-colors" value={s.intervalo ?? ''} onChange={(e) => atualizarSerie(exIndex, sIndex, 'intervalo', e.target.value)} />
+                    <input type="number" className="w-full py-3 sm:p-3 bg-[var(--surface-sec)] border border-[var(--border)] rounded-xl text-xs sm:text-sm text-center font-bold text-[var(--text-primary)] outline-none focus:border-[var(--primary)] transition-colors" value={s.CargaPlanejada ?? ''} onChange={(e) => atualizarSerie(exIndex, sIndex, 'CargaPlanejada', e.target.value)} />
+                    <button onClick={() => { const n = [...exercicios]; n[exIndex].series.splice(sIndex, 1); setExercicios(n); }} className="flex justify-center items-center text-[var(--text-secondary)] hover:text-[var(--danger)] bg-[var(--surface-sec)] hover:bg-[var(--danger)]/10 h-full rounded-xl transition-colors">
+                      <FaTrash size={12} />
+                    </button>
+                  </div>
+                ))}
+                <button onClick={() => { const n = [...exercicios]; n[exIndex].series.push({ordem: '', reps: '', carga: '', intervalo: '', CargaPlanejada: ''}); setExercicios(n); }} className="w-full mt-6 py-4 border-2 border-dashed border-[var(--border)] rounded-[1.2rem] text-[var(--text-secondary)] text-[10px] font-black uppercase tracking-widest hover:border-[var(--primary)] hover:text-[var(--primary)] transition-all flex items-center justify-center gap-2">
+                   <FaPlus size={10} /> {t.addSeries}
+                </button>
+              </div>
+            </div>
+          ))}
+
+          <button onClick={atualizarFicha} className="w-full bg-[var(--primary)] text-white py-6 rounded-[1.2rem] font-black text-xs uppercase tracking-widest shadow-xl shadow-[var(--primary)]/20 hover:brightness-110 transition-all active:scale-[0.98] flex items-center justify-center gap-3"> 
+            <FaSave size={16} /> {t.save}
+          </button>
+          
+        </div>
+      )}
     </main>
   );
 }

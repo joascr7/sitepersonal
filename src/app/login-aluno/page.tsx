@@ -1,7 +1,71 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
+import { FaChevronLeft, FaEye, FaEyeSlash, FaExclamationCircle, FaCheckCircle, FaGlobe, FaMoon, FaSun } from 'react-icons/fa';
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// DICIONÁRIO DE INTERNACIONALIZAÇÃO (i18n)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const translations = {
+  'pt-BR': {
+    back: 'Voltar',
+    appTitle: 'AURAFIT',
+    subtitle: 'Área do Aluno',
+    emailPlaceholder: 'E-mail',
+    passwordPlaceholder: 'Senha',
+    show: 'Exibir',
+    hide: 'Ocultar',
+    forgotPassword: 'Esqueceu a senha?',
+    forgotActionMsg: 'Solicite a redefinição com seu treinador.',
+    loginBtn: 'Entrar no sistema',
+    validating: 'Validando acesso...',
+    noAccount: 'Não tenho conta',
+    restrictedTitle: 'Acesso Restrito',
+    restrictedDesc: 'O seu cadastro é realizado exclusivamente pelo seu Personal Trainer. Entre em contato para ativar sua jornada na AuraFit.',
+    understood: 'Entendido',
+    errorInvalid: 'Credenciais inválidas. Verifique seus dados.',
+    errorInactive: 'Sua conta está inativa ou você não possui permissão de aluno. Contate seu treinador.'
+  },
+  'pt-PT': {
+    back: 'Voltar',
+    appTitle: 'AURAFIT',
+    subtitle: 'Área do Aluno',
+    emailPlaceholder: 'E-mail',
+    passwordPlaceholder: 'Palavra-passe',
+    show: 'Mostrar',
+    hide: 'Ocultar',
+    forgotPassword: 'Esqueceu a palavra-passe?',
+    forgotActionMsg: 'Solicite a redefinição junto do seu treinador.',
+    loginBtn: 'Entrar no sistema',
+    validating: 'A validar acesso...',
+    noAccount: 'Não tenho conta',
+    restrictedTitle: 'Acesso Restrito',
+    restrictedDesc: 'O seu registo é realizado exclusivamente pelo seu Personal Trainer. Entre em contacto para ativar a sua jornada na AuraFit.',
+    understood: 'Entendido',
+    errorInvalid: 'Credenciais inválidas. Verifique os seus dados.',
+    errorInactive: 'A sua conta está inativa ou não tem permissão de aluno. Contacte o seu treinador.'
+  },
+  'en': {
+    back: 'Back',
+    appTitle: 'AURAFIT',
+    subtitle: 'Student Portal',
+    emailPlaceholder: 'Email',
+    passwordPlaceholder: 'Password',
+    show: 'Show',
+    hide: 'Hide',
+    forgotPassword: 'Forgot password?',
+    forgotActionMsg: 'Request a password reset from your trainer.',
+    loginBtn: 'Sign In',
+    validating: 'Validating access...',
+    noAccount: 'I don\'t have an account',
+    restrictedTitle: 'Restricted Access',
+    restrictedDesc: 'Your registration is done exclusively by your Personal Trainer. Please contact them to start your AuraFit journey.',
+    understood: 'Understood',
+    errorInvalid: 'Invalid credentials. Please check your details.',
+    errorInactive: 'Your account is inactive or you lack student permissions. Contact your trainer.'
+  }
+};
 
 export default function LoginAluno() {
   const [email, setEmail] = useState('');
@@ -13,6 +77,68 @@ export default function LoginAluno() {
   
   const router = useRouter();
 
+  // Estados de Tema e i18n
+  const [isDark, setIsDark] = useState(true);
+  const [lang, setLang] = useState<'pt-BR' | 'pt-PT' | 'en'>('pt-BR');
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('@premium_theme');
+    if (savedTheme) setIsDark(savedTheme === 'dark');
+    
+    const savedLang = localStorage.getItem('@premium_lang') as 'pt-BR' | 'pt-PT' | 'en';
+    if (savedLang) setLang(savedLang);
+    
+    setMounted(true);
+  }, []);
+
+  const toggleTheme = () => {
+    const newTheme = !isDark;
+    setIsDark(newTheme);
+    localStorage.setItem('@premium_theme', newTheme ? 'dark' : 'light');
+    window.dispatchEvent(new Event('storage'));
+  };
+
+  const toggleLang = () => {
+    const langs: ('pt-BR' | 'pt-PT' | 'en')[] = ['pt-BR', 'pt-PT', 'en'];
+    const nextLang = langs[(langs.indexOf(lang) + 1) % langs.length];
+    setLang(nextLang);
+    localStorage.setItem('@premium_lang', nextLang);
+  };
+
+  const showToast = (text: string, type: 'error' | 'success' = 'error') => {
+    setMessage({ text, type });
+    // Só auto-esconde se for success, erro de login é bom manter até o usuário interagir
+    if(type === 'success') setTimeout(() => setMessage(null), 4000);
+  };
+
+  const t = translations[lang];
+
+  // Configuração das Variáveis CSS Globais (Design System)
+  const themeStyles = isDark ? {
+    '--bg': '#0F1115',
+    '--surface': '#151A22',
+    '--surface-sec': '#1B2330',
+    '--primary': '#3B82F6',
+    '--primary-soft': '#60A5FA',
+    '--danger': '#EF4444',
+    '--success': '#22C55E',
+    '--text-primary': '#F8FAFC',
+    '--text-secondary': '#94A3B8',
+    '--border': 'rgba(255,255,255,0.05)',
+  } as React.CSSProperties : {
+    '--bg': '#F3F6FB',
+    '--surface': '#FFFFFF',
+    '--surface-sec': '#E8EEF9',
+    '--primary': '#2563EB',
+    '--primary-soft': '#60A5FA',
+    '--danger': '#DC2626',
+    '--success': '#16A34A',
+    '--text-primary': '#111827',
+    '--text-secondary': '#6B7280',
+    '--border': 'rgba(15,23,42,0.06)',
+  } as React.CSSProperties;
+
   const handleLogin = async () => {
     setIsProcessing(true);
     setMessage(null);
@@ -23,7 +149,7 @@ export default function LoginAluno() {
     });
 
     if (error || !data.user) {
-      setMessage({ type: 'error', text: "Credenciais inválidas. Verifique seus dados." });
+      showToast(t.errorInvalid, 'error');
       setIsProcessing(false);
       return;
     }
@@ -36,10 +162,7 @@ export default function LoginAluno() {
 
     if (alunoError || !aluno || aluno.ativo === false) {
       await supabase.auth.signOut();
-      setMessage({ 
-        type: 'error', 
-        text: "Sua conta está inativa ou você não possui permissão de aluno. Contate seu treinador." 
-      });
+      showToast(t.errorInactive, 'error');
       setIsProcessing(false);
       return;
     }
@@ -47,85 +170,152 @@ export default function LoginAluno() {
     window.location.href = `/aluno/${data.user.id}`;
   };
 
+  if (!mounted) return <main className="min-h-screen bg-[#0F1115]" />;
+
   return (
-    <main className="min-h-screen flex items-center justify-center bg-black p-6 relative overflow-hidden">
-      {/* Luzes de fundo para profundidade */}
-      <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-900/10 via-black to-black -z-10" />
+    <main 
+      style={themeStyles} 
+      className="min-h-[100dvh] flex items-center justify-center bg-[var(--bg)] text-[var(--text-primary)] px-5 relative overflow-hidden font-sans transition-colors duration-500 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]"
+    >
+      {/* ━━━━━━━━━━ ELEMENTOS DE PROFUNDIDADE (BLUR ORBS) ━━━━━━━━━━ */}
+      <div className="absolute top-[-10%] left-[-10%] w-[120vw] sm:w-[400px] h-[120vw] sm:h-[400px] bg-[var(--primary)]/10 rounded-full blur-[100px] pointer-events-none transition-colors duration-700" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[100vw] sm:w-[350px] h-[100vw] sm:h-[350px] bg-[var(--primary-soft)]/5 rounded-full blur-[100px] pointer-events-none transition-colors duration-700" />
       
-      <div className="w-full max-w-[360px] bg-neutral-950/80 backdrop-blur-xl p-8 rounded-[2.5rem] border border-white/5 shadow-[0_20px_50px_rgba(0,0,0,0.5)] z-10">
+      {/* ━━━━━━━━━━ TOGGLES (THEME / LANG) ━━━━━━━━━━ */}
+      <div className="absolute top-[max(env(safe-area-inset-top,20px),20px)] right-5 z-50 flex gap-2 animate-in fade-in duration-700">
+        <button onClick={toggleLang} className="w-10 h-10 rounded-full bg-[var(--surface)] border border-[var(--border)] shadow-lg flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--primary)] transition-all active:scale-95" aria-label="Language">
+          <FaGlobe size={16} />
+          <span className="absolute -top-1 -right-1 bg-[var(--primary)] text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full">{lang.split('-')[0].toUpperCase()}</span>
+        </button>
+        <button onClick={toggleTheme} className="w-10 h-10 rounded-full bg-[var(--surface)] border border-[var(--border)] shadow-lg flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--primary)] transition-all active:scale-95" aria-label="Theme">
+          {isDark ? <FaSun size={16} /> : <FaMoon size={16} />}
+        </button>
+      </div>
+
+      {/* ━━━━━━━━━━ CARD PRINCIPAL (GLASSMORPHISM) ━━━━━━━━━━ */}
+      <div className="w-full max-w-[360px] bg-[var(--surface)]/80 backdrop-blur-3xl p-8 sm:p-10 rounded-[2.5rem] sm:rounded-[3rem] border border-[var(--border)] shadow-[0_20px_50px_rgba(0,0,0,0.1)] z-10 animate-in slide-in-from-bottom-8 zoom-in-95 duration-700">
         
-        <button onClick={() => router.back()} className="text-[10px] font-bold text-neutral-500 hover:text-white transition-colors uppercase tracking-[0.2em] mb-8">
-          ← Voltar
+        {/* Back Button */}
+        <button 
+          onClick={() => router.back()} 
+          className="flex items-center gap-2 text-[10px] font-bold text-[var(--text-secondary)] hover:text-[var(--primary)] transition-colors uppercase tracking-[0.2em] mb-8 active:scale-95 origin-left"
+        >
+          <FaChevronLeft size={10} /> {t.back}
         </button>
         
-        <div className="mb-8">
-          <h1 className="text-3xl font-black tracking-tighter text-white mb-1">AURAFIT</h1>
-          <p className="text-blue-500 font-bold text-[10px] tracking-[0.2em] uppercase">Área do Aluno</p>
+        {/* Branding */}
+        <div className="mb-10 text-center">
+          <h1 className="text-4xl font-black tracking-tighter text-[var(--text-primary)] mb-1">
+            {t.appTitle.replace('FIT', '')}<span className="text-[var(--primary)]">FIT</span>
+          </h1>
+          <p className="text-[var(--primary)] font-bold text-[10px] tracking-[0.2em] uppercase">{t.subtitle}</p>
         </div>
         
+        {/* Notification Toast (In-Card) */}
         {message && (
-          <div className={`mb-6 p-4 rounded-xl text-[10px] font-bold uppercase tracking-wider ${message.type === 'error' ? 'bg-red-500/10 text-red-500 border border-red-500/20' : 'bg-green-500/10 text-green-500 border border-green-500/20'}`}>
-            {message.text}
+          <div className={`mb-6 p-4 rounded-xl flex items-start gap-3 border animate-in slide-in-from-top-2 fade-in ${
+            message.type === 'error' 
+              ? 'bg-[var(--danger)]/5 text-[var(--danger)] border-[var(--danger)]/20' 
+              : 'bg-[var(--success)]/5 text-[var(--success)] border-[var(--success)]/20'
+          }`}>
+            <div className="shrink-0 mt-0.5">
+              {message.type === 'error' ? <FaExclamationCircle /> : <FaCheckCircle />}
+            </div>
+            <p className="text-[10px] font-bold uppercase tracking-wider leading-relaxed">{message.text}</p>
           </div>
         )}
 
+        {/* Form Inputs */}
         <div className="space-y-4">
-          <input 
-            className="w-full px-5 py-4 bg-white/5 border border-white/5 rounded-2xl outline-none focus:border-blue-500/50 focus:bg-white/10 transition-all duration-300 text-sm text-white font-medium placeholder:text-neutral-600" 
-            placeholder="E-mail" 
-            value={email}
-            onChange={(e) => setEmail(e.target.value)} 
-          />
-          
-          <div className="relative w-full">
+          <div className="relative">
             <input 
-              className="w-full px-5 py-4 bg-white/5 border border-white/5 rounded-2xl outline-none focus:border-blue-500/50 focus:bg-white/10 transition-all duration-300 text-sm text-white font-medium placeholder:text-neutral-600" 
+              className="w-full px-5 py-4 bg-[var(--surface-sec)] border border-[var(--border)] rounded-[1.2rem] outline-none focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)] transition-all duration-300 text-base sm:text-sm text-[var(--text-primary)] font-medium placeholder:text-[var(--text-secondary)] placeholder:font-normal shadow-inner" 
+              placeholder={t.emailPlaceholder}
+              type="email"
+              autoCapitalize="none"
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)} 
+            />
+          </div>
+          
+          <div className="relative w-full group">
+            <input 
+              className="w-full px-5 py-4 bg-[var(--surface-sec)] border border-[var(--border)] rounded-[1.2rem] outline-none focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)] transition-all duration-300 text-base sm:text-sm text-[var(--text-primary)] font-medium placeholder:text-[var(--text-secondary)] placeholder:font-normal shadow-inner pr-12" 
               type={showPass ? "text" : "password"} 
-              placeholder="Senha" 
+              placeholder={t.passwordPlaceholder}
+              autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)} 
             />
             <button 
               type="button" 
-              className="absolute right-5 top-4.5 text-[10px] font-black text-neutral-500 hover:text-white uppercase tracking-widest"
+              className="absolute right-4 top-1/2 -translate-y-1/2 p-2 text-[var(--text-secondary)] hover:text-[var(--primary)] transition-colors active:scale-90"
               onClick={() => setShowPass(!showPass)}
+              aria-label={showPass ? t.hide : t.show}
             >
-              {showPass ? "Ocultar" : "Exibir"}
+              {showPass ? <FaEyeSlash size={16} /> : <FaEye size={16} />}
             </button>
           </div>
         </div>
         
-        <div className="mt-4 mb-8 text-center">
-          <span onClick={() => setMessage({ type: 'success', text: "Solicite a redefinição com seu treinador." })} className="text-[10px] font-bold text-neutral-500 hover:text-blue-400 underline cursor-pointer transition">
-            Esqueceu a senha?
-          </span>
+        {/* Forgot Password Link */}
+        <div className="mt-4 mb-8 text-right">
+          <button 
+            type="button"
+            onClick={() => showToast(t.forgotActionMsg, 'success')} 
+            className="text-[10px] font-bold text-[var(--text-secondary)] hover:text-[var(--primary)] transition-colors uppercase tracking-widest active:scale-95 origin-right"
+          >
+            {t.forgotPassword}
+          </button>
         </div>
         
-        <button 
-          onClick={handleLogin} 
-          disabled={isProcessing}
-          className="w-full bg-blue-600 hover:bg-blue-500 text-white py-4 rounded-2xl font-bold text-sm transition-all duration-300 active:scale-[0.98] disabled:opacity-50 shadow-[0_0_30px_rgba(37,99,235,0.3)]"
-        >
-          {isProcessing ? "Validando acesso..." : "Entrar no sistema"}
-        </button>
-        
-        <button 
-          onClick={() => setShowModal(true)} 
-          className="w-full mt-3 bg-white/5 hover:bg-white/10 text-neutral-400 py-4 rounded-2xl font-bold text-sm transition-all duration-300"
-        >
-          Não tenho conta
-        </button>
+        {/* Actions */}
+        <div className="space-y-3">
+          <button 
+            onClick={handleLogin} 
+            disabled={isProcessing || !email || !password}
+            className={`w-full py-4 rounded-[1.2rem] font-black text-[11px] uppercase tracking-widest transition-all duration-300 active:scale-[0.98] ${
+              isProcessing || !email || !password
+                ? 'bg-[var(--surface-sec)] text-[var(--text-secondary)] border border-[var(--border)] cursor-not-allowed'
+                : 'bg-[var(--primary)] text-white shadow-[0_10px_30px_-10px_var(--primary)] hover:bg-blue-600'
+            }`}
+          >
+            {isProcessing ? t.validating : t.loginBtn}
+          </button>
+          
+          <button 
+            onClick={() => setShowModal(true)} 
+            className="w-full bg-[var(--surface-sec)] hover:bg-[var(--border)] border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] py-4 rounded-[1.2rem] font-bold text-[10px] uppercase tracking-widest transition-all duration-300 active:scale-95"
+          >
+            {t.noAccount}
+          </button>
+        </div>
       </div>
 
+      {/* ━━━━━━━━━━ MODAL DE ACESSO RESTRITO ━━━━━━━━━━ */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-6">
-          <div className="bg-neutral-950 border border-white/10 p-8 rounded-3xl w-full max-w-sm shadow-2xl animate-in fade-in zoom-in-95 duration-300">
-            <h3 className="text-sm font-black mb-2 uppercase tracking-widest text-white">Acesso Restrito</h3>
-            <p className="text-neutral-400 mb-8 leading-relaxed text-xs">
-              O seu cadastro é realizado exclusivamente pelo seu Personal Trainer. Entre em contato para ativar sua jornada na AuraFit.
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xl z-[100] flex items-center justify-center p-5 animate-in fade-in duration-300">
+          <div className="bg-[var(--surface)] border border-[var(--border)] p-8 sm:p-10 rounded-[2.5rem] w-full max-w-[340px] shadow-2xl animate-in zoom-in-95 slide-in-from-bottom-4 duration-300 relative overflow-hidden text-center">
+            
+            {/* Decorator */}
+            <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-[var(--primary-soft)] to-[var(--primary)]" />
+            
+            <div className="w-16 h-16 bg-[var(--primary)]/10 text-[var(--primary)] rounded-full flex items-center justify-center mx-auto mb-6">
+              <FaExclamationCircle size={28} />
+            </div>
+
+            <h3 className="text-[13px] font-black mb-4 uppercase tracking-[0.2em] text-[var(--text-primary)] leading-tight">{t.restrictedTitle}</h3>
+            
+            <p className="text-[var(--text-secondary)] mb-8 leading-relaxed text-sm font-medium">
+              {t.restrictedDesc}
             </p>
-            <button onClick={() => setShowModal(false)} className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-blue-500 transition">
-              Entendido
+            
+            <button 
+              onClick={() => setShowModal(false)} 
+              className="w-full bg-[var(--primary)] text-white py-4 rounded-[1.2rem] font-black text-[11px] uppercase tracking-widest hover:bg-blue-600 transition-colors active:scale-95 shadow-lg shadow-[var(--primary)]/20"
+            >
+              {t.understood}
             </button>
           </div>
         </div>

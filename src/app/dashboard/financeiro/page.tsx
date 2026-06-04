@@ -1,7 +1,70 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
-import { FaCheckCircle, FaDollarSign, FaPlus } from 'react-icons/fa';
+import { 
+  FaCheckCircle, FaDollarSign, FaPlus, FaGlobe, FaMoon, 
+  FaSun, FaExclamationCircle, FaCog, FaWallet 
+} from 'react-icons/fa';
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// SKELETON SCREEN PREMIUM
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const FinanceiroSkeleton = () => (
+  <div className="max-w-4xl mx-auto space-y-8 animate-pulse pt-8 px-5">
+    <div className="flex justify-between items-center mb-10">
+      <div className="w-48 h-10 bg-[var(--surface-sec)] rounded-[1.2rem]" />
+      <div className="w-24 h-10 bg-[var(--surface-sec)] rounded-[1.2rem]" />
+    </div>
+    <div className="grid md:grid-cols-2 gap-6">
+      <div className="bg-[var(--surface)] p-8 rounded-[2.5rem] h-48 border border-[var(--border)]" />
+      <div className="bg-[var(--surface)] p-8 rounded-[2.5rem] h-48 border border-[var(--border)]" />
+    </div>
+    <div className="bg-[var(--surface)] p-8 rounded-[2.5rem] h-32 border border-[var(--border)]" />
+    <div className="bg-[var(--surface)] p-8 rounded-[2.5rem] h-64 border border-[var(--border)]" />
+  </div>
+);
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// DICIONÁRIO DE INTERNACIONALIZAÇÃO (i18n)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const translations = {
+  'pt-BR': {
+    title: 'Financeiro',
+    accumulated: 'Faturamento Acumulado', activeSystem: 'Sistema Ativo',
+    config: 'Configurações', monthlyFee: 'Valor Mensalidade', pix: 'Chave PIX',
+    saveChanges: 'Salvar Alterações', saving: 'Salvando...',
+    manualPayment: 'Registrar Pagamento Manual', selectStudent: 'Selecione o aluno...',
+    valueLabel: 'Valor R$', register: 'Registrar',
+    transactions: 'Últimas Transações', student: 'Aluno', date: 'Data', value: 'Valor',
+    noName: 'Sem nome', errMissing: 'Preencha todos os campos.',
+    errProcess: 'Erro ao processar.', successPay: 'Pagamento registrado!',
+    successConfig: 'Configurações atualizadas!'
+  },
+  'pt-PT': {
+    title: 'Financeiro',
+    accumulated: 'Faturação Acumulada', activeSystem: 'Sistema Ativo',
+    config: 'Configurações', monthlyFee: 'Valor Mensalidade', pix: 'Chave PIX',
+    saveChanges: 'Guardar Alterações', saving: 'A guardar...',
+    manualPayment: 'Registar Pagamento Manual', selectStudent: 'Selecione o aluno...',
+    valueLabel: 'Valor €', register: 'Registar',
+    transactions: 'Últimas Transações', student: 'Aluno', date: 'Data', value: 'Valor',
+    noName: 'Sem nome', errMissing: 'Preencha todos os campos.',
+    errProcess: 'Erro ao processar.', successPay: 'Pagamento registado!',
+    successConfig: 'Configurações atualizadas!'
+  },
+  'en': {
+    title: 'Financial',
+    accumulated: 'Accumulated Revenue', activeSystem: 'System Active',
+    config: 'Settings', monthlyFee: 'Monthly Fee', pix: 'PIX Key',
+    saveChanges: 'Save Changes', saving: 'Saving...',
+    manualPayment: 'Register Manual Payment', selectStudent: 'Select student...',
+    valueLabel: 'Value $', register: 'Register',
+    transactions: 'Latest Transactions', student: 'Student', date: 'Date', value: 'Value',
+    noName: 'No name', errMissing: 'Fill in all fields.',
+    errProcess: 'Error processing.', successPay: 'Payment registered!',
+    successConfig: 'Settings updated!'
+  }
+};
 
 export default function Financeiro() {
   const [pagamentos, setPagamentos] = useState<any[]>([]);
@@ -11,10 +74,34 @@ export default function Financeiro() {
   const [novoValor, setNovoValor] = useState('');
   const [alunoId, setAlunoId] = useState('');
   const [listaAlunos, setListaAlunos] = useState<any[]>([]);
+  const [toast, setToast] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+
+  // Estados UI Premium
+  const [isDark, setIsDark] = useState(true);
+  const [lang, setLang] = useState<'pt-BR' | 'pt-PT' | 'en'>('pt-BR');
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    const savedTheme = localStorage.getItem('@premium_theme');
+    const savedLang = localStorage.getItem('@premium_lang') as 'pt-BR' | 'pt-PT' | 'en';
+    if (savedTheme) setIsDark(savedTheme === 'dark');
+    if (savedLang) setLang(savedLang);
+    setMounted(true);
     fetchDados();
   }, []);
+
+  const toggleTheme = () => { const newTheme = !isDark; setIsDark(newTheme); localStorage.setItem('@premium_theme', newTheme ? 'dark' : 'light'); window.dispatchEvent(new Event('storage')); };
+  const toggleLang = () => { const langs: ('pt-BR' | 'pt-PT' | 'en')[] = ['pt-BR', 'pt-PT', 'en']; const nextLang = langs[(langs.indexOf(lang) + 1) % langs.length]; setLang(nextLang); localStorage.setItem('@premium_lang', nextLang); };
+  
+  const t = translations[lang] || translations['pt-BR'];
+  const showToast = (type: 'success' | 'error', text: string) => { setToast({ type, text }); setTimeout(() => setToast(null), 4000); };
+
+  // Configuração Dinâmica do Tema Premium
+  const themeStyles = isDark ? {
+    '--bg': '#0F1115', '--surface': '#151A22', '--surface-sec': '#1B2330', '--primary': '#3B82F6', '--danger': '#EF4444', '--success': '#22C55E', '--text-primary': '#F8FAFC', '--text-secondary': '#94A3B8', '--border': 'rgba(255,255,255,0.05)',
+  } as React.CSSProperties : {
+    '--bg': '#F3F6FB', '--surface': '#FFFFFF', '--surface-sec': '#E8EEF9', '--primary': '#2563EB', '--danger': '#DC2626', '--success': '#16A34A', '--text-primary': '#111827', '--text-secondary': '#6B7280', '--border': 'rgba(15,23,42,0.06)',
+  } as React.CSSProperties;
 
   const fetchDados = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -38,7 +125,9 @@ export default function Financeiro() {
   };
 
   const registrarPagamentoManual = async () => {
-    if (!alunoId || !novoValor) return;
+    if (!alunoId || !novoValor) {
+      return showToast('error', t.errMissing);
+    }
     setSaving(true);
     const { data: { user } } = await supabase.auth.getUser();
     
@@ -52,7 +141,10 @@ export default function Financeiro() {
 
     if (!error) {
       setNovoValor('');
+      showToast('success', t.successPay);
       await fetchDados();
+    } else {
+      showToast('error', t.errProcess);
     }
     setSaving(false);
   };
@@ -60,106 +152,167 @@ export default function Financeiro() {
   const salvarConfig = async () => {
     setSaving(true);
     const { data: { user } } = await supabase.auth.getUser();
-    await supabase.from('personais').update({ 
+    const { error } = await supabase.from('personais').update({ 
       chave_pix: config.pix, 
       valor_mensalidade: config.valor
     }).eq('id', user?.id);
+    
+    if (!error) showToast('success', t.successConfig);
+    else showToast('error', t.errProcess);
+    
     setSaving(false);
   };
 
   const totalGeral = pagamentos.reduce((acc, curr) => acc + Number(curr.valor), 0);
 
-  
- if (loading) return (
-    <main className="min-h-screen bg-black p-6 space-y-8 animate-pulse">
-      {/* Header Skeleton */}
-      <div className="flex justify-between items-center mb-10">
-        <div className="w-16 h-4 bg-neutral-900 rounded-full" />
-        <div className="w-24 h-8 bg-neutral-900 rounded-xl" />
-      </div>
-
-      {/* Título e Barra de Progresso Skeleton */}
-      <div className="space-y-4">
-        <div className="w-48 h-8 bg-neutral-900 rounded-full" />
-        <div className="w-32 h-3 bg-neutral-900 rounded-full" />
-        <div className="w-full h-2 bg-neutral-900 rounded-full" />
-      </div>
-
-      {/* Cards de Exercícios Skeleton */}
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="p-8 bg-neutral-900/50 rounded-[2.5rem] border border-white/5 space-y-4">
-          <div className="w-full h-40 bg-neutral-900 rounded-2xl" />
-          <div className="w-1/2 h-6 bg-neutral-900 rounded-full" />
-        </div>
-      ))}
-    </main>
-  );
+  if (!mounted) return <main className="min-h-screen bg-[#0F1115]" />;
 
   return (
-    // PT-20 e PB-32 garantem que o conteúdo não fique escondido pelas navs fixas
-    <main className="w-full min-h-screen bg-black text-white pt-20 px-4 pb-32">
-      <div className="max-w-4xl mx-auto space-y-8">
-        <h1 className="text-4xl font-black tracking-tighter">Financeiro</h1>
-        
-        <div className="grid md:grid-cols-2 gap-6">
-          <div className="bg-neutral-950/80 backdrop-blur-xl p-8 rounded-[2.5rem] border border-white/5 shadow-xl flex flex-col justify-between">
-            <h2 className="text-[10px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-2">Faturamento Acumulado</h2>
-            <p className="text-5xl font-black tracking-tighter">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalGeral)}</p>
-            <div className="mt-8 flex items-center gap-2 text-emerald-500 bg-emerald-600/10 px-4 py-2 rounded-xl w-fit border border-emerald-600/20">
-              <FaCheckCircle className="text-xs" />
-              <span className="text-[9px] font-black uppercase tracking-widest">Sistema Ativo</span>
+    <main style={themeStyles} className="w-full min-h-[100dvh] bg-[var(--bg)] text-[var(--text-primary)] px-5 pt-[calc(env(safe-area-inset-top)+2rem)] pb-[calc(env(safe-area-inset-bottom)+8rem)] transition-colors duration-500 font-sans relative overflow-hidden">
+      
+      {/* Background Orbs */}
+      <div className="absolute top-[-10%] left-[-10%] w-[120vw] sm:w-[400px] h-[120vw] sm:h-[400px] bg-[var(--primary)]/10 rounded-full blur-[100px] pointer-events-none" />
+      
+      {/* Toast Flutuante */}
+      {toast && (
+        <div className={`fixed top-[max(env(safe-area-inset-top,24px),24px)] left-1/2 -translate-x-1/2 px-6 py-4 rounded-[1.2rem] shadow-2xl z-[500] flex items-center gap-3 backdrop-blur-md border animate-in slide-in-from-top-4 fade-in ${toast.type === 'success' ? 'bg-[var(--success)]/10 text-[var(--success)] border-[var(--success)]/20' : 'bg-[var(--danger)]/10 text-[var(--danger)] border-[var(--danger)]/20'}`}>
+          {toast.type === 'success' ? <FaCheckCircle size={16} /> : <FaExclamationCircle size={16} />}
+          <span className="text-[10px] font-black uppercase tracking-widest">{toast.text}</span>
+        </div>
+      )}
+
+      {loading ? <FinanceiroSkeleton /> : (
+        <div className="max-w-4xl mx-auto space-y-8 relative z-10 animate-in fade-in duration-700">
+          
+          {/* Header e Toggles */}
+          <div className="flex justify-between items-center mb-8">
+            <h1 className="text-3xl sm:text-4xl font-black tracking-tighter text-[var(--text-primary)]">{t.title}</h1>
+            <div className="flex gap-2">
+              <button onClick={toggleLang} className="w-10 h-10 rounded-full bg-[var(--surface)] border border-[var(--border)] shadow-sm flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--primary)] transition-all active:scale-95 relative">
+                <FaGlobe size={14} />
+                <span className="absolute -top-1 -right-1 bg-[var(--primary)] text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full">{lang.split('-')[0].toUpperCase()}</span>
+              </button>
+              <button onClick={toggleTheme} className="w-10 h-10 rounded-full bg-[var(--surface)] border border-[var(--border)] shadow-sm flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--primary)] transition-all active:scale-95">
+                {isDark ? <FaSun size={14} /> : <FaMoon size={14} />}
+              </button>
             </div>
           </div>
-
-          <div className="bg-neutral-950/80 backdrop-blur-xl p-8 rounded-[2.5rem] border border-white/5 shadow-xl">
-            <h2 className="text-[10px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-6">Configurações</h2>
-            <div className="space-y-4">
-              <div className="relative">
-                <FaDollarSign className="absolute left-4 top-4 text-neutral-600" />
-                <input type="number" placeholder="Valor Mensalidade" value={config.valor} onChange={(e) => setConfig({...config, valor: Number(e.target.value)})} className="w-full pl-12 p-4 bg-white/5 rounded-2xl border border-white/5 text-sm font-bold outline-none focus:border-blue-500" />
+          
+          <div className="grid md:grid-cols-2 gap-6">
+            
+            {/* Card Faturamento Acumulado */}
+            <div className="bg-[var(--surface)] p-8 rounded-[2.5rem] border border-[var(--border)] shadow-xl flex flex-col justify-between relative overflow-hidden">
+              <div className="absolute -right-6 -top-6 text-[var(--primary)]/5">
+                <FaWallet size={120} />
               </div>
-              <input type="text" placeholder="Chave PIX" value={config.pix} onChange={(e) => setConfig({...config, pix: e.target.value})} className="w-full p-4 bg-white/5 rounded-2xl border border-white/5 text-sm font-bold outline-none focus:border-blue-500" />
+              <div className="relative z-10">
+                <h2 className="text-[10px] font-black text-[var(--text-secondary)] uppercase tracking-[0.2em] mb-3">{t.accumulated}</h2>
+                <p className="text-4xl sm:text-5xl font-black tracking-tighter text-[var(--text-primary)]">
+                  {new Intl.NumberFormat(lang, { style: 'currency', currency: lang === 'pt-PT' ? 'EUR' : lang === 'en' ? 'USD' : 'BRL' }).format(totalGeral)}
+                </p>
+                <div className="mt-8 flex items-center gap-2 text-[var(--success)] bg-[var(--success)]/10 px-4 py-2.5 rounded-[1rem] w-fit border border-[var(--success)]/20 shadow-sm">
+                  <FaCheckCircle className="text-[10px]" />
+                  <span className="text-[9px] font-black uppercase tracking-widest">{t.activeSystem}</span>
+                </div>
+              </div>
             </div>
-            <button onClick={salvarConfig} disabled={saving} className="w-full mt-6 bg-blue-600 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-500 transition-all">Salvar Alterações</button>
-          </div>
-        </div>
 
-        {/* Pagamento Manual - FLEX WRAP para mobile */}
-        <div className="bg-neutral-950/80 backdrop-blur-xl p-8 rounded-[2.5rem] border border-white/5 shadow-xl">
-          <h2 className="text-[10px] font-black text-neutral-500 uppercase tracking-[0.2em] mb-6">Registrar Pagamento Manual</h2>
-          <div className="flex flex-wrap gap-3">
-            <select onChange={(e) => setAlunoId(e.target.value)} className="flex-[2] min-w-[200px] p-4 bg-white/5 rounded-2xl text-sm font-bold border border-white/5 outline-none focus:border-blue-500 text-white">
-              <option value="" className="text-black">Selecione o aluno...</option>
-              {listaAlunos.map(a => <option key={a.id} value={a.id} className="text-black">{a.nome}</option>)}
-            </select>
-            <input type="number" placeholder="Valor R$" value={novoValor} onChange={(e) => setNovoValor(e.target.value)} className="flex-1 min-w-[100px] p-4 bg-white/5 rounded-2xl text-sm font-bold border border-white/5 outline-none focus:border-blue-500" />
-            <button onClick={registrarPagamentoManual} disabled={saving} className="bg-blue-600 text-white px-8 rounded-2xl font-black text-sm hover:bg-blue-500 transition-all"><FaPlus /></button>
+            {/* Card Configurações */}
+            <div className="bg-[var(--surface)] p-8 rounded-[2.5rem] border border-[var(--border)] shadow-xl">
+              <h2 className="text-[10px] font-black text-[var(--text-secondary)] uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
+                <FaCog /> {t.config}
+              </h2>
+              <div className="space-y-4">
+                <div className="relative group">
+                  <FaDollarSign className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] group-focus-within:text-[var(--primary)] transition-colors" />
+                  <input 
+                    type="number" placeholder={t.monthlyFee} value={config.valor} 
+                    onChange={(e) => setConfig({...config, valor: Number(e.target.value)})} 
+                    className="w-full pl-12 p-4 bg-[var(--surface-sec)] rounded-[1.2rem] border border-[var(--border)] text-sm font-bold outline-none focus:border-[var(--primary)] text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] transition-all shadow-inner" 
+                  />
+                </div>
+                <input 
+                  type="text" placeholder={t.pix} value={config.pix} 
+                  onChange={(e) => setConfig({...config, pix: e.target.value})} 
+                  className="w-full p-4 bg-[var(--surface-sec)] rounded-[1.2rem] border border-[var(--border)] text-sm font-bold outline-none focus:border-[var(--primary)] text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] transition-all shadow-inner" 
+                />
+              </div>
+              <button 
+                onClick={salvarConfig} disabled={saving} 
+                className="w-full mt-6 bg-[var(--primary)] text-white py-4 rounded-[1.2rem] font-black text-[10px] uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all shadow-md shadow-[var(--primary)]/20 disabled:opacity-50"
+              >
+                {saving ? t.saving : t.saveChanges}
+              </button>
+            </div>
           </div>
-        </div>
 
-        <div className="bg-neutral-950/80 backdrop-blur-xl rounded-[2.5rem] border border-white/5 shadow-xl overflow-hidden">
-          <div className="p-8 border-b border-white/5"><h2 className="font-black text-lg tracking-tighter">Últimas Transações</h2></div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead className="bg-white/5 text-[9px] uppercase font-black text-neutral-500 tracking-[0.2em]">
-                <tr><th className="p-8">Aluno</th><th className="p-8">Data</th><th className="p-8 text-right">Valor</th></tr>
-              </thead>
-              <tbody className="divide-y divide-white/5">
-                {pagamentos.map((p) => (
-                  <tr key={p.id}>
-                    <td className="p-8 font-bold text-sm">{p.alunos?.nome || 'Sem nome'}</td>
-                    <td className="p-8 text-xs text-neutral-500">{p.data_pagamento ? new Date(p.data_pagamento).toLocaleDateString('pt-BR') : '-'}</td>
-                    <td className="p-8 text-right font-black text-sm text-emerald-400">{new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(p.valor))}</td>
+          {/* Card Pagamento Manual */}
+          <div className="bg-[var(--surface)] p-8 rounded-[2.5rem] border border-[var(--border)] shadow-xl">
+            <h2 className="text-[10px] font-black text-[var(--text-secondary)] uppercase tracking-[0.2em] mb-6">{t.manualPayment}</h2>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <select 
+                onChange={(e) => setAlunoId(e.target.value)} 
+                className="flex-[2] min-w-[200px] p-4 bg-[var(--surface-sec)] rounded-[1.2rem] text-sm font-bold border border-[var(--border)] outline-none focus:border-[var(--primary)] text-[var(--text-primary)] shadow-inner appearance-none truncate"
+              >
+                <option value="" className="bg-[var(--surface)]">{t.selectStudent}</option>
+                {listaAlunos.map(a => <option key={a.id} value={a.id} className="bg-[var(--surface)]">{a.nome}</option>)}
+              </select>
+              <div className="flex gap-3">
+                <input 
+                  type="number" placeholder={t.valueLabel} value={novoValor} 
+                  onChange={(e) => setNovoValor(e.target.value)} 
+                  className="w-full sm:flex-1 min-w-[100px] p-4 bg-[var(--surface-sec)] rounded-[1.2rem] text-sm font-bold border border-[var(--border)] outline-none focus:border-[var(--primary)] text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] shadow-inner" 
+                />
+                <button 
+                  onClick={registrarPagamentoManual} disabled={saving} 
+                  className="bg-[var(--primary)] text-white px-8 rounded-[1.2rem] font-black text-sm hover:brightness-110 active:scale-95 transition-all shadow-md shadow-[var(--primary)]/20 shrink-0"
+                >
+                  <FaPlus />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Tabela de Últimas Transações */}
+          <div className="bg-[var(--surface)] rounded-[2.5rem] border border-[var(--border)] shadow-xl overflow-hidden">
+            <div className="p-6 sm:p-8 border-b border-[var(--border)]">
+              <h2 className="font-black text-lg sm:text-xl tracking-tighter text-[var(--text-primary)]">{t.transactions}</h2>
+            </div>
+            <div className="overflow-x-auto custom-scrollbar">
+              <table className="w-full text-left min-w-[400px]">
+                <thead className="bg-[var(--surface-sec)] text-[9px] uppercase font-black text-[var(--text-secondary)] tracking-[0.2em]">
+                  <tr>
+                    <th className="p-6 sm:p-8">{t.student}</th>
+                    <th className="p-6 sm:p-8">{t.date}</th>
+                    <th className="p-6 sm:p-8 text-right">{t.value}</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-[var(--border)]">
+                  {pagamentos.map((p) => (
+                    <tr key={p.id} className="hover:bg-[var(--surface-sec)]/50 transition-colors">
+                      <td className="p-6 sm:p-8 font-bold text-sm text-[var(--text-primary)]">{p.alunos?.nome || t.noName}</td>
+                      <td className="p-6 sm:p-8 text-xs font-medium text-[var(--text-secondary)]">
+                        {p.data_pagamento ? new Date(p.data_pagamento).toLocaleDateString(lang) : '-'}
+                      </td>
+                      <td className="p-6 sm:p-8 text-right font-black text-sm text-[var(--success)]">
+                        {new Intl.NumberFormat(lang, { style: 'currency', currency: lang === 'pt-PT' ? 'EUR' : lang === 'en' ? 'USD' : 'BRL' }).format(Number(p.valor))}
+                      </td>
+                    </tr>
+                  ))}
+                  {pagamentos.length === 0 && (
+                    <tr>
+                      <td colSpan={3} className="p-8 text-center text-[10px] font-black uppercase tracking-widest text-[var(--text-secondary)]">
+                        Nenhuma transação encontrada.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
+          
         </div>
-        
-        {/* Espaçador de segurança final */}
-        <div className="h-24 w-full shrink-0" aria-hidden="true" />
-      </div>
+      )}
     </main>
   );
 }

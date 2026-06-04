@@ -2,8 +2,91 @@
 import { useEffect, useState, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
-import { FaSignOutAlt } from 'react-icons/fa';
-import InputField from '@/components/InputField';
+import { 
+  FaSignOutAlt, 
+  FaChevronLeft, 
+  FaMoon, 
+  FaSun, 
+  FaGlobe, 
+  FaCamera, 
+  FaUserShield, 
+  FaUserEdit,
+  FaCheckCircle,
+  FaExclamationCircle
+} from 'react-icons/fa';
+import InputField from '@/components/InputField'; // Mantido como solicitado
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// DICIONÁRIO DE INTERNACIONALIZAÇÃO (i18n)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const translations = {
+  'pt-BR': {
+    back: 'Voltar',
+    title: 'Meu Perfil',
+    changePhoto: 'Trocar foto',
+    uploading: 'Enviando...',
+    tabData: 'Dados',
+    tabSecurity: 'Segurança',
+    name: 'Nome Completo',
+    phone: 'Telefone',
+    goal: 'Objetivo',
+    newPassword: 'Nova Senha',
+    saveData: 'Salvar Dados',
+    savePassword: 'Atualizar Senha',
+    saving: 'Salvando...',
+    logout: 'Encerrar Sessão',
+    successData: 'Dados atualizados com sucesso!',
+    errorData: 'Erro ao salvar: ',
+    successPass: 'Senha atualizada com sucesso!',
+    errorPass: 'Erro ao atualizar senha: ',
+    passLength: 'Mínimo de 6 caracteres',
+    uploadError: 'Erro no upload: '
+  },
+  'pt-PT': {
+    back: 'Voltar',
+    title: 'O Meu Perfil',
+    changePhoto: 'Mudar fotografia',
+    uploading: 'A enviar...',
+    tabData: 'Dados',
+    tabSecurity: 'Segurança',
+    name: 'Nome Completo',
+    phone: 'Telefone',
+    goal: 'Objetivo',
+    newPassword: 'Nova Palavra-passe',
+    saveData: 'Guardar Dados',
+    savePassword: 'Atualizar Palavra-passe',
+    saving: 'A guardar...',
+    logout: 'Terminar Sessão',
+    successData: 'Dados atualizados com sucesso!',
+    errorData: 'Erro ao guardar: ',
+    successPass: 'Palavra-passe atualizada com sucesso!',
+    errorPass: 'Erro ao atualizar palavra-passe: ',
+    passLength: 'Mínimo de 6 caracteres',
+    uploadError: 'Erro no envio: '
+  },
+  'en': {
+    back: 'Back',
+    title: 'My Profile',
+    changePhoto: 'Change photo',
+    uploading: 'Uploading...',
+    tabData: 'Details',
+    tabSecurity: 'Security',
+    name: 'Full Name',
+    phone: 'Phone',
+    goal: 'Goal',
+    newPassword: 'New Password',
+    saveData: 'Save Details',
+    savePassword: 'Update Password',
+    saving: 'Saving...',
+    logout: 'Sign Out',
+    successData: 'Details updated successfully!',
+    errorData: 'Error saving: ',
+    successPass: 'Password updated successfully!',
+    errorPass: 'Error updating password: ',
+    passLength: 'Minimum 6 characters',
+    uploadError: 'Upload error: '
+  }
+};
 
 export default function PerfilAluno({ params }: { params: Promise<{ id: string }> }) {
   const [loading, setLoading] = useState(true);
@@ -16,7 +99,67 @@ export default function PerfilAluno({ params }: { params: Promise<{ id: string }
   const id = use(params).id;
   const router = useRouter();
 
-  useEffect(() => { if (id) fetchPerfil(); }, [id]);
+  // Estados de Tema, i18n e Notificações (Substituindo alerts)
+  const [isDark, setIsDark] = useState(true);
+  const [lang, setLang] = useState<'pt-BR' | 'pt-PT' | 'en'>('pt-BR');
+  const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' } | null>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('@premium_theme');
+    if (savedTheme) setIsDark(savedTheme === 'dark');
+    
+    const savedLang = localStorage.getItem('@premium_lang') as 'pt-BR' | 'pt-PT' | 'en';
+    if (savedLang) setLang(savedLang);
+    
+    setMounted(true);
+    if (id) fetchPerfil();
+  }, [id]);
+
+  const toggleTheme = () => {
+    const newTheme = !isDark;
+    setIsDark(newTheme);
+    localStorage.setItem('@premium_theme', newTheme ? 'dark' : 'light');
+  };
+
+  const toggleLang = () => {
+    const langs: ('pt-BR' | 'pt-PT' | 'en')[] = ['pt-BR', 'pt-PT', 'en'];
+    const nextLang = langs[(langs.indexOf(lang) + 1) % langs.length];
+    setLang(nextLang);
+    localStorage.setItem('@premium_lang', nextLang);
+  };
+
+  const showToast = (message: string, type: 'error' | 'success' = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 4000);
+  };
+
+  const t = translations[lang];
+
+  // Configuração das Variáveis CSS Globais (Design System)
+  const themeStyles = isDark ? {
+    '--bg': '#0F1115',
+    '--surface': '#151A22',
+    '--surface-sec': '#1B2330',
+    '--primary': '#3B82F6',
+    '--primary-soft': '#60A5FA',
+    '--danger': '#EF4444',
+    '--success': '#22C55E',
+    '--text-primary': '#F8FAFC',
+    '--text-secondary': '#94A3B8',
+    '--border': 'rgba(255,255,255,0.05)',
+  } as React.CSSProperties : {
+    '--bg': '#F3F6FB',
+    '--surface': '#FFFFFF',
+    '--surface-sec': '#E8EEF9',
+    '--primary': '#2563EB',
+    '--primary-soft': '#60A5FA',
+    '--danger': '#DC2626',
+    '--success': '#16A34A',
+    '--text-primary': '#111827',
+    '--text-secondary': '#6B7280',
+    '--border': 'rgba(15,23,42,0.06)',
+  } as React.CSSProperties;
 
   const fetchPerfil = async () => {
     const { data } = await supabase.from('alunos').select('*').eq('id', id).maybeSingle();
@@ -40,7 +183,12 @@ export default function PerfilAluno({ params }: { params: Promise<{ id: string }
       if (uploadError) throw uploadError;
       const { data } = supabase.storage.from('avatars').getPublicUrl(fileName);
       setPerfil(p => ({ ...p, avatar_url: data.publicUrl }));
-    } catch (err: any) { alert('Erro no upload: ' + err.message); } finally { setUploading(false); }
+    } catch (err: any) { 
+      showToast(t.uploadError + err.message, 'error'); 
+    } finally { 
+      setUploading(false); 
+      e.target.value = '';
+    }
   };
 
   const handleUpdate = async () => {
@@ -50,104 +198,203 @@ export default function PerfilAluno({ params }: { params: Promise<{ id: string }
         nome: perfil.nome, objetivo: perfil.objetivo, telefone: perfil.telefone, avatar_url: perfil.avatar_url 
       }).eq('id', id);
       if (error) throw error;
-      alert("Dados atualizados com sucesso!");
-    } catch (err: any) { alert("Erro ao salvar: " + err.message); } finally { setSaving(false); }
+      showToast(t.successData, 'success');
+    } catch (err: any) { 
+      showToast(t.errorData + err.message, 'error'); 
+    } finally { 
+      setSaving(false); 
+    }
   };
 
   const handleUpdatePassword = async () => {
-    if (novaSenha.length < 6) return alert("Mínimo de 6 caracteres");
+    if (novaSenha.length < 6) return showToast(t.passLength, 'error');
     setSaving(true);
     try {
       const { error } = await supabase.auth.updateUser({ password: novaSenha });
       if (error) throw error;
-      alert("Senha atualizada com sucesso!");
+      showToast(t.successPass, 'success');
       setNovaSenha('');
-    } catch (err: any) { alert("Erro ao atualizar senha: " + err.message); } finally { setSaving(false); }
+    } catch (err: any) { 
+      showToast(t.errorPass + err.message, 'error'); 
+    } finally { 
+      setSaving(false); 
+    }
   };
 
   const handleChange = (field: string) => (val: string) => setPerfil(p => ({ ...p, [field]: val }));
 
-  if (loading) return (
-    <main className="min-h-screen bg-black p-6 space-y-8 animate-pulse">
-      {/* Header Skeleton */}
+  if (!mounted || loading) return (
+    <main style={themeStyles} className="min-h-screen bg-[var(--bg)] p-6 space-y-8 animate-pulse pt-[max(env(safe-area-inset-top),2rem)]">
       <div className="flex justify-between items-center mb-10">
-        <div className="w-16 h-4 bg-neutral-900 rounded-full" />
-        <div className="w-24 h-8 bg-neutral-900 rounded-xl" />
+        <div className="w-20 h-10 bg-[var(--surface-sec)] rounded-full" />
+        <div className="w-32 h-6 bg-[var(--surface-sec)] rounded-full" />
+        <div className="w-20 h-10 bg-[var(--surface-sec)] rounded-full" />
       </div>
-
-      {/* Título e Barra de Progresso Skeleton */}
-      <div className="space-y-4">
-        <div className="w-48 h-8 bg-neutral-900 rounded-full" />
-        <div className="w-32 h-3 bg-neutral-900 rounded-full" />
-        <div className="w-full h-2 bg-neutral-900 rounded-full" />
+      <div className="flex flex-col items-center gap-4">
+        <div className="w-28 h-28 bg-[var(--surface-sec)] rounded-full" />
+        <div className="w-48 h-6 bg-[var(--surface-sec)] rounded-full" />
       </div>
-
-      {/* Cards de Exercícios Skeleton */}
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="p-8 bg-neutral-900/50 rounded-[2.5rem] border border-white/5 space-y-4">
-          <div className="w-full h-40 bg-neutral-900 rounded-2xl" />
-          <div className="w-1/2 h-6 bg-neutral-900 rounded-full" />
-        </div>
-      ))}
+      <div className="w-full h-14 bg-[var(--surface-sec)] rounded-[2rem]" />
+      <div className="w-full h-64 bg-[var(--surface)] rounded-[2.5rem]" />
     </main>
   );
 
   return (
-    <main className="w-full min-h-screen bg-black text-white pt-20 px-4 pb-32">
-      <div className="max-w-md mx-auto space-y-6">
+    <main 
+      style={themeStyles} 
+      className="min-h-screen w-full bg-[var(--bg)] text-[var(--text-primary)] transition-colors duration-500 font-sans antialiased pt-[max(env(safe-area-inset-top),1.5rem)] pb-[env(safe-area-inset-bottom)] px-4"
+    >
+      {/* ━━━━━━━━━━ NOTIFICAÇÃO PREMIUM FLOATING ━━━━━━━━━━ */}
+      {toast && (
+        <div className="fixed top-[max(env(safe-area-inset-top,20px),20px)] left-4 right-4 z-[9999] flex justify-center animate-in slide-in-from-top-4 fade-in duration-300">
+          <div className={`bg-[var(--surface-sec)] border shadow-2xl rounded-[1.2rem] px-5 py-4 flex items-center gap-3 backdrop-blur-xl ${toast.type === 'error' ? 'border-[var(--danger)]/30' : 'border-[var(--success)]/30'}`}>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${toast.type === 'error' ? 'bg-[var(--danger)]/10 text-[var(--danger)]' : 'bg-[var(--success)]/10 text-[var(--success)]'}`}>
+              {toast.type === 'error' ? <FaExclamationCircle /> : <FaCheckCircle />}
+            </div>
+            <p className="text-xs font-bold text-[var(--text-primary)] leading-tight">{toast.message}</p>
+          </div>
+        </div>
+      )}
+
+      <div className="max-w-md mx-auto space-y-6 pb-32">
         
-        <header className="flex justify-between items-center py-4 mb-4">
-          <button onClick={() => router.back()} className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-white bg-white/5 hover:bg-white/10 px-4 py-2.5 rounded-2xl transition-all border border-white/5">
-            <span className="text-blue-500">←</span> Voltar
+        {/* ━━━━━━━━━━ HEADER PREMIUM ━━━━━━━━━━ */}
+        <header className="flex justify-between items-center mb-6 pt-4">
+          <button 
+            onClick={() => router.back()} 
+            className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-[var(--text-secondary)] hover:text-[var(--text-primary)] bg-[var(--surface)] px-4 py-2.5 rounded-full border border-[var(--border)] active:scale-95 transition-all shadow-sm"
+          >
+            <FaChevronLeft size={10} /> {t.back}
           </button>
-          <h1 className="font-black text-sm uppercase tracking-widest text-neutral-400">Meu Perfil</h1>
-          <div className="w-16" />
+          
+          <h1 className="font-black text-xs uppercase tracking-widest text-[var(--text-primary)] hidden sm:block">{t.title}</h1>
+          
+          <div className="flex bg-[var(--surface)] rounded-full border border-[var(--border)] p-1 shadow-sm">
+            <button onClick={toggleLang} className="w-8 h-8 rounded-full flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--primary)] transition-colors">
+              <FaGlobe size={14} />
+            </button>
+            <button onClick={toggleTheme} className="w-8 h-8 rounded-full flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--primary)] transition-colors">
+              {isDark ? <FaSun size={14} /> : <FaMoon size={14} />}
+            </button>
+          </div>
         </header>
 
-        <div className="bg-neutral-900/50 p-8 rounded-[2.5rem] border border-white/5 flex flex-col items-center gap-4 text-center">
-            <img src={perfil.avatar_url || `https://ui-avatars.com/api/?name=${perfil.nome}`} className="w-24 h-24 rounded-full border-4 border-black shadow-2xl object-cover" />
-            <h2 className="font-black text-xl">{perfil.nome}</h2>
-            <label className="cursor-pointer text-[9px] font-black uppercase tracking-widest text-blue-500 underline underline-offset-4">
-                {uploading ? 'Enviando...' : 'Trocar foto'}
-                <input type="file" className="hidden" accept="image/*" onChange={uploadAvatar} />
+        {/* ━━━━━━━━━━ AVATAR E NOME ━━━━━━━━━━ */}
+        <div className="bg-[var(--surface)] p-8 rounded-[2.5rem] border border-[var(--border)] flex flex-col items-center gap-5 text-center shadow-sm relative overflow-hidden group">
+          {/* Decorative blur */}
+          <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--primary)]/5 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none transition-all group-hover:bg-[var(--primary)]/10" />
+
+          <div className="relative">
+            <div className="w-28 h-28 rounded-full border-4 border-[var(--bg)] shadow-xl overflow-hidden relative group-hover:border-[var(--primary)]/20 transition-colors">
+              <img 
+                src={perfil.avatar_url || `https://ui-avatars.com/api/?name=${perfil.nome}&background=random&color=fff`} 
+                className="w-full h-full object-cover" 
+                alt="Avatar"
+              />
+              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <FaCamera className="text-white text-2xl" />
+              </div>
+            </div>
+          </div>
+          
+          <div>
+            <h2 className="font-black text-[var(--text-primary)] text-2xl tracking-tight leading-tight mb-1">{perfil.nome || 'Usuário'}</h2>
+            <label className={`cursor-pointer inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest px-4 py-1.5 rounded-full transition-colors ${uploading ? 'bg-[var(--surface-sec)] text-[var(--text-secondary)]' : 'bg-[var(--primary)]/10 text-[var(--primary)] hover:bg-[var(--primary)]/20'}`}>
+              {uploading ? t.uploading : t.changePhoto}
+              <input type="file" className="hidden" accept="image/*" onChange={uploadAvatar} disabled={uploading} />
             </label>
+          </div>
         </div>
 
-        <div className="bg-neutral-900/50 p-2 rounded-[2rem] border border-white/5 flex gap-2">
-            <button onClick={() => setActiveTab('dados')} className={`flex-1 py-3 rounded-[1.5rem] text-[9px] font-black uppercase tracking-widest transition-all ${activeTab === 'dados' ? 'bg-blue-600' : 'text-neutral-500'}`}>Dados</button>
-            <button onClick={() => setActiveTab('seguranca')} className={`flex-1 py-3 rounded-[1.5rem] text-[9px] font-black uppercase tracking-widest transition-all ${activeTab === 'seguranca' ? 'bg-blue-600' : 'text-neutral-500'}`}>Segurança</button>
+        {/* ━━━━━━━━━━ TABS ━━━━━━━━━━ */}
+        <div className="bg-[var(--surface)] p-2 rounded-[2rem] border border-[var(--border)] flex gap-2 shadow-sm">
+          <button 
+            onClick={() => setActiveTab('dados')} 
+            className={`flex-1 flex items-center justify-center gap-2 py-3.5 rounded-[1.5rem] text-[10px] font-bold uppercase tracking-widest transition-all ${
+              activeTab === 'dados' 
+                ? 'bg-[var(--primary)] text-white shadow-[0_4px_15px_-3px_var(--primary)]' 
+                : 'text-[var(--text-secondary)] hover:bg-[var(--surface-sec)] hover:text-[var(--text-primary)]'
+            }`}
+          >
+            <FaUserEdit size={12} /> <span className="hidden sm:inline">{t.tabData}</span><span className="sm:hidden">Dados</span>
+          </button>
+          <button 
+            onClick={() => setActiveTab('seguranca')} 
+            className={`flex-1 flex items-center justify-center gap-2 py-3.5 rounded-[1.5rem] text-[10px] font-bold uppercase tracking-widest transition-all ${
+              activeTab === 'seguranca' 
+                ? 'bg-[var(--primary)] text-white shadow-[0_4px_15px_-3px_var(--primary)]' 
+                : 'text-[var(--text-secondary)] hover:bg-[var(--surface-sec)] hover:text-[var(--text-primary)]'
+            }`}
+          >
+            <FaUserShield size={12} /> <span className="hidden sm:inline">{t.tabSecurity}</span><span className="sm:hidden">Senha</span>
+          </button>
         </div>
 
-        <div className="bg-neutral-900/50 p-8 rounded-[2.5rem] border border-white/5 min-h-[200px]">
-            {activeTab === 'dados' ? (
-                <div className="space-y-4 animate-in fade-in">
-                    <InputField label="Nome Completo" value={perfil.nome} onChange={handleChange('nome')} />
-                    <div className="grid grid-cols-2 gap-3">
-                        <InputField label="Telefone" value={perfil.telefone} onChange={handleChange('telefone')} />
-                        <InputField label="Objetivo" value={perfil.objetivo} onChange={handleChange('objetivo')} />
-                    </div>
+        {/* ━━━━━━━━━━ CONTEÚDO DAS TABS ━━━━━━━━━━ */}
+        <div className="bg-[var(--surface)] p-6 sm:p-8 rounded-[2.5rem] border border-[var(--border)] min-h-[250px] shadow-sm">
+          {activeTab === 'dados' ? (
+            <div className="space-y-5 animate-in slide-in-from-left-4 fade-in duration-300">
+              <div className="space-y-1">
+                 <label className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest pl-1">{t.name}</label>
+                 <InputField value={perfil.nome} onChange={handleChange('nome')} />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div className="space-y-1">
+                   <label className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest pl-1">{t.phone}</label>
+                   <InputField value={perfil.telefone} onChange={handleChange('telefone')} />
                 </div>
-            ) : (
-                <div className="space-y-4 animate-in fade-in">
-                    <InputField label="Nova Senha" type="password" value={novaSenha} onChange={setNovaSenha} />
-                    <button onClick={handleUpdatePassword} disabled={saving} className="w-full py-4 bg-blue-600 rounded-[1.5rem] text-[10px] font-black uppercase tracking-widest hover:bg-blue-500 transition-all">
-                        {saving ? "Salvando..." : "Atualizar Senha"}
-                    </button>
+                <div className="space-y-1">
+                   <label className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest pl-1">{t.goal}</label>
+                   <InputField value={perfil.objetivo} onChange={handleChange('objetivo')} />
                 </div>
-            )}
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-6 animate-in slide-in-from-right-4 fade-in duration-300">
+              <div className="space-y-1">
+                 <label className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest pl-1">{t.newPassword}</label>
+                 <InputField type="password" value={novaSenha} onChange={setNovaSenha} />
+                 <p className="text-[9px] text-[var(--text-secondary)] font-medium pl-1">{t.passLength}</p>
+              </div>
+              <button 
+                onClick={handleUpdatePassword} 
+                disabled={saving || novaSenha.length < 6} 
+                className={`w-full py-4 rounded-[1.2rem] text-[11px] font-black uppercase tracking-widest transition-all ${
+                  saving || novaSenha.length < 6
+                    ? 'bg-[var(--surface-sec)] text-[var(--text-secondary)] border border-[var(--border)] cursor-not-allowed'
+                    : 'bg-[var(--primary)] text-white hover:bg-blue-600 shadow-lg shadow-[var(--primary)]/20 active:scale-95'
+                }`}
+              >
+                {saving ? t.saving : t.savePassword}
+              </button>
+            </div>
+          )}
         </div>
 
+        {/* ━━━━━━━━━━ AÇÕES INFERIORES ━━━━━━━━━━ */}
         {activeTab === 'dados' && (
-            <button onClick={handleUpdate} disabled={saving} className="w-full bg-blue-600 py-5 rounded-[2rem] font-black text-[10px] uppercase tracking-widest transition-all active:scale-[0.98]">
-                {saving ? "Salvando..." : "Salvar Dados"}
-            </button>
+          <button 
+            onClick={handleUpdate} 
+            disabled={saving} 
+            className={`w-full py-5 rounded-[1.5rem] font-black text-[12px] uppercase tracking-[0.2em] transition-all transform active:scale-[0.98] ${
+              saving 
+                ? 'bg-[var(--surface-sec)] text-[var(--text-secondary)] border border-[var(--border)] cursor-not-allowed' 
+                : 'bg-[var(--primary)] text-white shadow-[0_10px_30px_-10px_var(--primary)] hover:bg-blue-600'
+            }`}
+          >
+            {saving ? t.saving : t.saveData}
+          </button>
         )}
 
-        <button onClick={handleLogout} className="group w-full flex items-center justify-center gap-3 py-4 mt-8 rounded-[2rem] border border-red-500/10 bg-red-500/5 hover:bg-red-500/10 transition-all duration-300">
-          <FaSignOutAlt className="text-red-500 group-hover:scale-110 transition-transform" />
-          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-red-500">Encerrar Sessão</span>
+        <button 
+          onClick={handleLogout} 
+          className="group w-full flex items-center justify-center gap-3 py-5 mt-8 rounded-[1.5rem] border border-[var(--danger)]/20 bg-[var(--danger)]/5 hover:bg-[var(--danger)]/10 transition-all duration-300 active:scale-[0.98]"
+        >
+          <FaSignOutAlt className="text-[var(--danger)] text-lg group-hover:-translate-x-1 transition-transform" />
+          <span className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--danger)]">{t.logout}</span>
         </button>
 
+        {/* ESPAÇADOR DE SEGURANÇA */}
         <div className="h-20 w-full shrink-0" aria-hidden="true" />
       </div>
     </main>
