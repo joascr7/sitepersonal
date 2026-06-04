@@ -4,26 +4,76 @@ import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
 import AgendaGeral from '@/components/AgendaGeral';
 import SubscriptionGuard from '@/components/SubscriptionGuard';
-import { FaWallet, FaUsers, FaExclamationTriangle, FaSearch, FaPlus, FaChartLine, FaEdit, FaUser, FaTimes, FaCalendarAlt } from 'react-icons/fa';
+import { 
+  FaWallet, FaExclamationTriangle, FaSearch, FaPlus, FaChartLine, 
+  FaEdit, FaUser, FaTimes, FaCalendarAlt, FaCheckCircle, 
+  FaExclamationCircle, FaGlobe, FaMoon, FaSun 
+} from 'react-icons/fa';
 
-interface PersonalData {
-  status_pagamento: string;
-  data_expiracao_teste: string;
-}
-// 1. Função auxiliar para buscar faturamento histórico
-const fetchFaturamentoPorMes = async (supabaseClient: any, personalId: string, mes: number, ano: number) => {
-  const inicio = new Date(ano, mes, 1).toISOString();
-  const fim = new Date(ano, mes + 1, 0, 23, 59, 59).toISOString();
-  
-  const { data, error } = await supabaseClient
-    .from('pagamentos')
-    .select('valor')
-    .eq('personal_id', personalId)
-    .gte('data_pagamento', inicio)
-    .lte('data_pagamento', fim);
-    
-  if (error || !data) return 0;
-  return data.reduce((acc: number, curr: any) => acc + Number(curr.valor), 0);
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// DICIONÁRIO DE INTERNACIONALIZAÇÃO (i18n)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const translations = {
+  'pt-BR': {
+    title: 'Dashboard',
+    subtitle: 'Gestão de Alta Performance',
+    revenue: 'Receita Mês',
+    report: 'Relatório',
+    search: 'Buscar aluno por nome...',
+    statusBlocked: 'BLOQUEADO',
+    statusActive: 'ATIVO',
+    statusPending: 'PENDENTE',
+    add: 'Adicionar',
+    testPeriod: 'Período de teste ativo',
+    subscribe: 'Assinar',
+    renewal: 'Renovação próxima',
+    confirmReativar: 'Confirmar reativação do acesso para ',
+    confirmBloqueio: 'Confirmar bloqueio de acesso para ',
+    errStatus: 'Erro ao alterar status.',
+    successStatus: 'Status atualizado!',
+    errProcess: 'Falha ao processar: ',
+    successPay: 'Pagamento registrado com sucesso!'
+  },
+  'pt-PT': {
+    title: 'Dashboard',
+    subtitle: 'Gestão de Alta Performance',
+    revenue: 'Receita Mês',
+    report: 'Relatório',
+    search: 'Procurar aluno por nome...',
+    statusBlocked: 'BLOQUEADO',
+    statusActive: 'ATIVO',
+    statusPending: 'PENDENTE',
+    add: 'Adicionar',
+    testPeriod: 'Período de teste ativo',
+    subscribe: 'Assinar',
+    renewal: 'Renovação próxima',
+    confirmReativar: 'Confirmar reativação do acesso para ',
+    confirmBloqueio: 'Confirmar bloqueio de acesso para ',
+    errStatus: 'Erro ao alterar status.',
+    successStatus: 'Status atualizado!',
+    errProcess: 'Falha ao processar: ',
+    successPay: 'Pagamento registado com sucesso!'
+  },
+  'en': {
+    title: 'Dashboard',
+    subtitle: 'High Performance Management',
+    revenue: 'Monthly Revenue',
+    report: 'Report',
+    search: 'Search student by name...',
+    statusBlocked: 'BLOCKED',
+    statusActive: 'ACTIVE',
+    statusPending: 'PENDING',
+    add: 'Add',
+    testPeriod: 'Active trial period',
+    subscribe: 'Subscribe',
+    renewal: 'Upcoming renewal',
+    confirmReativar: 'Confirm access reactivation for ',
+    confirmBloqueio: 'Confirm access blocking for ',
+    errStatus: 'Error changing status.',
+    successStatus: 'Status updated!',
+    errProcess: 'Failed to process: ',
+    successPay: 'Payment registered successfully!'
+  }
 };
 
 export default function Dashboard() {
@@ -34,58 +84,62 @@ export default function Dashboard() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [alunoSelecionado, setAlunoSelecionado] = useState<any>(null);
   const [valorPago, setValorPago] = useState('');
-  const [statusMsg, setStatusMsg] = useState<{type: 'success' | 'error', text: string} | null>(null);
-  
-  // 2. CORREÇÃO: Tipando o estado corretamente com a interface ou null
-  const [personalInfo, setPersonalInfo] = useState<PersonalData | null>(null);
-  
-  const [statusAcesso, setStatusAcesso] = useState({ emTeste: true, status: 'ativo' })
+  const [toast, setToast] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   const [faturamentoMes, setFaturamentoMes] = useState(0);
   const [mesSelecionado, setMesSelecionado] = useState(new Date().getMonth());
   const [anoSelecionado, setAnoSelecionado] = useState(new Date().getFullYear());
-  
+  const [statusAcesso, setStatusAcesso] = useState({ emTeste: true });
+
+  const [isDark, setIsDark] = useState(true);
+  const [lang, setLang] = useState<'pt-BR' | 'pt-PT' | 'en'>('pt-BR');
   const router = useRouter();
 
-  const getStatusDisplay = (aluno: any) => {
-    if (aluno.status_pagamento === 'bloqueado' || aluno.acesso_permitido === false) return { text: 'BLOQUEADO', color: 'bg-red-50 text-red-600' };
-    const hoje = new Date();
-    hoje.setHours(0, 0, 0, 0);
-    const vencimento = aluno.data_vencimento ? new Date(aluno.data_vencimento + 'T00:00:00') : null;
-    if (vencimento) {
-      const dataLimite = new Date(vencimento);
-      dataLimite.setDate(dataLimite.getDate() + 2);
-      if (hoje > vencimento && hoje <= dataLimite) return { text: 'PENDENTE', color: 'bg-amber-50 text-amber-600' };
-    }
-    return { text: 'ATIVO', color: 'bg-emerald-50 text-emerald-600' };
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('@premium_theme');
+    const savedLang = localStorage.getItem('@premium_lang') as 'pt-BR' | 'pt-PT' | 'en';
+    if (savedTheme) setIsDark(savedTheme === 'dark');
+    if (savedLang) setLang(savedLang);
+  }, []);
+
+  const toggleTheme = () => {
+    const newTheme = !isDark;
+    setIsDark(newTheme);
+    localStorage.setItem('@premium_theme', newTheme ? 'dark' : 'light');
+    window.dispatchEvent(new Event('storage'));
   };
 
- useEffect(() => {
+  const toggleLang = () => {
+    const langs: ('pt-BR' | 'pt-PT' | 'en')[] = ['pt-BR', 'pt-PT', 'en'];
+    const nextLang = langs[(langs.indexOf(lang) + 1) % langs.length];
+    setLang(nextLang);
+    localStorage.setItem('@premium_lang', nextLang);
+  };
+
+  const t = translations[lang] || translations['pt-BR'];
+
+  const showToast = (type: 'success' | 'error', text: string) => {
+    setToast({ type, text });
+    setTimeout(() => setToast(null), 4000);
+  };
+
+  const getStatusDisplay = (aluno: any) => {
+    if (!aluno.ativo) return { text: t.statusBlocked, color: 'bg-red-500/10 text-red-500 border-red-500/20' };
+    return { text: t.statusActive, color: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' };
+  };
+
+  useEffect(() => {
     const init = async () => {
       const { data } = await supabase.auth.getSession();
-      if (!data.session) {
-        router.push('/');
-        return;
-      }
+      if (!data.session) { router.push('/'); return; }
 
       const personalId = data.session.user.id;
-      
-      const { data: personal } = await supabase
-        .from('personais')
-        .select('status_pagamento, data_expiracao_teste')
-        .eq('id', personalId)
-        .single();
+      const { data: personal } = await supabase.from('personais').select('status_pagamento, data_expiracao_teste').eq('id', personalId).single();
 
       if (personal) {
-        // 3. CORREÇÃO: Agora o setPersonalInfo aceita o objeto do Supabase com segurança
-        setPersonalInfo(personal as PersonalData); 
-        
         const hoje = new Date();
         const expira = new Date(personal.data_expiracao_teste);
-
-        if (personal.status_pagamento === 'teste' && hoje > expira) {
-          router.push('/acesso-personal'); 
-          return;
-        }
+        if (personal.status_pagamento === 'teste' && hoje > expira) { router.push('/acesso-personal'); return; }
+        setStatusAcesso({ emTeste: hoje <= expira && personal.status_pagamento !== 'pago' });
       }
 
       setUser(data.session.user);
@@ -95,75 +149,37 @@ export default function Dashboard() {
     init();
   }, [router]);
 
-
-  useEffect(() => {
-  const verificarAcesso = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
-    const { data: personal } = await supabase
-      .from('personais')
-      .select('data_expiracao_teste, status_pagamento')
-      .eq('id', user.id)
-      .single();
-
-    if (personal) {
-      const hoje = new Date();
-      const dataExpiracao = new Date(personal.data_expiracao_teste);
-      
-      // Se hoje for maior que a data de expiração E o status não for 'pago', ele sai do teste
-      const estaEmTeste = hoje <= dataExpiracao && personal.status_pagamento !== 'pago';
-      
-      setStatusAcesso({ emTeste: estaEmTeste, status: personal.status_pagamento });
-    }
-  };
-  verificarAcesso();
-}, []);
-
   useEffect(() => {
     if (user?.id) {
-      fetchFaturamentoPorMes(supabase, user.id, mesSelecionado, anoSelecionado)
-        .then(setFaturamentoMes);
+      const fetchFat = async () => {
+        const inicio = new Date(anoSelecionado, mesSelecionado, 1).toISOString();
+        const fim = new Date(anoSelecionado, mesSelecionado + 1, 0, 23, 59, 59).toISOString();
+        const { data } = await supabase.from('pagamentos').select('valor').eq('personal_id', user.id).gte('data_pagamento', inicio).lte('data_pagamento', fim);
+        setFaturamentoMes(data ? data.reduce((acc, curr) => acc + Number(curr.valor), 0) : 0);
+      };
+      fetchFat();
     }
   }, [user, mesSelecionado, anoSelecionado]);
 
-  const showStatus = (type: 'success' | 'error', text: string) => {
-    setStatusMsg({ type, text });
-    setTimeout(() => setStatusMsg(null), 3000);
-  };
-
-  const fetchAlunos = async (personalId: string) => {
-    const { data } = await supabase.from('alunos').select('*').eq('personal_id', personalId).order('nome');
+  const fetchAlunos = async (pId: string) => {
+    const { data } = await supabase.from('alunos').select('*').eq('personal_id', pId).order('nome');
     if (data) setAlunos(data);
   };
 
-  const fetchFinanceiro = async (personalId: string) => {
-    const hoje = new Date();
-    const inicioMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1).toISOString();
-    const { data } = await supabase.from('pagamentos').select('valor').eq('personal_id', personalId).gte('data_pagamento', inicioMes);
+  const fetchFinanceiro = async (pId: string) => {
+    const inicioMes = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
+    const { data } = await supabase.from('pagamentos').select('valor').eq('personal_id', pId).gte('data_pagamento', inicioMes);
     if (data) setTotalMes(data.reduce((acc, curr) => acc + Number(curr.valor), 0));
   };
 
   const toggleStatus = async (aluno: any) => {
-  const novoStatus = !aluno.ativo; // Inverte o valor atual
-  const confirmMsg = novoStatus 
-    ? `Confirmar reativação do acesso para ${aluno.nome}?` 
-    : `Confirmar bloqueio de acesso para ${aluno.nome}?`;
-
-  if (!confirm(confirmMsg)) return;
-  
-  const { error } = await supabase
-    .from('alunos')
-    .update({ ativo: novoStatus })
-    .eq('id', aluno.id);
+    const confirmMsg = aluno.ativo ? `${t.confirmBloqueio}${aluno.nome}?` : `${t.confirmReativar}${aluno.nome}?`;
+    if (!confirm(confirmMsg)) return;
     
-  if (error) {
-    showStatus('error', 'Erro ao alterar status.');
-  } else {
-    showStatus('success', novoStatus ? 'Aluno reativado!' : 'Acesso bloqueado!');
-    if (user?.id) fetchAlunos(user.id);
-  }
-};
+    const { error } = await supabase.from('alunos').update({ ativo: !aluno.ativo }).eq('id', aluno.id);
+    if (error) showToast('error', t.errStatus);
+    else { showToast('success', t.successStatus); fetchAlunos(user.id); }
+  };
 
   const calcularNovoVencimento = (dataAtual: string) => {
     const data = new Date(dataAtual + 'T00:00:00');
@@ -189,14 +205,13 @@ export default function Dashboard() {
       setIsModalOpen(false); 
       setValorPago(''); 
       await Promise.all([fetchAlunos(user.id), fetchFinanceiro(user.id)]);
-      showStatus('success', 'Pagamento registrado com sucesso!');
+      showToast('success', t.successPay);
     } catch (err: any) {
-      showStatus('error', 'Falha ao processar: ' + err.message);
+      showToast('error', t.errProcess + err.message);
     }
   };
 
   const alunosFiltrados = useMemo(() => alunos.filter(a => a.nome.toLowerCase().includes(busca.toLowerCase())), [alunos, busca]);
-  
   const alunosVencendo = alunos.filter(a => {
     if (!a.data_vencimento) return false;
     const hoje = new Date();
@@ -208,144 +223,111 @@ export default function Dashboard() {
 
   return (
     <SubscriptionGuard>
-  {/* PT-20 compensa a Navbar superior fixa. PB-32 reserva espaço para a Navbar inferior. */}
-  <main className="min-h-screen bg-black text-white pt-20 pb-32 px-4">
-    
-    {/* Toast de status */}
-    {statusMsg && (
-      <div className={`fixed top-24 right-6 p-4 rounded-2xl shadow-2xl z-[200] text-[10px] font-black uppercase tracking-widest ${statusMsg.type === 'success' ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'}`}>
-        {statusMsg.text}
-      </div>
-    )}
-
-    {/* Modal de Pagamento */}
-    {isModalOpen && (
-      <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-[300] flex items-center justify-center p-4">
-        <div className="bg-neutral-950/90 p-8 rounded-[2.5rem] w-full max-w-sm border border-white/10 space-y-4">
-          <div className="flex justify-between items-center">
-            <h3 className="font-black tracking-tighter">Registrar Pagamento</h3>
-            <button onClick={() => setIsModalOpen(false)} className="text-neutral-500 hover:text-white"><FaTimes /></button>
-          </div>
-          <input type="number" value={valorPago} onChange={(e) => setValorPago(e.target.value)} placeholder="Valor (R$)" className="w-full p-4 bg-white/5 rounded-2xl font-bold border border-white/5 outline-none focus:border-blue-500" />
-          <button onClick={processarPagamento} className="w-full py-4 bg-blue-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-blue-500 transition-all">Confirmar Pagamento</button>
-        </div>
-      </div>
-    )}
-
-    <div className="max-w-6xl mx-auto space-y-8">
-      <header className="flex justify-between items-end">
-        <div>
-          <h1 className="text-4xl font-black tracking-tighter">Dashboard</h1>
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-500 mt-1">Gestão de Alta Performance</p>
-        </div>
-        <button onClick={() => router.push('/dashboard/adicionar-aluno')} className="bg-blue-600 text-white p-4 rounded-2xl shadow-xl hover:bg-blue-500 active:scale-95 transition-all">
-          <FaPlus />
-        </button>
-      </header>
-
-      {/* Aviso de Teste Grátis */}
-      {statusAcesso.emTeste && (
-        <div className="bg-blue-600/10 border border-blue-600/20 p-6 rounded-[2rem] flex justify-between items-center">
-          <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest">Você está no período de teste.</p>
-          <button onClick={() => router.push('/acesso-personal')} className="bg-blue-600 text-white px-6 py-3 rounded-2xl text-[10px] font-black uppercase hover:bg-blue-500 transition-all">Assinar Plano</button>
-        </div>
-      )}
+      <main className={`min-h-screen p-6 pt-24 pb-32 transition-colors duration-500 ${isDark ? 'bg-[#0F1115] text-[#F8FAFC]' : 'bg-[#F3F6FB] text-[#111827]'}`}>
         
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="space-y-4">
-          {/* Card Mês Atual */}
-          <div className="bg-neutral-950/80 backdrop-blur-xl p-8 rounded-[2.5rem] border border-white/5 shadow-xl">
-            <FaWallet className="text-emerald-500 mb-2 text-xl" />
-            <h2 className="text-[9px] font-black text-neutral-500 uppercase tracking-widest">Mês Atual</h2>
-            <p className="text-xl font-black text-white">
-              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalMes)}
-            </p>
+        {toast && (
+          <div className={`fixed top-6 left-1/2 -translate-x-1/2 z-[500] px-6 py-4 rounded-[1.2rem] border backdrop-blur-md shadow-2xl flex items-center gap-3 ${toast.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-500' : 'bg-red-500/10 border-red-500/20 text-red-500'}`}>
+            {toast.type === 'success' ? <FaCheckCircle /> : <FaExclamationCircle />}
+            <span className="text-[10px] font-black uppercase tracking-widest">{toast.text}</span>
           </div>
-          
-          {/* Card Relatório por Mês */}
-          <div className="bg-neutral-950/80 backdrop-blur-xl p-8 rounded-[2.5rem] border border-white/5 shadow-xl">
-            <div className="flex items-center gap-2 mb-3 text-blue-500">
-              <FaCalendarAlt /> 
-              <h2 className="text-[9px] font-black text-neutral-500 uppercase tracking-widest">Relatório por Mês</h2>
+        )}
+
+        {isModalOpen && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[300] flex items-center justify-center p-4">
+            <div className="bg-[#151A22] p-8 rounded-[2rem] w-full max-w-sm border border-white/10 space-y-4">
+              <div className="flex justify-between items-center"><h3 className="font-black">Registrar Pagamento</h3><button onClick={() => setIsModalOpen(false)}><FaTimes /></button></div>
+              <input type="number" value={valorPago} onChange={(e) => setValorPago(e.target.value)} placeholder="Valor (R$)" className="w-full p-4 bg-white/5 rounded-xl font-bold border border-white/5 outline-none" />
+              <button onClick={processarPagamento} className="w-full py-4 bg-blue-600 rounded-xl font-black uppercase text-xs hover:bg-blue-500">Confirmar</button>
+            </div>
+          </div>
+        )}
+
+        <div className="max-w-6xl mx-auto space-y-8">
+          <header className="flex justify-between items-center">
+            <div>
+              <h1 className="text-3xl font-black tracking-tighter">{t.title}</h1>
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-60">{t.subtitle}</p>
             </div>
             <div className="flex gap-2">
-              <select 
-                className="bg-white/5 p-3 rounded-2xl text-[10px] font-black w-full outline-none text-white transition-all focus:border-blue-500 border border-white/5 [&>option]:bg-neutral-900 [&>option]:text-white" 
-                value={mesSelecionado} 
-                onChange={(e) => setMesSelecionado(Number(e.target.value))}
-              >
-                {['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'].map((m, i) => (
-                  <option key={i} value={i} className="bg-neutral-900 text-white">{m}</option>
-                ))}
-              </select>
-              <input 
-                type="number" 
-                className="bg-white/5 p-3 rounded-2xl text-[10px] font-black w-20 text-center outline-none text-white transition-all focus:border-blue-500 border border-white/5" 
-                value={anoSelecionado} 
-                onChange={(e) => setAnoSelecionado(Number(e.target.value))} 
-              />
+              <button onClick={toggleLang} className="p-4 rounded-[1.2rem] bg-black/5 hover:bg-black/10"><FaGlobe /></button>
+              <button onClick={toggleTheme} className="p-4 rounded-[1.2rem] bg-black/5 hover:bg-black/10">{isDark ? <FaSun /> : <FaMoon />}</button>
+              <button onClick={() => router.push('/dashboard/adicionar-aluno')} className="bg-[var(--primary)] text-white p-4 rounded-[1.2rem] shadow-lg"><FaPlus /></button>
             </div>
-            <p className="text-xl font-black mt-3 text-blue-500">
-              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(faturamentoMes)}
-            </p>
-          </div>
-        </div>
+          </header>
 
-        <div className="md:col-span-2 bg-neutral-950/80 backdrop-blur-xl p-8 rounded-[2.5rem] border border-white/5 shadow-xl overflow-hidden">
-           <AgendaGeral />
-        </div>
-      </div>
-
-      {alunosVencendo.length > 0 && (
-        <div className="p-8 bg-amber-600/10 border border-amber-600/20 rounded-[2.5rem] flex items-center justify-between shadow-xl">
-          <div className="flex items-center gap-4 text-amber-500"><FaExclamationTriangle /> <span className="font-black text-xs uppercase tracking-widest">Renovação próxima</span></div>
-          <div className="flex gap-3">
-            {alunosVencendo.map(a => (
-              <button key={a.id} onClick={() => { setAlunoSelecionado(a); setIsModalOpen(true); }} className="bg-amber-600 px-6 py-3 rounded-2xl text-[10px] font-black hover:bg-amber-500 uppercase tracking-widest">{a.nome}</button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <div className="relative">
-        <FaSearch className="absolute left-8 top-6 text-neutral-600" />
-        <input className="w-full bg-neutral-950/80 backdrop-blur-xl p-6 pl-16 rounded-[2.5rem] border border-white/5 shadow-xl outline-none text-sm font-bold text-white placeholder:text-neutral-700" placeholder="Buscar aluno..." value={busca} onChange={(e) => setBusca(e.target.value)} />
-      </div>
-
-      <div className="space-y-4">
-        {alunosFiltrados.map((a) => {
-          const statusDisplay = getStatusDisplay(a);
-          return (
-            <div key={a.id} className="bg-neutral-950/80 backdrop-blur-xl p-8 rounded-[2.5rem] border border-white/5 flex items-center justify-between shadow-xl">
-              <div className="flex items-center gap-6">
-                <div className="w-14 h-14 rounded-full bg-white/5 flex items-center justify-center font-black text-neutral-500 overflow-hidden border border-white/5">
-                  {a.avatar_url ? <img src={a.avatar_url} className="w-full h-full object-cover" /> : a.nome.charAt(0)}
-                </div>
-                <div>
-                  <h3 className="font-black text-white">{a.nome}</h3>
-                  <span className={`text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-full bg-white/5 ${statusDisplay.color}`}>
-                    {statusDisplay.text}
-                  </span>
-                </div>
+          {statusAcesso.emTeste && (
+            <div className="bg-[var(--primary)]/10 border border-[var(--primary)]/20 p-6 rounded-[2rem] flex justify-between items-center">
+              <p className="text-[10px] font-black uppercase tracking-widest text-[var(--primary)]">{t.testPeriod}</p>
+              <button onClick={() => router.push('/acesso-personal')} className="bg-[var(--primary)] text-white px-6 py-3 rounded-[1.2rem] text-[10px] font-black uppercase">{t.subscribe}</button>
+            </div>
+          )}
+        
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="space-y-6">
+              <div className="bg-[#151A22] p-8 rounded-[2rem] border border-white/5 shadow-sm">
+                <FaWallet className="text-[var(--primary)] mb-3 text-lg" />
+                <h2 className="text-[9px] font-black uppercase tracking-widest opacity-60">{t.revenue}</h2>
+                <p className="text-xl font-black mt-1">R$ {totalMes.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
               </div>
-              <div className="flex gap-2 items-center">
-                <button onClick={() => toggleStatus(a)} className={`p-4 rounded-2xl transition-all ${a.ativo ? 'bg-blue-600/10 text-blue-400 hover:bg-blue-600/20' : 'bg-red-600/10 text-red-400 hover:bg-red-600/20'}`}>
-                  {a.ativo ? <FaTimes /> : <FaUser />} 
-                </button>
-                <button onClick={() => router.push(`/dashboard/editar-aluno/${a.id}`)} className="bg-white/5 p-4 rounded-2xl text-neutral-400 hover:text-white"><FaEdit /></button>
-                <button onClick={() => router.push(`/dashboard/aluno/${a.id}`)} className="bg-white/5 p-4 rounded-2xl text-neutral-400 hover:text-white"><FaUser /></button>
-                <button onClick={() => router.push(`/dashboard/aluno/${a.id}/progresso`)} className="bg-blue-600 text-white p-4 rounded-2xl"><FaChartLine /></button>
+              <div className="bg-[#151A22] p-8 rounded-[2rem] border border-white/5 shadow-sm">
+                <div className="flex items-center gap-2 mb-4 opacity-60">
+                  <FaCalendarAlt size={14} /> 
+                  <h2 className="text-[9px] font-black uppercase tracking-widest">{t.report}</h2>
+                </div>
+                <select className="w-full bg-[#1B2330] p-3 rounded-[1.2rem] text-[10px] font-bold outline-none mb-2" value={mesSelecionado} onChange={(e) => setMesSelecionado(Number(e.target.value))}>
+                  {['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'].map((m, i) => <option key={i} value={i}>{m}</option>)}
+                </select>
+                <p className="text-xl font-black text-[var(--primary)]">R$ {faturamentoMes.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
               </div>
             </div>
-          );
-        })}
-      </div>
-      
-      {/* ESPAÇADOR FINAL DE SEGURANÇA */}
-      <div className="h-20 w-full shrink-0" aria-hidden="true" />
-    </div>
-  </main>
-</SubscriptionGuard>
-    
+
+            <div className="md:col-span-2 bg-[#151A22] p-8 rounded-[2rem] border border-white/5 shadow-sm overflow-hidden">
+               <AgendaGeral />
+            </div>
+          </div>
+
+          {alunosVencendo.length > 0 && (
+            <div className="p-6 bg-amber-500/10 border border-amber-500/20 rounded-[2rem] flex items-center justify-between">
+              <p className="font-black text-xs uppercase tracking-widest text-amber-500">{t.renewal}</p>
+              <div className="flex gap-2">{alunosVencendo.map(a => <button key={a.id} onClick={() => { setAlunoSelecionado(a); setIsModalOpen(true); }} className="bg-amber-500 px-4 py-2 rounded-xl text-[10px] font-black">{a.nome}</button>)}</div>
+            </div>
+          )}
+
+          <div className="relative group">
+            <FaSearch className="absolute left-6 top-1/2 -translate-y-1/2 opacity-40" />
+            <input 
+              className="w-full bg-[#151A22] p-6 pl-14 rounded-[2rem] border border-white/5 outline-none focus:border-[var(--primary)] transition-all text-sm font-bold shadow-sm" 
+              placeholder={t.search} 
+              value={busca} 
+              onChange={(e) => setBusca(e.target.value)} 
+            />
+          </div>
+
+          <div className="space-y-4">
+            {alunosFiltrados.map((a) => {
+              const status = getStatusDisplay(a);
+              return (
+                <div key={a.id} className="bg-[#151A22] p-6 rounded-[2rem] border border-white/5 flex items-center justify-between hover:border-[var(--primary)]/30 transition-all">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-full bg-[#1B2330] flex items-center justify-center font-black text-xs border border-white/5 overflow-hidden">
+                      {a.avatar_url ? <img src={a.avatar_url} className="w-full h-full object-cover" /> : a.nome.charAt(0)}
+                    </div>
+                    <div>
+                      <h3 className="font-black text-sm">{a.nome}</h3>
+                      <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-md border ${status.color}`}>{status.text}</span>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={() => toggleStatus(a)} className="p-3 rounded-xl bg-[#1B2330] hover:bg-white/10"><FaTimes size={14} /></button>
+                    <button onClick={() => router.push(`/dashboard/aluno/${a.id}`)} className="p-3 rounded-xl bg-[var(--primary)] text-white"><FaUser size={14} /></button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div className="h-20" />
+        </div>
+      </main>
+    </SubscriptionGuard>
   );
 }
