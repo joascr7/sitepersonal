@@ -4,9 +4,8 @@ import { useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { 
   FaUserShield, FaSync, FaChartLine, FaCog, FaPowerOff, 
-  FaMoon, FaSun, FaGlobe, FaCheckCircle, FaExclamationCircle 
+  FaCheckCircle, FaExclamationCircle 
 } from 'react-icons/fa';
-// AQUI ESTÁ A CORREÇÃO: Adicionados CartesianGrid, XAxis e YAxis
 import { AreaChart, Area, Tooltip, ResponsiveContainer, CartesianGrid, XAxis, YAxis } from 'recharts';
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -112,28 +111,22 @@ function PainelConteudo() {
   useEffect(() => {
     fetchDados();
     
-    const savedTheme = localStorage.getItem('@premium_theme');
-    if (savedTheme) setIsDark(savedTheme === 'dark');
-    
-    const savedLang = localStorage.getItem('@premium_lang') as 'pt-BR' | 'pt-PT' | 'en';
-    if (savedLang) setLang(savedLang);
-    
+    // FUNÇÃO QUE ESCUTA AS MUDANÇAS DA NAVBAR
+    const updateSettings = () => {
+      const savedTheme = localStorage.getItem('@premium_theme');
+      if (savedTheme) setIsDark(savedTheme === 'dark');
+      
+      const savedLang = localStorage.getItem('@premium_lang') as 'pt-BR' | 'pt-PT' | 'en';
+      if (savedLang) setLang(savedLang);
+    };
+
+    updateSettings();
     setMounted(true);
+
+    // REGISTRA O OUVINTE DE EVENTOS PARA ATUALIZAR EM TEMPO REAL
+    window.addEventListener('storage', updateSettings);
+    return () => window.removeEventListener('storage', updateSettings);
   }, []);
-
-  const toggleTheme = () => {
-    const newTheme = !isDark;
-    setIsDark(newTheme);
-    localStorage.setItem('@premium_theme', newTheme ? 'dark' : 'light');
-    window.dispatchEvent(new Event('storage'));
-  };
-
-  const toggleLang = () => {
-    const langs: ('pt-BR' | 'pt-PT' | 'en')[] = ['pt-BR', 'pt-PT', 'en'];
-    const nextLang = langs[(langs.indexOf(lang) + 1) % langs.length];
-    setLang(nextLang);
-    localStorage.setItem('@premium_lang', nextLang);
-  };
 
   const showToast = (message: string, type: 'error' | 'success' = 'success') => {
     setToast({ message, type });
@@ -308,7 +301,7 @@ function PainelConteudo() {
                   onClick={salvarConfiguracoes} 
                   disabled={saving}
                   className={`mt-6 w-full py-4 rounded-[1.2rem] font-black text-xs uppercase tracking-widest transition-all active:scale-[0.98] ${
-                    saving ? 'bg-[var(--surface-sec)] text-[var(--text-secondary)] border border-[var(--border)]' : 'bg-[var(--primary)] text-white hover:bg-blue-600 shadow-[0_10px_30px_-10px_var(--primary)]'
+                    saving ? 'bg-[var(--surface-sec)] text-[var(--text-secondary)] border border-[var(--border)]' : 'bg-[var(--primary)] text-white hover:brightness-110 shadow-[0_10px_30px_-10px_var(--primary)]'
                   }`}
                 >
                   {saving ? t.saving : t.btnSaveConfig}

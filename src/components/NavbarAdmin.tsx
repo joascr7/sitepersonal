@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { FaUserShield, FaChartLine, FaUsers, FaSignOutAlt, FaMoon, FaSun, FaGlobe } from 'react-icons/fa';
+import { FaUserShield, FaChartLine, FaUsers, FaSignOutAlt, FaMoon, FaSun, FaGlobe, FaBullhorn } from 'react-icons/fa';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 
@@ -13,6 +13,7 @@ const translations = {
     management: 'Gestão',
     report: 'Relatório',
     library: 'Biblioteca',
+    notification: 'Notificações',
     logout: 'Sair'
   },
   'pt-PT': {
@@ -20,6 +21,7 @@ const translations = {
     management: 'Gestão',
     report: 'Relatório',
     library: 'Biblioteca',
+    notification: 'Notificações',
     logout: 'Sair'
   },
   'en': {
@@ -27,6 +29,7 @@ const translations = {
     management: 'Management',
     report: 'Report',
     library: 'Library',
+    notification: 'Notifications',
     logout: 'Logout'
   }
 };
@@ -138,6 +141,14 @@ export default function NavbarAdmin() {
               <div className="text-lg group-hover:text-[var(--primary)] group-hover:scale-110 transition-all"><FaChartLine /></div>
               <span>{t.library}</span>
             </button>
+
+            <button 
+              onClick={() => router.push('/admin/notifications')} 
+              className="group flex items-center gap-4 p-4 rounded-[1.2rem] hover:bg-[var(--surface-sec)] border border-transparent hover:border-[var(--border)] transition-all duration-300 font-bold text-xs uppercase tracking-widest text-[var(--text-secondary)] hover:text-[var(--text-primary)] w-full text-left"
+            >
+              <div className="text-lg group-hover:text-[var(--primary)] group-hover:scale-110 transition-all"><FaBullhorn /></div>
+              <span>{t.notification}</span>
+            </button>
           </div>
         </div>
 
@@ -165,12 +176,12 @@ export default function NavbarAdmin() {
 
       {/* ━━━━━━━━━━ MOBILE BOTTOM NAVIGATION ━━━━━━━━━━ */}
       <nav 
-        className="md:hidden fixed left-5 right-5 z-50 bg-[var(--surface)]/90 backdrop-blur-2xl border border-[var(--border)] rounded-[2rem] py-3 px-6 flex justify-between items-center shadow-[0_20px_40px_-10px_rgba(0,0,0,0.3)]"
+        className="md:hidden fixed left-5 right-5 z-50 bg-[var(--surface)]/90 backdrop-blur-2xl border border-[var(--border)] rounded-[2rem] py-3 px-4 flex justify-between items-center shadow-[0_20px_40px_-10px_rgba(0,0,0,0.3)]"
         style={{ bottom: 'max(env(safe-area-inset-bottom, 20px), 20px)' }}
       >
         <button 
           onClick={() => router.push('/admin/financeiro?aba=gestao')} 
-          className="flex flex-col items-center gap-1.5 transition-all duration-300 w-16 group text-[var(--text-secondary)] hover:text-[var(--primary)]"
+          className="flex flex-col items-center gap-1.5 transition-all duration-300 w-14 group text-[var(--text-secondary)] hover:text-[var(--primary)]"
         >
           <div className="relative flex items-center justify-center w-10 h-8 rounded-full transition-all duration-300 group-hover:bg-[var(--surface-sec)] group-hover:scale-105">
             <FaUsers className="text-lg" />
@@ -180,7 +191,7 @@ export default function NavbarAdmin() {
 
         <button 
           onClick={() => router.push('/admin/financeiro?aba=relatorio')} 
-          className="flex flex-col items-center gap-1.5 transition-all duration-300 w-16 group text-[var(--text-secondary)] hover:text-[var(--primary)]"
+          className="flex flex-col items-center gap-1.5 transition-all duration-300 w-14 group text-[var(--text-secondary)] hover:text-[var(--primary)]"
         >
           <div className="relative flex items-center justify-center w-10 h-8 rounded-full transition-all duration-300 group-hover:bg-[var(--surface-sec)] group-hover:scale-105">
             <FaChartLine className="text-lg" />
@@ -190,7 +201,7 @@ export default function NavbarAdmin() {
 
         <button 
           onClick={() => router.push('/admin/biblioteca?aba=biblioteca')} 
-          className="flex flex-col items-center gap-1.5 transition-all duration-300 w-16 group text-[var(--text-secondary)] hover:text-[var(--primary)]"
+          className="flex flex-col items-center gap-1.5 transition-all duration-300 w-14 group text-[var(--text-secondary)] hover:text-[var(--primary)]"
         >
           <div className="relative flex items-center justify-center w-10 h-8 rounded-full transition-all duration-300 group-hover:bg-[var(--surface-sec)] group-hover:scale-105">
             <FaChartLine className="text-lg" />
@@ -198,10 +209,20 @@ export default function NavbarAdmin() {
           <span className="text-[8px] font-black uppercase tracking-widest opacity-70 group-hover:opacity-100 truncate w-full text-center">{t.library}</span>
         </button>
 
+        <button 
+          onClick={() => router.push('/admin/notifications')} 
+          className="flex flex-col items-center gap-1.5 transition-all duration-300 w-14 group text-[var(--text-secondary)] hover:text-[var(--primary)]"
+        >
+          <div className="relative flex items-center justify-center w-10 h-8 rounded-full transition-all duration-300 group-hover:bg-[var(--surface-sec)] group-hover:scale-105">
+            <FaBullhorn className="text-lg" />
+          </div>
+          <span className="text-[8px] font-black uppercase tracking-widest opacity-70 group-hover:opacity-100 truncate w-full text-center">{t.notification}</span>
+        </button>
+
         {/* Logout Mobile */}
         <button 
           onClick={handleLogout} 
-          className="flex flex-col items-center gap-1.5 transition-all duration-300 w-16 group text-[var(--text-secondary)]"
+          className="flex flex-col items-center gap-1.5 transition-all duration-300 w-14 group text-[var(--text-secondary)]"
         >
           <div className="relative flex items-center justify-center w-10 h-8 rounded-full transition-all duration-300 group-hover:bg-[var(--danger)]/10 group-hover:text-[var(--danger)] active:scale-95">
             <FaSignOutAlt className="text-lg" />

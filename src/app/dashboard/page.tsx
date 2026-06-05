@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
 import AgendaGeral from '@/components/AgendaGeral';
 import SubscriptionGuard from '@/components/SubscriptionGuard';
-import { NotificationService } from '@/lib/NotificationService';
+import { notificationService } from '@/lib/notificationService';
 import { 
   FaWallet, FaExclamationTriangle, FaSearch, FaPlus, FaChartLine, 
   FaEdit, FaUser, FaTimes, FaCalendarAlt, FaCheckCircle, 
