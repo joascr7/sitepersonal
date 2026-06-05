@@ -183,7 +183,7 @@ export default function AdminBroadcaster() {
     setTimeout(() => setToast(null), 5000);
   };
 
-  const handleDisparar = async (e: React.FormEvent) => {
+ const handleDisparar = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.titulo.trim() || !formData.corpo.trim()) {
       showToast('error', t.errFill);
@@ -205,7 +205,7 @@ export default function AdminBroadcaster() {
           tipo_midia: formData.mediaUrl.trim() ? formData.tipoMidia : null,
           cta_link: formData.ctaLink.trim() || null,
           agendado_para: formData.agendamento ? new Date(formData.agendamento).toISOString() : null,
-          status: formData.agendamento ? 'pendente' : 'enviado',
+          status: formData.agendamento ? 'pendente' : 'processando',
           criado_por: user?.id
         })
         .select()
@@ -213,26 +213,13 @@ export default function AdminBroadcaster() {
 
       if (insertError) throw insertError;
 
-      // 2. Se for envio imediato, chama a Edge Function
+      // 2. Disparo Único: enviamos apenas o ID da campanha
       if (!formData.agendamento) {
-        // Busca tokens baseada na segmentação (exemplo simples)
-        // Você pode ajustar a query abaixo conforme sua necessidade de segmentação
-        const { data: tokens } = await supabase
-          .from('push_tokens')
-          .select('user_id');
+        const { error: invokeError } = await supabase.functions.invoke('push-broadcast', {
+          body: { broadcast_id: campanha.id }
+        });
 
-        if (tokens && tokens.length > 0) {
-          // Dispara para os usuários encontrados
-          for (const item of tokens) {
-            await supabase.functions.invoke('push-service', {
-              body: { 
-                user_id: item.user_id, 
-                titulo: formData.titulo, 
-                corpo: formData.corpo 
-              }
-            });
-          }
-        }
+        if (invokeError) throw invokeError;
       }
 
       showToast('success', formData.agendamento ? t.successSchedule : t.successSend);
@@ -240,7 +227,7 @@ export default function AdminBroadcaster() {
       carregarHistoricoCampanhas();
     } catch (err: any) {
       console.error("Erro no disparo:", err);
-      showToast('error', t.errSend + err.message);
+      showToast('error', t.errSend + ": " + err.message);
     } finally {
       setLoading(false);
     }

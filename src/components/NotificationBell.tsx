@@ -14,17 +14,30 @@ export const NotificationBell = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [lang, setLang] = useState<'pt-BR' | 'pt-PT' | 'en'>('pt-BR');
 
-  useEffect(() => {
-    // Busca a língua salva no seu sistema
-    const savedLang = localStorage.getItem('@premium_lang') as 'pt-BR' | 'pt-PT' | 'en' || 'pt-BR';
-    setLang(savedLang);
-    carregar();
-    
+ useEffect(() => {
+  const setupRealtime = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    carregar(); // Carrega inicial
+
+    // Canal com filtro aplicado
     const channel = supabase.channel('realtime_notif')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'user_notifications' }, carregar)
+      .on('postgres_changes', { 
+        event: 'INSERT', 
+        schema: 'public', 
+        table: 'user_notifications',
+        filter: `user_id=eq.${user.id}` // <--- ISSO É OBRIGATÓRIO
+      }, (payload) => {
+        setNotificacoes((prev) => [payload.new, ...prev]);
+      })
       .subscribe();
+
     return () => { supabase.removeChannel(channel); };
-  }, []);
+  };
+
+  setupRealtime();
+}, []);
 
   const t = i18n[lang];
 

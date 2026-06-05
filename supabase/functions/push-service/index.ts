@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3"
 import admin from "npm:firebase-admin@11.11.0"
 
-// Inicialização Firebase
+// Inicialização Firebase (Protegida para não re-inicializar)
 const serviceAccountKey = Deno.env.get('FIREBASE_SERVICE_ACCOUNT');
 if (serviceAccountKey && !admin.apps.length) {
   admin.initializeApp({ 
@@ -19,6 +19,7 @@ serve(async (req) => {
         return new Response(JSON.stringify({ error: "Missing user_id" }), { status: 400 });
     }
 
+    // Inicialização Supabase com service_role
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!, 
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -34,11 +35,11 @@ serve(async (req) => {
       .maybeSingle();
 
     if (existente) {
-      console.log(`Notificação duplicada ignorada para o user: ${notificacao.user_id}`);
-      return new Response(JSON.stringify({ status: "Ignored duplicate" }), { status: 200 });
+      console.log(`Duplicada ignorada: ${notificacao.user_id}`);
+      return new Response(JSON.stringify({ status: "Ignored" }), { status: 200 });
     }
 
-    // 2. SALVA NO BANCO (Histórico)
+    // 2. SALVA NO BANCO (USANDO UPSERT PARA EVITAR ERROS DE CONFLITO)
     const { error: insertError } = await supabase.from('user_notifications').insert({
       user_id: notificacao.user_id,
       titulo: notificacao.titulo || "AuraFit",
@@ -46,37 +47,45 @@ serve(async (req) => {
       lida: false
     });
 
-    if (insertError) console.error("Erro ao inserir notificação:", insertError);
+    if (insertError) {
+      console.error("ERRO AO SALVAR:", insertError);
+      throw new Error(`DB Insert Error: ${insertError.message}`);
+    }
     
     // 3. BUSCA TOKEN
-    const { data: tokens } = await supabase
+    const { data: tokens, error: tokenError } = await supabase
       .from('push_tokens')
       .select('token')
       .eq('user_id', notificacao.user_id)
       .order('atualizado_em', { ascending: false }) 
       .limit(1);
 
-    if (!tokens || tokens.length === 0) {
-      console.log(`Nenhum token encontrado para o user: ${notificacao.user_id}`);
-      return new Response(JSON.stringify({ status: "No token found" }), { status: 200 });
+    if (tokenError) console.error("Erro ao buscar token:", tokenError);
+
+    if (tokens && tokens.length > 0) {
+      // 4. DISPARA PUSH
+      try {
+        await admin.messaging().send({
+          data: {
+            title: notificacao.titulo || "AuraFit",
+            body: notificacao.corpo || "Tem uma nova mensagem.",
+            url: notificacao.cta_link || "/"
+          },
+          token: tokens[0].token
+        });
+        console.log("Push enviado!");
+      } catch (pushErr) {
+        console.error("Erro Firebase:", pushErr);
+      }
     }
 
-    // 4. DISPARA PUSH (Data-only)
-    // O sistema agora segue o fluxo de: Banco -> Realtime -> Push
-    await admin.messaging().send({
-      data: {
-        title: notificacao.titulo || "AuraFit",
-        body: notificacao.corpo || "Tem uma nova mensagem.",
-        url: notificacao.cta_link || "/"
-      },
-      token: tokens[0].token
+    return new Response(JSON.stringify({ success: true }), { 
+      headers: { "Content-Type": "application/json" },
+      status: 200 
     });
 
-    console.log(`Notificação enviada com sucesso para user: ${notificacao.user_id}`);
-    return new Response(JSON.stringify({ success: true }), { status: 200 });
-
   } catch (err: any) {
-    console.error("ERRO DETALHADO NO PUSH:", err);
+    console.error("ERRO FINAL:", err);
     return new Response(JSON.stringify({ error: err.message }), { status: 500 });
   }
 })
