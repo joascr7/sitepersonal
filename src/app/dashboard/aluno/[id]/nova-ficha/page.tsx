@@ -242,7 +242,7 @@ function NovaFichaContent() {
   } as React.CSSProperties;
 
   const showToast = (type: 'success' | 'error' | 'info', msg: string) => {
-    setToast({ type, msg });
+    setToast({ type, text });
     setTimeout(() => setToast(null), 4000);
   };
 
