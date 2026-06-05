@@ -1,8 +1,6 @@
-// public/firebase-messaging-sw.js
 importScripts('https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging-compat.js');
 
-// Suas credenciais exatas do Firebase
 const firebaseConfig = {
   apiKey: "AIzaSyAhz0kZb-FCUbcWtSm3XE5nu0Q_8tlQEfE",
   authDomain: "aurafit-2c4f5.firebaseapp.com",
@@ -12,21 +10,28 @@ const firebaseConfig = {
   appId: "1:749760468896:web:f7a165c336c509235f76c5"
 };
 
-// Inicializa o Firebase no Background
 firebase.initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
 
-// Lida com as mensagens quando o app está FECHADO ou em SEGUNDO PLANO
 messaging.onBackgroundMessage(function(payload) {
   console.log('[Background] Notificação recebida: ', payload);
   
-  const notificationTitle = payload.notification?.title || 'Nova Notificação';
+  // 1. Extraímos os dados brutos da notificação
+  const notificationTitle = payload.notification?.title || 'AuraFit';
+  const notificationBody = payload.notification?.body || '';
+
+  // 2. Configurações de exibição
   const notificationOptions = {
-    body: payload.notification?.body,
-    icon: '/icon.png', // Se tiver um ícone do app na pasta public, coloque o nome aqui
-    badge: '/icon.png',
-    data: payload.data
+    body: notificationBody,
+    icon: '/icon-192.png', // Certifique-se que este ficheiro existe na pasta public
+    badge: '/icon-192.png',
+    data: {
+      url: payload.fcmOptions?.link || payload.data?.url || '/'
+    }
   };
 
-  self.registration.showNotification(notificationTitle, notificationOptions);
+  // 3. Exibição limpa
+  // O sistema operativo já exibirá "AuraFit" no cabeçalho.
+  // Ao passar apenas o title e o body, evitamos a duplicidade.
+  return self.registration.showNotification(notificationTitle, notificationOptions);
 });
