@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { 
   FaChevronLeft, FaGlobe, FaMoon, FaSun, FaExclamationCircle, 
-  FaCheckCircle, FaTrash, FaUpload, FaPlus, FaSave, FaFolderOpen, FaVideo
+  FaCheckCircle, FaTrash, FaUpload, FaPlus, FaSave, FaFolderOpen, FaVideo, FaSearch
 } from 'react-icons/fa';
 
 interface Serie {
@@ -23,6 +23,69 @@ interface Exercicio {
   series: Serie[];
   observacao?: string;
 }
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// COMPONENTE: BUSCADOR INTELIGENTE DE EXERCÍCIOS (AUTOCOMPLETE)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const BuscadorExercicio = ({ 
+  valorNome, 
+  aoMudarNome, 
+  aoSelecionarExercicio, 
+  biblioteca, 
+  placeholder,
+  onBlurFallback
+}: any) => {
+  const [mostrar, setMostrar] = useState(false);
+  
+  // Filtra as sugestões e remove duplicatas com o mesmo nome
+  const sugestoes = biblioteca.filter((b: any) => 
+    b.exercicio_nome && b.exercicio_nome.toLowerCase().includes(valorNome.toLowerCase())
+  );
+  const sugestoesUnicas = Array.from(new Map(sugestoes.map((item: any) => [item.exercicio_nome, item])).values()).slice(0, 6);
+
+  return (
+    <div className="relative w-full">
+      <div className="flex items-center gap-3">
+         <FaSearch className="text-[var(--text-secondary)] shrink-0" size={16} />
+         <input 
+          className="font-black text-[var(--text-primary)] text-lg sm:text-xl w-full outline-none bg-transparent placeholder:text-[var(--text-secondary)]" 
+          placeholder={placeholder} 
+          value={valorNome} 
+          onChange={(e) => {
+            aoMudarNome(e.target.value);
+            setMostrar(true);
+          }} 
+          onFocus={() => setMostrar(true)}
+          onBlur={() => {
+            setTimeout(() => {
+              setMostrar(false);
+              onBlurFallback(valorNome); // Mantém a busca original caso não clique na sugestão
+            }, 200);
+          }} 
+        />
+      </div>
+      
+      {mostrar && valorNome.length > 0 && sugestoesUnicas.length > 0 && (
+         <ul className="absolute z-[100] left-0 top-full mt-3 w-full bg-[var(--surface)] border border-[var(--border)] rounded-[1.2rem] shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2">
+          {sugestoesUnicas.map((s: any, i: number) => (
+            <li 
+              key={i}
+              onClick={() => aoSelecionarExercicio(s.exercicio_nome, s.url_video || '')}
+              className="p-4 hover:bg-[var(--surface-sec)] cursor-pointer text-[var(--text-primary)] text-sm font-bold border-b border-[var(--border)] last:border-0 transition-colors flex justify-between items-center"
+            >
+              <span>{s.exercicio_nome}</span>
+              {s.url_video && (
+                <span className="text-[8px] bg-[var(--primary)]/10 text-[var(--primary)] px-2 py-1 rounded-md uppercase tracking-widest shrink-0">
+                  C/ Vídeo
+                </span>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+};
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // SKELETON SCREEN (UX PREMIUM)
@@ -332,13 +395,28 @@ function NovaFichaContent() {
         {/* Lista de Exercícios Premium */}
         {exercicios.map((ex, exIndex) => (
           <div key={exIndex} className="bg-[var(--surface)] p-6 sm:p-8 rounded-[2.5rem] border border-[var(--border)] mb-8 shadow-xl">
+            
+            {/* NOVO CAMPO: BUSCA DE EXERCÍCIOS AUTOCOMPLETE */}
             <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6 border-b border-[var(--border)] pb-4">
-              <input 
-                className="font-black text-[var(--text-primary)] text-lg sm:text-xl w-full outline-none bg-transparent placeholder:text-[var(--text-secondary)]" 
-                placeholder={t.exName} 
-                value={ex.nome} 
-                onChange={(e) => { const n = [...exercicios]; n[exIndex].nome = e.target.value; setExercicios(n); }} 
-                onBlur={() => buscarVideo(ex.nome, exIndex)} 
+              <BuscadorExercicio 
+                valorNome={ex.nome}
+                aoMudarNome={(val: string) => {
+                  const n = [...exercicios];
+                  n[exIndex].nome = val;
+                  setExercicios(n);
+                }}
+                aoSelecionarExercicio={(nomeSelecionado: string, videoUrl: string) => {
+                  const n = [...exercicios];
+                  n[exIndex].nome = nomeSelecionado;
+                  if (videoUrl) {
+                    n[exIndex].video = videoUrl;
+                    showToast('info', `${t.successVideo}${nomeSelecionado}!`);
+                  }
+                  setExercicios(n);
+                }}
+                biblioteca={biblioteca}
+                placeholder={t.exName}
+                onBlurFallback={(nome: string) => buscarVideo(nome, exIndex)}
               />
               <button onClick={() => removerExercicio(exIndex)} className="self-end sm:self-auto text-[var(--danger)] bg-[var(--danger)]/10 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-[var(--danger)]/20 transition-colors flex items-center gap-2 shrink-0">
                 <FaTrash size={12} /> {t.remove}
