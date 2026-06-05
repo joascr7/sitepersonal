@@ -1,3 +1,4 @@
+// src/lib/notificationService.ts
 import { supabase } from './supabaseClient';
 
 // Declaração de tipos para compatibilidade nativa com Capacitor sem quebrar o build Web
@@ -43,7 +44,6 @@ export class NotificationService {
           // Ouvinte para quando o app está aberto em primeiro plano (Foreground)
           PushNotifications.addListener('pushNotificationReceived', (notification: any) => {
             console.log('Push recebido em primeiro plano:', notification);
-            // Atualiza os contadores globais de badges se necessário
             window.dispatchEvent(new Event('atualizar_badges_global'));
           });
         }
@@ -51,12 +51,12 @@ export class NotificationService {
         // Fluxo Web / PWA usando Firebase Cloud Messaging nativo do navegador
         if ('serviceWorker' in navigator && 'PushManager' in window) {
           const registration = await navigator.serviceWorker.ready;
-          // O token VAPID público deve ser gerado no console do seu Firebase FCM
           const fcmVapidKey = "BInbrpAdfv-lHOx4cUXHXCX1xBHIn1hSb8z0mIIgeJ8gIFOdFzXLZRj7wp3ONqQKt-hKWSwKWeWaw6ZQrYLvMuA"; 
           
           const subscription = await registration.pushManager.subscribe({
             userVisibleOnly: true,
-            applicationServerKey: this.urlBase64ToUint8Array(fcmVapidKey)
+            // AQUI ESTÁ A CORREÇÃO: Forçando o cast 'as any' para ignorar o conflito de ArrayBufferView
+            applicationServerKey: this.urlBase64ToUint8Array(fcmVapidKey) as any
           });
 
           if (subscription) {
