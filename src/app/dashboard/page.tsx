@@ -74,7 +74,18 @@ export default function Dashboard() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [alunoSelecionado, setAlunoSelecionado] = useState<any>(null);
   const [valorPago, setValorPago] = useState('');
-  const [toast, setToast] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+  
+  // ━━━━━━━━━ CORREÇÃO DOS ESTADOS FALTANTES ━━━━━━━━━
+  const [personalInfo, setPersonalInfo] = useState<PersonalData | null>(null);
+  const [statusAcesso, setStatusAcesso] = useState({ emTeste: false, status: '' });
+  const [statusMsg, setStatusMsg] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+  
+  const showStatus = (type: 'success' | 'error', text: string) => {
+    setStatusMsg({ type, text });
+    setTimeout(() => setStatusMsg(null), 3000);
+  };
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
   const [faturamentoMes, setFaturamentoMes] = useState(0);
   const [mesSelecionado, setMesSelecionado] = useState(new Date().getMonth());
   const [anoSelecionado, setAnoSelecionado] = useState(new Date().getFullYear());
