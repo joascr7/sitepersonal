@@ -189,14 +189,39 @@ function NovaFichaContent() {
 
     const fetchData = async () => {
       const { data: { user } } = await supabase.auth.getUser();
+      
+      // Busca os treinos padrão e a biblioteca de vídeos
       const [pRes, bRes] = await Promise.all([
         supabase.from('treinos_padrao').select('*'),
         supabase.from('videos_biblioteca').select('*')
       ]);
       
-      if (pRes.data) setTreinosPadrao(pRes.data);
-      if (bRes.data) setBiblioteca(bRes.data);
+      let exerciciosExtraidos: any[] = [];
 
+      // Extrai todos os exercícios de dentro dos Treinos Padrão
+      if (pRes.data) {
+        setTreinosPadrao(pRes.data);
+        pRes.data.forEach((treino) => {
+          try {
+            const raw = treino.exercicios_json || treino.descricao;
+            const exList = typeof raw === 'string' ? JSON.parse(raw) : raw;
+            if (Array.isArray(exList)) {
+              exList.forEach((ex) => {
+                if (ex.nome) exerciciosExtraidos.push({ exercicio_nome: ex.nome, url_video: ex.video || '' });
+              });
+            }
+          } catch (e) {}
+        });
+      }
+
+      // Junta os exercícios extraídos com os vídeos isolados (se houver)
+      if (bRes.data) {
+        exerciciosExtraidos = [...exerciciosExtraidos, ...bRes.data];
+      }
+
+      setBiblioteca(exerciciosExtraidos);
+
+      // Busca os modelos do próprio personal
       if (user?.id) {
         const { data: mData } = await supabase.from('modelos_personal').select('*').eq('personal_id', user.id);
         if (mData) setMeusModelos(mData);
@@ -217,7 +242,7 @@ function NovaFichaContent() {
   } as React.CSSProperties;
 
   const showToast = (type: 'success' | 'error' | 'info', msg: string) => {
-    setToast({ type, text: msg });
+    setToast({ type, msg });
     setTimeout(() => setToast(null), 4000);
   };
 
