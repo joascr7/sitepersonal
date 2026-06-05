@@ -1,10 +1,10 @@
 'use client';
-import { useEffect, useState, use } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { 
   FaChevronLeft, FaGlobe, FaMoon, FaSun, FaExclamationCircle, 
-  FaCheckCircle, FaTrash, FaUpload, FaPlus, FaSave 
+  FaCheckCircle, FaTrash, FaUpload, FaPlus, FaSave, FaSearch, FaVideo 
 } from 'react-icons/fa';
 
 interface Serie {
@@ -23,6 +23,69 @@ interface Exercicio {
   series: Serie[];
   observacao?: string;
 }
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// COMPONENTE: BUSCADOR INTELIGENTE DE EXERCÍCIOS (AUTOCOMPLETE)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const BuscadorExercicio = ({ 
+  valorNome, 
+  aoMudarNome, 
+  aoSelecionarExercicio, 
+  biblioteca, 
+  placeholder,
+  onBlurFallback
+}: any) => {
+  const [mostrar, setMostrar] = useState(false);
+  
+  // Filtra as sugestões e remove duplicatas com o mesmo nome
+  const sugestoes = biblioteca.filter((b: any) => 
+    b.exercicio_nome && b.exercicio_nome.toLowerCase().includes(valorNome.toLowerCase())
+  );
+  const sugestoesUnicas = Array.from(new Map(sugestoes.map((item: any) => [item.exercicio_nome, item])).values()).slice(0, 6);
+
+  return (
+    <div className="relative w-full">
+      <div className="flex items-center gap-3">
+         <FaSearch className="text-[var(--text-secondary)] shrink-0" size={16} />
+         <input 
+          className="font-black text-[var(--text-primary)] text-lg sm:text-xl w-full outline-none bg-transparent placeholder:text-[var(--text-secondary)]" 
+          placeholder={placeholder} 
+          value={valorNome} 
+          onChange={(e) => {
+            aoMudarNome(e.target.value);
+            setMostrar(true);
+          }} 
+          onFocus={() => setMostrar(true)}
+          onBlur={() => {
+            setTimeout(() => {
+              setMostrar(false);
+              onBlurFallback(valorNome); // Mantém a busca original caso não clique na sugestão
+            }, 200);
+          }} 
+        />
+      </div>
+      
+      {mostrar && valorNome.length > 0 && sugestoesUnicas.length > 0 && (
+         <ul className="absolute z-[100] left-0 top-full mt-3 w-full bg-[var(--surface)] border border-[var(--border)] rounded-[1.2rem] shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2">
+          {sugestoesUnicas.map((s: any, i: number) => (
+            <li 
+              key={i}
+              onClick={() => aoSelecionarExercicio(s.exercicio_nome, s.url_video || '')}
+              className="p-4 hover:bg-[var(--surface-sec)] cursor-pointer text-[var(--text-primary)] text-sm font-bold border-b border-[var(--border)] last:border-0 transition-colors flex justify-between items-center"
+            >
+              <span>{s.exercicio_nome}</span>
+              {s.url_video && (
+                <span className="text-[8px] bg-[var(--primary)]/10 text-[var(--primary)] px-2 py-1 rounded-md uppercase tracking-widest shrink-0">
+                  C/ Vídeo
+                </span>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+};
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // SKELETON SCREEN (UX PREMIUM)
@@ -58,7 +121,7 @@ const translations = {
     series: 'Série', reps: 'Reps', load: 'Carga', rest: 'Desc.', planned: 'Planej.',
     addSeries: '+ Adicionar Série', save: 'Salvar Alterações',
     errLimit: 'Limite de 10MB excedido!', errDefault: 'Erro: ', successSave: 'Ficha atualizada com sucesso!',
-    confirmDelete: 'Tem certeza que deseja excluir esta ficha?'
+    confirmDelete: 'Tem certeza que deseja excluir esta ficha?', successVideo: 'Vídeo encontrado para '
   },
   'pt-PT': {
     back: 'Voltar', title: 'Editar Ficha', deleteWorkout: 'Eliminar Ficha',
@@ -68,7 +131,7 @@ const translations = {
     series: 'Série', reps: 'Reps', load: 'Carga', rest: 'Desc.', planned: 'Planej.',
     addSeries: '+ Adicionar Série', save: 'Guardar Alterações',
     errLimit: 'Limite de 10MB excedido!', errDefault: 'Erro: ', successSave: 'Ficha atualizada com sucesso!',
-    confirmDelete: 'Tem certeza que deseja eliminar esta ficha?'
+    confirmDelete: 'Tem certeza que deseja eliminar esta ficha?', successVideo: 'Vídeo encontrado para '
   },
   'en': {
     back: 'Back', title: 'Edit Workout', deleteWorkout: 'Delete Workout',
@@ -78,7 +141,7 @@ const translations = {
     series: 'Set', reps: 'Reps', load: 'Load', rest: 'Rest', planned: 'Target',
     addSeries: '+ Add Set', save: 'Save Changes',
     errLimit: '10MB limit exceeded!', errDefault: 'Error: ', successSave: 'Workout updated successfully!',
-    confirmDelete: 'Are you sure you want to delete this workout?'
+    confirmDelete: 'Are you sure you want to delete this workout?', successVideo: 'Video found for '
   }
 };
 
@@ -90,9 +153,10 @@ export default function EditarFicha() {
 
   const [nome, setNome] = useState('');
   const [exercicios, setExercicios] = useState<Exercicio[]>([]);
+  const [biblioteca, setBiblioteca] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
-  const [toast, setToast] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+  const [toast, setToast] = useState<{ type: 'success' | 'error' | 'info', text: string } | null>(null);
 
   // Estados UI Premium
   const [isDark, setIsDark] = useState(true);
@@ -111,7 +175,7 @@ export default function EditarFicha() {
   const toggleLang = () => { const langs: ('pt-BR' | 'pt-PT' | 'en')[] = ['pt-BR', 'pt-PT', 'en']; const nextLang = langs[(langs.indexOf(lang) + 1) % langs.length]; setLang(nextLang); localStorage.setItem('@premium_lang', nextLang); };
   
   const t = translations[lang] || translations['pt-BR'];
-  const showToast = (type: 'success' | 'error', text: string) => { setToast({ type, text }); setTimeout(() => setToast(null), 4000); };
+  const showToast = (type: 'success' | 'error' | 'info', text: string) => { setToast({ type, text }); setTimeout(() => setToast(null), 4000); };
 
   // Configuração Dinâmica do Tema Premium
   const themeStyles = isDark ? {
@@ -124,18 +188,40 @@ export default function EditarFicha() {
     if (!treinoId) return;
     const carregarDados = async () => {
       setLoading(true);
-      const { data } = await supabase.from('fichas').select('*').eq('id', treinoId).maybeSingle();
-      if (data) {
-        setNome(data.nome_treino || '');
+      
+      // Busca a ficha atual E a biblioteca de vídeos (apenas os padrão do sistema) simultaneamente
+      const [fichaRes, bibRes] = await Promise.all([
+        supabase.from('fichas').select('*').eq('id', treinoId).maybeSingle(),
+        supabase.from('videos_biblioteca').select('*').is('personal_id', null)
+      ]);
+
+      if (fichaRes.data) {
+        setNome(fichaRes.data.nome_treino || '');
         try {
-          const parsed = typeof data.descricao === 'string' ? JSON.parse(data.descricao) : data.descricao;
+          const parsed = typeof fichaRes.data.descricao === 'string' ? JSON.parse(fichaRes.data.descricao) : fichaRes.data.descricao;
           setExercicios(Array.isArray(parsed) ? parsed : []);
         } catch (e) { setExercicios([]); }
       }
+      
+      if (bibRes.data) {
+        setBiblioteca(bibRes.data);
+      }
+      
       setLoading(false);
     };
     carregarDados();
   }, [treinoId]);
+
+  const buscarVideo = (nomeExercicio: string, index: number) => {
+    if (!nomeExercicio.trim()) return;
+    const videoEncontrado = biblioteca.find(v => v.exercicio_nome?.toLowerCase().trim() === nomeExercicio.toLowerCase().trim());
+    if (videoEncontrado) {
+      const n = [...exercicios];
+      n[index].video = videoEncontrado.url_video;
+      setExercicios(n);
+      showToast('info', `${t.successVideo}${nomeExercicio}!`);
+    }
+  };
 
   const atualizarSerie = (exIndex: number, sIndex: number, campo: keyof Serie, valor: string | number) => {
     setExercicios(prev => {
@@ -194,10 +280,10 @@ export default function EditarFicha() {
       {/* Background Orbs */}
       <div className="absolute top-[-10%] left-[-10%] w-[120vw] sm:w-[400px] h-[120vw] sm:h-[400px] bg-[var(--primary)]/10 rounded-full blur-[100px] pointer-events-none" />
       
-      {/* Toast Flutuante */}
+      {/* Toast Flutuante Premium */}
       {toast && (
-        <div className={`fixed top-[max(env(safe-area-inset-top,24px),24px)] left-1/2 -translate-x-1/2 px-6 py-4 rounded-[1.2rem] shadow-2xl z-[500] flex items-center gap-3 backdrop-blur-md border animate-in slide-in-from-top-4 fade-in ${toast.type === 'success' ? 'bg-[var(--success)]/10 text-[var(--success)] border-[var(--success)]/20' : 'bg-[var(--danger)]/10 text-[var(--danger)] border-[var(--danger)]/20'}`}>
-          {toast.type === 'success' ? <FaCheckCircle size={16} /> : <FaExclamationCircle size={16} />}
+        <div className={`fixed top-[max(env(safe-area-inset-top,24px),24px)] left-1/2 -translate-x-1/2 px-6 py-4 rounded-[1.2rem] shadow-2xl z-[500] flex items-center gap-3 backdrop-blur-md border animate-in slide-in-from-top-4 fade-in ${toast.type === 'success' ? 'bg-[var(--success)]/10 text-[var(--success)] border-[var(--success)]/20' : toast.type === 'error' ? 'bg-[var(--danger)]/10 text-[var(--danger)] border-[var(--danger)]/20' : 'bg-[var(--primary)]/10 text-[var(--primary)] border-[var(--primary)]/20'}`}>
+          {toast.type === 'success' ? <FaCheckCircle size={16} /> : toast.type === 'error' ? <FaExclamationCircle size={16} /> : <FaVideo size={16} />}
           <span className="text-[10px] font-black uppercase tracking-widest">{toast.text}</span>
         </div>
       )}
@@ -238,13 +324,30 @@ export default function EditarFicha() {
             <div key={exIndex} className="bg-[var(--surface)]/90 backdrop-blur-xl p-6 sm:p-8 rounded-[2.5rem] border border-[var(--border)] mb-8 shadow-xl">
               
               <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
-                <input 
-                  className="font-black text-[var(--text-primary)] text-lg sm:text-xl w-full outline-none bg-transparent placeholder:text-[var(--text-secondary)]" 
+                
+                {/* O BUSCADOR DE EXERCÍCIOS INJETADO AQUI */}
+                <BuscadorExercicio 
+                  valorNome={ex.nome}
+                  aoMudarNome={(val: string) => {
+                    const n = [...exercicios];
+                    n[exIndex].nome = val;
+                    setExercicios(n);
+                  }}
+                  aoSelecionarExercicio={(nomeSelecionado: string, videoUrl: string) => {
+                    const n = [...exercicios];
+                    n[exIndex].nome = nomeSelecionado;
+                    if (videoUrl) {
+                      n[exIndex].video = videoUrl;
+                      showToast('info', `${t.successVideo}${nomeSelecionado}!`);
+                    }
+                    setExercicios(n);
+                  }}
+                  biblioteca={biblioteca}
                   placeholder={t.exName}
-                  value={ex.nome} 
-                  onChange={(e) => { const n = [...exercicios]; n[exIndex].nome = e.target.value; setExercicios(n); }} 
+                  onBlurFallback={(nome: string) => buscarVideo(nome, exIndex)}
                 />
-                <button onClick={() => { const n = exercicios.filter((_, i) => i !== exIndex); setExercicios(n); }} className="self-end sm:self-auto text-[var(--danger)] bg-[var(--danger)]/10 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-[var(--danger)]/20 transition-colors flex items-center gap-2">
+
+                <button onClick={() => { const n = exercicios.filter((_, i) => i !== exIndex); setExercicios(n); }} className="self-end sm:self-auto text-[var(--danger)] bg-[var(--danger)]/10 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-[var(--danger)]/20 transition-colors flex items-center gap-2 shrink-0">
                   <FaTrash size={12} /> {t.delete}
                 </button>
               </div>
@@ -257,6 +360,14 @@ export default function EditarFicha() {
                   </button>
                   <input type="file" id={`file-${exIndex}`} className="hidden" accept="video/*" onChange={(e) => e.target.files && uploadVideo(exIndex, e.target.files[0])} />
                 </div>
+                
+                {/* PREVIEW DE VÍDEO INTELIGENTE */}
+                {ex.video && (ex.video.includes('youtube') || ex.video.includes('youtu.be')) && (
+                  <div className="w-full h-48 sm:h-64 bg-[var(--surface-sec)] rounded-[1.2rem] overflow-hidden border border-[var(--border)] shadow-inner mb-4 mt-2">
+                    <iframe className="w-full h-full" src={ex.video.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/').replace('/shorts/', '/embed/').split('&')[0]} frameBorder="0" allowFullScreen></iframe>
+                  </div>
+                )}
+
                 <input className="w-full p-4 bg-[var(--surface-sec)] border border-[var(--border)] rounded-[1.2rem] text-xs font-medium outline-none placeholder:text-[var(--text-secondary)] text-[var(--text-primary)] focus:border-[var(--primary)] transition-colors" placeholder={t.obs} value={ex.observacao || ''} onChange={(e) => { const n = [...exercicios]; n[exIndex].observacao = e.target.value; setExercicios(n); }} />
               </div>
 
@@ -279,12 +390,30 @@ export default function EditarFicha() {
                     </button>
                   </div>
                 ))}
-                <button onClick={() => { const n = [...exercicios]; n[exIndex].series.push({ordem: '', reps: '', carga: '', intervalo: '', CargaPlanejada: ''}); setExercicios(n); }} className="w-full mt-6 py-4 border-2 border-dashed border-[var(--border)] rounded-[1.2rem] text-[var(--text-secondary)] text-[10px] font-black uppercase tracking-widest hover:border-[var(--primary)] hover:text-[var(--primary)] transition-all flex items-center justify-center gap-2">
+                
+                {/* Botão de + Adicionar Série dentro do exercício */}
+                <button 
+                  onClick={() => { 
+                    const n = [...exercicios]; 
+                    if(!n[exIndex].series) n[exIndex].series = [];
+                    n[exIndex].series.push({ordem: '', reps: '', carga: '', intervalo: '', CargaPlanejada: ''}); 
+                    setExercicios(n); 
+                  }} 
+                  className="w-full mt-6 py-4 border-2 border-dashed border-[var(--border)] rounded-[1.2rem] text-[var(--text-secondary)] text-[10px] font-black uppercase tracking-widest hover:border-[var(--primary)] hover:text-[var(--primary)] transition-all flex items-center justify-center gap-2"
+                >
                    <FaPlus size={10} /> {t.addSeries}
                 </button>
               </div>
             </div>
           ))}
+
+          {/* Botão Adicionar Exercicio (Faltava no final para poder botar exercícios novos) */}
+          <button 
+            onClick={() => setExercicios([...exercicios, { nome: '', video: '', metodo: 'Normal', tipoSerie: 'Repetições e carga', series: [{ ordem: '', reps: '', carga: '', CargaPlanejada: '', intervalo: '' }] }])} 
+            className="w-full py-6 rounded-[2rem] font-black text-[10px] uppercase tracking-widest text-[var(--text-secondary)] border-2 border-dashed border-[var(--border)] hover:border-[var(--primary)] hover:text-[var(--primary)] transition-all mb-8 flex items-center justify-center gap-2 bg-[var(--surface)] shadow-sm"
+          > 
+            <FaPlus size={12} /> + Adicionar Exercício
+          </button>
 
           <button onClick={atualizarFicha} className="w-full bg-[var(--primary)] text-white py-6 rounded-[1.2rem] font-black text-xs uppercase tracking-widest shadow-xl shadow-[var(--primary)]/20 hover:brightness-110 transition-all active:scale-[0.98] flex items-center justify-center gap-3"> 
             <FaSave size={16} /> {t.save}
