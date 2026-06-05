@@ -127,9 +127,19 @@ export default function RootLayout({
           <LogoProvider>
             <ConditionalNavbar />
             
-            {/* AQUI ESTÁ A CORREÇÃO: pb-32 md:pb-8 garante o respiro para a Navbar Mobile não sobrepor o conteúdo */}
-            <main className="flex-grow w-full relative pb-32 md:pb-8">
-              {children}
+            {/* CORREÇÃO GLOBAL DEFINITIVA PARA A NAVBAR */}
+            <main className="flex flex-col flex-grow w-full relative">
+              
+              {/* O conteúdo de todas as páginas carrega aqui */}
+              <div className="flex-grow w-full">
+                {children}
+              </div>
+              
+              {/* Bloco Físico Invisível: 
+                  Empurra a rolagem para cima, tirando o último item de trás da Navbar.
+              */}
+              <div className="h-[130px] w-full shrink-0 pointer-events-none" aria-hidden="true" />
+              
             </main>
             
           </LogoProvider>
