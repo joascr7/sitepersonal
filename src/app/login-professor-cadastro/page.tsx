@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
 import { FaArrowLeft, FaCheckCircle, FaExclamationCircle } from 'react-icons/fa';
+import TermosModal from '@/components/TermosModal'; // <-- IMPORTADO O MODAL AQUI
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // DICIONÁRIO DE INTERNACIONALIZAÇÃO (i18n)
@@ -60,6 +61,12 @@ export default function CadastroProfessor() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'error' | 'success', text: string } | null>(null);
   const router = useRouter();
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // ESTADOS DOS TERMOS DE USO
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  const [aceitouTermos, setAceitouTermos] = useState(false);
+  const [modalAberto, setModalAberto] = useState(false);
 
   // Estados de Tema e i18n
   const [isDark, setIsDark] = useState(true);
@@ -151,7 +158,10 @@ export default function CadastroProfessor() {
             email: formData.email.trim(),
             telefone: `+55${telefoneLimpo}`,
             ativo: true,
-            status_pagamento: 'teste'
+            status_pagamento: 'teste',
+            // SALVANDO O ACEITE DOS TERMOS NO BANCO DE DADOS AQUI:
+            termos_aceitos: true,
+            data_aceite_termos: new Date().toISOString()
           });
 
         if (dbError) throw dbError;
@@ -245,14 +255,29 @@ export default function CadastroProfessor() {
             disabled={loading}
           />
         </div>
+
+        {/* CHECKBOX DOS TERMOS DE USO */}
+        <div className="flex items-start gap-3 mt-8 mb-2">
+          <input 
+            type="checkbox" 
+            id="termos"
+            checked={aceitouTermos} 
+            onChange={(e) => setAceitouTermos(e.target.checked)}
+            disabled={loading}
+            className="mt-1 w-5 h-5 accent-[var(--primary)] rounded cursor-pointer shrink-0"
+          />
+          <label htmlFor="termos" className="text-xs text-[var(--text-secondary)] leading-relaxed cursor-pointer font-medium">
+            Declaro que li e concordo expressamente com os <button type="button" onClick={(e) => { e.preventDefault(); setModalAberto(true); }} className="text-[var(--primary)] hover:brightness-125 transition-all font-bold underline">Termos de Uso e Isenção de Responsabilidade</button>.
+          </label>
+        </div>
         
-        {/* Botão de Submit */}
+        {/* Botão de Submit bloqueado caso os termos não sejam aceitos */}
         <button 
           onClick={handleSignUp}
-          disabled={loading}
-          className={`w-full mt-8 py-4 rounded-[1.2rem] font-black text-xs uppercase tracking-widest transition-all duration-300 active:scale-[0.98] flex items-center justify-center gap-3 relative overflow-hidden ${
-            loading 
-              ? 'bg-[var(--surface-sec)] text-[var(--text-secondary)] border border-[var(--border)] cursor-not-allowed' 
+          disabled={loading || !aceitouTermos}
+          className={`w-full mt-6 py-4 rounded-[1.2rem] font-black text-xs uppercase tracking-widest transition-all duration-300 active:scale-[0.98] flex items-center justify-center gap-3 relative overflow-hidden ${
+            loading || !aceitouTermos
+              ? 'bg-[var(--surface-sec)] text-[var(--text-secondary)] border border-[var(--border)] cursor-not-allowed opacity-70' 
               : 'bg-[var(--primary)] text-white hover:brightness-110 shadow-[0_10px_30px_-10px_var(--primary)]'
           }`}
         >
@@ -267,6 +292,10 @@ export default function CadastroProfessor() {
         </button>
 
       </div>
+
+      {/* COMPONENTE DO MODAL SENDO RENDERIZADO AQUI */}
+      <TermosModal isOpen={modalAberto} onClose={() => setModalAberto(false)} />
+
     </main>
   );
 }
