@@ -23,47 +23,60 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_URL')!, 
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     );
+
+    // 1. VERIFICAÇÃO DE DUPLICIDADE (Idempotência)
+    const { data: existente } = await supabase
+      .from('user_notifications')
+      .select('id')
+      .eq('user_id', notificacao.user_id)
+      .eq('titulo', notificacao.titulo || "AuraFit")
+      .gte('criado_em', new Date(Date.now() - 120000).toISOString())
+      .maybeSingle();
+
+    if (existente) {
+      console.log(`Notificação duplicada ignorada para o user: ${notificacao.user_id}`);
+      return new Response(JSON.stringify({ status: "Ignored duplicate" }), { status: 200 });
+    }
+
+    // 2. SALVA NO BANCO (Histórico)
+    const { error: insertError } = await supabase.from('user_notifications').insert({
+      user_id: notificacao.user_id,
+      titulo: notificacao.titulo || "AuraFit",
+      corpo: notificacao.corpo || "Nova notificação",
+      lida: false
+    });
+
+    if (insertError) console.error("Erro ao inserir notificação:", insertError);
     
-    // Busca o token mais recente
-    const { data: tokens, error: dbError } = await supabase
+    // 3. BUSCA TOKEN
+    const { data: tokens } = await supabase
       .from('push_tokens')
       .select('token')
       .eq('user_id', notificacao.user_id)
       .order('atualizado_em', { ascending: false }) 
       .limit(1);
 
-    if (dbError) throw new Error(`Erro no banco: ${dbError.message}`);
     if (!tokens || tokens.length === 0) {
+      console.log(`Nenhum token encontrado para o user: ${notificacao.user_id}`);
       return new Response(JSON.stringify({ status: "No token found" }), { status: 200 });
     }
 
-    const message = {
-      notification: {
+    // 4. DISPARA PUSH (Data-only)
+    // O sistema agora segue o fluxo de: Banco -> Realtime -> Push
+    await admin.messaging().send({
+      data: {
         title: notificacao.titulo || "AuraFit",
-        body: notificacao.corpo || "Tem uma nova mensagem."
+        body: notificacao.corpo || "Tem uma nova mensagem.",
+        url: notificacao.cta_link || "/"
       },
       token: tokens[0].token
-    };
-
-    // Tenta enviar
-    const response = await admin.messaging().send(message);
-    
-    return new Response(JSON.stringify({ success: true, fcm_id: response }), {
-      headers: { "Content-Type": "application/json" },
-      status: 200
     });
 
+    console.log(`Notificação enviada com sucesso para user: ${notificacao.user_id}`);
+    return new Response(JSON.stringify({ success: true }), { status: 200 });
+
   } catch (err: any) {
-    console.error("ERRO DETALHADO:", err);
-
-    // Se o token for inválido, retornamos 400 (Bad Request) em vez de 500
-    // Isso evita "quebrar" o fluxo da aplicação
-    const isInvalidToken = err.code === 'messaging/invalid-registration-token' || 
-                           err.code === 'messaging/registration-token-not-registered';
-
-    return new Response(JSON.stringify({ 
-      error: err.message,
-      code: err.code || "unknown_error" 
-    }), { status: isInvalidToken ? 400 : 500 });
+    console.error("ERRO DETALHADO NO PUSH:", err);
+    return new Response(JSON.stringify({ error: err.message }), { status: 500 });
   }
 })

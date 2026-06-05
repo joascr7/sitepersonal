@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { ptBR, pt, enUS } from 'date-fns/locale';
 import { NotificationService } from '@/lib/notificationService';
+import { NotificationBell } from '@/components/NotificationBell';
 import { 
   FaDumbbell, 
   FaClipboardList, 
@@ -283,34 +284,42 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
       <div className="max-w-md mx-auto flex flex-col pt-[max(env(safe-area-inset-top),1.5rem)] px-5 pb-32 space-y-6">
 
         {/* ━━━━━━━━━━ HEADER & PREFERENCES ━━━━━━━━━━ */}
-        <header className="flex justify-between items-center w-full mt-4">
-          <div className="flex items-center gap-4">
-            <div className="relative w-14 h-14 rounded-full p-[2px] bg-gradient-to-tr from-[var(--primary)] to-[var(--primary-soft)] shadow-lg shadow-[var(--primary)]/20 shrink-0">
-              <div className="w-full h-full rounded-full bg-[var(--surface)] p-[2px]">
-                {personal?.avatar_url ? (
-                  <img src={personal.avatar_url} alt="Personal Avatar" className="w-full h-full object-cover rounded-full" />
-                ) : (
-                  <FaUserCircle className="w-full h-full text-[var(--text-secondary)]" />
-                )}
-              </div>
-            </div>
-            <div className="flex flex-col truncate">
-              <span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-0.5">Personal Trainer</span>
-              <h1 className="font-black text-lg leading-none tracking-tight truncate">{personal?.nome || 'Personal'}</h1>
-              <p className="text-[var(--primary)] text-[9px] font-black uppercase tracking-[0.2em] mt-1">CREF: {personal?.cref || 'N/A'}</p>
-            </div>
-          </div>
-          
-          <div className="flex gap-2 shrink-0">
-            <button onClick={toggleLang} className="w-10 h-10 rounded-full bg-[var(--surface)] border border-[var(--border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--primary)] transition-all active:scale-95 shadow-sm relative">
-              <FaGlobe size={16} />
-              <span className="absolute -top-1 -right-1 bg-[var(--primary)] text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full leading-none flex items-center">{lang.split('-')[0].toUpperCase()}</span>
-            </button>
-            <button onClick={toggleTheme} className="w-10 h-10 rounded-full bg-[var(--surface)] border border-[var(--border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--primary)] transition-all active:scale-95 shadow-sm">
-              {isDark ? <FaSun size={16} /> : <FaMoon size={16} />}
-            </button>
-          </div>
-        </header>
+<header className="flex justify-between items-center w-full mt-4">
+  <div className="flex items-center gap-4">
+    <div className="relative w-14 h-14 rounded-full p-[2px] bg-gradient-to-tr from-[var(--primary)] to-[var(--primary-soft)] shadow-lg shadow-[var(--primary)]/20 shrink-0">
+      <div className="w-full h-full rounded-full bg-[var(--surface)] p-[2px]">
+        {personal?.avatar_url ? (
+          <img src={personal.avatar_url} alt="Personal Avatar" className="w-full h-full object-cover rounded-full" />
+        ) : (
+          <FaUserCircle className="w-full h-full text-[var(--text-secondary)]" />
+        )}
+      </div>
+    </div>
+    <div className="flex flex-col truncate">
+      <span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-0.5">Personal Trainer</span>
+      <h1 className="font-black text-lg leading-none tracking-tight truncate">{personal?.nome || 'Personal'}</h1>
+      <p className="text-[var(--primary)] text-[9px] font-black uppercase tracking-[0.2em] mt-1">CREF: {personal?.cref || 'N/A'}</p>
+    </div>
+  </div>
+  
+  <div className="flex gap-2 shrink-0">
+    {/* Ícone de Idioma */}
+    <button onClick={toggleLang} className="w-10 h-10 rounded-full bg-[var(--surface)] border border-[var(--border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--primary)] transition-all active:scale-95 shadow-sm relative">
+      <FaGlobe size={16} />
+      <span className="absolute -top-1 -right-1 bg-[var(--primary)] text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full leading-none flex items-center">{lang.split('-')[0].toUpperCase()}</span>
+    </button>
+
+    {/* SININHO DE NOTIFICAÇÕES */}
+    <div className="flex items-center justify-center">
+      <NotificationBell />
+    </div>
+
+    {/* Ícone de Tema */}
+    <button onClick={toggleTheme} className="w-10 h-10 rounded-full bg-[var(--surface)] border border-[var(--border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--primary)] transition-all active:scale-95 shadow-sm">
+      {isDark ? <FaSun size={16} /> : <FaMoon size={16} />}
+    </button>
+  </div>
+</header>
 
 
         {/* ━━━━━━━━━━ BANNER DE ATIVAÇÃO PUSH ━━━━━━━━━━ */}
