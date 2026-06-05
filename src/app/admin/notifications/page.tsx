@@ -183,7 +183,7 @@ export default function AdminBroadcaster() {
     setTimeout(() => setToast(null), 5000);
   };
 
- const handleDisparar = async (e: React.FormEvent) => {
+  const handleDisparar = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.titulo.trim() || !formData.corpo.trim()) {
       showToast('error', t.errFill);
@@ -205,7 +205,7 @@ export default function AdminBroadcaster() {
           tipo_midia: formData.mediaUrl.trim() ? formData.tipoMidia : null,
           cta_link: formData.ctaLink.trim() || null,
           agendado_para: formData.agendamento ? new Date(formData.agendamento).toISOString() : null,
-          status: formData.agendamento ? 'pendente' : 'processando',
+          status: formData.agendamento ? 'pendente' : 'processando', // Mudamos para 'processando'
           criado_por: user?.id
         })
         .select()
@@ -213,8 +213,9 @@ export default function AdminBroadcaster() {
 
       if (insertError) throw insertError;
 
-      // 2. Disparo Único: enviamos apenas o ID da campanha
-      if (!formData.agendamento) {
+      // 2. DISPARO REAL (A parte que faltava)
+      if (!formData.agendamento && campanha) {
+        // Chamamos a Edge Function que processa o disparo em massa
         const { error: invokeError } = await supabase.functions.invoke('push-broadcast', {
           body: { broadcast_id: campanha.id }
         });
@@ -227,11 +228,11 @@ export default function AdminBroadcaster() {
       carregarHistoricoCampanhas();
     } catch (err: any) {
       console.error("Erro no disparo:", err);
-      showToast('error', t.errSend + ": " + err.message);
+      showToast('error', t.errSend + err.message);
     } finally {
       setLoading(false);
     }
-  };
+};
 
   if (!mounted) return null;
 
