@@ -1,7 +1,6 @@
 // src/lib/notificationService.ts
 import { supabase } from './supabaseClient';
 
-// Declaração de tipos para compatibilidade nativa com Capacitor sem quebrar o build Web
 declare global {
   interface Window {
     Capacitor?: any;
@@ -14,17 +13,20 @@ export class NotificationService {
   }
 
   /**
-   * Solicita permissões e registra o dispositivo para receber Push Notifications
+   * Solicita permissões e regista o dispositivo para receber Push Notifications
    */
   public static async registrarDispositivo(): Promise<void> {
     if (typeof window === 'undefined') return;
 
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) {
+        console.warn('Nenhum utilizador logado para registar notificações.');
+        return;
+      }
 
       if (this.isNative()) {
-        // Fluxo Nativo para iOS e Android usando Plugins do Capacitor
+        // ━━━━━━━━━━ FLUXO NATIVO (CAPACITOR) ━━━━━━━━━━
         const { PushNotifications } = window.Capacitor.Plugins;
 
         let perm = await PushNotifications.checkPermissions();
@@ -35,46 +37,54 @@ export class NotificationService {
         if (perm.receive === 'granted') {
           await PushNotifications.register();
           
-          // Captura o token nativo gerado pelo APNS (iOS) ou FCM (Android)
           PushNotifications.addListener('registration', async (token: any) => {
-            const plataforma = window.Capacitor.getPlatform(); // 'ios' | 'android'
+            const plataforma = window.Capacitor.getPlatform();
             await this.salvarTokenNoBanco(user.id, token.value, plataforma);
-          });
-
-          // Ouvinte para quando o app está aberto em primeiro plano (Foreground)
-          PushNotifications.addListener('pushNotificationReceived', (notification: any) => {
-            console.log('Push recebido em primeiro plano:', notification);
-            window.dispatchEvent(new Event('atualizar_badges_global'));
           });
         }
       } else {
-        // Fluxo Web / PWA usando Firebase Cloud Messaging nativo do navegador
+        // ━━━━━━━━━━ FLUXO WEB / PWA (FIREBASE) ━━━━━━━━━━
         if ('serviceWorker' in navigator && 'PushManager' in window) {
-          const registration = await navigator.serviceWorker.ready;
-          const fcmVapidKey = "BInbrpAdfv-lHOx4cUXHXCX1xBHIn1hSb8z0mIIgeJ8gIFOdFzXLZRj7wp3ONqQKt-hKWSwKWeWaw6ZQrYLvMuA"; 
           
-          const subscription = await registration.pushManager.subscribe({
-            userVisibleOnly: true,
-            // AQUI ESTÁ A CORREÇÃO: Forçando o cast 'as any' para ignorar o conflito de ArrayBufferView
-            applicationServerKey: this.urlBase64ToUint8Array(fcmVapidKey) as any
-          });
+          // 1. Força a abertura da janela de permissão do navegador
+          const permission = await Notification.requestPermission();
+          
+          if (permission === 'granted') {
+            const fcmVapidKey = "BInbrpAdfv-lHOx4cUXHXCX1xBHIn1hSb8z0mIIgeJ8gIFOdFzXLZRj7wp3ONqQKt-hKWSwKWeWaw6ZQrYLvMuA"; 
+            
+            // 2. ATENÇÃO: Regista explicitamente o Service Worker para evitar o congelamento
+            console.log('A registar Service Worker do Firebase...');
+            await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+            
+            // 3. Aguarda ele ficar pronto
+            const registration = await navigator.serviceWorker.ready;
 
-          if (subscription) {
-            const tokenWeb = btoa(JSON.stringify(subscription));
-            await this.salvarTokenNoBanco(user.id, tokenWeb, 'web');
+            // 4. Cria a assinatura push com a chave VAPID
+            const subscription = await registration.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: this.urlBase64ToUint8Array(fcmVapidKey) as any
+            });
+
+            if (subscription) {
+              // Converte o objeto de subscrição para uma string segura (Base64) para salvar como Token
+              const tokenWeb = btoa(JSON.stringify(subscription));
+              await this.salvarTokenNoBanco(user.id, tokenWeb, 'web');
+              console.log('✅ Token Web gerado e guardado com sucesso!');
+            }
+          } else {
+            console.warn('⚠️ O utilizador recusou a permissão de notificações.');
           }
+        } else {
+          console.warn('⚠️ Este navegador não suporta Notificações Push.');
         }
       }
     } catch (error) {
-      console.error('Erro ao inicializar registro de notificações:', error);
+      console.error('❌ Erro ao inicializar registo de notificações:', error);
     }
   }
 
-  /**
-   * Salva ou atualiza o token de forma limpa no Supabase
-   */
   private static async salvarTokenNoBanco(userId: string, token: string, plataforma: 'ios' | 'android' | 'web'): Promise<void> {
-    await supabase.from('push_tokens').upsert(
+    const { error } = await supabase.from('push_tokens').upsert(
       {
         user_id: userId,
         token: token,
@@ -83,11 +93,9 @@ export class NotificationService {
       },
       { onConflict: 'token' }
     );
+    if (error) console.error('Erro ao gravar token no Supabase:', error);
   }
 
-  /**
-   * Auxiliar para conversão de chaves públicas VAPID na Web
-   */
   private static urlBase64ToUint8Array(base64String: string): Uint8Array {
     const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
     const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
