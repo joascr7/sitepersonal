@@ -101,7 +101,6 @@ export default function Dashboard() {
   const t = translations[lang] || translations['pt-BR'];
 
   const getStatusDisplay = (aluno: any) => {
-    // Corrigido para verificar "aluno.ativo === false"
     if (aluno.status_pagamento === 'bloqueado' || aluno.ativo === false) return { text: t.statusBlocked, color: 'bg-[var(--danger)]/10 text-[var(--danger)] border-[var(--danger)]/20 border' };
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
@@ -123,7 +122,6 @@ export default function Dashboard() {
       }
       const personalId = data.session.user.id;
       
-      // Busca personal apenas uma vez
       const { data: personal } = await supabase.from('personais').select('status_pagamento, data_expiracao_teste').eq('id', personalId).single();
 
       if (personal) {
@@ -144,7 +142,6 @@ export default function Dashboard() {
       
       setUser(data.session.user);
       
-      // Fetch em paralelo
       await Promise.all([
         fetchAlunos(personalId),
         fetchFinanceiro(personalId)
@@ -233,8 +230,12 @@ export default function Dashboard() {
 
   return (
     <SubscriptionGuard>
-      {/* Removido o min-h-screen e o padding fixo pesado, já que o Layout cuida disso agora */}
-      <div style={themeStyles} className="w-full bg-[var(--bg)] text-[var(--text-primary)] transition-colors duration-500 font-sans">
+      {/* AQUI ESTÁ A CORREÇÃO VISUAL:
+        px-5: Devolve o respiro lateral para os cards não grudarem na borda.
+        pt-8: Desgruda do topo da tela.
+        pb-32: Adiciona espaço no final da página para a Navbar não sobrepor a lista de alunos.
+      */}
+      <div style={themeStyles} className="w-full px-5 pt-8 pb-32 bg-[var(--bg)] text-[var(--text-primary)] transition-colors duration-500 font-sans">
         
         {/* Toast Flutuante Premium */}
         {statusMsg && (
