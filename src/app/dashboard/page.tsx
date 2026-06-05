@@ -15,22 +15,6 @@ interface PersonalData {
   data_expiracao_teste: string;
 }
 
-// 1. Função auxiliar para buscar faturamento histórico
-const fetchFaturamentoPorMes = async (supabaseClient: any, personalId: string, mes: number, ano: number) => {
-  const inicio = new Date(ano, mes, 1).toISOString();
-  const fim = new Date(ano, mes + 1, 0, 23, 59, 59).toISOString();
-  
-  const { data, error } = await supabaseClient
-    .from('pagamentos')
-    .select('valor')
-    .eq('personal_id', personalId)
-    .gte('data_pagamento', inicio)
-    .lte('data_pagamento', fim);
-    
-  if (error || !data) return 0;
-  return data.reduce((acc: number, curr: any) => acc + Number(curr.valor), 0);
-};
-
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // SKELETON SCREEN (UX PREMIUM)
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -75,7 +59,6 @@ export default function Dashboard() {
   const [alunoSelecionado, setAlunoSelecionado] = useState<any>(null);
   const [valorPago, setValorPago] = useState('');
   
-  // ━━━━━━━━━ CORREÇÃO DOS ESTADOS FALTANTES ━━━━━━━━━
   const [personalInfo, setPersonalInfo] = useState<PersonalData | null>(null);
   const [statusAcesso, setStatusAcesso] = useState({ emTeste: false, status: '' });
   const [statusMsg, setStatusMsg] = useState<{ type: 'success' | 'error', text: string } | null>(null);
@@ -84,7 +67,6 @@ export default function Dashboard() {
     setStatusMsg({ type, text });
     setTimeout(() => setStatusMsg(null), 3000);
   };
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
   const [faturamentoMes, setFaturamentoMes] = useState(0);
   const [mesSelecionado, setMesSelecionado] = useState(new Date().getMonth());
@@ -119,7 +101,8 @@ export default function Dashboard() {
   const t = translations[lang] || translations['pt-BR'];
 
   const getStatusDisplay = (aluno: any) => {
-    if (aluno.status_pagamento === 'bloqueado' || aluno.acesso_permitido === false) return { text: t.statusBlocked, color: 'bg-[var(--danger)]/10 text-[var(--danger)] border-[var(--danger)]/20 border' };
+    // Corrigido para verificar "aluno.ativo === false"
+    if (aluno.status_pagamento === 'bloqueado' || aluno.ativo === false) return { text: t.statusBlocked, color: 'bg-[var(--danger)]/10 text-[var(--danger)] border-[var(--danger)]/20 border' };
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
     const vencimento = aluno.data_vencimento ? new Date(aluno.data_vencimento + 'T00:00:00') : null;
@@ -139,39 +122,38 @@ export default function Dashboard() {
         return;
       }
       const personalId = data.session.user.id;
+      
+      // Busca personal apenas uma vez
       const { data: personal } = await supabase.from('personais').select('status_pagamento, data_expiracao_teste').eq('id', personalId).single();
 
       if (personal) {
         setPersonalInfo(personal as PersonalData); 
         const hoje = new Date();
         const expira = new Date(personal.data_expiracao_teste);
-        if (personal.status_pagamento === 'teste' && hoje > expira) {
+        
+        const expirou = personal.status_pagamento === 'teste' && hoje > expira;
+        const estaEmTeste = hoje <= expira && personal.status_pagamento !== 'pago';
+        
+        if (expirou) {
           router.push('/acesso-personal'); 
           return;
         }
+        
+        setStatusAcesso({ emTeste: estaEmTeste, status: personal.status_pagamento });
       }
+      
       setUser(data.session.user);
-      await fetchAlunos(personalId);
-      await fetchFinanceiro(personalId);
+      
+      // Fetch em paralelo
+      await Promise.all([
+        fetchAlunos(personalId),
+        fetchFinanceiro(personalId)
+      ]);
+      
       setLoading(false);
     };
     init();
   }, [router]);
-
-  useEffect(() => {
-    const verificarAcesso = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      const { data: personal } = await supabase.from('personais').select('data_expiracao_teste, status_pagamento').eq('id', user.id).single();
-      if (personal) {
-        const hoje = new Date();
-        const dataExpiracao = new Date(personal.data_expiracao_teste);
-        const estaEmTeste = hoje <= dataExpiracao && personal.status_pagamento !== 'pago';
-        setStatusAcesso({ emTeste: estaEmTeste, status: personal.status_pagamento });
-      }
-    };
-    verificarAcesso();
-  }, []);
 
   useEffect(() => {
     if (user?.id) {
@@ -251,7 +233,8 @@ export default function Dashboard() {
 
   return (
     <SubscriptionGuard>
-      <main style={themeStyles} className="min-h-screen bg-[var(--bg)] text-[var(--text-primary)] pt-[env(safe-area-inset-top)] pb-[calc(env(safe-area-inset-bottom)+8rem)] px-5 transition-colors duration-500 font-sans">
+      {/* Removido o min-h-screen e o padding fixo pesado, já que o Layout cuida disso agora */}
+      <div style={themeStyles} className="w-full bg-[var(--bg)] text-[var(--text-primary)] transition-colors duration-500 font-sans">
         
         {/* Toast Flutuante Premium */}
         {statusMsg && (
@@ -276,7 +259,7 @@ export default function Dashboard() {
         )}
 
         {loading ? <DashboardSkeleton /> : (
-          <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in duration-700 pt-8">
+          <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in duration-700">
             <header className="flex justify-between items-end">
               <div>
                 <h1 className="text-4xl font-black tracking-tighter">{t.title}</h1>
@@ -409,7 +392,7 @@ export default function Dashboard() {
             
           </div>
         )}
-      </main>
+      </div>
     </SubscriptionGuard>
   );
 }
