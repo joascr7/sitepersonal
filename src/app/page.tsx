@@ -130,7 +130,8 @@ export default function Page() {
       <div className="absolute top-[max(env(safe-area-inset-top,20px),20px)] right-5 z-50 flex gap-2 animate-in fade-in duration-700">
         <button 
           onClick={toggleLang} 
-          className="w-10 h-10 rounded-full bg-[var(--surface)] border border-[var(--border)] shadow-lg flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--primary)] transition-all active:scale-95"
+          // AQUI ESTÁ A CORREÇÃO: "relative" foi adicionado no início desta classe
+          className="relative w-10 h-10 rounded-full bg-[var(--surface)] border border-[var(--border)] shadow-lg flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--primary)] transition-all active:scale-95"
           aria-label="Change Language"
         >
           <FaGlobe size={16} />
@@ -140,7 +141,8 @@ export default function Page() {
         </button>
         <button 
           onClick={toggleTheme} 
-          className="w-10 h-10 rounded-full bg-[var(--surface)] border border-[var(--border)] shadow-lg flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--primary)] transition-all active:scale-95"
+          // Recomendo colocar "relative" aqui também para consistência
+          className="relative w-10 h-10 rounded-full bg-[var(--surface)] border border-[var(--border)] shadow-lg flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--primary)] transition-all active:scale-95"
           aria-label="Toggle Theme"
         >
           {isDark ? <FaSun size={16} /> : <FaMoon size={16} />}
