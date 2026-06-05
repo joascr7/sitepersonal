@@ -14,24 +14,15 @@ firebase.initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage(function(payload) {
-  console.log('[Background] Notificação recebida: ', payload);
-  
-  // 1. Extraímos os dados brutos da notificação
-  const notificationTitle = payload.notification?.title || 'AuraFit';
-  const notificationBody = payload.notification?.body || '';
-
-  // 2. Configurações de exibição
+  // Agora lemos do objeto 'data' e não do 'notification'
+  const data = payload.data || {};
+  const notificationTitle = data.title || 'AuraFit';
   const notificationOptions = {
-    body: notificationBody,
-    icon: '/icon-192.png', // Certifique-se que este ficheiro existe na pasta public
+    body: data.body || '',
+    icon: '/icon-192.png',
     badge: '/icon-192.png',
-    data: {
-      url: payload.fcmOptions?.link || payload.data?.url || '/'
-    }
+    data: { url: data.url || '/' }
   };
 
-  // 3. Exibição limpa
-  // O sistema operativo já exibirá "AuraFit" no cabeçalho.
-  // Ao passar apenas o title e o body, evitamos a duplicidade.
   return self.registration.showNotification(notificationTitle, notificationOptions);
 });

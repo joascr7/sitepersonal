@@ -318,7 +318,7 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
   <div className="bg-gradient-to-r from-blue-600 to-[var(--primary)] p-5 rounded-[1.5rem] border border-white/10 shadow-lg animate-in fade-in slide-in-from-top-4 duration-500">
     <div className="flex flex-col gap-3">
       <div>
-        <h3 className="font-black text-sm text-white tracking-tight">Não perca nenhum treino! 🔔</h3>
+        <h3 className="font-black text-sm text-white tracking-tight">Não perca nenhum treino! </h3>
         <p className="text-white/80 text-[11px] font-medium leading-relaxed mt-1">
           Ative as notificações para receber os novos treinos e avisos do seu Personal diretamente no telemóvel.
         </p>

@@ -283,25 +283,30 @@ export default function Dashboard() {
             </header>
 
 
-            {/* ━━━━━━━━━━ BANNER DE ATIVAÇÃO PUSH ━━━━━━━━━━ */}
+           {/* ━━━━━━━━━━ BANNER DE ATIVAÇÃO PUSH ━━━━━━━━━━ */}
 {typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default' && (
   <div className="bg-gradient-to-r from-blue-600 to-[var(--primary)] p-5 rounded-[1.5rem] border border-white/10 shadow-lg animate-in fade-in slide-in-from-top-4 duration-500">
     <div className="flex flex-col gap-3">
       <div>
-        <h3 className="font-black text-sm text-white tracking-tight">Não perca nenhum treino! 🔔</h3>
-        <p className="text-white/80 text-[11px] font-medium leading-relaxed mt-1">
-          Ative as notificações para receber os novos treinos e avisos do seu Personal diretamente no telemóvel.
+        <h3 className="font-black text-sm text-white tracking-tight flex items-center gap-2">
+          Atualizações AuraFit 
+        </h3>
+        <p className="text-white/90 text-[11px] font-medium leading-relaxed mt-1">
+          Sua consultoria merece o melhor. Ative as notificações para receber atualizações em tempo real, melhorias de desempenho e garantir agilidade no suporte aos seus alunos.
         </p>
       </div>
       <button 
         onClick={async () => {
+          // O fluxo de registro do Firebase/Service Worker
           await NotificationService.registrarDispositivo();
-          // Força a atualização do ecrã para sumir com o banner após o clique
-          router.refresh();
+          
+          // Força a atualização do estado local para esconder o banner
+          // Dica: Se usar estado local em vez de router.refresh(), a UX fica mais fluida
+          window.location.reload(); 
         }}
-        className="w-full py-2.5 bg-white text-[var(--primary)] rounded-xl font-black text-[11px] uppercase tracking-widest active:scale-[0.98] transition-all shadow-md"
+        className="w-full py-2.5 bg-white text-[var(--primary)] rounded-xl font-black text-[11px] uppercase tracking-widest active:scale-[0.98] transition-all shadow-md hover:bg-white/90"
       >
-        Permitir Notificações
+        Ativar Notificações
       </button>
     </div>
   </div>
