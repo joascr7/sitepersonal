@@ -25,7 +25,12 @@ const translations = {
     submitEdit: 'Salvar Alterações', submitNew: 'Confirmar Cadastro',
     processing: 'Processando...',
     errFill: 'Preencha ao menos nome e e-mail.',
-    successUpdate: 'Dados e status atualizados.'
+    successUpdate: 'Dados e status atualizados.',
+    security: 'Acesso e Segurança',
+    resetTitle: 'Redefinir Senha',
+    resetDesc: 'Envia um link seguro para o aluno alterar a senha.',
+    resetBtn: 'Enviar Link',
+    successReset: 'Link enviado ao e-mail do aluno!'
   },
   'pt-PT': {
     back: 'Voltar',
@@ -35,7 +40,7 @@ const translations = {
     subtitleNew: 'Preencha os dados do novo membro',
     name: 'Nome Completo', namePlaceholder: 'Nome do aluno',
     email: 'E-mail', emailPlaceholder: 'aluno@email.com',
-    password: 'Palavra-passe', passwordPlaceholder: '••••••••',
+    password: 'Palavra-passe Inicial', passwordPlaceholder: '••••••••',
     phone: 'WhatsApp', phonePlaceholder: '(00) 00000-0000',
     dueDate: 'Vencimento',
     objective: 'Objetivo', objPlaceholder: 'Ex: Hipertrofia',
@@ -43,7 +48,12 @@ const translations = {
     submitEdit: 'Guardar Alterações', submitNew: 'Confirmar Registo',
     processing: 'A processar...',
     errFill: 'Preencha pelo menos nome e e-mail.',
-    successUpdate: 'Dados e status atualizados.'
+    successUpdate: 'Dados e status atualizados.',
+    security: 'Acesso e Segurança',
+    resetTitle: 'Redefinir Palavra-passe',
+    resetDesc: 'Envia um link seguro para o aluno.',
+    resetBtn: 'Enviar Link',
+    successReset: 'Link enviado para o e-mail do aluno!'
   },
   'en': {
     back: 'Back',
@@ -61,7 +71,12 @@ const translations = {
     submitEdit: 'Save Changes', submitNew: 'Confirm Registration',
     processing: 'Processing...',
     errFill: 'Fill in at least name and email.',
-    successUpdate: 'Data and status updated.'
+    successUpdate: 'Data and status updated.',
+    security: 'Access & Security',
+    resetTitle: 'Reset Password',
+    resetDesc: 'Sends a secure reset link to the student.',
+    resetBtn: 'Send Link',
+    successReset: 'Reset link sent to the student\'s email!'
   }
 };
 
@@ -85,14 +100,14 @@ const FormSkeleton = () => (
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // COMPONENTE DE INPUT PREMIUM
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-const InputField = ({ label, name, value, onChange, type = "text", placeholder }: any) => (
+const InputField = ({ label, name, value, onChange, type = "text", placeholder, disabled = false }: any) => (
   <div className="flex flex-col gap-2 w-full min-w-0 group">
-    <label className="text-[10px] font-black text-[var(--text-secondary)] uppercase tracking-[0.2em] px-1 truncate group-focus-within:text-[var(--primary)] transition-colors">
+    <label className={`text-[10px] font-black uppercase tracking-[0.2em] px-1 truncate transition-colors ${disabled ? 'text-[var(--text-secondary)]/50' : 'text-[var(--text-secondary)] group-focus-within:text-[var(--primary)]'}`}>
       {label}
     </label>
     <input 
-      name={name} type={type} placeholder={placeholder} value={value ?? ''} onChange={onChange}
-      className="block w-full px-5 py-4 bg-[var(--surface-sec)] border border-[var(--border)] rounded-[1.2rem] outline-none focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)] transition-all text-sm font-bold text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] placeholder:font-medium box-border shadow-inner"
+      name={name} type={type} placeholder={placeholder} value={value ?? ''} onChange={onChange} disabled={disabled}
+      className="block w-full px-5 py-4 bg-[var(--surface-sec)] border border-[var(--border)] rounded-[1.2rem] outline-none focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)] transition-all text-sm font-bold text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] placeholder:font-medium box-border shadow-inner disabled:opacity-60 disabled:cursor-not-allowed"
     />
   </div>
 );
@@ -154,6 +169,16 @@ export default function FormularioAluno({ params }: { params?: Promise<{ id?: st
       fetchAluno();
     }
   }, [isEditing, resolvedParams?.id]);
+
+  // Fluxo de envio de e-mail de redefinição (Exclusivo da Edição)
+  const handleResetEmail = async () => {
+    if (!formData.email) return showToast('error', t.errFill);
+    setLoading(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(formData.email);
+    setLoading(false);
+    if (error) showToast('error', error.message);
+    else showToast('success', t.successReset);
+  };
 
   const handleSubmit = async () => {
     if (!formData.nome || !formData.email) {
@@ -243,10 +268,34 @@ export default function FormularioAluno({ params }: { params?: Promise<{ id?: st
         {isFetching ? <FormSkeleton /> : (
           <div className="space-y-6 animate-in fade-in duration-500">
             <InputField label={t.name} name="nome" value={formData.nome} onChange={(e: any) => setFormData({...formData, nome: e.target.value})} placeholder={t.namePlaceholder} />
-            <InputField label={t.email} name="email" type="email" value={formData.email} onChange={(e: any) => setFormData({...formData, email: e.target.value})} placeholder={t.emailPlaceholder} />
-            {!isEditing && <InputField label={t.password} name="password" type="password" value={formData.password} onChange={(e: any) => setFormData({...formData, password: e.target.value})} placeholder={t.passwordPlaceholder} />}
+            <InputField label={t.email} name="email" type="email" value={formData.email} onChange={(e: any) => setFormData({...formData, email: e.target.value})} placeholder={t.emailPlaceholder} disabled={isEditing} />
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* RENDERIZAÇÃO CONDICIONAL DA SENHA OU OPÇÃO DE SEGURANÇA */}
+            {!isEditing ? (
+              <InputField label={t.password} name="password" type="password" value={formData.password} onChange={(e: any) => setFormData({...formData, password: e.target.value})} placeholder={t.passwordPlaceholder} />
+            ) : (
+              <div className="w-full space-y-2 mt-4">
+                <label className="text-[10px] font-black text-[var(--text-secondary)] uppercase tracking-[0.2em] px-1">
+                  {t.security}
+                </label>
+                <div className="flex items-center justify-between p-4 bg-[var(--surface-sec)] border border-[var(--border)] rounded-[1.2rem] shadow-inner">
+                  <div className="flex flex-col pr-2">
+                    <span className="text-sm font-bold text-[var(--text-primary)]">{t.resetTitle}</span>
+                    <span className="text-[10px] text-[var(--text-secondary)] font-medium mt-1 leading-relaxed">{t.resetDesc}</span>
+                  </div>
+                  <button 
+                    type="button"
+                    onClick={handleResetEmail}
+                    disabled={loading}
+                    className="px-4 py-2.5 bg-[var(--primary)]/10 text-[var(--primary)] hover:bg-[var(--primary)] hover:text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition-all active:scale-95 shrink-0 disabled:opacity-50"
+                  >
+                    {t.resetBtn}
+                  </button>
+                </div>
+              </div>
+            )}
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
               <InputField label={t.phone} name="telefone" value={formData.telefone} onChange={(e: any) => setFormData({...formData, telefone: e.target.value})} placeholder={t.phonePlaceholder} />
               <InputField label={t.dueDate} name="dataVencimento" type="date" value={formData.dataVencimento} onChange={(e: any) => setFormData({...formData, dataVencimento: e.target.value})} />
             </div>

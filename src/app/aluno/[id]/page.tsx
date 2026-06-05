@@ -236,7 +236,8 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
           .maybeSingle();
         treinoSugerido = fallback;
       }
-
+// Aciona a solicitação de notificação
+  NotificationService.registrarDispositivo();
       setTreinoDoDia(treinoSugerido);
       setLoading(false);
     }

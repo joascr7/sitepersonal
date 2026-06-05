@@ -93,6 +93,8 @@ export default function Dashboard() {
     const savedLang = localStorage.getItem('@premium_lang') as 'pt-BR' | 'pt-PT' | 'en';
     if (savedLang) setLang(savedLang);
     setMounted(true);
+    // Aciona a solicitação de notificação
+  NotificationService.registrarDispositivo();
   }, []);
 
   const toggleTheme = () => { const newTheme = !isDark; setIsDark(newTheme); localStorage.setItem('@premium_theme', newTheme ? 'dark' : 'light'); window.dispatchEvent(new Event('storage')); };
