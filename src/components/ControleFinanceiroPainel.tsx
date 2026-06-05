@@ -6,7 +6,8 @@ import {
   FaUserShield, FaSync, FaChartLine, FaCog, FaPowerOff, 
   FaMoon, FaSun, FaGlobe, FaCheckCircle, FaExclamationCircle 
 } from 'react-icons/fa';
-import { AreaChart, Area, Tooltip, ResponsiveContainer } from 'recharts';
+// AQUI ESTÁ A CORREÇÃO: Adicionados CartesianGrid, XAxis e YAxis
+import { AreaChart, Area, Tooltip, ResponsiveContainer, CartesianGrid, XAxis, YAxis } from 'recharts';
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // DICIONÁRIO DE INTERNACIONALIZAÇÃO (i18n)
