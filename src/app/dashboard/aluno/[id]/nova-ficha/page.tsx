@@ -241,7 +241,7 @@ function NovaFichaContent() {
     '--bg': '#F3F6FB', '--surface': '#FFFFFF', '--surface-sec': '#E8EEF9', '--primary': '#2563EB', '--danger': '#DC2626', '--success': '#16A34A', '--text-primary': '#111827', '--text-secondary': '#6B7280', '--border': 'rgba(15,23,42,0.06)',
   } as React.CSSProperties;
 
-  const showToast = (type: 'success' | 'error' | 'info', msg: string) => {
+  const showToast = (type: 'success' | 'error' | 'info', text: string) => {
     setToast({ type, text });
     setTimeout(() => setToast(null), 4000);
   };
