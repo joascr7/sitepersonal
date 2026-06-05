@@ -3,7 +3,7 @@ import { useEffect, useState, use, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { ptBR, pt, enUS } from 'date-fns/locale';
-import { notificationService } from '@/lib/notificationService';
+import { NotificationService } from '@/lib/notificationService';
 import { 
   FaDumbbell, 
   FaClipboardList, 
