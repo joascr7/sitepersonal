@@ -189,10 +189,11 @@ export default function EditarFicha() {
     const carregarDados = async () => {
       setLoading(true);
       
-      // Busca a ficha atual E a biblioteca de vídeos (apenas os padrão do sistema) simultaneamente
-      const [fichaRes, bibRes] = await Promise.all([
+      // Busca a ficha atual, os treinos padrão (para o autocomplete) e a biblioteca de vídeos
+      const [fichaRes, pRes, bibRes] = await Promise.all([
         supabase.from('fichas').select('*').eq('id', treinoId).maybeSingle(),
-        supabase.from('videos_biblioteca').select('*').is('personal_id', null)
+        supabase.from('treinos_padrao').select('*'),
+        supabase.from('videos_biblioteca').select('*')
       ]);
 
       if (fichaRes.data) {
@@ -203,10 +204,28 @@ export default function EditarFicha() {
         } catch (e) { setExercicios([]); }
       }
       
-      if (bibRes.data) {
-        setBiblioteca(bibRes.data);
+      let exerciciosExtraidos: any[] = [];
+      
+      // Extrai exercícios dos Treinos Padrão para o buscador
+      if (pRes.data) {
+        pRes.data.forEach((treino) => {
+          try {
+            const raw = treino.exercicios_json || treino.descricao;
+            const exList = typeof raw === 'string' ? JSON.parse(raw) : raw;
+            if (Array.isArray(exList)) {
+              exList.forEach((ex) => {
+                if (ex.nome) exerciciosExtraidos.push({ exercicio_nome: ex.nome, url_video: ex.video || '' });
+              });
+            }
+          } catch (e) {}
+        });
       }
       
+      if (bibRes.data) {
+        exerciciosExtraidos = [...exerciciosExtraidos, ...bibRes.data];
+      }
+      
+      setBiblioteca(exerciciosExtraidos);
       setLoading(false);
     };
     carregarDados();
