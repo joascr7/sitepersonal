@@ -94,8 +94,7 @@ export default function Dashboard() {
     const savedLang = localStorage.getItem('@premium_lang') as 'pt-BR' | 'pt-PT' | 'en';
     if (savedLang) setLang(savedLang);
     setMounted(true);
-    // Aciona a solicitação de notificação
-  NotificationService.registrarDispositivo();
+  
   }, []);
 
   const toggleTheme = () => { const newTheme = !isDark; setIsDark(newTheme); localStorage.setItem('@premium_theme', newTheme ? 'dark' : 'light'); window.dispatchEvent(new Event('storage')); };
@@ -282,6 +281,31 @@ export default function Dashboard() {
                 </button>
               </div>
             </header>
+
+
+            {/* ━━━━━━━━━━ BANNER DE ATIVAÇÃO PUSH ━━━━━━━━━━ */}
+{typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default' && (
+  <div className="bg-gradient-to-r from-blue-600 to-[var(--primary)] p-5 rounded-[1.5rem] border border-white/10 shadow-lg animate-in fade-in slide-in-from-top-4 duration-500">
+    <div className="flex flex-col gap-3">
+      <div>
+        <h3 className="font-black text-sm text-white tracking-tight">Não perca nenhum treino! 🔔</h3>
+        <p className="text-white/80 text-[11px] font-medium leading-relaxed mt-1">
+          Ative as notificações para receber os novos treinos e avisos do seu Personal diretamente no telemóvel.
+        </p>
+      </div>
+      <button 
+        onClick={async () => {
+          await NotificationService.registrarDispositivo();
+          // Força a atualização do ecrã para sumir com o banner após o clique
+          router.refresh();
+        }}
+        className="w-full py-2.5 bg-white text-[var(--primary)] rounded-xl font-black text-[11px] uppercase tracking-widest active:scale-[0.98] transition-all shadow-md"
+      >
+        Permitir Notificações
+      </button>
+    </div>
+  </div>
+)}
 
             {/* Aviso de Teste Grátis */}
             {statusAcesso.emTeste && (
