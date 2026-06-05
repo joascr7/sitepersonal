@@ -1,22 +1,24 @@
 'use client';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabaseClient';
 import LogoutButton from './LogoutButton';
-import { FaChartLine, FaWallet, FaUser } from 'react-icons/fa';
+import { FaChartLine, FaWallet, FaUser, FaWhatsapp } from 'react-icons/fa';
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // DICIONÁRIO DE INTERNACIONALIZAÇÃO (i18n)
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 const translations = {
-  'pt-BR': { dashboard: 'Dashboard', financial: 'Financeiro', profile: 'Perfil', logout: 'Sair' },
-  'pt-PT': { dashboard: 'Dashboard', financial: 'Financeiro', profile: 'Perfil', logout: 'Sair' },
-  'en': { dashboard: 'Dashboard', financial: 'Financial', profile: 'Profile', logout: 'Logout' }
+  'pt-BR': { dashboard: 'Dashboard', financial: 'Financeiro', profile: 'Perfil', logout: 'Sair', whatsapp: 'WhatsApp' },
+  'pt-PT': { dashboard: 'Dashboard', financial: 'Financeiro', profile: 'Perfil', logout: 'Sair', whatsapp: 'WhatsApp' },
+  'en': { dashboard: 'Dashboard', financial: 'Financial', profile: 'Profile', logout: 'Logout', whatsapp: 'WhatsApp' }
 };
 
 export default function Navbar() {
   const pathname = usePathname();
   const [lang, setLang] = useState<'pt-BR' | 'pt-PT' | 'en'>('pt-BR');
   const [mounted, setMounted] = useState(false);
+  const [telefoneAluno, setTelefoneAluno] = useState<string | null>(null);
 
   useEffect(() => {
     const updateLang = () => {
@@ -29,6 +31,38 @@ export default function Navbar() {
     return () => window.removeEventListener('storage', updateLang);
   }, []);
 
+  // Extrai o ID do aluno se o personal estiver navegando na rota de um aluno específico
+  // Exemplo: /dashboard/aluno/[id] ou /dashboard/aluno/[id]/progresso
+  const parts = pathname.split('/');
+  const isAlunoRoute = parts[1] === 'dashboard' && parts[2] === 'aluno' && parts[3];
+  const alunoId = isAlunoRoute ? parts[3] : null;
+
+  useEffect(() => {
+    const fetchTelefoneAluno = async () => {
+      if (!alunoId) {
+        setTelefoneAluno(null);
+        return;
+      }
+
+      try {
+        const { data } = await supabase
+          .from('alunos')
+          .select('telefone')
+          .eq('id', alunoId)
+          .single();
+
+        if (data?.telefone) {
+          const numeroLimpo = data.telefone.replace(/\D/g, '');
+          setTelefoneAluno(numeroLimpo);
+        }
+      } catch (error) {
+        console.error("Erro ao buscar telefone do aluno:", error);
+      }
+    };
+
+    fetchTelefoneAluno();
+  }, [alunoId]);
+
   const t = translations[lang] || translations['pt-BR'];
 
   const rotasExcluidas = [
@@ -37,11 +71,23 @@ export default function Navbar() {
   
   if (rotasExcluidas.includes(pathname) || pathname.startsWith('/aluno')) return null;
 
+  // Montagem dinâmica dos links do Personal
   const navItems = [
     { name: t.dashboard, path: '/dashboard', icon: <FaChartLine /> },
     { name: t.financial, path: '/dashboard/financeiro', icon: <FaWallet /> },
-    { name: t.profile, path: '/perfil', icon: <FaUser /> },
   ];
+
+  // Adiciona o WhatsApp dinamicamente se estiver na tela de um aluno e tiver telefone
+  if (telefoneAluno) {
+    navItems.push({
+      name: t.whatsapp,
+      path: `https://wa.me/55${telefoneAluno}`,
+      icon: <FaWhatsapp />
+    });
+  }
+
+  // Adiciona o Perfil do Personal no final
+  navItems.push({ name: t.profile, path: '/perfil', icon: <FaUser /> });
 
   if (!mounted) return null;
 
@@ -63,15 +109,20 @@ export default function Navbar() {
         <div className="flex gap-8 items-center text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)]">
           {navItems.map((item) => {
             const isActive = pathname === item.path;
+            const isExternal = item.path.startsWith('http');
+
             return (
               <a 
                 key={item.path} 
                 href={item.path} 
-                className={`relative py-2 transition-all duration-300 hover:text-[var(--primary)] ${
+                target={isExternal ? '_blank' : '_self'}
+                rel={isExternal ? 'noopener noreferrer' : ''}
+                className={`relative py-2 transition-all duration-300 hover:text-[var(--primary)] flex items-center gap-1.5 ${
                   isActive ? 'text-[var(--primary)] font-black' : ''
                 }`}
               >
-                {item.name}
+                {isExternal && <span className="text-sm text-[#25D366]">{item.icon}</span>}
+                <span>{item.name}</span>
                 {isActive && (
                   <span className="absolute bottom-0 left-0 w-full h-0.5 bg-[var(--primary)] rounded-full shadow-[0_0_8px_var(--primary)] animate-in fade-in zoom-in duration-300" />
                 )}
@@ -92,24 +143,28 @@ export default function Navbar() {
       >
         {navItems.map((item) => {
           const isActive = pathname === item.path;
+          const isExternal = item.path.startsWith('http');
+
           return (
             <a 
               key={item.path} 
               href={item.path} 
+              target={isExternal ? '_blank' : '_self'}
+              rel={isExternal ? 'noopener noreferrer' : ''}
               className={`flex flex-col items-center gap-1.5 transition-all duration-300 w-16 group cursor-pointer ${
                 isActive ? 'text-[var(--primary)]' : 'text-[var(--text-secondary)]'
               }`}
             >
               <div className={`relative flex items-center justify-center w-12 h-8 rounded-full transition-all duration-300 ${
                 isActive ? 'bg-[var(--primary)]/15 scale-110' : 'group-hover:bg-[var(--surface-sec)] group-hover:scale-105'
-              }`}>
-                <span className={`text-lg transition-transform ${isActive ? 'drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]' : 'group-hover:scale-110 group-hover:text-[var(--primary)]'}`}>
+              } ${isExternal ? 'bg-[#25D366]/10 text-[#25D366] group-hover:bg-[#25D366]/20' : ''}`}>
+                <span className={`text-lg transition-transform ${isActive ? 'drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]' : 'group-hover:scale-110 group-hover:text-[var(--primary)]'} ${isExternal ? 'group-hover:text-[#25D366]' : ''}`}>
                   {item.icon}
                 </span>
               </div>
               <span className={`text-[8px] font-black uppercase tracking-widest transition-all ${
                 isActive ? 'opacity-100' : 'opacity-70 group-hover:opacity-100 group-hover:text-[var(--primary)]'
-              }`}>
+              } ${isExternal ? 'group-hover:text-[#25D366]' : ''}`}>
                 {item.name}
               </span>
             </a>
