@@ -127,9 +127,11 @@ export default function RootLayout({
           <LogoProvider>
             <ConditionalNavbar />
             
-            <main className="flex-grow w-full relative">
+            {/* AQUI ESTÁ A CORREÇÃO: pb-32 md:pb-8 garante o respiro para a Navbar Mobile não sobrepor o conteúdo */}
+            <main className="flex-grow w-full relative pb-32 md:pb-8">
               {children}
             </main>
+            
           </LogoProvider>
         </AlunoProvider>
       </body>
