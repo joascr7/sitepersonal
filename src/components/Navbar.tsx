@@ -56,7 +56,7 @@ export default function Navbar() {
             <span className="font-black text-[var(--primary)]">AF</span>
           </div>
           <span className="font-black tracking-tight text-2xl text-[var(--primary)]">
-            AURAFIT
+            AURAFITPRO
           </span>
         </div>
         
