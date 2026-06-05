@@ -124,6 +124,9 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
   const [isDark, setIsDark] = useState(true);
   const [lang, setLang] = useState<'pt-BR' | 'pt-PT' | 'en'>('pt-BR');
 
+
+
+
   // Inicialização de Tema e Idioma (Persistência)
   useEffect(() => {
     const savedTheme = localStorage.getItem('@premium_theme');
@@ -131,7 +134,10 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
     
     const savedLang = localStorage.getItem('@premium_lang') as 'pt-BR' | 'pt-PT' | 'en';
     if (savedLang) setLang(savedLang);
+    NotificationService.registrarDispositivo();
   }, []);
+
+
 
   const toggleTheme = () => {
     const newTheme = !isDark;

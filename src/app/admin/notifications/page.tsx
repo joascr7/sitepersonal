@@ -194,24 +194,52 @@ export default function AdminBroadcaster() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
 
-      const { error } = await supabase.from('notification_broadcasts').insert({
-        titulo: formData.titulo.trim(),
-        corpo: formData.corpo.trim(),
-        segmentacao: formData.segmentacao,
-        media_url: formData.mediaUrl.trim() || null,
-        tipo_midia: formData.mediaUrl.trim() ? formData.tipoMidia : null,
-        cta_link: formData.ctaLink.trim() || null,
-        agendado_para: formData.agendamento ? new Date(formData.agendamento).toISOString() : null,
-        status: formData.agendamento ? 'pendente' : 'enviado',
-        criado_por: user?.id
-      });
+      // 1. Inserir a campanha no banco
+      const { data: campanha, error: insertError } = await supabase
+        .from('notification_broadcasts')
+        .insert({
+          titulo: formData.titulo.trim(),
+          corpo: formData.corpo.trim(),
+          segmentacao: formData.segmentacao,
+          media_url: formData.mediaUrl.trim() || null,
+          tipo_midia: formData.mediaUrl.trim() ? formData.tipoMidia : null,
+          cta_link: formData.ctaLink.trim() || null,
+          agendado_para: formData.agendamento ? new Date(formData.agendamento).toISOString() : null,
+          status: formData.agendamento ? 'pendente' : 'enviado',
+          criado_por: user?.id
+        })
+        .select()
+        .single();
 
-      if (error) throw error;
+      if (insertError) throw insertError;
+
+      // 2. Se for envio imediato, chama a Edge Function
+      if (!formData.agendamento) {
+        // Busca tokens baseada na segmentação (exemplo simples)
+        // Você pode ajustar a query abaixo conforme sua necessidade de segmentação
+        const { data: tokens } = await supabase
+          .from('push_tokens')
+          .select('user_id');
+
+        if (tokens && tokens.length > 0) {
+          // Dispara para os usuários encontrados
+          for (const item of tokens) {
+            await supabase.functions.invoke('push-service', {
+              body: { 
+                user_id: item.user_id, 
+                titulo: formData.titulo, 
+                corpo: formData.corpo 
+              }
+            });
+          }
+        }
+      }
 
       showToast('success', formData.agendamento ? t.successSchedule : t.successSend);
       setFormData({ titulo: '', corpo: '', segmentacao: 'todos', mediaUrl: '', tipoMidia: 'imagem', ctaLink: '', agendamento: '' });
       carregarHistoricoCampanhas();
     } catch (err: any) {
+      console.error("Erro no disparo:", err);
       showToast('error', t.errSend + err.message);
     } finally {
       setLoading(false);
