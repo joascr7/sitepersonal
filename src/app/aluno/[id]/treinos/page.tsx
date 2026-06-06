@@ -40,11 +40,18 @@ const translations = {
   }
 };
 
+interface Treino {
+  id: string;
+  sessõesCount: number;
+  [key: string]: any; // Isso permite outros campos vindos do banco
+}
+
 export default function ListaTreinosAluno({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
   const [fichas, setFichas] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [treinos, setTreinos] = useState<Treino[]>([]);
   
   // Controle de quais programas estão abertos (Accordion)
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
@@ -235,7 +242,7 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
                 {/* 📋 NÍVEL 2: Lista de Treinos Relacionados (Animação de Sanfona) */}
                 <div className={`grid transition-all duration-300 ease-in-out ${isExpanded ? 'grid-rows-[1fr] opacity-100 mt-3' : 'grid-rows-[0fr] opacity-0'}`}>
                   <div className="overflow-hidden space-y-4 px-1 pb-1">
-                    {treinos.map((f) => {
+                    {(treinos as any[]).map((f) => {
                       const progressoPercent = Math.min(Math.round((f.sessõesCount / META_SESSOES) * 100), 100);
                       
                       return (

@@ -109,10 +109,7 @@ const translations = {
   }
 };
 
-type Treino = {
-  sessõesCount: number;
-  [key: string]: any; // Permite outros campos que o Supabase retorna
-};
+
 
 export default function AreaDoAluno({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -126,7 +123,7 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
   const [calendarioAberto, setCalendarioAberto] = useState(false);
   const [treinoDoDia, setTreinoDoDia] = useState<any>(null);
   const [horaAtual, setHoraAtual] = useState(new Date());
-  const [treinos, setTreinos] = useState<Treino[]>([]);
+ 
   
   // Estados de Tema e i18n
   const [isDark, setIsDark] = useState(true);
@@ -196,12 +193,10 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
     eachDayOfInterval({ start: startOfWeek(new Date(), { weekStartsOn: 1 }), end: endOfWeek(new Date(), { weekStartsOn: 1 }) }), 
   []);
 
-useEffect(() => {
-  if (!id) return;
-
-  async function init() {
-    setLoading(true);
-    try {
+  useEffect(() => {
+    if (!id) return;
+    
+    async function init() {
       // 1. Busca dados do aluno
       const { data: alunoData } = await supabase.from('alunos').select('*').eq('id', id).maybeSingle();
       if (!alunoData) return;
@@ -213,58 +208,56 @@ useEffect(() => {
         setPersonal(pData);
       }
 
-      // 3. Busca histórico
+      // 3. Busca todo o histórico para o calendário e para definir o último treino
       const { data: conclusoes } = await supabase
         .from('conclusoes_treino')
         .select('data_conclusao, treino_id')
         .eq('aluno_id', id);
-
-      if (conclusoes && Array.isArray(conclusoes)) {
+      
+      if (conclusoes) {
         const inicioSemana = startOfWeek(new Date(), { weekStartsOn: 1 }).toISOString();
-        const treinosSemana = conclusoes.filter((c: any) => c.data_conclusao >= inicioSemana);
-        setDiasTreino(treinosSemana.map((d: any) => parseISO(d.data_conclusao)));
+        const treinosSemana = conclusoes.filter(c => c.data_conclusao >= inicioSemana);
+        setDiasTreino(treinosSemana.map(d => parseISO(d.data_conclusao)));
       }
 
-      // 4. LÓGICA DE AVANÇO SEQUENCIAL (Forçando tipagem com 'as any[]')
+      // 4. LÓGICA DE AVANÇO SEQUENCIAL ROBUSTA (A -> B -> C -> A)
       const { data: todasFichas } = await supabase
         .from('fichas')
         .select('*')
         .eq('aluno_id', id)
-        .order('ordem', { ascending: true })
-        .order('nome_treino', { ascending: true });
+        .order('ordem', { ascending: true }) // Ordena pela ordem configurada pelo personal
+        .order('nome_treino', { ascending: true }); // Fallback de segurança
 
-      const fichasArray = (todasFichas || []) as any[];
-
-      if (fichasArray.length > 0) {
+      if (todasFichas && todasFichas.length > 0) {
         if (!conclusoes || conclusoes.length === 0) {
-          setTreinoDoDia(fichasArray[0]);
+          // Se o aluno nunca treinou, o primeiro treino da lista é o de hoje
+          setTreinoDoDia(todasFichas[0]);
         } else {
-          // Ordena histórico para pegar o último
-          const conclusoesTyped = conclusoes as any[];
-          const ultimaConclusao = [...conclusoesTyped].sort((a, b) => 
+          // Pega o último treino feito ordenando o histórico por data
+          const ultimaConclusao = conclusoes.sort((a, b) => 
             new Date(b.data_conclusao).getTime() - new Date(a.data_conclusao).getTime()
           )[0];
 
-          const indexUltimo = fichasArray.findIndex(f => f.id === ultimaConclusao.treino_id);
+          // Descobre a posição (índice) do último treino na lista de fichas ativas
+          const indexUltimo = todasFichas.findIndex(f => f.id === ultimaConclusao.treino_id);
 
-          if (indexUltimo !== -1 && indexUltimo < fichasArray.length - 1) {
-            setTreinoDoDia(fichasArray[indexUltimo + 1]);
+          if (indexUltimo !== -1 && indexUltimo < todasFichas.length - 1) {
+            // Se não era o último da lista, passa para o próximo
+            setTreinoDoDia(todasFichas[indexUltimo + 1]);
           } else {
-            setTreinoDoDia(fichasArray[0]);
+            // Se era o último da fila (ou não foi encontrado), reseta para o primeiro
+            setTreinoDoDia(todasFichas[0]);
           }
         }
       } else {
         setTreinoDoDia(null);
       }
-    } catch (err) {
-      console.error("Erro ao inicializar dashboard:", err);
-    } finally {
+
       setLoading(false);
     }
-  }
-
-  init();
-}, [id]); 
+    
+    init();
+  }, [id]);
 
   if (loading) return (
     <main style={themeStyles} className="min-h-screen bg-[var(--bg)] p-6 space-y-8 animate-pulse pt-[max(env(safe-area-inset-top),1.5rem)]">
