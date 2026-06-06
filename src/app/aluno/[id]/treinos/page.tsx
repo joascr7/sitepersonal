@@ -2,7 +2,7 @@
 import { useEffect, useState, use, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
-import { FaChevronLeft, FaPlay } from 'react-icons/fa';
+import { FaChevronLeft, FaPlay, FaChevronDown } from 'react-icons/fa'; // <-- Adicionado FaChevronDown
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // DICIONÁRIO DE INTERNACIONALIZAÇÃO (i18n)
@@ -45,6 +45,9 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
   const router = useRouter();
   const [fichas, setFichas] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Controle de quais programas estão abertos (Accordion)
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
   
   // Estados de Tema e i18n
   const [isDark, setIsDark] = useState(true);
@@ -151,6 +154,21 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
     }, {} as Record<string, Array<any>>);
   }, [fichas]);
 
+  // Abre automaticamente o primeiro programa quando os dados carregam
+  useEffect(() => {
+    const programas = Object.keys(fichasAgrupadas);
+    if (programas.length > 0 && Object.keys(expandedSections).length === 0) {
+      setExpandedSections({ [programas[0]]: true });
+    }
+  }, [fichasAgrupadas]);
+
+  const toggleSection = (programaMaster: string) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [programaMaster]: !prev[programaMaster]
+    }));
+  };
+
   if (loading) return (
     <main style={themeStyles} className="min-h-screen bg-[var(--bg)] p-6 space-y-8 animate-pulse pt-[max(env(safe-area-inset-top),2rem)]">
       <div className="space-y-4 mb-10">
@@ -191,124 +209,134 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
         </header>
 
         {/* ━━━━━━━━━━ ESTRUTURA DE TREINOS EM 3 NÍVEIS ━━━━━━━━━━ */}
-        <div className="space-y-8">
-          {Object.entries(fichasAgrupadas).map(([programaMaster, treinos]) => (
-            <div key={programaMaster} className="space-y-4">
-              
-              {/* 🎯 NÍVEL 1: Programa Master (Ex: HIPERTROFIA 2) */}
-              <div className="flex items-center gap-2.5 pl-1 pt-2">
-                <span className="h-5 w-1 bg-gradient-to-b from-[var(--primary-soft)] to-[var(--primary)] rounded-full" />
-                <h2 className="text-lg font-black uppercase tracking-wider text-[var(--text-primary)]">
-                  {programaMaster}
-                </h2>
-              </div>
+        <div className="space-y-6">
+          {Object.entries(fichasAgrupadas).map(([programaMaster, treinos]) => {
+            const isExpanded = expandedSections[programaMaster];
 
-              {/* 📋 NÍVEL 2: Lista de Treinos Relacionados (Ex: Treino A, Treino B) */}
-              <div className="space-y-4">
-                {treinos.map((f) => {
-                  const progressoPercent = Math.min(Math.round((f.sessõesCount / META_SESSOES) * 100), 100);
-                  
-                  return (
-                    <div 
-                      key={f.id} 
-                      className="bg-[var(--surface)] p-6 rounded-[2rem] border border-[var(--border)] shadow-sm hover:shadow-md transition-all relative overflow-hidden group"
-                    >
-                      <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--primary)]/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none" />
+            return (
+              <div key={programaMaster} className="bg-[var(--surface)]/30 rounded-3xl p-2 border border-[var(--border)]">
+                
+                {/* 🎯 NÍVEL 1: Programa Master (Clicável / Accordion) */}
+                <button 
+                  onClick={() => toggleSection(programaMaster)}
+                  className="w-full flex items-center justify-between p-3 rounded-2xl hover:bg-[var(--surface-sec)] transition-colors"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <span className={`h-5 w-1 bg-gradient-to-b from-[var(--primary-soft)] to-[var(--primary)] rounded-full transition-all duration-300 ${isExpanded ? 'opacity-100' : 'opacity-50'}`} />
+                    <h2 className="text-lg font-black uppercase tracking-wider text-[var(--text-primary)]">
+                      {programaMaster}
+                    </h2>
+                  </div>
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center bg-[var(--surface-sec)] transition-transform duration-300 ${isExpanded ? 'rotate-180 bg-[var(--primary)] text-white' : 'text-[var(--text-secondary)]'}`}>
+                    <FaChevronDown size={12} />
+                  </div>
+                </button>
 
-                      <div className="flex justify-between items-start mb-4 relative z-10">
-                        <div>
-                          <h3 className="font-black text-[var(--text-primary)] text-base leading-tight tracking-tight">
-                            {f.nomeLimpoCard}
-                          </h3>
-                          <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] mt-1.5 flex items-center gap-1.5">
-                            <span className="w-1.5 h-1.5 rounded-full bg-[var(--primary)] opacity-70"></span>
-                            {f.count} {t.exercises}
-                          </p>
-                        </div>
-                        <div className="text-right bg-[var(--surface-sec)] px-3 py-1.5 rounded-xl border border-[var(--border)]">
-                          <p className="text-[8px] font-bold uppercase text-[var(--text-secondary)] tracking-widest mb-0.5">{t.last}</p>
-                          <p className="text-[11px] font-black text-[var(--text-primary)]">
-                            {f.ultimaSessao ? new Date(f.ultimaSessao).toLocaleDateString(lang, { day: '2-digit', month: '2-digit' }) : t.never}
-                          </p>
-                        </div>
-                      </div>
+                {/* 📋 NÍVEL 2: Lista de Treinos Relacionados (Animação de Sanfona) */}
+                <div className={`grid transition-all duration-300 ease-in-out ${isExpanded ? 'grid-rows-[1fr] opacity-100 mt-3' : 'grid-rows-[0fr] opacity-0'}`}>
+                  <div className="overflow-hidden space-y-4 px-1 pb-1">
+                    {treinos.map((f) => {
+                      const progressoPercent = Math.min(Math.round((f.sessõesCount / META_SESSOES) * 100), 100);
+                      
+                      return (
+                        <div 
+                          key={f.id} 
+                          className="bg-[var(--surface)] p-6 rounded-[2rem] border border-[var(--border)] shadow-sm hover:shadow-md transition-all relative overflow-hidden group"
+                        >
+                          <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--primary)]/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none" />
 
-                      {/* 💪 NÍVEL 3: Lista Interna de Exercícios Totalmente Blindada */}
-                      <div className="mb-5 space-y-1.5 relative z-10 max-h-48 overflow-y-auto pr-1 scrollbar-thin">
-                        {f.exercicios && f.exercicios.length > 0 ? (
-                          f.exercicios.map((ex: any, idx: number) => {
-                            
-                            // 1. Descobre a quantidade de séries com segurança (lendo se é array de sub-objetos)
-                            const totalSeries = Array.isArray(ex.series) 
-                              ? ex.series.length 
-                              : (typeof ex.series === 'object' ? 1 : (ex.series || 3));
+                          <div className="flex justify-between items-start mb-4 relative z-10">
+                            <div>
+                              <h3 className="font-black text-[var(--text-primary)] text-base leading-tight tracking-tight">
+                                {f.nomeLimpoCard}
+                              </h3>
+                              <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] mt-1.5 flex items-center gap-1.5">
+                                <span className="w-1.5 h-1.5 rounded-full bg-[var(--primary)] opacity-70"></span>
+                                {f.count} {t.exercises}
+                              </p>
+                            </div>
+                            <div className="text-right bg-[var(--surface-sec)] px-3 py-1.5 rounded-xl border border-[var(--border)]">
+                              <p className="text-[8px] font-bold uppercase text-[var(--text-secondary)] tracking-widest mb-0.5">{t.last}</p>
+                              <p className="text-[11px] font-black text-[var(--text-primary)]">
+                                {f.ultimaSessao ? new Date(f.ultimaSessao).toLocaleDateString(lang, { day: '2-digit', month: '2-digit' }) : t.never}
+                              </p>
+                            </div>
+                          </div>
 
-                            // 2. Extrai de forma blindada as repetições (reps) do primeiro objeto interno ou fallback
-                            const reps = Array.isArray(ex.series) && ex.series[0]
-                              ? (ex.series[0].reps || ex.series[0].repeticoes || '12')
-                              : (ex.reps || ex.repeticoes || '12');
+                          {/* 💪 NÍVEL 3: Lista Interna de Exercícios Totalmente Blindada */}
+                          <div className="mb-5 space-y-1.5 relative z-10 max-h-48 overflow-y-auto pr-1 scrollbar-thin">
+                            {f.exercicios && f.exercicios.length > 0 ? (
+                              f.exercicios.map((ex: any, idx: number) => {
+                                
+                                const totalSeries = Array.isArray(ex.series) 
+                                  ? ex.series.length 
+                                  : (typeof ex.series === 'object' ? 1 : (ex.series || 3));
 
-                            // 3. Extrai a carga do primeiro objeto interno ou fallback
-                            const carga = Array.isArray(ex.series) && ex.series[0]
-                              ? ex.series[0].carga
-                              : ex.carga;
+                                const reps = Array.isArray(ex.series) && ex.series[0]
+                                  ? (ex.series[0].reps || ex.series[0].repeticoes || '12')
+                                  : (ex.reps || ex.repeticoes || '12');
 
-                            // 4. Trata o nome caso ele venha em formato de sub-objeto relacional do Supabase
-                            let nomeFinal = `Exercício ${idx + 1}`;
-                            if (ex.nome) nomeFinal = ex.nome;
-                            else if (ex.exercicio) {
-                              nomeFinal = typeof ex.exercicio === 'object' ? (ex.exercicio.nome || ex.exercicio.titulo || nomeFinal) : ex.exercicio;
-                            }
+                                const carga = Array.isArray(ex.series) && ex.series[0]
+                                  ? ex.series[0].carga
+                                  : ex.carga;
 
-                            return (
+                                let nomeFinal = `Exercício ${idx + 1}`;
+                                if (ex.nome) nomeFinal = ex.nome;
+                                else if (ex.exercicio) {
+                                  nomeFinal = typeof ex.exercicio === 'object' ? (ex.exercicio.nome || ex.exercicio.titulo || nomeFinal) : ex.exercicio;
+                                }
+
+                                return (
+                                  <div 
+                                    key={idx} 
+                                    className="flex justify-between items-center bg-[var(--surface-sec)]/50 border border-[var(--border)] px-3 py-2 rounded-xl text-xs hover:bg-[var(--surface-sec)]/80 transition-colors"
+                                  >
+                                    <span className="font-bold text-[var(--text-primary)] truncate max-w-[190px]">
+                                      {nomeFinal}
+                                    </span>
+                                    <span className="text-[10px] text-[var(--text-secondary)] font-mono font-bold shrink-0 pl-2">
+                                      {totalSeries}x{reps} {carga ? `• ${carga}kg` : ''}
+                                    </span>
+                                  </div>
+                                );
+                              })
+                            ) : (
+                              <p className="text-xs text-[var(--text-secondary)] italic pl-1">Nenhum exercício cadastrado.</p>
+                            )}
+                          </div>
+
+                          {/* Barra de Progresso do Treino */}
+                          <div className="mb-5 relative z-10">
+                            <div className="flex justify-between items-end mb-2">
+                              <p className="text-[9px] font-bold uppercase text-[var(--text-secondary)] tracking-widest">{t.progress}</p>
+                              <p className="text-[11px] font-black text-[var(--primary)]">{f.sessõesCount} <span className="text-[var(--text-secondary)] opacity-50 font-bold text-[9px]">/ {META_SESSOES}</span></p>
+                            </div>
+                            <div className="h-2 bg-[var(--surface-sec)] rounded-full overflow-hidden border border-[var(--border)]">
                               <div 
-                                key={idx} 
-                                className="flex justify-between items-center bg-[var(--surface-sec)]/50 border border-[var(--border)] px-3 py-2 rounded-xl text-xs hover:bg-[var(--surface-sec)]/80 transition-colors"
-                              >
-                                <span className="font-bold text-[var(--text-primary)] truncate max-w-[190px]">
-                                  {nomeFinal}
-                                </span>
-                                <span className="text-[10px] text-[var(--text-secondary)] font-mono font-bold shrink-0 pl-2">
-                                  {totalSeries}x{reps} {carga ? `• ${carga}kg` : ''}
-                                </span>
-                              </div>
-                            );
-                          })
-                        ) : (
-                          <p className="text-xs text-[var(--text-secondary)] italic pl-1">Nenhum exercício cadastrado.</p>
-                        )}
-                      </div>
+                                className="h-full bg-gradient-to-r from-[var(--primary-soft)] to-[var(--primary)] rounded-full transition-all duration-1000 ease-out" 
+                                style={{ width: `${progressoPercent}%` }} 
+                              />
+                            </div>
+                          </div>
 
-                      {/* Barra de Progresso do Treino */}
-                      <div className="mb-5 relative z-10">
-                        <div className="flex justify-between items-end mb-2">
-                          <p className="text-[9px] font-bold uppercase text-[var(--text-secondary)] tracking-widest">{t.progress}</p>
-                          <p className="text-[11px] font-black text-[var(--primary)]">{f.sessõesCount} <span className="text-[var(--text-secondary)] opacity-50 font-bold text-[9px]">/ {META_SESSOES}</span></p>
+                          {/* Botão de Ação */}
+                          <button 
+                            onClick={() => router.push(`/aluno/${id}/treino/${f.id}`)}
+                            className="w-full relative z-10 flex items-center justify-center gap-2 bg-[var(--primary)] text-white py-4 rounded-[1.2rem] font-black text-[11px] uppercase tracking-widest active:scale-[0.98] transition-all shadow-lg shadow-[var(--primary)]/20 hover:shadow-[var(--primary)]/30 hover:bg-blue-600"
+                          >
+                            <FaPlay className="text-[10px]" />
+                            {t.start}
+                          </button>
+
                         </div>
-                        <div className="h-2 bg-[var(--surface-sec)] rounded-full overflow-hidden border border-[var(--border)]">
-                          <div 
-                            className="h-full bg-gradient-to-r from-[var(--primary-soft)] to-[var(--primary)] rounded-full transition-all duration-1000 ease-out" 
-                            style={{ width: `${progressoPercent}%` }} 
-                          />
-                        </div>
-                      </div>
+                      );
+                    })}
+                  </div>
+                </div>
 
-                      {/* Botão de Ação */}
-                      <button 
-                        onClick={() => router.push(`/aluno/${id}/treino/${f.id}`)}
-                        className="w-full relative z-10 flex items-center justify-center gap-2 bg-[var(--primary)] text-white py-4 rounded-[1.2rem] font-black text-[11px] uppercase tracking-widest active:scale-[0.98] transition-all shadow-lg shadow-[var(--primary)]/20 hover:shadow-[var(--primary)]/30 hover:bg-blue-600"
-                      >
-                        <FaPlay className="text-[10px]" />
-                        {t.start}
-                      </button>
-
-                    </div>
-                  );
-                })}
               </div>
-
-            </div>
-          ))}
+            );
+          })}
         </div>
         
         {/* ━━━━━━━━━━ BACK BUTTON ━━━━━━━━━━ */}

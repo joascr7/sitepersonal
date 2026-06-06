@@ -50,7 +50,7 @@ const translations = {
 };
 
 export default function DashboardPerformance({ alunoId }: { alunoId: string }) {
-  const [dados, setDados] = useState<any>({ frequencia: [], prs: [], totalTreinos: 0 });
+  const [dados, setDados] = useState<any>({ frequencia: {}, prs: [], totalTreinos: 0 });
   const [loading, setLoading] = useState(true);
 
   // Estados de Tema e i18n
@@ -71,9 +71,10 @@ export default function DashboardPerformance({ alunoId }: { alunoId: string }) {
     async function carregarDados() {
       setLoading(true);
       try {
+        // 1. Busca treinos trazendo a data para evitar contagem duplicada no mesmo dia
         const { data: treinos, error: treinosError } = await supabase
           .from('conclusoes_treino')
-          .select('id')
+          .select('id, data_conclusao')
           .eq('aluno_id', alunoId.trim());
 
         const { data: registros, error: regError } = await supabase
@@ -83,23 +84,50 @@ export default function DashboardPerformance({ alunoId }: { alunoId: string }) {
 
         if (treinosError || regError) throw new Error("Erro ao buscar dados");
 
+        // 🎯 CORREÇÃO 1: Contabilizar apenas dias únicos de treino
+        const treinosUnicos = new Set(
+          (treinos || []).map(t => {
+            if (!t.data_conclusao) return t.id; // Fallback se não houver data
+            return new Date(t.data_conclusao).toISOString().split('T')[0];
+          })
+        ).size;
+
+        // 🎯 CORREÇÃO 2: Função blindada para converter "20kg" ou "15,5" em número
+        const extrairCarga = (valor: any) => {
+          if (!valor) return 0;
+          const num = parseFloat(String(valor).replace(',', '.').replace(/[^0-9.]/g, ''));
+          return isNaN(num) ? 0 : num;
+        };
+
+        // 🎯 CORREÇÃO 3: Processamento dos PRs ignorando exercícios sem peso
         const prMap = (registros || []).reduce((acc: any, curr) => {
-          const carga = Number(curr.carga) || 0;
-          if (!acc[curr.exercicio_nome] || carga > acc[curr.exercicio_nome]) acc[curr.exercicio_nome] = carga;
+          const cargaNum = extrairCarga(curr.carga);
+          
+          if (cargaNum > 0 && curr.exercicio_nome) {
+            if (!acc[curr.exercicio_nome] || cargaNum > acc[curr.exercicio_nome]) {
+              acc[curr.exercicio_nome] = cargaNum;
+            }
+          }
+          return acc;
+        }, {});
+
+        // Frequência de Exercícios (Quantidade de Séries)
+        const frequenciaMap = (registros || []).reduce((acc: any, curr) => {
+          if (curr.exercicio_nome) {
+            acc[curr.exercicio_nome] = (acc[curr.exercicio_nome] || 0) + 1;
+          }
           return acc;
         }, {});
 
         setDados({
-          frequencia: (registros || []).reduce((acc: any, curr) => {
-            acc[curr.exercicio_nome] = (acc[curr.exercicio_nome] || 0) + 1;
-            return acc;
-          }, {}),
+          frequencia: frequenciaMap,
           prs: Object.entries(prMap)
             .map(([name, val]) => ({ name, val }))
             .sort((a: any, b: any) => b.val - a.val)
             .slice(0, 4),
-          totalTreinos: treinos ? treinos.length : 0
+          totalTreinos: treinosUnicos
         });
+
       } catch (err) { 
         console.error("Erro no Dashboard:", err); 
       } finally { 
@@ -126,7 +154,6 @@ export default function DashboardPerformance({ alunoId }: { alunoId: string }) {
   );
 
   return (
-    // Transformado de 'main' para 'div' pois este é um componente injetado na página
     <div className="w-full flex flex-col gap-6">
       
       {/* ━━━━━━━━━━ CARDS DE MÉTRICAS ━━━━━━━━━━ */}
@@ -177,7 +204,7 @@ export default function DashboardPerformance({ alunoId }: { alunoId: string }) {
                     color: 'var(--text-primary)'
                   }}
                   itemStyle={{ color: 'var(--primary)', fontWeight: 900 }}
-                  content={({ active, payload }) => active && payload ? (
+                  content={({ active, payload }) => active && payload && payload.length > 0 ? (
                     <div className="bg-[var(--surface-sec)] border border-[var(--border)] px-4 py-3 rounded-[1rem] shadow-xl flex flex-col gap-1">
                       <span className="text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-widest">{payload[0].payload.name}</span>
                       <span className="text-sm font-black text-[var(--primary)]">{payload[0].value} <span className="text-[10px] text-[var(--text-primary)]">{t.series}</span></span>
@@ -243,7 +270,6 @@ export default function DashboardPerformance({ alunoId }: { alunoId: string }) {
 function MetricCard({ title, value, unit, icon }: any) {
   return (
     <div className="bg-[var(--surface)] p-6 rounded-[2rem] border border-[var(--border)] flex items-center gap-5 shadow-sm hover:shadow-md transition-all active:scale-[0.98] group overflow-hidden relative">
-      {/* Detalhe de Fundo Premium */}
       <div className="absolute top-0 right-0 w-24 h-24 bg-[var(--primary)]/5 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none transition-all group-hover:bg-[var(--primary)]/10" />
       
       <div className="p-4 bg-[var(--surface-sec)] text-[var(--primary)] rounded-2xl group-hover:scale-110 transition-transform duration-300">
@@ -258,4 +284,3 @@ function MetricCard({ title, value, unit, icon }: any) {
     </div>
   );
 }
-  
