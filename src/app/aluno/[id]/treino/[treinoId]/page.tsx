@@ -277,12 +277,11 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
 
   useEffect(() => { fetchData(); }, [treinoId]);
 
-  const registrarCarga = async (nomeExercicio: string, carga: number, unidade: string, reps: string, serieIndex: number) => {
+ const registrarCarga = async (nomeExercicio: string, carga: number, unidade: string, reps: string, serieIndex: number) => {
   if (!carga || carga <= 0) return;
   
   const registroExistente = registros.find(r => r.exercicio_nome === nomeExercicio && r.serie_index === serieIndex);
   
-  // O payload agora contém apenas colunas que existem na sua tabela (conforme a imagem)
   const payload = { 
     aluno_id: id, 
     treino_id: treinoId, 
@@ -292,10 +291,15 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
     serie_index: serieIndex 
   };
 
+  // Correção: Estrutura o objeto fora do método para satisfazer o TypeScript
+  const dadosParaUpsert = registroExistente 
+    ? { ...payload, id: registroExistente.id } 
+    : payload;
+
   try {
     const { data, error } = await supabase
       .from('registro_series')
-      .upsert(registroExistente ? { ...payload, id: registroExistente.id } : payload)
+      .upsert(dadosParaUpsert as any) // 'as any' corrige o erro de tipagem no build
       .select();
       
     if (error) throw error;
@@ -322,7 +326,7 @@ const finalizarSessao = async () => {
     // 0. Recuperar o personal_id vinculado ao aluno
     const { data: alunoData, error: alunoErr } = await supabase
       .from('alunos')
-      .select('personal_id') // Ajuste o nome da coluna se necessário
+      .select('personal_id') 
       .eq('id', id)
       .single();
 
@@ -364,7 +368,7 @@ const finalizarSessao = async () => {
         .insert({
           aluno_id: id,
           treino_id: treinoId || null,
-          personal_id: pId, // Usando o ID buscado dinamicamente
+          personal_id: pId,
           intensidade: fbIntensidade,
           observacoes: observacaoFinal.trim() || 'Treino concluído sem observações textuais.',
           data_criacao: new Date().toISOString()
