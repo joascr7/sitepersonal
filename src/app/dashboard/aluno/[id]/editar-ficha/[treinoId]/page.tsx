@@ -1,18 +1,19 @@
 'use client';
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useMemo } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { 
   FaChevronLeft, FaGlobe, FaMoon, FaSun, FaExclamationCircle, 
-  FaCheckCircle, FaTrash, FaUpload, FaPlus, FaSave, FaFolderOpen, FaVideo, FaSearch
+  FaCheckCircle, FaTrash, FaUpload, FaPlus, FaSave, FaFolderOpen, FaVideo, FaSearch,
+  FaArrowUp, FaArrowDown, FaPlay, FaTimes, FaListUl, FaVideoSlash
 } from 'react-icons/fa';
 
 interface Serie {
   ordem?: string;
   reps: string;
-  carga: number | string;
-  CargaPlanejada: number | string;
-  intervalo: number | string;
+  carga: string;
+  unidadeCarga?: string;
+  intervalo: string;
 }
 
 interface Exercicio {
@@ -25,7 +26,31 @@ interface Exercicio {
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// COMPONENTE: BUSCADOR INTELIGENTE DE EXERCÍCIOS (AUTOCOMPLETE)
+// SISTEMA INTELIGENTE DE CATEGORIZAÇÃO
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const autoCategorize = (nome: string): string => {
+  if (!nome) return 'Outros';
+  const n = nome.toLowerCase();
+  if (/(supino|crucifixo|peck deck|cross|flexão|peito|chest)/.test(n)) return 'Peito';
+  if (/(puxada|remada|barra fixa|serrote|pull down|costas|lombar|back)/.test(n)) return 'Costas';
+  if (/(agachamento|leg press|extensora|flexora|stiff|panturrilha|afundo|elevação pélvica|glúteo|perna|adutor|abdutor|squat)/.test(n)) return 'Pernas';
+  if (/(desenvolvimento|elevação|manguito|ombro|deltoide|shoulder)/.test(n)) return 'Ombros';
+  if (/(rosca|tríceps|francesa|testa|pulley|martelo|bíceps|braço|arm)/.test(n)) return 'Braços';
+  if (/(abdominal|prancha|infra|supra|oblíquo|core|abdômen|abs)/.test(n)) return 'Core';
+  if (/(esteira|bike|bicicleta|elíptico|corda|corrida|cardio|hiit)/.test(n)) return 'Cardio';
+  return 'Outros';
+};
+
+// Extrator rápido de ID do YouTube para Thumbnails
+const getYouTubeId = (url: string) => {
+  if (!url) return null;
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|\/shorts\/)([^#\&\?]*).*/;
+  const match = url.match(regExp);
+  return (match && match[2].length === 11) ? match[2] : null;
+};
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// COMPONENTE: BUSCADOR INTELIGENTE DE EXERCÍCIOS
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 const BuscadorExercicio = ({ 
   valorNome, 
@@ -33,59 +58,173 @@ const BuscadorExercicio = ({
   aoSelecionarExercicio, 
   biblioteca, 
   placeholder,
-  onBlurFallback
+  onBlurFallback,
+  onOpenCatalog
 }: any) => {
   const [mostrar, setMostrar] = useState(false);
   
-  // Filtra as sugestões e remove duplicatas com o mesmo nome
   const sugestoes = biblioteca.filter((b: any) => 
     b.exercicio_nome && b.exercicio_nome.toLowerCase().includes(valorNome.toLowerCase())
   );
   const sugestoesUnicas = Array.from(new Map(sugestoes.map((item: any) => [item.exercicio_nome, item])).values()).slice(0, 6);
 
   return (
-    <div className="relative w-full">
-      <div className="flex items-center gap-3">
-         <FaSearch className="text-[var(--text-secondary)] shrink-0" size={16} />
-         <input 
-          className="font-black text-[var(--text-primary)] text-lg sm:text-xl w-full outline-none bg-transparent placeholder:text-[var(--text-secondary)]" 
-          placeholder={placeholder} 
-          value={valorNome} 
-          onChange={(e) => {
-            aoMudarNome(e.target.value);
-            setMostrar(true);
-          }} 
-          onFocus={() => setMostrar(true)}
-          onBlur={() => {
-            setTimeout(() => {
-              setMostrar(false);
-              onBlurFallback(valorNome); // Mantém a busca original caso não clique na sugestão
-            }, 200);
-          }} 
-        />
+    <div className="flex items-start gap-3 w-full">
+      <div className="relative flex-1">
+        <div className="flex items-center gap-3">
+           <FaSearch className="text-[var(--text-secondary)] shrink-0" size={16} />
+           <input 
+            className="font-black text-[var(--text-primary)] text-lg sm:text-xl w-full outline-none bg-transparent placeholder:text-[var(--text-secondary)]" 
+            placeholder={placeholder} 
+            value={valorNome} 
+            onChange={(e) => {
+              aoMudarNome(e.target.value);
+              setMostrar(true);
+            }} 
+            onFocus={() => setMostrar(true)}
+            onBlur={() => {
+              setTimeout(() => {
+                setMostrar(false);
+                onBlurFallback(valorNome);
+              }, 200);
+            }} 
+          />
+        </div>
+        
+        {mostrar && valorNome.length > 0 && sugestoesUnicas.length > 0 && (
+           <ul className="absolute z-[100] left-0 top-full mt-3 w-full bg-[var(--surface)] border border-[var(--border)] rounded-[1.2rem] shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2">
+            {sugestoesUnicas.map((s: any, i: number) => (
+              <li 
+                key={i}
+                onClick={() => aoSelecionarExercicio(s.exercicio_nome, s.url_video || '')}
+                className="p-4 hover:bg-[var(--surface-sec)] cursor-pointer text-[var(--text-primary)] text-sm font-bold border-b border-[var(--border)] last:border-0 transition-colors flex justify-between items-center group"
+              >
+                <span>{s.exercicio_nome}</span>
+                {s.url_video && (
+                  <span className="text-[9px] bg-[var(--primary)]/10 text-[var(--primary)] px-2 py-1.5 rounded-md uppercase tracking-widest shrink-0 flex items-center gap-1 group-hover:bg-[var(--primary)] group-hover:text-white transition-colors">
+                    <FaPlay size={8} /> Vídeo
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
       
-      {mostrar && valorNome.length > 0 && sugestoesUnicas.length > 0 && (
-         <ul className="absolute z-[100] left-0 top-full mt-3 w-full bg-[var(--surface)] border border-[var(--border)] rounded-[1.2rem] shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2">
-          {sugestoesUnicas.map((s: any, i: number) => (
-            <li 
-              key={i}
-              onClick={() => aoSelecionarExercicio(s.exercicio_nome, s.url_video || '')}
-              className="p-4 hover:bg-[var(--surface-sec)] cursor-pointer text-[var(--text-primary)] text-sm font-bold border-b border-[var(--border)] last:border-0 transition-colors flex justify-between items-center"
-            >
-              <span>{s.exercicio_nome}</span>
-              {s.url_video && (
-                <span className="text-[8px] bg-[var(--primary)]/10 text-[var(--primary)] px-2 py-1 rounded-md uppercase tracking-widest shrink-0">
-                  C/ Vídeo
-                </span>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
+      <button 
+        onClick={onOpenCatalog}
+        title="Abrir Catálogo de Exercícios"
+        className="w-12 h-12 shrink-0 bg-[var(--surface-sec)] text-[var(--primary)] rounded-xl flex items-center justify-center hover:bg-[var(--primary)] hover:text-white border border-[var(--border)] transition-all active:scale-95 shadow-sm"
+      >
+        <FaListUl size={16} />
+      </button>
     </div>
   )
 };
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// COMPONENTE: MODAL CATÁLOGO DE EXERCÍCIOS PREMIUM
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function ModalCatalogoExercicios({ isOpen, onClose, biblioteca, onSelect, t }: any) {
+  const [categoriaAtiva, setCategoriaAtiva] = useState<string>('Todos');
+
+  const bibliotecaCategorizada = useMemo(() => {
+    const unicos = Array.from(new Map(biblioteca.map((item: any) => [item.exercicio_nome, item])).values());
+    return unicos.map((b: any) => ({
+      ...b,
+      categoria: b.categoria || autoCategorize(b.exercicio_nome)
+    })).sort((a, b) => a.exercicio_nome.localeCompare(b.exercicio_nome));
+  }, [biblioteca]);
+
+  const categorias = useMemo(() => {
+    const cats = new Set(bibliotecaCategorizada.map(b => b.categoria));
+    return ['Todos', ...Array.from(cats)].sort();
+  }, [bibliotecaCategorizada]);
+
+  const exerciciosFiltrados = useMemo(() => {
+    if (categoriaAtiva === 'Todos') return bibliotecaCategorizada;
+    return bibliotecaCategorizada.filter(b => b.categoria === categoriaAtiva);
+  }, [bibliotecaCategorizada, categoriaAtiva]);
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-md z-[400] flex items-end sm:items-center justify-center p-0 sm:p-5 animate-in fade-in duration-300">
+      <div className="bg-[var(--surface)] w-full max-w-2xl rounded-t-[2.5rem] sm:rounded-[2.5rem] p-6 pt-8 sm:p-8 max-h-[90vh] flex flex-col shadow-2xl border border-[var(--border)] animate-in slide-in-from-bottom-full sm:zoom-in-95">
+        <div className="w-12 h-1.5 bg-[var(--border)] rounded-full absolute top-3 left-1/2 -translate-x-1/2 sm:hidden" />
+        <div className="flex justify-between items-center mb-6 shrink-0 mt-2 sm:mt-0">
+          <div>
+            <h2 className="text-2xl font-black text-[var(--text-primary)] tracking-tight">Catálogo</h2>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--primary)] mt-1">{exerciciosFiltrados.length} exercícios</p>
+          </div>
+          <button onClick={onClose} className="w-10 h-10 rounded-full bg-[var(--surface-sec)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all active:scale-90 border border-[var(--border)]">
+            <FaTimes size={16} />
+          </button>
+        </div>
+        
+        <div className="flex overflow-x-auto gap-2 pb-4 mb-2 shrink-0 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+          {categorias.map(cat => (
+            <button
+              key={cat}
+              onClick={() => setCategoriaAtiva(cat)}
+              className={`px-5 py-2.5 rounded-full text-[11px] font-black uppercase tracking-widest whitespace-nowrap transition-all active:scale-95 ${
+                categoriaAtiva === cat 
+                  ? 'bg-[var(--primary)] text-white shadow-lg shadow-[var(--primary)]/30' 
+                  : 'bg-[var(--surface-sec)] text-[var(--text-secondary)] border border-[var(--border)] hover:text-[var(--text-primary)] hover:border-[var(--primary)]/50'
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+
+        <div className="overflow-y-auto flex-1 pr-2 -mr-2 space-y-3 custom-scrollbar pb-[env(safe-area-inset-bottom)]">
+          {exerciciosFiltrados.map((ex: any, i: number) => {
+            const ytId = ex.url_video ? getYouTubeId(ex.url_video) : null;
+            
+            return (
+              <div key={i} className="bg-[var(--surface-sec)] border border-[var(--border)] rounded-[1.2rem] sm:rounded-[1.5rem] p-3 flex items-center gap-4 transition-colors hover:border-[var(--primary)]/50 group">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 shrink-0 bg-black rounded-[1rem] overflow-hidden relative border border-[var(--border)] flex items-center justify-center group-hover:border-[var(--primary)]/50 transition-colors">
+                  {ytId ? (
+                    <>
+                      <img src={`https://img.youtube.com/vi/${ytId}/mqdefault.jpg`} className="w-full h-full object-cover opacity-80" alt={ex.exercicio_nome} />
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <FaPlay className="text-white drop-shadow-lg opacity-80" size={16} />
+                      </div>
+                    </>
+                  ) : ex.url_video && (ex.url_video.toLowerCase().endsWith('.gif') || ex.url_video.toLowerCase().match(/\.(jpeg|jpg|png|webp)$/)) ? (
+                    <img loading="lazy" src={ex.url_video} alt="Preview" className="w-full h-full object-cover" />
+                  ) : ex.url_video ? (
+                    <video src={ex.url_video} autoPlay loop muted playsInline className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="text-[var(--text-secondary)]/40 flex flex-col items-center gap-1">
+                      <FaVideoSlash size={14} />
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex flex-col flex-1 py-1">
+                  <span className="text-[9px] font-black text-[var(--primary)] uppercase tracking-widest mb-1">{ex.categoria}</span>
+                  <span className="text-sm font-black text-[var(--text-primary)] leading-tight">{ex.exercicio_nome}</span>
+                </div>
+
+                <div className="shrink-0 pr-2">
+                  <button 
+                    onClick={() => { onSelect(ex.exercicio_nome, ex.url_video || ''); onClose(); }}
+                    className="w-10 h-10 sm:w-auto sm:px-4 sm:py-2.5 bg-[var(--primary)] text-white rounded-[1rem] sm:rounded-xl text-[10px] font-black uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all shadow-md flex items-center justify-center gap-2"
+                  >
+                    <FaPlus size={12} className="sm:hidden" />
+                    <span className="hidden sm:inline">Adicionar</span>
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // SKELETON SCREEN (UX PREMIUM)
@@ -109,29 +248,6 @@ const DashboardSkeleton = () => (
   </div>
 );
 
-
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// SKELETON SCREEN (UX PREMIUM) - DEFINIDO NO MESMO FICHEIRO
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-const NovaFichaSkeleton = () => (
-  <div className="max-w-4xl mx-auto space-y-8 animate-pulse pt-8 px-5">
-    <div className="flex justify-between items-center mb-8">
-      <div className="w-16 h-4 bg-[var(--surface-sec)] rounded-full" />
-      <div className="w-40 h-8 bg-[var(--surface-sec)] rounded-xl" />
-      <div className="w-16 h-4 bg-transparent" />
-    </div>
-    <div className="w-full h-14 bg-[var(--surface-sec)] rounded-[1.2rem]" />
-    <div className="w-full h-16 bg-[var(--surface-sec)] rounded-[2rem]" />
-    {[1, 2].map((i) => (
-      <div key={i} className="p-8 bg-[var(--surface)] rounded-[2.5rem] border border-[var(--border)] space-y-6">
-        <div className="flex justify-between"><div className="w-1/2 h-8 bg-[var(--surface-sec)] rounded-xl" /><div className="w-8 h-8 bg-[var(--surface-sec)] rounded-lg" /></div>
-        <div className="w-full h-12 bg-[var(--surface-sec)] rounded-[1.2rem]" />
-        <div className="w-full h-32 bg-[var(--surface-sec)] rounded-[1.2rem]" />
-      </div>
-    ))}
-  </div>
-);
-
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // DICIONÁRIO DE INTERNACIONALIZAÇÃO (i18n)
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -141,30 +257,30 @@ const translations = {
     workoutName: 'Nome do Treino', exName: 'Nome do Exercício', delete: 'Excluir',
     videoUrl: 'URL da Mídia', uploadBtn: 'Upload de Vídeo/GIF', uploading: 'Enviando...',
     obs: 'Observação técnica...',
-    series: 'Série', reps: 'Reps', load: 'Carga', rest: 'Desc.', planned: 'Planej.',
+    series: 'Série', reps: 'Reps', load: 'Carga', rest: 'Desc.',
     addSeries: '+ Adicionar Série', save: 'Salvar Alterações',
     errLimit: 'Limite de 10MB excedido!', errDefault: 'Erro: ', successSave: 'Ficha atualizada com sucesso!',
-    confirmDelete: 'Tem certeza que deseja excluir esta ficha?', successVideo: 'Mídia encontrada para '
+    confirmDelete: 'Tem certeza que deseja excluir esta ficha?', successVideo: 'Mídia vinculada: '
   },
   'pt-PT': {
     back: 'Voltar', title: 'Editar Ficha', deleteWorkout: 'Eliminar Ficha',
     workoutName: 'Nome do Treino', exName: 'Nome do Exercício', delete: 'Eliminar',
     videoUrl: 'URL da Multimédia', uploadBtn: 'Upload de Vídeo/GIF', uploading: 'A enviar...',
     obs: 'Observação técnica...',
-    series: 'Série', reps: 'Reps', load: 'Carga', rest: 'Desc.', planned: 'Planej.',
+    series: 'Série', reps: 'Reps', load: 'Carga', rest: 'Desc.',
     addSeries: '+ Adicionar Série', save: 'Guardar Alterações',
     errLimit: 'Limite de 10MB excedido!', errDefault: 'Erro: ', successSave: 'Ficha atualizada com sucesso!',
-    confirmDelete: 'Tem certeza que deseja eliminar esta ficha?', successVideo: 'Multimédia encontrada para '
+    confirmDelete: 'Tem certeza que deseja eliminar esta ficha?', successVideo: 'Multimédia vinculada: '
   },
   'en': {
     back: 'Back', title: 'Edit Workout', deleteWorkout: 'Delete Workout',
     workoutName: 'Workout Name', exName: 'Exercise Name', delete: 'Delete',
     videoUrl: 'Media URL', uploadBtn: 'Upload Video/GIF', uploading: 'Uploading...',
     obs: 'Technical observation...',
-    series: 'Set', reps: 'Reps', load: 'Load', rest: 'Rest', planned: 'Target',
+    series: 'Set', reps: 'Reps', load: 'Load', rest: 'Rest',
     addSeries: '+ Add Set', save: 'Save Changes',
     errLimit: '10MB limit exceeded!', errDefault: 'Error: ', successSave: 'Workout updated successfully!',
-    confirmDelete: 'Are you sure you want to delete this workout?', successVideo: 'Media found for '
+    confirmDelete: 'Are you sure you want to delete this workout?', successVideo: 'Media linked: '
   }
 };
 
@@ -180,6 +296,10 @@ function EditarFichaContent() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [toast, setToast] = useState<{ type: 'success' | 'error' | 'info', text: string } | null>(null);
+
+  // Controle do Catálogo
+  const [catalogoAberto, setCatalogoAberto] = useState(false);
+  const [catalogoTargetIndex, setCatalogoTargetIndex] = useState<number | null>(null);
 
   // Estados UI Premium
   const [isDark, setIsDark] = useState(true);
@@ -200,7 +320,6 @@ function EditarFichaContent() {
   const t = translations[lang] || translations['pt-BR'];
   const showToast = (type: 'success' | 'error' | 'info', text: string) => { setToast({ type, text }); setTimeout(() => setToast(null), 4000); };
 
-  // Configuração Dinâmica do Tema Premium
   const themeStyles = isDark ? {
     '--bg': '#0F1115', '--surface': '#151A22', '--surface-sec': '#1B2330', '--primary': '#3B82F6', '--danger': '#EF4444', '--success': '#22C55E', '--text-primary': '#F8FAFC', '--text-secondary': '#94A3B8', '--border': 'rgba(255,255,255,0.05)',
   } as React.CSSProperties : {
@@ -252,6 +371,20 @@ function EditarFichaContent() {
     carregarDados();
   }, [treinoId]);
 
+  const moverExercicio = (index: number, direcao: 'cima' | 'baixo') => {
+    if (direcao === 'cima' && index === 0) return;
+    if (direcao === 'baixo' && index === exercicios.length - 1) return;
+    
+    const novosExercicios = [...exercicios];
+    const indexAlvo = direcao === 'cima' ? index - 1 : index + 1;
+    
+    const temp = novosExercicios[index];
+    novosExercicios[index] = novosExercicios[indexAlvo];
+    novosExercicios[indexAlvo] = temp;
+    
+    setExercicios(novosExercicios);
+  };
+
   const buscarVideo = (nomeExercicio: string, index: number) => {
     if (!nomeExercicio.trim()) return;
     const videoEncontrado = biblioteca.find(v => v.exercicio_nome?.toLowerCase().trim() === nomeExercicio.toLowerCase().trim());
@@ -263,11 +396,11 @@ function EditarFichaContent() {
     }
   };
 
-  const atualizarSerie = (exIndex: number, sIndex: number, campo: keyof Serie, valor: string | number) => {
+  const atualizarSerie = (exIndex: number, sIndex: number, campo: keyof Serie, valor: string) => {
     setExercicios(prev => {
       const novos = [...prev];
       if (Array.isArray(novos[exIndex].series)) {
-        novos[exIndex].series[sIndex] = { ...novos[exIndex].series[sIndex], [campo]: valor };
+        (novos[exIndex].series[sIndex] as any)[campo] = valor;
       }
       return novos;
     });
@@ -301,7 +434,11 @@ function EditarFichaContent() {
     const exerciciosLimpos = exercicios.map(ex => ({
       ...ex,
       series: Array.isArray(ex.series) ? ex.series.map(s => ({
-        ordem: String(s.ordem || ""), reps: String(s.reps || ""), carga: Number(s.carga) || 0, CargaPlanejada: Number(s.CargaPlanejada) || 0, intervalo: Number(s.intervalo) || 0
+        ordem: String(s.ordem || ""), 
+        reps: String(s.reps || ""), 
+        carga: String(s.carga || ""), 
+        unidadeCarga: s.unidadeCarga || 'kg',
+        intervalo: String(s.intervalo || "")
       })) : []
     }));
 
@@ -339,6 +476,25 @@ function EditarFichaContent() {
         </div>
       )}
 
+      {/* Modal Catálogo de Exercícios */}
+      <ModalCatalogoExercicios 
+        isOpen={catalogoAberto} 
+        onClose={() => setCatalogoAberto(false)} 
+        biblioteca={biblioteca} 
+        t={t}
+        onSelect={(nomeSelecionado: string, videoUrl: string) => {
+          if (catalogoTargetIndex !== null) {
+            const n = [...exercicios];
+            n[catalogoTargetIndex].nome = nomeSelecionado;
+            if (videoUrl) {
+              n[catalogoTargetIndex].video = videoUrl;
+              showToast('info', `${t.successVideo}${nomeSelecionado}!`);
+            }
+            setExercicios(n);
+          }
+        }}
+      />
+
       {loading ? <DashboardSkeleton /> : (
         <div className="max-w-3xl mx-auto animate-in fade-in duration-700 relative z-10">
           
@@ -372,11 +528,28 @@ function EditarFichaContent() {
           />
 
           {exercicios.map((ex, exIndex) => (
-            <div key={exIndex} className="bg-[var(--surface)]/90 backdrop-blur-xl p-6 sm:p-8 rounded-[2.5rem] border border-[var(--border)] mb-8 shadow-xl">
+            <div key={exIndex} className="bg-[var(--surface)]/90 backdrop-blur-xl p-6 sm:p-8 rounded-[2.5rem] border border-[var(--border)] mb-8 shadow-xl relative group transition-all duration-300">
               
-              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
+              {/* Controles de Reordenação */}
+              <div className="absolute top-4 left-4 sm:-left-4 sm:top-1/2 sm:-translate-y-1/2 flex flex-row sm:flex-col gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity z-20 bg-[var(--surface)] p-1 rounded-xl shadow-lg border border-[var(--border)]">
+                <button 
+                  onClick={() => moverExercicio(exIndex, 'cima')} 
+                  disabled={exIndex === 0}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--text-secondary)] hover:text-[var(--primary)] hover:bg-[var(--surface-sec)] disabled:opacity-30 transition-colors"
+                >
+                  <FaArrowUp size={12} />
+                </button>
+                <button 
+                  onClick={() => moverExercicio(exIndex, 'baixo')} 
+                  disabled={exIndex === exercicios.length - 1}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--text-secondary)] hover:text-[var(--primary)] hover:bg-[var(--surface-sec)] disabled:opacity-30 transition-colors"
+                >
+                  <FaArrowDown size={12} />
+                </button>
+              </div>
+
+              <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-4 mb-6 border-b border-[var(--border)] pb-4 mt-8 sm:mt-0 ml-0 sm:ml-4">
                 
-                {/* O BUSCADOR DE EXERCÍCIOS INJETADO AQUI */}
                 <BuscadorExercicio 
                   valorNome={ex.nome}
                   aoMudarNome={(val: string) => {
@@ -396,69 +569,85 @@ function EditarFichaContent() {
                   biblioteca={biblioteca}
                   placeholder={t.exName}
                   onBlurFallback={(nome: string) => buscarVideo(nome, exIndex)}
+                  onOpenCatalog={() => {
+                    setCatalogoTargetIndex(exIndex);
+                    setCatalogoAberto(true);
+                  }}
                 />
 
-                <button onClick={() => { const n = exercicios.filter((_, i) => i !== exIndex); setExercicios(n); }} className="self-end sm:self-auto text-[var(--danger)] bg-[var(--danger)]/10 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-[var(--danger)]/20 transition-colors flex items-center gap-2 shrink-0">
-                  <FaTrash size={12} /> {t.delete}
+                <button onClick={() => { const n = exercicios.filter((_, i) => i !== exIndex); setExercicios(n); }} className="self-end sm:self-auto text-[var(--danger)] bg-[var(--danger)]/10 px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-[var(--danger)]/20 transition-colors flex items-center gap-2 shrink-0 border border-[var(--danger)]/20">
+                  <FaTrash size={12} /> <span className="hidden sm:inline">{t.delete}</span>
                 </button>
               </div>
               
-              <div className="mb-8 space-y-3">
+              <div className="mb-8 space-y-4 ml-0 sm:ml-4">
                 <div className="relative group">
                   <input className="w-full pl-5 pr-12 py-4 bg-[var(--surface-sec)] border border-[var(--border)] rounded-[1.2rem] text-sm font-bold outline-none placeholder:text-[var(--text-secondary)] text-[var(--text-primary)] focus:border-[var(--primary)] transition-colors shadow-inner" placeholder={t.videoUrl} value={ex.video || ''} onChange={(e) => { const n = [...exercicios]; n[exIndex].video = e.target.value; setExercicios(n); }} />
                   <button type="button" onClick={() => document.getElementById(`file-${exIndex}`)?.click()} className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-[var(--primary)] text-white rounded-xl flex items-center justify-center hover:brightness-110 transition-all active:scale-95" title={t.uploadBtn}>
                     {uploading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <FaUpload size={14} />}
                   </button>
-                  
-                  {/* MUDANÇA: Upload agora aceita videos, gifs e imagens normais */}
-                  <input type="file" id={`file-${exIndex}`} className="hidden" accept="video/*,image/gif,image/jpeg,image/png" onChange={(e) => e.target.files && uploadVideo(exIndex, e.target.files[0])} />
+                  <input type="file" id={`file-${exIndex}`} className="hidden" accept="video/*,image/gif,image/jpeg,image/png,image/webp" onChange={(e) => e.target.files && uploadVideo(exIndex, e.target.files[0])} />
                 </div>
                 
                 {/* PREVIEW INTELIGENTE DE MÍDIA */}
                 {ex.video && (
-                  <div className="w-full h-48 sm:h-64 bg-[var(--surface-sec)] rounded-[1.2rem] overflow-hidden border border-[var(--border)] shadow-inner mb-4 mt-2 flex items-center justify-center">
+                  <div className="w-full h-48 sm:h-64 bg-black rounded-[1.2rem] overflow-hidden border border-[var(--border)] shadow-inner flex items-center justify-center relative">
                     {(ex.video.includes('youtube.com') || ex.video.includes('youtu.be')) ? (
-                      <iframe className="w-full h-full" src={ex.video.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/').replace('/shorts/', '/embed/').split('&')[0]} frameBorder="0" allowFullScreen></iframe>
+                      <iframe className="w-full h-full absolute inset-0" src={ex.video.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/').replace('/shorts/', '/embed/').split('&')[0]} frameBorder="0" allowFullScreen></iframe>
                     ) : (ex.video.toLowerCase().endsWith('.gif') || ex.video.toLowerCase().match(/\.(jpeg|jpg|png|webp)$/)) ? (
-                      <img src={ex.video} alt="Preview do Exercício" className="w-full h-full object-cover" />
+                      <img src={ex.video} alt="Preview do Exercício" className="w-full h-full object-cover absolute inset-0" />
                     ) : (
-                      <video src={ex.video} controls className="w-full h-full object-cover bg-black" />
+                      <video src={ex.video} controls playsInline webkit-playsinline="true" preload="metadata" className="w-full h-full object-cover absolute inset-0" />
                     )}
                   </div>
                 )}
 
-                <input className="w-full p-4 bg-[var(--surface-sec)] border border-[var(--border)] rounded-[1.2rem] text-xs font-medium outline-none placeholder:text-[var(--text-secondary)] text-[var(--text-primary)] focus:border-[var(--primary)] transition-colors" placeholder={t.obs} value={ex.observacao || ''} onChange={(e) => { const n = [...exercicios]; n[exIndex].observacao = e.target.value; setExercicios(n); }} />
+                <textarea 
+                  placeholder={t.obs}
+                  rows={2}
+                  className="w-full p-4 bg-[var(--primary)]/5 border border-[var(--primary)]/20 rounded-[1.2rem] text-xs font-medium outline-none placeholder:text-[var(--text-secondary)] text-[var(--text-primary)] focus:border-[var(--primary)] transition-colors resize-none custom-scrollbar"
+                  value={ex.observacao || ''}
+                  onChange={(e) => { const n = [...exercicios]; n[exIndex].observacao = e.target.value; setExercicios(n); }}
+                />
               </div>
 
-              {/* Grid Headers */}
-              <div className="grid grid-cols-6 gap-2 text-[8px] sm:text-[9px] font-black text-[var(--text-secondary)] uppercase tracking-widest mb-3 px-1 text-center">
-                <span>{t.series}</span><span>{t.reps}</span><span>{t.load}</span><span>{t.rest}</span><span>{t.planned}</span><span></span>
+              {/* Grid Headers Otimizados - 4 Colunas (+ lixeira) */}
+              <div className="grid grid-cols-[3.5rem_1fr_1.5fr_1fr_2.5rem] sm:grid-cols-[4.5rem_1fr_1.5fr_1fr_3rem] gap-1 sm:gap-2 text-[8px] sm:text-[9px] font-black text-[var(--text-secondary)] uppercase tracking-widest mb-3 text-center ml-0 sm:ml-4">
+                <span>{t.series}</span><span>{t.reps}</span><span>{t.load}</span><span>{t.rest}</span><span></span>
               </div>
 
-              {/* Grid Inputs - Agora protegido com Array.isArray para evitar crashes */}
-              <div className="space-y-3">
+              <div className="space-y-3 ml-0 sm:ml-4">
                 {Array.isArray(ex.series) && ex.series.map((s, sIndex) => (
-                  <div key={sIndex} className="grid grid-cols-6 gap-1 sm:gap-2 items-center">
-                    <input type="text" className="w-full py-3 sm:p-3 bg-[var(--surface-sec)] border border-[var(--border)] rounded-xl text-xs sm:text-sm text-center font-bold text-[var(--text-primary)] outline-none focus:border-[var(--primary)] transition-colors" value={s.ordem ?? ''} onChange={(e) => atualizarSerie(exIndex, sIndex, 'ordem', e.target.value)} />
-                    <input type="text" className="w-full py-3 sm:p-3 bg-[var(--surface-sec)] border border-[var(--border)] rounded-xl text-xs sm:text-sm text-center font-bold text-[var(--text-primary)] outline-none focus:border-[var(--primary)] transition-colors" value={s.reps ?? ''} onChange={(e) => atualizarSerie(exIndex, sIndex, 'reps', e.target.value)} />
-                    <input type="number" className="w-full py-3 sm:p-3 bg-[var(--surface-sec)] border border-[var(--border)] rounded-xl text-xs sm:text-sm text-center font-bold text-[var(--text-primary)] outline-none focus:border-[var(--primary)] transition-colors" value={s.carga ?? ''} onChange={(e) => atualizarSerie(exIndex, sIndex, 'carga', e.target.value)} />
-                    <input type="number" className="w-full py-3 sm:p-3 bg-[var(--surface-sec)] border border-[var(--border)] rounded-xl text-xs sm:text-sm text-center font-bold text-[var(--text-primary)] outline-none focus:border-[var(--primary)] transition-colors" value={s.intervalo ?? ''} onChange={(e) => atualizarSerie(exIndex, sIndex, 'intervalo', e.target.value)} />
-                    <input type="number" className="w-full py-3 sm:p-3 bg-[var(--surface-sec)] border border-[var(--border)] rounded-xl text-xs sm:text-sm text-center font-bold text-[var(--text-primary)] outline-none focus:border-[var(--primary)] transition-colors" value={s.CargaPlanejada ?? ''} onChange={(e) => atualizarSerie(exIndex, sIndex, 'CargaPlanejada', e.target.value)} />
-                    <button onClick={() => { const n = [...exercicios]; n[exIndex].series.splice(sIndex, 1); setExercicios(n); }} className="flex justify-center items-center text-[var(--text-secondary)] hover:text-[var(--danger)] bg-[var(--surface-sec)] hover:bg-[var(--danger)]/10 h-full rounded-xl transition-colors">
+                  <div key={sIndex} className="grid grid-cols-[3.5rem_1fr_1.5fr_1fr_2.5rem] sm:grid-cols-[4.5rem_1fr_1.5fr_1fr_3rem] gap-1 sm:gap-2 items-center">
+                    
+                    <input type="text" placeholder="1ª" className="w-full py-3 sm:p-3 bg-[var(--surface-sec)] border border-[var(--border)] rounded-xl text-xs sm:text-sm font-bold text-center text-[var(--text-primary)] outline-none focus:border-[var(--primary)] transition-colors" value={s.ordem ?? ''} onChange={(e) => atualizarSerie(exIndex, sIndex, 'ordem', e.target.value)} />
+                    <input type="text" placeholder="Ex: 10" className="w-full py-3 sm:p-3 bg-[var(--surface-sec)] border border-[var(--border)] rounded-xl text-xs sm:text-sm font-bold text-center text-[var(--text-primary)] outline-none focus:border-[var(--primary)] transition-colors" value={s.reps ?? ''} onChange={(e) => atualizarSerie(exIndex, sIndex, 'reps', e.target.value)} />
+                    
+                    {/* Carga e Select de KG/LBS Juntos */}
+                    <div className="flex bg-[var(--surface-sec)] border border-[var(--border)] rounded-xl focus-within:border-[var(--primary)] transition-colors overflow-hidden h-full items-center">
+                      <input type="text" className="w-full p-2 sm:p-3 bg-transparent text-xs sm:text-sm font-bold text-center text-[var(--text-primary)] outline-none min-w-0" value={s.carga ?? ''} onChange={(e) => atualizarSerie(exIndex, sIndex, 'carga', e.target.value)} placeholder="0" />
+                      <select className="bg-transparent text-[9px] sm:text-[10px] font-black text-[var(--text-secondary)] uppercase outline-none pr-1 cursor-pointer appearance-none" value={s.unidadeCarga ?? 'kg'} onChange={(e) => atualizarSerie(exIndex, sIndex, 'unidadeCarga', e.target.value)}>
+                        <option value="kg" className="bg-[var(--surface)] text-[var(--text-primary)]">KG</option>
+                        <option value="lbs" className="bg-[var(--surface)] text-[var(--text-primary)]">LBS</option>
+                      </select>
+                    </div>
+
+                    <input type="text" placeholder="Ex: 60s" className="w-full py-3 sm:p-3 bg-[var(--surface-sec)] border border-[var(--border)] rounded-xl text-xs sm:text-sm font-bold text-center text-[var(--text-primary)] outline-none focus:border-[var(--primary)] transition-colors" value={s.intervalo ?? ''} onChange={(e) => atualizarSerie(exIndex, sIndex, 'intervalo', e.target.value)} />
+                    
+                    <button onClick={() => { const n = [...exercicios]; n[exIndex].series.splice(sIndex, 1); setExercicios(n); }} className="flex justify-center items-center text-[var(--text-secondary)] hover:text-[var(--danger)] bg-[var(--surface-sec)] hover:bg-[var(--danger)]/10 h-full rounded-xl transition-colors px-2 sm:px-3 shrink-0">
                       <FaTrash size={12} />
                     </button>
                   </div>
                 ))}
                 
-                {/* Botão de + Adicionar Série dentro do exercício */}
                 <button 
                   onClick={() => { 
                     const n = [...exercicios]; 
                     if(!n[exIndex].series || !Array.isArray(n[exIndex].series)) n[exIndex].series = [];
-                    n[exIndex].series.push({ordem: '', reps: '', carga: '', intervalo: '', CargaPlanejada: ''}); 
+                    n[exIndex].series.push({ordem: '', reps: '', carga: '', unidadeCarga: 'kg', intervalo: ''}); 
                     setExercicios(n); 
                   }} 
-                  className="w-full mt-6 py-4 border-2 border-dashed border-[var(--border)] rounded-[1.2rem] text-[var(--text-secondary)] text-[10px] font-black uppercase tracking-widest hover:border-[var(--primary)] hover:text-[var(--primary)] transition-all flex items-center justify-center gap-2"
+                  className="mt-6 w-[calc(100%-0px)] sm:w-[calc(100%-1rem)] py-4 border-2 border-dashed border-[var(--border)] rounded-[1.2rem] text-[var(--text-secondary)] text-[10px] font-black uppercase tracking-widest hover:border-[var(--primary)] hover:text-[var(--primary)] transition-all flex items-center justify-center gap-2"
                 >
                    <FaPlus size={10} /> {t.addSeries}
                 </button>
@@ -468,7 +657,7 @@ function EditarFichaContent() {
 
           {/* Botão Adicionar Exercicio */}
           <button 
-            onClick={() => setExercicios([...exercicios, { nome: '', video: '', metodo: 'Normal', tipoSerie: 'Repetições e carga', series: [{ ordem: '', reps: '', carga: '', CargaPlanejada: '', intervalo: '' }] }])} 
+            onClick={() => setExercicios([...exercicios, { nome: '', video: '', metodo: 'Normal', tipoSerie: 'Repetições e carga', series: [{ ordem: '', reps: '', carga: '', unidadeCarga: 'kg', intervalo: '' }] }])} 
             className="w-full py-6 rounded-[2rem] font-black text-[10px] uppercase tracking-widest text-[var(--text-secondary)] border-2 border-dashed border-[var(--border)] hover:border-[var(--primary)] hover:text-[var(--primary)] transition-all mb-8 flex items-center justify-center gap-2 bg-[var(--surface)] shadow-sm"
           > 
             <FaPlus size={12} /> + Adicionar Exercício
@@ -493,7 +682,7 @@ export default function EditarFicha() {
   return (
     <Suspense fallback={
       <main style={{ backgroundColor: bgTheme }} className="min-h-screen transition-colors duration-500">
-        <NovaFichaSkeleton />
+        <DashboardSkeleton />
       </main>
     }>
       <EditarFichaContent />

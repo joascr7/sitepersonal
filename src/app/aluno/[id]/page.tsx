@@ -121,13 +121,12 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
   const [calendarioAberto, setCalendarioAberto] = useState(false);
   const [treinoDoDia, setTreinoDoDia] = useState<any>(null);
   const [horaAtual, setHoraAtual] = useState(new Date());
+  
   // Estados de Tema e i18n
   const [isDark, setIsDark] = useState(true);
   const [lang, setLang] = useState<'pt-BR' | 'pt-PT' | 'en'>('pt-BR');
 
-
-
-useEffect(() => {
+  useEffect(() => {
     const timer = setInterval(() => setHoraAtual(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
@@ -148,8 +147,6 @@ useEffect(() => {
     if (savedLang) setLang(savedLang);
     NotificationService.registrarDispositivo();
   }, []);
-
-
 
   const toggleTheme = () => {
     const newTheme = !isDark;
@@ -220,43 +217,39 @@ useEffect(() => {
         setDiasTreino(treinosSemana.map(d => parseISO(d.data_conclusao)));
       }
 
-      // 4. Lógica de Avanço Sequencial (Corrigida)
-      let ordemUltimoTreino = 0;
-      if (conclusoes && conclusoes.length > 0) {
-        const ultimaConclusao = conclusoes.sort((a, b) => 
-          new Date(b.data_conclusao).getTime() - new Date(a.data_conclusao).getTime()
-        )[0];
-
-        const { data: fichaAnterior } = await supabase
-          .from('fichas')
-          .select('ordem')
-          .eq('id', ultimaConclusao.treino_id)
-          .single();
-        
-        ordemUltimoTreino = fichaAnterior?.ordem || 0;
-      }
-
-      let { data: treinoSugerido } = await supabase
+      // 4. LÓGICA DE AVANÇO SEQUENCIAL ROBUSTA (A -> B -> C -> A)
+      const { data: todasFichas } = await supabase
         .from('fichas')
         .select('*')
         .eq('aluno_id', id)
-        .gt('ordem', ordemUltimoTreino)
-        .order('ordem', { ascending: true })
-        .limit(1)
-        .maybeSingle();
+        .order('ordem', { ascending: true }) // Ordena pela ordem configurada pelo personal
+        .order('nome_treino', { ascending: true }); // Fallback de segurança
 
-      if (!treinoSugerido) {
-        const { data: fallback } = await supabase
-          .from('fichas')
-          .select('*')
-          .eq('aluno_id', id)
-          .order('ordem', { ascending: true })
-          .limit(1)
-          .maybeSingle();
-        treinoSugerido = fallback;
+      if (todasFichas && todasFichas.length > 0) {
+        if (!conclusoes || conclusoes.length === 0) {
+          // Se o aluno nunca treinou, o primeiro treino da lista é o de hoje
+          setTreinoDoDia(todasFichas[0]);
+        } else {
+          // Pega o último treino feito ordenando o histórico por data
+          const ultimaConclusao = conclusoes.sort((a, b) => 
+            new Date(b.data_conclusao).getTime() - new Date(a.data_conclusao).getTime()
+          )[0];
+
+          // Descobre a posição (índice) do último treino na lista de fichas ativas
+          const indexUltimo = todasFichas.findIndex(f => f.id === ultimaConclusao.treino_id);
+
+          if (indexUltimo !== -1 && indexUltimo < todasFichas.length - 1) {
+            // Se não era o último da lista, passa para o próximo
+            setTreinoDoDia(todasFichas[indexUltimo + 1]);
+          } else {
+            // Se era o último da fila (ou não foi encontrado), reseta para o primeiro
+            setTreinoDoDia(todasFichas[0]);
+          }
+        }
+      } else {
+        setTreinoDoDia(null);
       }
 
-      setTreinoDoDia(treinoSugerido);
       setLoading(false);
     }
     
@@ -295,67 +288,66 @@ useEffect(() => {
       <div className="max-w-md mx-auto flex flex-col pt-[max(env(safe-area-inset-top),1.5rem)] px-5 pb-32 space-y-6">
 
         {/* ━━━━━━━━━━ HEADER & PREFERENCES ━━━━━━━━━━ */}
-<header className="flex justify-between items-center w-full mt-4">
-  <div className="flex items-center gap-4">
-    <div className="relative w-14 h-14 rounded-full p-[2px] bg-gradient-to-tr from-[var(--primary)] to-[var(--primary-soft)] shadow-lg shadow-[var(--primary)]/20 shrink-0">
-      <div className="w-full h-full rounded-full bg-[var(--surface)] p-[2px]">
-        {personal?.avatar_url ? (
-          <img src={personal.avatar_url} alt="Personal Avatar" className="w-full h-full object-cover rounded-full" />
-        ) : (
-          <FaUserCircle className="w-full h-full text-[var(--text-secondary)]" />
-        )}
-      </div>
-    </div>
-    <div className="flex flex-col truncate">
-      <span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-0.5">Personal Trainer</span>
-      <h1 className="font-black text-lg leading-none tracking-tight truncate">{personal?.nome || 'Personal'}</h1>
-      <p className="text-[var(--primary)] text-[9px] font-black uppercase tracking-[0.2em] mt-1">CREF: {personal?.cref || 'N/A'}</p>
-    </div>
-  </div>
-  
-  <div className="flex gap-2 shrink-0">
-    {/* Ícone de Idioma */}
-    <button onClick={toggleLang} className="w-10 h-10 rounded-full bg-[var(--surface)] border border-[var(--border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--primary)] transition-all active:scale-95 shadow-sm relative">
-      <FaGlobe size={16} />
-      <span className="absolute -top-1 -right-1 bg-[var(--primary)] text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full leading-none flex items-center">{lang.split('-')[0].toUpperCase()}</span>
-    </button>
+        <header className="flex justify-between items-center w-full mt-4">
+          <div className="flex items-center gap-4">
+            <div className="relative w-14 h-14 rounded-full p-[2px] bg-gradient-to-tr from-[var(--primary)] to-[var(--primary-soft)] shadow-lg shadow-[var(--primary)]/20 shrink-0">
+              <div className="w-full h-full rounded-full bg-[var(--surface)] p-[2px]">
+                {personal?.avatar_url ? (
+                  <img src={personal.avatar_url} alt="Personal Avatar" className="w-full h-full object-cover rounded-full" />
+                ) : (
+                  <FaUserCircle className="w-full h-full text-[var(--text-secondary)]" />
+                )}
+              </div>
+            </div>
+            <div className="flex flex-col truncate">
+              <span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-0.5">Personal Trainer</span>
+              <h1 className="font-black text-lg leading-none tracking-tight truncate">{personal?.nome || 'Personal'}</h1>
+              <p className="text-[var(--primary)] text-[9px] font-black uppercase tracking-[0.2em] mt-1">CREF: {personal?.cref || 'N/A'}</p>
+            </div>
+          </div>
+          
+          <div className="flex gap-2 shrink-0">
+            {/* Ícone de Idioma */}
+            <button onClick={toggleLang} className="w-10 h-10 rounded-full bg-[var(--surface)] border border-[var(--border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--primary)] transition-all active:scale-95 shadow-sm relative">
+              <FaGlobe size={16} />
+              <span className="absolute -top-1 -right-1 bg-[var(--primary)] text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full leading-none flex items-center">{lang.split('-')[0].toUpperCase()}</span>
+            </button>
 
-    {/* SININHO DE NOTIFICAÇÕES */}
-    <div className="flex items-center justify-center">
-      <NotificationBell />
-    </div>
+            {/* SININHO DE NOTIFICAÇÕES */}
+            <div className="flex items-center justify-center">
+              <NotificationBell />
+            </div>
 
-    {/* Ícone de Tema */}
-    <button onClick={toggleTheme} className="w-10 h-10 rounded-full bg-[var(--surface)] border border-[var(--border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--primary)] transition-all active:scale-95 shadow-sm">
-      {isDark ? <FaSun size={16} /> : <FaMoon size={16} />}
-    </button>
-  </div>
-</header>
-
+            {/* Ícone de Tema */}
+            <button onClick={toggleTheme} className="w-10 h-10 rounded-full bg-[var(--surface)] border border-[var(--border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--primary)] transition-all active:scale-95 shadow-sm">
+              {isDark ? <FaSun size={16} /> : <FaMoon size={16} />}
+            </button>
+          </div>
+        </header>
 
         {/* ━━━━━━━━━━ BANNER DE ATIVAÇÃO PUSH ━━━━━━━━━━ */}
-{typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default' && (
-  <div className="bg-gradient-to-r from-blue-600 to-[var(--primary)] p-5 rounded-[1.5rem] border border-white/10 shadow-lg animate-in fade-in slide-in-from-top-4 duration-500">
-    <div className="flex flex-col gap-3">
-      <div>
-        <h3 className="font-black text-sm text-white tracking-tight">Não perca nenhum treino! </h3>
-        <p className="text-white/80 text-[11px] font-medium leading-relaxed mt-1">
-          Ative as notificações para receber os novos treinos e avisos do seu Personal diretamente no telemóvel.
-        </p>
-      </div>
-      <button 
-        onClick={async () => {
-          await NotificationService.registrarDispositivo();
-          // Força a atualização do ecrã para sumir com o banner após o clique
-          router.refresh();
-        }}
-        className="w-full py-2.5 bg-white text-[var(--primary)] rounded-xl font-black text-[11px] uppercase tracking-widest active:scale-[0.98] transition-all shadow-md"
-      >
-        Permitir Notificações
-      </button>
-    </div>
-  </div>
-)}
+        {typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default' && (
+          <div className="bg-gradient-to-r from-blue-600 to-[var(--primary)] p-5 rounded-[1.5rem] border border-white/10 shadow-lg animate-in fade-in slide-in-from-top-4 duration-500">
+            <div className="flex flex-col gap-3">
+              <div>
+                <h3 className="font-black text-sm text-white tracking-tight">Não perca nenhum treino! </h3>
+                <p className="text-white/80 text-[11px] font-medium leading-relaxed mt-1">
+                  Ative as notificações para receber os novos treinos e avisos do seu Personal diretamente no telemóvel.
+                </p>
+              </div>
+              <button 
+                onClick={async () => {
+                  await NotificationService.registrarDispositivo();
+                  // Força a atualização do ecrã para sumir com o banner após o clique
+                  router.refresh();
+                }}
+                className="w-full py-2.5 bg-white text-[var(--primary)] rounded-xl font-black text-[11px] uppercase tracking-widest active:scale-[0.98] transition-all shadow-md"
+              >
+                Permitir Notificações
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* ━━━━━━━━━━ STATUS ALUNO ━━━━━━━━━━ */}
         {aluno && (
@@ -375,46 +367,63 @@ useEffect(() => {
         )}
 
         {/* ━━━━━━━━━━ SAUDAÇÃO E HORÁRIO ATUAL ━━━━━━━━━━ */}
-<div className="px-2 animate-in fade-in duration-700 delay-300 flex justify-between items-end">
-   <div>
-     <h3 className="text-[14px] font-bold text-[var(--text-primary)]">
-       {getSaudacao()}, {aluno?.nome?.split(' ')[0] || 'Aluno'}! 👋
-     </h3>
-     <p className="text-[10px] font-medium text-[var(--text-secondary)] uppercase tracking-widest mt-1">
-       {format(horaAtual, "EEEE, d 'de' MMMM", { locale: lang === 'pt-BR' ? ptBR : lang === 'pt-PT' ? pt : enUS })}
-     </p>
-   </div>
-   
-   {/* Relógio em tempo real */}
-   <div className="bg-[var(--surface-sec)] px-3 py-1.5 rounded-lg border border-[var(--border)]">
-      <p className="text-[14px] font-black text-[var(--primary)] tabular-nums tracking-widest">
-        {format(horaAtual, 'HH:mm:ss')}
-      </p>
-   </div>
-</div>
+        <div className="px-2 animate-in fade-in duration-700 delay-300 flex justify-between items-end">
+           <div>
+             <h3 className="text-[14px] font-bold text-[var(--text-primary)]">
+               {getSaudacao()}, {aluno?.nome?.split(' ')[0] || 'Aluno'}! 👋
+             </h3>
+             <p className="text-[10px] font-medium text-[var(--text-secondary)] uppercase tracking-widest mt-1">
+               {format(horaAtual, "EEEE, d 'de' MMMM", { locale: lang === 'pt-BR' ? ptBR : lang === 'pt-PT' ? pt : enUS })}
+             </p>
+           </div>
+           
+           {/* Relógio em tempo real */}
+           <div className="bg-[var(--surface-sec)] px-3 py-1.5 rounded-lg border border-[var(--border)]">
+              <p className="text-[14px] font-black text-[var(--primary)] tabular-nums tracking-widest">
+                {format(horaAtual, 'HH:mm:ss')}
+              </p>
+           </div>
+        </div>
 
         {/* ━━━━━━━━━━ HERO: TREINO DO DIA ━━━━━━━━━━ */}
         {treinoDoDia ? (
-          <section className="relative overflow-hidden bg-gradient-to-br from-[var(--primary)] to-blue-800 p-8 rounded-[2rem] shadow-[0_10px_30px_-10px_var(--primary)] border border-white/10 group animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">
-            {/* Efeito Glow Premium */}
-            <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 blur-[50px] rounded-full transform translate-x-1/2 -translate-y-1/2" />
+          (() => {
+            // Regex Inteligente: Extrai estritamente padrões como "Treino A", "Treino B", "Treino 1"
+            let nomeLimpoHero = treinoDoDia.nome_treino || '';
+            const matchTreino = nomeLimpoHero.match(/(treino\s+[a-z0-9]+)/i);
             
-            <div className="relative z-10 flex justify-between items-start mb-8">
-              <div className="flex flex-col flex-1 pr-4">
-                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/70 mb-1">{t.today}</span>
-                <h2 className="text-3xl font-black tracking-tight text-white leading-tight break-words">{treinoDoDia.nome_treino}</h2>
-              </div>
-              <div className="bg-white/20 backdrop-blur-md p-3.5 rounded-2xl shadow-inner shrink-0">
-                <FaDumbbell className="text-white text-xl" />
-              </div>
-            </div>
-            <button 
-              onClick={() => router.push(`/aluno/${id}/treino/${treinoDoDia.id}`)}
-              className="relative z-10 w-full py-4 bg-white text-[var(--primary)] rounded-2xl font-black text-[12px] uppercase tracking-widest transition-transform active:scale-[0.98] shadow-xl hover:shadow-2xl flex items-center justify-center gap-2"
-            >
-              {t.start}
-            </button>
-          </section>
+            if (matchTreino) {
+              nomeLimpoHero = matchTreino[0].toUpperCase();
+            } else if (nomeLimpoHero.includes('-')) {
+              // Caso não tenha "Treino A/B", pega a última parte após um traço
+              nomeLimpoHero = nomeLimpoHero.split('-').pop()?.trim() || nomeLimpoHero;
+            }
+
+            return (
+              <section className="relative overflow-hidden bg-gradient-to-br from-[var(--primary)] to-blue-800 p-8 rounded-[2rem] shadow-[0_10px_30px_-10px_var(--primary)] border border-white/10 group animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">
+                {/* Efeito Glow Premium */}
+                <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 blur-[50px] rounded-full transform translate-x-1/2 -translate-y-1/2" />
+                
+                <div className="relative z-10 flex justify-between items-start mb-8">
+                  <div className="flex flex-col flex-1 pr-4">
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/70 mb-1">{t.today}</span>
+                    <h2 className="text-3xl font-black tracking-tight text-white leading-tight break-words">
+                      {nomeLimpoHero}
+                    </h2>
+                  </div>
+                  <div className="bg-white/20 backdrop-blur-md p-3.5 rounded-2xl shadow-inner shrink-0">
+                    <FaDumbbell className="text-white text-xl" />
+                  </div>
+                </div>
+                <button 
+                  onClick={() => router.push(`/aluno/${id}/treino/${treinoDoDia.id}`)}
+                  className="relative z-10 w-full py-4 bg-white text-[var(--primary)] rounded-2xl font-black text-[12px] uppercase tracking-widest transition-transform active:scale-[0.98] shadow-xl hover:shadow-2xl flex items-center justify-center gap-2"
+                >
+                  {t.start}
+                </button>
+              </section>
+            );
+          })()
         ) : (
           <div className="p-8 text-center bg-[var(--surface)] rounded-[2rem] border border-dashed border-[var(--border)] animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">
             <p className="text-[var(--text-secondary)] text-sm font-bold">{t.none}</p>
@@ -451,8 +460,6 @@ useEffect(() => {
             })}
           </div>
         </section>
-
-        
 
         <button 
           onClick={() => setCalendarioAberto(true)}
@@ -664,42 +671,18 @@ function ModalAvaliacao({ isOpen, onClose, avaliacao, historico, themeStyles, t,
               <p className="font-black text-3xl leading-none relative z-10">{avaliacao.peso || 0}<span className="text-sm opacity-70 ml-1 font-bold">kg</span></p>
               {pesoAnterior > 0 && (
                 <div className="mt-3 inline-flex items-center bg-black/20 px-2 py-1.5 rounded-[0.8rem] backdrop-blur-md border border-white/10 relative z-10">
-                  <p className={`text-[10px] font-bold ${diferenca <= 0 ? 'text-green-300' : 'text-orange-300'}`}>
-                    {diferenca <= 0 ? '↓' : '↑'} {Math.abs(diferenca).toFixed(1)}kg
-                  </p>
+                  <span className={`text-[10px] font-black tracking-wider ${diferenca > 0 ? 'text-red-300' : 'text-green-300'}`}>
+                    {diferenca > 0 ? '+' : ''}{diferenca.toFixed(1)}kg
+                  </span>
                 </div>
               )}
             </div>
-            <div className="bg-[var(--surface-sec)] p-5 sm:p-6 rounded-[2rem] border border-[var(--border)] shadow-inner">
+            
+            <div className="bg-[var(--surface-sec)] p-5 sm:p-6 rounded-[2rem] border border-[var(--border)] shadow-sm flex flex-col justify-center">
               <p className="text-[9px] font-bold uppercase text-[var(--text-secondary)] mb-1">{t.prevWeight}</p>
-              <p className="font-black text-3xl leading-none text-[var(--text-primary)]">{pesoAnterior || 0}<span className="text-sm text-[var(--text-secondary)] ml-1 font-bold">kg</span></p>
-              <p className="text-[10px] font-bold text-[var(--text-secondary)] mt-3 opacity-70">{t.lastMark}</p>
+              <p className="font-black text-2xl text-[var(--text-primary)] leading-none">{pesoAnterior || 0}<span className="text-xs text-[var(--text-secondary)] ml-1 font-bold">kg</span></p>
             </div>
           </div>
-
-          {/* Grade de Medidas */}
-          <div className="space-y-4 mb-8">
-            <p className="text-[10px] font-black uppercase text-[var(--text-secondary)] tracking-widest mb-3">{t.details}</p>
-            <div className="grid grid-cols-2 gap-3">
-              {medidasList.map((m) => (
-                <div key={m.label} className="flex justify-between items-center bg-[var(--surface-sec)] p-4 rounded-[1.2rem] border border-[var(--border)] shadow-sm hover:border-[var(--primary)]/30 transition-colors">
-                  <span className="text-[11px] font-bold text-[var(--text-secondary)] uppercase">{m.label}</span>
-                  <span className="font-black text-[var(--text-primary)] text-sm">{m.value || 0}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {avaliacao.observacoes && (
-            <div className="bg-[var(--primary)]/10 p-5 sm:p-6 rounded-[1.5rem] border border-[var(--primary)]/20 mb-8">
-              <p className="text-[10px] font-black uppercase text-[var(--primary)] tracking-widest mb-2 flex items-center gap-2">
-                <FaCommentMedical className="text-[var(--primary)]" /> {t.obs}
-              </p>
-              <p className="text-sm text-[var(--text-primary)] italic leading-relaxed font-medium">"{avaliacao.observacoes}"</p>
-            </div>
-          )}
-          
-          <div className="h-8 shrink-0" />
         </div>
       </div>
     </div>

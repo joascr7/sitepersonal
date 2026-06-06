@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState, use } from 'react';
+import { useEffect, useState, use, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { FaChevronLeft, FaPlay } from 'react-icons/fa';
@@ -84,10 +84,9 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
 
   const META_SESSOES = 30;
 
- useEffect(() => {
+  useEffect(() => {
     const init = async () => {
       setLoading(true);
-      // Otimização: Apenas uma chamada necessária para validar
       const { data: aluno } = await supabase.from('alunos').select('status_pagamento, data_vencimento').eq('id', id).single();
       
       if (aluno) {
@@ -101,7 +100,6 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
       }
 
       const [fichasRes, histRes] = await Promise.all([
-        // BUSCAMOS TUDO (ativos e inativos) para o histórico não ficar quebrado
         supabase.from('fichas').select('*').eq('aluno_id', id),
         supabase.from('conclusoes_treino').select('treino_id, data_conclusao').eq('aluno_id', id)
       ]);
@@ -110,15 +108,19 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
         const historicoData = histRes.data || [];
         const processadas = fichasRes.data.map(f => {
           let exercicios = [];
-          try { exercicios = typeof f.descricao === 'string' ? JSON.parse(f.descricao || '[]') : (f.descricao || []); } catch { exercicios = []; }
+          try { 
+            exercicios = typeof f.descricao === 'string' ? JSON.parse(f.descricao || '[]') : (f.descricao || []); 
+          } catch { 
+            exercicios = []; 
+          }
           const historicoDoTreino = historicoData.filter(h => h.treino_id === f.id);
           
           return { 
             ...f, 
+            exercicios, 
             count: exercicios.length, 
             sessõesCount: historicoDoTreino.length, 
             ultimaSessao: historicoDoTreino.length > 0 ? historicoDoTreino[0].data_conclusao : null,
-            // Adiciona a flag de controle visual
             ativo: f.ativo !== false 
           };
         });
@@ -129,15 +131,32 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
     init();
   }, [id, router]);
 
- if (loading) return (
+  // PROCESSAMENTO DOS 3 NÍVEIS COM useMemo
+  const fichasAgrupadas = useMemo(() => {
+    const ativas = fichas.filter((f) => f.ativo);
+    
+    return ativas.reduce((acc, f) => {
+      const partes = f.nome_treino ? f.nome_treino.split(' - ') : ['GERAL'];
+      const programaMaster = partes[0].trim().toUpperCase();
+      const nomeExibicaoCard = partes[1] ? partes[1].trim() : f.nome_treino;
+
+      if (!acc[programaMaster]) acc[programaMaster] = [];
+      
+      acc[programaMaster].push({
+        ...f,
+        nomeLimpoCard: nomeExibicaoCard
+      });
+      
+      return acc;
+    }, {} as Record<string, Array<any>>);
+  }, [fichas]);
+
+  if (loading) return (
     <main style={themeStyles} className="min-h-screen bg-[var(--bg)] p-6 space-y-8 animate-pulse pt-[max(env(safe-area-inset-top),2rem)]">
-      {/* Header Skeleton */}
       <div className="space-y-4 mb-10">
         <div className="w-48 h-10 bg-[var(--surface-sec)] rounded-full" />
         <div className="w-32 h-3 bg-[var(--surface-sec)] rounded-full" />
       </div>
-
-      {/* Cards Skeleton */}
       <div className="space-y-4">
         {[1, 2, 3].map((i) => (
           <div key={i} className="p-6 bg-[var(--surface)] rounded-[2rem] border border-[var(--border)] space-y-5">
@@ -171,60 +190,125 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
           </p>
         </header>
 
-        {/* ━━━━━━━━━━ LISTA DE TREINOS ━━━━━━━━━━ */}
-        <div className="space-y-4">
-          {/* 🔥 A MUDANÇA ESTÁ AQUI: Adicionamos o filter antes do map */}
-          {fichas.filter((f) => f.ativo).map((f) => {
-            const progressoPercent = Math.min(Math.round((f.sessõesCount / META_SESSOES) * 100), 100);
-            
-            return (
-              <div 
-                key={f.id} 
-                className="bg-[var(--surface)] p-6 rounded-[2rem] border border-[var(--border)] shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group"
-              >
-                {/* Subtle Background Accent */}
-                <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--primary)]/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none" />
-
-                <div className="flex justify-between items-start mb-5 relative z-10">
-                  <div>
-                    <h2 className="font-black text-[var(--text-primary)] text-lg leading-tight tracking-tight">{f.nome_treino}</h2>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] mt-1.5 flex items-center gap-1.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-[var(--primary)] opacity-70"></span>
-                      {f.count} {t.exercises}
-                    </p>
-                  </div>
-                  <div className="text-right bg-[var(--surface-sec)] px-3 py-1.5 rounded-xl border border-[var(--border)]">
-                    <p className="text-[8px] font-bold uppercase text-[var(--text-secondary)] tracking-widest mb-0.5">{t.last}</p>
-                    <p className="text-[11px] font-black text-[var(--text-primary)]">
-                      {f.ultimaSessao ? new Date(f.ultimaSessao).toLocaleDateString(lang, { day: '2-digit', month: '2-digit' }) : t.never}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Barra de Progresso Premium */}
-                <div className="mb-6 relative z-10">
-                  <div className="flex justify-between items-end mb-2">
-                    <p className="text-[9px] font-bold uppercase text-[var(--text-secondary)] tracking-widest">{t.progress}</p>
-                    <p className="text-[11px] font-black text-[var(--primary)]">{f.sessõesCount} <span className="text-[var(--text-secondary)] opacity-50 font-bold text-[9px]">/ {META_SESSOES}</span></p>
-                  </div>
-                  <div className="h-2 bg-[var(--surface-sec)] rounded-full overflow-hidden border border-[var(--border)]">
-                    <div 
-                      className="h-full bg-gradient-to-r from-[var(--primary-soft)] to-[var(--primary)] rounded-full transition-all duration-1000 ease-out" 
-                      style={{ width: `${progressoPercent}%` }} 
-                    />
-                  </div>
-                </div>
-
-                <button 
-                  onClick={() => router.push(`/aluno/${id}/treino/${f.id}`)}
-                  className="w-full relative z-10 flex items-center justify-center gap-2 bg-[var(--primary)] text-white py-4 rounded-[1.2rem] font-black text-[11px] uppercase tracking-widest active:scale-[0.98] transition-all shadow-lg shadow-[var(--primary)]/20 hover:shadow-[var(--primary)]/30 hover:bg-blue-600"
-                >
-                  <FaPlay className="text-[10px]" />
-                  {t.start}
-                </button>
+        {/* ━━━━━━━━━━ ESTRUTURA DE TREINOS EM 3 NÍVEIS ━━━━━━━━━━ */}
+        <div className="space-y-8">
+          {Object.entries(fichasAgrupadas).map(([programaMaster, treinos]) => (
+            <div key={programaMaster} className="space-y-4">
+              
+              {/* 🎯 NÍVEL 1: Programa Master (Ex: HIPERTROFIA 2) */}
+              <div className="flex items-center gap-2.5 pl-1 pt-2">
+                <span className="h-5 w-1 bg-gradient-to-b from-[var(--primary-soft)] to-[var(--primary)] rounded-full" />
+                <h2 className="text-lg font-black uppercase tracking-wider text-[var(--text-primary)]">
+                  {programaMaster}
+                </h2>
               </div>
-            );
-          })}
+
+              {/* 📋 NÍVEL 2: Lista de Treinos Relacionados (Ex: Treino A, Treino B) */}
+              <div className="space-y-4">
+                {treinos.map((f) => {
+                  const progressoPercent = Math.min(Math.round((f.sessõesCount / META_SESSOES) * 100), 100);
+                  
+                  return (
+                    <div 
+                      key={f.id} 
+                      className="bg-[var(--surface)] p-6 rounded-[2rem] border border-[var(--border)] shadow-sm hover:shadow-md transition-all relative overflow-hidden group"
+                    >
+                      <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--primary)]/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none" />
+
+                      <div className="flex justify-between items-start mb-4 relative z-10">
+                        <div>
+                          <h3 className="font-black text-[var(--text-primary)] text-base leading-tight tracking-tight">
+                            {f.nomeLimpoCard}
+                          </h3>
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] mt-1.5 flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[var(--primary)] opacity-70"></span>
+                            {f.count} {t.exercises}
+                          </p>
+                        </div>
+                        <div className="text-right bg-[var(--surface-sec)] px-3 py-1.5 rounded-xl border border-[var(--border)]">
+                          <p className="text-[8px] font-bold uppercase text-[var(--text-secondary)] tracking-widest mb-0.5">{t.last}</p>
+                          <p className="text-[11px] font-black text-[var(--text-primary)]">
+                            {f.ultimaSessao ? new Date(f.ultimaSessao).toLocaleDateString(lang, { day: '2-digit', month: '2-digit' }) : t.never}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* 💪 NÍVEL 3: Lista Interna de Exercícios Totalmente Blindada */}
+                      <div className="mb-5 space-y-1.5 relative z-10 max-h-48 overflow-y-auto pr-1 scrollbar-thin">
+                        {f.exercicios && f.exercicios.length > 0 ? (
+                          f.exercicios.map((ex: any, idx: number) => {
+                            
+                            // 1. Descobre a quantidade de séries com segurança (lendo se é array de sub-objetos)
+                            const totalSeries = Array.isArray(ex.series) 
+                              ? ex.series.length 
+                              : (typeof ex.series === 'object' ? 1 : (ex.series || 3));
+
+                            // 2. Extrai de forma blindada as repetições (reps) do primeiro objeto interno ou fallback
+                            const reps = Array.isArray(ex.series) && ex.series[0]
+                              ? (ex.series[0].reps || ex.series[0].repeticoes || '12')
+                              : (ex.reps || ex.repeticoes || '12');
+
+                            // 3. Extrai a carga do primeiro objeto interno ou fallback
+                            const carga = Array.isArray(ex.series) && ex.series[0]
+                              ? ex.series[0].carga
+                              : ex.carga;
+
+                            // 4. Trata o nome caso ele venha em formato de sub-objeto relacional do Supabase
+                            let nomeFinal = `Exercício ${idx + 1}`;
+                            if (ex.nome) nomeFinal = ex.nome;
+                            else if (ex.exercicio) {
+                              nomeFinal = typeof ex.exercicio === 'object' ? (ex.exercicio.nome || ex.exercicio.titulo || nomeFinal) : ex.exercicio;
+                            }
+
+                            return (
+                              <div 
+                                key={idx} 
+                                className="flex justify-between items-center bg-[var(--surface-sec)]/50 border border-[var(--border)] px-3 py-2 rounded-xl text-xs hover:bg-[var(--surface-sec)]/80 transition-colors"
+                              >
+                                <span className="font-bold text-[var(--text-primary)] truncate max-w-[190px]">
+                                  {nomeFinal}
+                                </span>
+                                <span className="text-[10px] text-[var(--text-secondary)] font-mono font-bold shrink-0 pl-2">
+                                  {totalSeries}x{reps} {carga ? `• ${carga}kg` : ''}
+                                </span>
+                              </div>
+                            );
+                          })
+                        ) : (
+                          <p className="text-xs text-[var(--text-secondary)] italic pl-1">Nenhum exercício cadastrado.</p>
+                        )}
+                      </div>
+
+                      {/* Barra de Progresso do Treino */}
+                      <div className="mb-5 relative z-10">
+                        <div className="flex justify-between items-end mb-2">
+                          <p className="text-[9px] font-bold uppercase text-[var(--text-secondary)] tracking-widest">{t.progress}</p>
+                          <p className="text-[11px] font-black text-[var(--primary)]">{f.sessõesCount} <span className="text-[var(--text-secondary)] opacity-50 font-bold text-[9px]">/ {META_SESSOES}</span></p>
+                        </div>
+                        <div className="h-2 bg-[var(--surface-sec)] rounded-full overflow-hidden border border-[var(--border)]">
+                          <div 
+                            className="h-full bg-gradient-to-r from-[var(--primary-soft)] to-[var(--primary)] rounded-full transition-all duration-1000 ease-out" 
+                            style={{ width: `${progressoPercent}%` }} 
+                          />
+                        </div>
+                      </div>
+
+                      {/* Botão de Ação */}
+                      <button 
+                        onClick={() => router.push(`/aluno/${id}/treino/${f.id}`)}
+                        className="w-full relative z-10 flex items-center justify-center gap-2 bg-[var(--primary)] text-white py-4 rounded-[1.2rem] font-black text-[11px] uppercase tracking-widest active:scale-[0.98] transition-all shadow-lg shadow-[var(--primary)]/20 hover:shadow-[var(--primary)]/30 hover:bg-blue-600"
+                      >
+                        <FaPlay className="text-[10px]" />
+                        {t.start}
+                      </button>
+
+                    </div>
+                  );
+                })}
+              </div>
+
+            </div>
+          ))}
         </div>
         
         {/* ━━━━━━━━━━ BACK BUTTON ━━━━━━━━━━ */}
@@ -236,7 +320,6 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
           {t.back}
         </button>
 
-        {/* ESPAÇADOR DE SEGURANÇA: Garante que o scroll ultrapasse a Navbar inferior */}
         <div className="h-16 w-full shrink-0" aria-hidden="true" />
       </div>
     </main>

@@ -1,12 +1,13 @@
 'use client';
-import { useEffect, useState, use, Suspense } from 'react';
+import { useEffect, useState, use, Suspense, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import ControleFinanceiro from '@/components/ControleFinanceiro';
 import { 
   FaChevronLeft, FaGlobe, FaMoon, FaSun, FaExclamationCircle, FaCheckCircle, 
-  FaTrash, FaFilePdf, FaUpload, FaPlus, FaChartLine, FaDumbbell, FaCommentAlt, FaFolderOpen 
+  FaTrash, FaFilePdf, FaUpload, FaPlus, FaChartLine, FaDumbbell, FaCommentAlt, FaFolderOpen,
+  FaArchive, FaUndo, FaUsers, FaEdit
 } from 'react-icons/fa';
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -40,32 +41,68 @@ const translations = {
   'pt-BR': {
     back: 'Voltar', objective: 'Objetivo: ', notDefined: 'Não definido',
     tabs: { workouts: 'Treinos', evolution: 'Evolução', feedback: 'Feedbacks', files: 'Documentos' },
-    workouts: { active: 'Ativo', viewDetails: 'Visualizar Detalhes →', empty: 'Nenhuma ficha criada.', new: '+ Criar Nova Ficha' },
+    workouts: { 
+      active: 'Ativos', archived: 'Arquivados', program: 'Programa', viewDetails: 'Ver Treino', edit: 'Editar',
+      empty: 'Nenhuma ficha encontrada.', new: '+ Criar Nova Ficha', 
+      assign: 'Atribuir a outros', archive: 'Arquivar', restore: 'Restaurar', selectStudents: 'Selecione os Alunos'
+    },
     evolution: { title: 'Evolução', subtitle: 'Acompanhamento e métricas.', newEval: '+ Nova Avaliação', weight: 'Peso (kg)', delete: 'Excluir' },
     feedback: { title: 'Feedbacks', subtitle: 'Histórico do aluno.', intensity: 'Intensidade', level: 'Nível', delete: 'Excluir', empty: 'Nenhum feedback.' },
     files: { title: 'Documentos', subtitle: 'Gestão de exames e arquivos.', upload: 'Selecionar novo PDF', open: 'Abrir', empty: 'Nenhum arquivo enviado.' },
     modalEval: { title: 'Nova Avaliação', subtitle: 'Preencha as métricas do aluno.', obs: 'Observações...', cancel: 'Cancelar', save: 'Salvar' },
-    alerts: { confirmFeedback: 'Tem certeza que deseja excluir este feedback?', confirmFicha: 'Tem certeza que deseja excluir esta ficha? Esta ação é irreversível.', confirmAvaliacao: 'Tem certeza que deseja excluir este registro?', confirmArquivo: 'Tem certeza que deseja excluir este arquivo?', errDelete: 'Erro ao excluir: ', errSave: 'Erro ao salvar: ', errUpload: 'Erro ao subir arquivo.', successUpload: 'Arquivo enviado com sucesso!' }
+    alerts: { 
+      confirmFeedback: 'Tem certeza que deseja excluir este feedback?', 
+      confirmMasterFicha: 'Tem certeza que deseja excluir DE VEZ este programa e todos os treinos vinculados? Esta ação não tem volta.', 
+      confirmArchive: 'Arquivar este programa irá escondê-lo do aplicativo do aluno. Deseja continuar?',
+      confirmRestore: 'Este programa voltará a aparecer para o aluno. Deseja continuar?',
+      confirmAvaliacao: 'Tem certeza que deseja excluir este registro?', 
+      confirmArquivo: 'Tem certeza que deseja excluir este arquivo?', 
+      errDelete: 'Erro ao excluir: ', errSave: 'Erro ao salvar: ', errUpload: 'Erro ao subir arquivo.', successUpload: 'Arquivo enviado com sucesso!' 
+    }
   },
   'pt-PT': {
     back: 'Voltar', objective: 'Objetivo: ', notDefined: 'Não definido',
     tabs: { workouts: 'Treinos', evolution: 'Evolução', feedback: 'Feedbacks', files: 'Documentos' },
-    workouts: { active: 'Ativo', viewDetails: 'Ver Detalhes →', empty: 'Nenhuma ficha criada.', new: '+ Criar Nova Ficha' },
+    workouts: { 
+      active: 'Ativos', archived: 'Arquivados', program: 'Programa', viewDetails: 'Ver Treino', edit: 'Editar',
+      empty: 'Nenhuma ficha encontrada.', new: '+ Criar Nova Ficha', 
+      assign: 'Atribuir a outros', archive: 'Arquivar', restore: 'Restaurar', selectStudents: 'Selecione os Alunos'
+    },
     evolution: { title: 'Evolução', subtitle: 'Acompanhamento e métricas.', newEval: '+ Nova Avaliação', weight: 'Peso (kg)', delete: 'Eliminar' },
     feedback: { title: 'Feedbacks', subtitle: 'Histórico do aluno.', intensity: 'Intensidade', level: 'Nível', delete: 'Eliminar', empty: 'Nenhum feedback.' },
     files: { title: 'Documentos', subtitle: 'Gestão de exames e ficheiros.', upload: 'Selecionar novo PDF', open: 'Abrir', empty: 'Nenhum ficheiro enviado.' },
     modalEval: { title: 'Nova Avaliação', subtitle: 'Preencha as métricas do aluno.', obs: 'Observações...', cancel: 'Cancelar', save: 'Guardar' },
-    alerts: { confirmFeedback: 'Tem certeza que deseja eliminar este feedback?', confirmFicha: 'Tem certeza que deseja eliminar esta ficha? Esta ação é irreversível.', confirmAvaliacao: 'Tem certeza que deseja eliminar este registo?', confirmArquivo: 'Tem certeza que deseja eliminar este ficheiro?', errDelete: 'Erro ao eliminar: ', errSave: 'Erro ao guardar: ', errUpload: 'Erro ao subir ficheiro.', successUpload: 'Ficheiro enviado com sucesso!' }
+    alerts: { 
+      confirmFeedback: 'Tem certeza que deseja eliminar este feedback?', 
+      confirmMasterFicha: 'Tem certeza que deseja eliminar DE VEZ este programa e todos os treinos vinculados? Esta ação não tem volta.', 
+      confirmArchive: 'Arquivar este programa irá escondê-lo da aplicação do aluno. Deseja continuar?',
+      confirmRestore: 'Este programa voltará a aparecer para o aluno. Deseja continuar?',
+      confirmAvaliacao: 'Tem certeza que deseja eliminar este registo?', 
+      confirmArquivo: 'Tem certeza que deseja eliminar este ficheiro?', 
+      errDelete: 'Erro ao eliminar: ', errSave: 'Erro ao guardar: ', errUpload: 'Erro ao subir ficheiro.', successUpload: 'Ficheiro enviado com sucesso!' 
+    }
   },
   'en': {
     back: 'Back', objective: 'Goal: ', notDefined: 'Not defined',
     tabs: { workouts: 'Workouts', evolution: 'Evolution', feedback: 'Feedbacks', files: 'Documents' },
-    workouts: { active: 'Active', viewDetails: 'View Details →', empty: 'No workouts created.', new: '+ Create New Workout' },
+    workouts: { 
+      active: 'Active', archived: 'Archived', program: 'Program', viewDetails: 'View Workout', edit: 'Edit',
+      empty: 'No workouts found.', new: '+ Create New Workout', 
+      assign: 'Assign to others', archive: 'Archive', restore: 'Restore', selectStudents: 'Select Students'
+    },
     evolution: { title: 'Evolution', subtitle: 'Tracking and metrics.', newEval: '+ New Assessment', weight: 'Weight (kg)', delete: 'Delete' },
     feedback: { title: 'Feedbacks', subtitle: 'Student history.', intensity: 'Intensity', level: 'Level', delete: 'Delete', empty: 'No feedbacks.' },
     files: { title: 'Documents', subtitle: 'Exams and files management.', upload: 'Select new PDF', open: 'Open', empty: 'No files uploaded.' },
     modalEval: { title: 'New Assessment', subtitle: 'Fill in the student metrics.', obs: 'Observations...', cancel: 'Cancel', save: 'Save' },
-    alerts: { confirmFeedback: 'Are you sure you want to delete this feedback?', confirmFicha: 'Are you sure you want to delete this workout? This action cannot be undone.', confirmAvaliacao: 'Are you sure you want to delete this record?', confirmArquivo: 'Are you sure you want to delete this file?', errDelete: 'Error deleting: ', errSave: 'Error saving: ', errUpload: 'Error uploading file.', successUpload: 'File uploaded successfully!' }
+    alerts: { 
+      confirmFeedback: 'Are you sure you want to delete this feedback?', 
+      confirmMasterFicha: 'Are you sure you want to PERMANENTLY delete this program and all its splits? This action cannot be undone.', 
+      confirmArchive: 'Archiving this program will hide it from the student app. Continue?',
+      confirmRestore: 'This program will reappear for the student. Continue?',
+      confirmAvaliacao: 'Are you sure you want to delete this record?', 
+      confirmArquivo: 'Are you sure you want to delete this file?', 
+      errDelete: 'Error deleting: ', errSave: 'Error saving: ', errUpload: 'Error uploading file.', successUpload: 'File uploaded successfully!' 
+    }
   }
 };
 
@@ -83,6 +120,14 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
   const [arquivos, setArquivos] = useState<any[]>([]);
   const [isModalAvaliacaoOpen, setIsModalAvaliacaoOpen] = useState(false);
   const [toast, setToast] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+  
+  // Gestão de Treinos Otimizada
+  const [mostrarArquivados, setMostrarArquivados] = useState(false);
+  const [isModalAtribuirOpen, setIsModalAtribuirOpen] = useState(false);
+  const [alunosList, setAlunosList] = useState<any[]>([]);
+  const [alunosSelecionados, setAlunosSelecionados] = useState<string[]>([]);
+  const [programaParaAtribuir, setProgramaParaAtribuir] = useState<any[]>([]);
+
   const [medidas, setMedidas] = useState({
     peso: '', gordura: '', torax: '', ombros: '', abdomen: '', 
     cintura: '', quadril: '', braco_direito: '', braco_esquerdo: '', observacoes: ''
@@ -107,7 +152,6 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
   const t = translations[lang] || translations['pt-BR'];
   const showToast = (type: 'success' | 'error', text: string) => { setToast({ type, text }); setTimeout(() => setToast(null), 4000); };
 
-  // Configuração Dinâmica do Tema Premium
   const themeStyles = isDark ? {
     '--bg': '#0F1115', '--surface': '#151A22', '--surface-sec': '#1B2330', '--primary': '#3B82F6', '--danger': '#EF4444', '--success': '#22C55E', '--text-primary': '#F8FAFC', '--text-secondary': '#94A3B8', '--border': 'rgba(255,255,255,0.05)',
   } as React.CSSProperties : {
@@ -118,11 +162,18 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
     if (!id) return;
     const carregarDados = async () => {
       setLoading(true);
-      await Promise.all([fetchDadosAluno(), fetchHistorico(), fetchFichas(), fetchFeedbacks(), fetchArquivos()]);
+      await Promise.all([fetchDadosAluno(), fetchHistorico(), fetchFichas(), fetchFeedbacks(), fetchArquivos(), fetchAlunos()]);
       setLoading(false);
     };
     carregarDados();
   }, [id]);
+
+  const fetchAlunos = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { data } = await supabase.from('alunos').select('id, nome').eq('personal_id', user.id);
+    if (data) setAlunosList(data.filter(a => a.id !== id));
+  };
 
   const fetchArquivos = async () => {
     const { data, error } = await supabase.from('documentos').select('*').eq('aluno_id', id);
@@ -147,12 +198,101 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
   };
 
   const fetchFichas = async () => {
-    const { data } = await supabase.from('fichas').select('*').eq('aluno_id', id);
+    const { data } = await supabase.from('fichas').select('*').eq('aluno_id', id).order('ordem', { ascending: true });
     if (data) {
-      const processadas = data.map(f => ({
-        ...f, exercicios: typeof f.exercicios === 'string' ? JSON.parse(f.exercicios || '[]') : (f.exercicios || [])
-      }));
+      const processadas = data.map(f => {
+        let parsedEx = [];
+        try { parsedEx = typeof f.descricao === 'string' ? JSON.parse(f.descricao || '[]') : (f.descricao || []); } catch(e) {}
+        return { ...f, exercicios: Array.isArray(parsedEx) ? parsedEx : [] };
+      });
       setFichas(processadas);
+    }
+  };
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // AGRUPAMENTO E FILTRAGEM (ATIVOS / ARQUIVADOS)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  const fichasAgrupadas = useMemo(() => {
+    const grupos: Record<string, any[]> = {};
+    fichas.forEach(f => {
+      // Considera ativo se for true ou se não existir (undefined) em fichas antigas
+      const isAtivo = f.ativo !== false; 
+      
+      // Filtra de acordo com a aba selecionada (Ativos ou Arquivados)
+      if (mostrarArquivados && isAtivo) return;
+      if (!mostrarArquivados && !isAtivo) return;
+
+      const nomeCompleto = f.nome_treino || '';
+      const partes = nomeCompleto.split(' - ');
+      const nomeMaster = partes.length > 1 ? partes[0].trim() : nomeCompleto.trim() || 'Programa Padrão';
+      const nomeSub = partes.length > 1 ? partes.slice(1).join(' - ').trim() : 'Ficha Única';
+
+      if (!grupos[nomeMaster]) grupos[nomeMaster] = [];
+      grupos[nomeMaster].push({ ...f, nome_sub: nomeSub });
+    });
+
+    return Object.entries(grupos).map(([nomeMaster, treinos]) => ({ nomeMaster, treinos }));
+  }, [fichas, mostrarArquivados]);
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // GESTÃO DE TREINOS (ARQUIVAR, EXCLUIR, ATRIBUIR)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  const excluirProgramaCompleto = async (treinos: any[]) => {
+    if (!window.confirm(t.alerts.confirmMasterFicha)) return;
+    const idsParaExcluir = treinos.map(t => t.id);
+    const { error } = await supabase.from('fichas').delete().in('id', idsParaExcluir);
+    if (!error) fetchFichas(); else showToast('error', t.alerts.errDelete + error.message);
+  };
+
+  const toggleArquivarPrograma = async (treinos: any[], arquivar: boolean) => {
+    const confirmMsg = arquivar ? t.alerts.confirmArchive : t.alerts.confirmRestore;
+    if (!window.confirm(confirmMsg)) return;
+    
+    setLoading(true);
+    const ids = treinos.map(t => t.id);
+    const { error } = await supabase.from('fichas').update({ ativo: !arquivar }).in('id', ids);
+    
+    if (!error) await fetchFichas(); 
+    else showToast('error', t.alerts.errSave + error.message);
+    setLoading(false);
+  };
+
+  const atribuirProgramaEmLote = async () => {
+    if (alunosSelecionados.length === 0) return showToast('error', 'Selecione ao menos um aluno.');
+    setLoading(true);
+    
+    try {
+      for (const alunoId of alunosSelecionados) {
+        // Encontra a ordem máxima para inserir no final da lista do aluno
+        const { data: maxOrdemData } = await supabase.from('fichas')
+          .select('ordem').eq('aluno_id', alunoId).order('ordem', { ascending: false }).limit(1).maybeSingle();
+        const startOrdem = (maxOrdemData?.ordem || 0) + 1;
+
+        const inserts = programaParaAtribuir.map((treino, idx) => ({
+          aluno_id: alunoId,
+          nome_treino: treino.nome_treino,
+          descricao: JSON.stringify(treino.exercicios),
+          ordem: startOrdem + idx,
+          personal_id: treino.personal_id,
+          ativo: true
+        }));
+
+        await supabase.from('fichas').insert(inserts);
+
+        // Dispara notificação silenciosa
+        await supabase.from('user_notifications').insert([{
+          user_id: alunoId, titulo: 'Novo Treino Disponível! 💪',
+          corpo: `O personal adicionou o programa "${programaParaAtribuir[0]?.nome_treino.split('-')[0].trim()}" para você.`, lida: false
+        }]);
+      }
+      
+      showToast('success', 'Treinos copiados com sucesso!');
+      setIsModalAtribuirOpen(false);
+      setAlunosSelecionados([]);
+    } catch(e) {
+      showToast('error', 'Erro ao copiar treinos.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -160,13 +300,6 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
     if (!window.confirm(t.alerts.confirmFeedback)) return;
     const { error } = await supabase.from('feedbacks_treino').delete().eq('id', idFeedback);
     if (!error) fetchFeedbacks(); else showToast('error', t.alerts.errDelete + error.message);
-  };
-
-  const excluirFicha = async (e: React.MouseEvent, fichaId: string) => {
-    e.stopPropagation();
-    if (!window.confirm(t.alerts.confirmFicha)) return;
-    const { error } = await supabase.from('fichas').delete().eq('id', fichaId);
-    if (!error) fetchFichas(); else showToast('error', t.alerts.errDelete + error.message);
   };
 
   const excluirAvaliacao = async (avaliacaoId: string) => {
@@ -202,7 +335,49 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
         </div>
       )}
 
-      {loading ? <DetalheAlunoSkeleton /> : (
+      {/* Modal: Atribuir Treinos a Outros Alunos */}
+      {isModalAtribuirOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xl z-[600] flex items-end sm:items-center justify-center p-0 sm:p-5 animate-in fade-in duration-300">
+          <div className="bg-[var(--surface)] w-full sm:max-w-md rounded-t-[2.5rem] sm:rounded-[2.5rem] p-6 sm:p-8 shadow-2xl border border-[var(--border)] overflow-y-auto max-h-[90vh] sm:max-h-[85vh] animate-in slide-in-from-bottom-8 sm:zoom-in-95 custom-scrollbar">
+            <div className="mb-6 border-b border-[var(--border)] pb-4">
+              <h3 className="text-xl font-black tracking-tighter text-[var(--text-primary)]">{t.workouts.assign}</h3>
+              <p className="text-[var(--text-secondary)] text-[10px] uppercase tracking-widest font-black mt-1">
+                {programaParaAtribuir[0]?.nome_treino.split('-')[0].trim() || 'Programa'}
+              </p>
+            </div>
+            
+            <div className="space-y-2 mb-6">
+              {alunosList.length > 0 ? alunosList.map(a => (
+                <label key={a.id} className="flex items-center gap-3 p-4 bg-[var(--surface-sec)] hover:bg-[var(--primary)]/5 border border-[var(--border)] hover:border-[var(--primary)]/30 rounded-2xl cursor-pointer transition-colors">
+                  <input 
+                    type="checkbox" 
+                    className="w-5 h-5 accent-[var(--primary)]"
+                    checked={alunosSelecionados.includes(a.id)}
+                    onChange={(e) => {
+                      if(e.target.checked) setAlunosSelecionados([...alunosSelecionados, a.id]);
+                      else setAlunosSelecionados(alunosSelecionados.filter(id => id !== a.id));
+                    }}
+                  />
+                  <span className="font-bold text-[var(--text-primary)] text-sm">{a.nome}</span>
+                </label>
+              )) : (
+                <p className="text-[var(--text-secondary)] text-[10px] font-black uppercase text-center py-4">Nenhum outro aluno encontrado.</p>
+              )}
+            </div>
+
+            <div className="flex gap-4">
+              <button onClick={() => { setIsModalAtribuirOpen(false); setAlunosSelecionados([]); }} className="flex-1 py-4 bg-[var(--surface-sec)] text-[var(--text-primary)] hover:bg-[var(--border)] rounded-[1.2rem] font-black text-[10px] uppercase tracking-widest transition-colors active:scale-95">
+                {t.modalEval.cancel}
+              </button>
+              <button onClick={atribuirProgramaEmLote} disabled={alunosSelecionados.length === 0} className="flex-1 py-4 bg-[var(--primary)] text-white rounded-[1.2rem] font-black text-[10px] uppercase tracking-widest disabled:opacity-50 hover:brightness-110 shadow-lg shadow-[var(--primary)]/20 transition-all active:scale-95">
+                Confirmar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {loading && !isModalAtribuirOpen ? <DetalheAlunoSkeleton /> : (
         <div className="max-w-4xl mx-auto space-y-8 relative z-10 animate-in fade-in duration-700">
           
           <div className="flex justify-between items-center mb-6">
@@ -220,7 +395,6 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
             </div>
           </div>
 
-          {/* Header do Aluno */}
           <section className="bg-[var(--surface)] p-8 rounded-[2.5rem] border border-[var(--border)] shadow-xl mb-8 flex flex-col items-center text-center gap-5">
             <div className="w-24 h-24 rounded-[2rem] overflow-hidden border border-[var(--border)] shadow-inner bg-[var(--surface-sec)]">
               <img src={aluno?.avatar_url || 'https://via.placeholder.com/150'} className="w-full h-full object-cover" alt={aluno?.nome} />
@@ -236,7 +410,6 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
             </div>
           </section>
 
-          {/* Abas Premium */}
           <div className="flex gap-6 mb-8 border-b border-[var(--border)] overflow-x-auto custom-scrollbar pb-1">
             {[
               { id: 'treinos', label: t.tabs.workouts, icon: FaDumbbell },
@@ -257,23 +430,108 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
           </div>
 
           {abaAtiva === 'treinos' && (
-            <section className="space-y-4 animate-in slide-in-from-right-4 fade-in duration-500">
-              <div className="grid grid-cols-1 gap-4">
-                {fichas.length > 0 ? (
-                  fichas.map((f) => (
-                    <div key={f.id} className="bg-[var(--surface)] p-6 rounded-[2rem] border border-[var(--border)] shadow-md hover:border-[var(--primary)]/30 transition-colors">
-                      <div className="flex items-start justify-between">
+            <section className="space-y-6 animate-in slide-in-from-right-4 fade-in duration-500">
+              
+              {/* Toggles Ativos / Arquivados */}
+              <div className="flex gap-2">
+                <button onClick={() => setMostrarArquivados(false)} className={`flex-1 py-3 rounded-[1rem] font-black text-[10px] uppercase tracking-widest transition-all ${!mostrarArquivados ? 'bg-[var(--primary)] text-white shadow-lg shadow-[var(--primary)]/20' : 'bg-[var(--surface-sec)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border)]'}`}>
+                  {t.workouts.active}
+                </button>
+                <button onClick={() => setMostrarArquivados(true)} className={`flex-1 py-3 rounded-[1rem] font-black text-[10px] uppercase tracking-widest transition-all ${mostrarArquivados ? 'bg-[var(--primary)] text-white shadow-lg shadow-[var(--primary)]/20' : 'bg-[var(--surface-sec)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border)]'}`}>
+                  {t.workouts.archived}
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 gap-6">
+                {fichasAgrupadas.length > 0 ? (
+                  fichasAgrupadas.map((grupo, gIndex) => (
+                    <div key={gIndex} className={`bg-[var(--surface)] p-6 sm:p-8 rounded-[2.5rem] border border-[var(--border)] shadow-xl relative transition-all ${mostrarArquivados ? 'opacity-80 grayscale-[20%]' : ''}`}>
+                      
+                      {/* Cabeçalho do Programa Master */}
+                      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6 border-b border-[var(--border)] pb-4">
                         <div>
-                          <span className="text-[8px] font-black text-[var(--primary)] uppercase tracking-widest bg-[var(--primary)]/10 px-2.5 py-1 rounded-md border border-[var(--primary)]/20">{t.workouts.active}</span>
-                          <h3 className="text-lg font-black mt-3 text-[var(--text-primary)]">{f.nome_treino}</h3>
+                          <span className={`text-[8px] font-black uppercase tracking-widest px-2.5 py-1 rounded-md border ${mostrarArquivados ? 'bg-[var(--text-secondary)]/10 text-[var(--text-secondary)] border-[var(--border)]' : 'bg-[var(--primary)]/10 text-[var(--primary)] border-[var(--primary)]/20'}`}>
+                            {mostrarArquivados ? t.workouts.archived : t.workouts.program}
+                          </span>
+                          <h2 className="text-xl sm:text-2xl font-black mt-3 text-[var(--text-primary)] tracking-tight">
+                            {grupo.nomeMaster}
+                          </h2>
                         </div>
-                        <button onClick={(e) => excluirFicha(e, f.id)} className="text-[var(--text-secondary)] hover:text-[var(--danger)] bg-[var(--surface-sec)] hover:bg-[var(--danger)]/10 p-3 rounded-xl transition-colors">
-                          <FaTrash size={14} />
-                        </button>
+                        
+                        <div className="flex flex-wrap gap-2">
+                          <button 
+                            onClick={() => { setProgramaParaAtribuir(grupo.treinos); setIsModalAtribuirOpen(true); }}
+                            className="bg-[var(--primary)]/10 text-[var(--primary)] p-3 rounded-xl hover:bg-[var(--primary)] hover:text-white transition-colors" 
+                            title={t.workouts.assign}
+                          >
+                            <FaUsers size={14} />
+                          </button>
+                          
+                          {mostrarArquivados ? (
+                            <button 
+                              onClick={() => toggleArquivarPrograma(grupo.treinos, false)} 
+                              className="bg-[var(--success)]/10 text-[var(--success)] p-3 rounded-xl hover:bg-[var(--success)] hover:text-white transition-colors" 
+                              title={t.workouts.restore}
+                            >
+                              <FaUndo size={14} />
+                            </button>
+                          ) : (
+                            <button 
+                              onClick={() => toggleArquivarPrograma(grupo.treinos, true)} 
+                              className="bg-[var(--text-secondary)]/10 text-[var(--text-secondary)] p-3 rounded-xl hover:bg-[var(--text-secondary)] hover:text-[var(--bg)] transition-colors" 
+                              title={t.workouts.archive}
+                            >
+                              <FaArchive size={14} />
+                            </button>
+                          )}
+
+                          <button 
+                            onClick={() => excluirProgramaCompleto(grupo.treinos)} 
+                            className="text-[var(--danger)] bg-[var(--danger)]/10 p-3 rounded-xl hover:bg-[var(--danger)]/20 transition-colors" 
+                            title="Excluir Definitivamente"
+                          >
+                            <FaTrash size={14} />
+                          </button>
+                        </div>
                       </div>
-                      <button onClick={() => router.push(`/dashboard/aluno/${id}/treino/${f.id}`)} className="mt-5 w-full text-[10px] font-black uppercase tracking-widest text-[var(--primary)] py-3 sm:py-4 bg-[var(--primary)]/5 hover:bg-[var(--primary)]/10 rounded-[1.2rem] transition-colors active:scale-[0.98]">
-                        {t.workouts.viewDetails}
-                      </button>
+
+                      {/* Sub-Treinos (Ex: Treino A, Treino B) */}
+                      <div className="grid gap-3">
+                        {grupo.treinos.map((treino) => (
+                          <div key={treino.id} className="bg-[var(--surface-sec)] p-5 rounded-[1.5rem] border border-[var(--border)] hover:border-[var(--primary)]/30 transition-colors">
+                            <div className="w-full pr-4 overflow-hidden">
+                              <h3 className="text-md sm:text-lg font-black text-[var(--text-primary)]">{treino.nome_sub}</h3>
+                              <p className="text-[9px] font-black uppercase tracking-widest text-[var(--text-secondary)] mt-1">
+                                {treino.exercicios?.length || 0} exercícios
+                              </p>
+                              
+                              {treino.exercicios && treino.exercicios.length > 0 && (
+                                <div className="mt-3 flex flex-wrap gap-1.5">
+                                  {treino.exercicios.slice(0, 4).map((ex: any, i: number) => (
+                                    <span key={i} className="text-[8px] font-black uppercase tracking-widest text-[var(--text-secondary)] bg-[var(--surface)] px-2.5 py-1.5 rounded-md border border-[var(--border)] max-w-[120px] truncate shadow-sm">
+                                      {ex.nome || 'Exercício'}
+                                    </span>
+                                  ))}
+                                  {treino.exercicios.length > 4 && (
+                                    <span className="text-[8px] font-black uppercase tracking-widest text-[var(--primary)] bg-[var(--primary)]/10 px-2.5 py-1.5 rounded-md border border-[var(--primary)]/20 shadow-sm">
+                                      +{treino.exercicios.length - 4}
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                            
+                            <div className="flex gap-2 mt-5">
+                              <button onClick={() => router.push(`/dashboard/aluno/${id}/treino/${treino.id}`)} className="flex-[2] text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-[var(--primary)] py-3 sm:py-4 bg-[var(--primary)]/5 hover:bg-[var(--primary)]/10 border border-[var(--primary)]/10 rounded-[1.2rem] transition-colors active:scale-[0.98]">
+                                {t.workouts.viewDetails}
+                              </button>
+                              <button onClick={() => router.push(`/dashboard/aluno/${id}/treino/${treino.id}/editar`)} className="flex-1 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-white py-3 sm:py-4 bg-[var(--primary)] hover:brightness-110 shadow-lg shadow-[var(--primary)]/20 rounded-[1.2rem] transition-all active:scale-[0.98] flex items-center justify-center gap-2">
+                                <FaEdit size={12} /> <span className="hidden sm:inline">{t.workouts.edit}</span>
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   ))
                 ) : (
@@ -283,9 +541,11 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
                 )}
               </div>
 
-              <a href={`/dashboard/aluno/${id}/nova-ficha`} className="flex items-center justify-center gap-2 w-full bg-[var(--primary)] text-white p-5 rounded-[1.5rem] font-black text-[10px] sm:text-[11px] uppercase tracking-widest active:scale-[0.98] transition-transform shadow-lg shadow-[var(--primary)]/20 mt-6">
-                <FaPlus size={12} /> {t.workouts.new}
-              </a>
+              {!mostrarArquivados && (
+                <a href={`/dashboard/aluno/${id}/nova-ficha`} className="flex items-center justify-center gap-2 w-full bg-[var(--primary)] text-white p-5 rounded-[1.5rem] font-black text-[10px] sm:text-[11px] uppercase tracking-widest active:scale-[0.98] transition-transform shadow-lg shadow-[var(--primary)]/20 mt-6">
+                  <FaPlus size={12} /> {t.workouts.new}
+                </a>
+              )}
             </section>
           )}
 
