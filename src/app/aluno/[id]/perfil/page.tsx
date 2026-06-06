@@ -12,9 +12,36 @@ import {
   FaUserShield, 
   FaUserEdit,
   FaCheckCircle,
-  FaExclamationCircle
+  FaExclamationCircle,
+  FaChevronDown
 } from 'react-icons/fa';
-import InputField from '@/components/InputField'; // Mantido como solicitado
+import InputField from '@/components/InputField';
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// COMPONENTE SELECT PREMIUM (Adicionado para manter o padrão visual)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const SelectField = ({ label, name, value, onChange, options, defaultOption }: any) => (
+  <div className="flex flex-col gap-1 w-full min-w-0 group relative">
+    <div className="relative">
+      <select 
+        name={name}
+        value={value}
+        onChange={onChange}
+        className="block w-full px-5 py-4 bg-[var(--surface-sec)] border border-[var(--border)] rounded-[1.2rem] outline-none focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)] transition-all text-sm font-bold text-[var(--text-primary)] appearance-none cursor-pointer shadow-inner"
+      >
+        <option value="" disabled className="text-[var(--text-secondary)]">{defaultOption}</option>
+        {options.map((opt: any) => (
+          <option key={opt.value} value={opt.value} className="bg-[var(--surface)] text-[var(--text-primary)]">
+            {opt.label}
+          </option>
+        ))}
+      </select>
+      <div className="absolute inset-y-0 right-5 flex items-center pointer-events-none text-[var(--text-secondary)]">
+        <FaChevronDown size={12} />
+      </div>
+    </div>
+  </div>
+);
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // DICIONÁRIO DE INTERNACIONALIZAÇÃO (i18n)
@@ -30,6 +57,17 @@ const translations = {
     name: 'Nome Completo',
     phone: 'Telefone',
     goal: 'Objetivo',
+    dob: 'Data de Nascimento',
+    gender: 'Sexo',
+    genderSelect: 'Selecione...',
+    male: 'Masculino',
+    female: 'Feminino',
+    other: 'Outros',
+    modality: 'Modalidade',
+    modalitySelect: 'Selecione...',
+    online: 'Online',
+    inPerson: 'Presencial',
+    dueDate: 'Data de Vencimento',
     newPassword: 'Nova Senha',
     saveData: 'Salvar Dados',
     savePassword: 'Atualizar Senha',
@@ -52,6 +90,17 @@ const translations = {
     name: 'Nome Completo',
     phone: 'Telefone',
     goal: 'Objetivo',
+    dob: 'Data de Nasc.',
+    gender: 'Género',
+    genderSelect: 'Selecione...',
+    male: 'Masculino',
+    female: 'Feminino',
+    other: 'Outros',
+    modality: 'Modalidade',
+    modalitySelect: 'Selecione...',
+    online: 'Online',
+    inPerson: 'Presencial',
+    dueDate: 'Vencimento',
     newPassword: 'Nova Palavra-passe',
     saveData: 'Guardar Dados',
     savePassword: 'Atualizar Palavra-passe',
@@ -74,6 +123,17 @@ const translations = {
     name: 'Full Name',
     phone: 'Phone',
     goal: 'Goal',
+    dob: 'Date of Birth',
+    gender: 'Gender',
+    genderSelect: 'Select...',
+    male: 'Male',
+    female: 'Female',
+    other: 'Other',
+    modality: 'Modality',
+    modalitySelect: 'Select...',
+    online: 'Online',
+    inPerson: 'In-person',
+    dueDate: 'Due Date',
     newPassword: 'New Password',
     saveData: 'Save Details',
     savePassword: 'Update Password',
@@ -93,13 +153,20 @@ export default function PerfilAluno({ params }: { params: Promise<{ id: string }
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [activeTab, setActiveTab] = useState('dados'); 
-  const [perfil, setPerfil] = useState({ nome: '', objetivo: '', telefone: '', avatar_url: '' });
+  
+  // Estado Expandido com todos os campos do banco
+  const [perfil, setPerfil] = useState({ 
+    nome: '',  
+    telefone: '', 
+    avatar_url: '',
+    data_nascimento: '',
+    sexo: '' 
+  });
   const [novaSenha, setNovaSenha] = useState('');
 
   const id = use(params).id;
   const router = useRouter();
 
-  // Estados de Tema, i18n e Notificações (Substituindo alerts)
   const [isDark, setIsDark] = useState(true);
   const [lang, setLang] = useState<'pt-BR' | 'pt-PT' | 'en'>('pt-BR');
   const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' } | null>(null);
@@ -136,13 +203,11 @@ export default function PerfilAluno({ params }: { params: Promise<{ id: string }
 
   const t = translations[lang];
 
-  // Configuração das Variáveis CSS Globais (Design System)
   const themeStyles = isDark ? {
     '--bg': '#0F1115',
     '--surface': '#151A22',
     '--surface-sec': '#1B2330',
     '--primary': '#3B82F6',
-    '--primary-soft': '#60A5FA',
     '--danger': '#EF4444',
     '--success': '#22C55E',
     '--text-primary': '#F8FAFC',
@@ -153,7 +218,6 @@ export default function PerfilAluno({ params }: { params: Promise<{ id: string }
     '--surface': '#FFFFFF',
     '--surface-sec': '#E8EEF9',
     '--primary': '#2563EB',
-    '--primary-soft': '#60A5FA',
     '--danger': '#DC2626',
     '--success': '#16A34A',
     '--text-primary': '#111827',
@@ -163,7 +227,16 @@ export default function PerfilAluno({ params }: { params: Promise<{ id: string }
 
   const fetchPerfil = async () => {
     const { data } = await supabase.from('alunos').select('*').eq('id', id).maybeSingle();
-    if (data) setPerfil(data);
+    if (data) {
+      // Formata a data vindo do banco caso seja necessário (garante o valor default para os inputs)
+      setPerfil({
+        nome: data.nome || '',
+        telefone: data.telefone || '',
+        avatar_url: data.avatar_url || '',
+        data_nascimento: data.data_nascimento || '',
+        sexo: data.sexo || ''
+      });
+    }
     setLoading(false);
   };
 
@@ -191,11 +264,29 @@ export default function PerfilAluno({ params }: { params: Promise<{ id: string }
     }
   };
 
+  const formatarTelefone = (val: string) => {
+    const digits = val.replace(/\D/g, '').slice(0, 11);
+    if (digits.length <= 2) return `(${digits}`;
+    if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+  };
+
+  // Trata corretamente Eventos ou Strings diretas vindas dos componentes de Input
+  const handleChange = (field: string) => (e: any) => {
+    let val = e?.target?.value !== undefined ? e.target.value : e;
+    if (field === 'telefone') val = formatarTelefone(val);
+    setPerfil(p => ({ ...p, [field]: val }));
+  };
+
   const handleUpdate = async () => {
     setSaving(true);
     try {
       const { error } = await supabase.from('alunos').update({ 
-        nome: perfil.nome, objetivo: perfil.objetivo, telefone: perfil.telefone, avatar_url: perfil.avatar_url 
+        nome: perfil.nome, 
+        telefone: perfil.telefone.replace(/\D/g, ''), // Salvamos apenas os números no banco
+        avatar_url: perfil.avatar_url,
+        data_nascimento: perfil.data_nascimento,
+        sexo: perfil.sexo
       }).eq('id', id);
       if (error) throw error;
       showToast(t.successData, 'success');
@@ -221,8 +312,6 @@ export default function PerfilAluno({ params }: { params: Promise<{ id: string }
     }
   };
 
-  const handleChange = (field: string) => (val: string) => setPerfil(p => ({ ...p, [field]: val }));
-
   if (!mounted || loading) return (
     <main style={themeStyles} className="min-h-screen bg-[var(--bg)] p-6 space-y-8 animate-pulse pt-[max(env(safe-area-inset-top),2rem)]">
       <div className="flex justify-between items-center mb-10">
@@ -244,7 +333,6 @@ export default function PerfilAluno({ params }: { params: Promise<{ id: string }
       style={themeStyles} 
       className="min-h-screen w-full bg-[var(--bg)] text-[var(--text-primary)] transition-colors duration-500 font-sans antialiased pt-[max(env(safe-area-inset-top),1.5rem)] pb-[env(safe-area-inset-bottom)] px-4"
     >
-      {/* ━━━━━━━━━━ NOTIFICAÇÃO PREMIUM FLOATING ━━━━━━━━━━ */}
       {toast && (
         <div className="fixed top-[max(env(safe-area-inset-top,20px),20px)] left-4 right-4 z-[9999] flex justify-center animate-in slide-in-from-top-4 fade-in duration-300">
           <div className={`bg-[var(--surface-sec)] border shadow-2xl rounded-[1.2rem] px-5 py-4 flex items-center gap-3 backdrop-blur-xl ${toast.type === 'error' ? 'border-[var(--danger)]/30' : 'border-[var(--success)]/30'}`}>
@@ -257,8 +345,6 @@ export default function PerfilAluno({ params }: { params: Promise<{ id: string }
       )}
 
       <div className="max-w-md mx-auto space-y-6 pb-32">
-        
-        {/* ━━━━━━━━━━ HEADER PREMIUM ━━━━━━━━━━ */}
         <header className="flex justify-between items-center mb-6 pt-4">
           <button 
             onClick={() => router.back()} 
@@ -279,15 +365,13 @@ export default function PerfilAluno({ params }: { params: Promise<{ id: string }
           </div>
         </header>
 
-        {/* ━━━━━━━━━━ AVATAR E NOME ━━━━━━━━━━ */}
         <div className="bg-[var(--surface)] p-8 rounded-[2.5rem] border border-[var(--border)] flex flex-col items-center gap-5 text-center shadow-sm relative overflow-hidden group">
-          {/* Decorative blur */}
           <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--primary)]/5 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none transition-all group-hover:bg-[var(--primary)]/10" />
 
           <div className="relative">
             <div className="w-28 h-28 rounded-full border-4 border-[var(--bg)] shadow-xl overflow-hidden relative group-hover:border-[var(--primary)]/20 transition-colors">
               <img 
-                src={perfil.avatar_url || `https://ui-avatars.com/api/?name=${perfil.nome}&background=random&color=fff`} 
+                src={perfil.avatar_url || `https://ui-avatars.com/api/?name=${perfil.nome || 'User'}&background=random&color=fff`} 
                 className="w-full h-full object-cover" 
                 alt="Avatar"
               />
@@ -306,7 +390,6 @@ export default function PerfilAluno({ params }: { params: Promise<{ id: string }
           </div>
         </div>
 
-        {/* ━━━━━━━━━━ TABS ━━━━━━━━━━ */}
         <div className="bg-[var(--surface)] p-2 rounded-[2rem] border border-[var(--border)] flex gap-2 shadow-sm">
           <button 
             onClick={() => setActiveTab('dados')} 
@@ -330,30 +413,49 @@ export default function PerfilAluno({ params }: { params: Promise<{ id: string }
           </button>
         </div>
 
-        {/* ━━━━━━━━━━ CONTEÚDO DAS TABS ━━━━━━━━━━ */}
-        <div className="bg-[var(--surface)] p-6 sm:p-8 rounded-[2.5rem] border border-[var(--border)] min-h-[250px] shadow-sm">
+        <div className="bg-[var(--surface)] p-6 sm:p-8 rounded-[2.5rem] border border-[var(--border)] shadow-sm">
           {activeTab === 'dados' ? (
             <div className="space-y-5 animate-in slide-in-from-left-4 fade-in duration-300">
+              
               <div className="space-y-1">
                  <label className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest pl-1">{t.name}</label>
                  <InputField value={perfil.nome} onChange={handleChange('nome')} />
               </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div className="space-y-1">
                    <label className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest pl-1">{t.phone}</label>
-                   <InputField value={perfil.telefone} onChange={handleChange('telefone')} />
+                   <InputField type="tel" value={perfil.telefone} onChange={handleChange('telefone')} />
                 </div>
                 <div className="space-y-1">
-                   <label className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest pl-1">{t.goal}</label>
-                   <InputField value={perfil.objetivo} onChange={handleChange('objetivo')} />
+                   <label className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest pl-1">{t.dob}</label>
+                   <InputField type="date" value={perfil.data_nascimento} onChange={handleChange('data_nascimento')} />
                 </div>
               </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest pl-1">{t.gender}</label>
+                  <SelectField 
+                    name="sexo"
+                    value={perfil.sexo} 
+                    onChange={handleChange('sexo')} 
+                    defaultOption={t.genderSelect}
+                    options={[
+                      { value: 'masculino', label: t.male },
+                      { value: 'feminino', label: t.female },
+                      { value: 'outros', label: t.other }
+                    ]} 
+                  />
+                </div>
+              </div>
+
             </div>
           ) : (
             <div className="space-y-6 animate-in slide-in-from-right-4 fade-in duration-300">
               <div className="space-y-1">
                  <label className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest pl-1">{t.newPassword}</label>
-                 <InputField type="password" value={novaSenha} onChange={setNovaSenha} />
+                 <InputField type="password" value={novaSenha} onChange={(e: any) => setNovaSenha(e?.target?.value !== undefined ? e.target.value : e)} />
                  <p className="text-[9px] text-[var(--text-secondary)] font-medium pl-1">{t.passLength}</p>
               </div>
               <button 
@@ -371,7 +473,6 @@ export default function PerfilAluno({ params }: { params: Promise<{ id: string }
           )}
         </div>
 
-        {/* ━━━━━━━━━━ AÇÕES INFERIORES ━━━━━━━━━━ */}
         {activeTab === 'dados' && (
           <button 
             onClick={handleUpdate} 
@@ -394,7 +495,6 @@ export default function PerfilAluno({ params }: { params: Promise<{ id: string }
           <span className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--danger)]">{t.logout}</span>
         </button>
 
-        {/* ESPAÇADOR DE SEGURANÇA */}
         <div className="h-20 w-full shrink-0" aria-hidden="true" />
       </div>
     </main>

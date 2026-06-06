@@ -3,6 +3,8 @@ import { useState, useEffect, use } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
 import { cadastrarAlunoAction } from '../../../actions/aluno';
+// Importe a sua action de atualização aqui quando criá-la:
+// import { atualizarAlunoAction } from '../../../actions/aluno'; 
 import { FaChevronLeft, FaGlobe, FaMoon, FaSun, FaExclamationCircle, FaCheckCircle, FaUserEdit, FaUserPlus, FaChevronDown } from 'react-icons/fa';
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -17,7 +19,8 @@ const translations = {
     subtitleNew: 'Preencha os dados do novo membro',
     name: 'Nome Completo', namePlaceholder: 'Nome do aluno',
     email: 'E-mail', emailPlaceholder: 'aluno@email.com',
-    password: 'Senha Inicial', passwordPlaceholder: '••••••••',
+    password: 'Senha', passwordPlaceholder: '••••••••',
+    passwordEditPlaceholder: 'Deixe em branco para manter a atual',
     phone: 'WhatsApp', phonePlaceholder: '(00) 00000-0000',
     dob: 'Data de Nascimento',
     gender: 'Sexo', genderSelect: 'Selecione...',
@@ -28,12 +31,7 @@ const translations = {
     submitEdit: 'Salvar Alterações', submitNew: 'Confirmar Cadastro',
     processing: 'Processando...',
     errFill: 'Preencha ao menos nome e e-mail.',
-    successUpdate: 'Dados e status atualizados.',
-    security: 'Acesso e Segurança',
-    resetTitle: 'Redefinir Senha',
-    resetDesc: 'Envia um link seguro para o aluno alterar a senha.',
-    resetBtn: 'Enviar Link',
-    successReset: 'Link enviado ao e-mail do aluno!'
+    successUpdate: 'Dados do aluno atualizados.',
   },
   'pt-PT': {
     back: 'Voltar',
@@ -43,7 +41,8 @@ const translations = {
     subtitleNew: 'Preencha os dados do novo membro',
     name: 'Nome Completo', namePlaceholder: 'Nome do aluno',
     email: 'E-mail', emailPlaceholder: 'aluno@email.com',
-    password: 'Palavra-passe Inicial', passwordPlaceholder: '••••••••',
+    password: 'Palavra-passe', passwordPlaceholder: '••••••••',
+    passwordEditPlaceholder: 'Deixe em branco para manter a atual',
     phone: 'WhatsApp', phonePlaceholder: '(00) 00000-0000',
     dob: 'Data de Nasc.',
     gender: 'Género', genderSelect: 'Selecione...',
@@ -54,12 +53,7 @@ const translations = {
     submitEdit: 'Guardar Alterações', submitNew: 'Confirmar Registo',
     processing: 'A processar...',
     errFill: 'Preencha pelo menos nome e e-mail.',
-    successUpdate: 'Dados e status atualizados.',
-    security: 'Acesso e Segurança',
-    resetTitle: 'Redefinir Palavra-passe',
-    resetDesc: 'Envia um link seguro para o aluno.',
-    resetBtn: 'Enviar Link',
-    successReset: 'Link enviado para o e-mail do aluno!'
+    successUpdate: 'Dados do aluno atualizados.',
   },
   'en': {
     back: 'Back',
@@ -69,7 +63,8 @@ const translations = {
     subtitleNew: 'Fill in the new member details',
     name: 'Full Name', namePlaceholder: 'Student name',
     email: 'Email', emailPlaceholder: 'student@email.com',
-    password: 'Initial Password', passwordPlaceholder: '••••••••',
+    password: 'Password', passwordPlaceholder: '••••••••',
+    passwordEditPlaceholder: 'Leave blank to keep current',
     phone: 'WhatsApp', phonePlaceholder: '(00) 00000-0000',
     dob: 'Date of Birth',
     gender: 'Gender', genderSelect: 'Select...',
@@ -80,12 +75,7 @@ const translations = {
     submitEdit: 'Save Changes', submitNew: 'Confirm Registration',
     processing: 'Processing...',
     errFill: 'Fill in at least name and email.',
-    successUpdate: 'Data and status updated.',
-    security: 'Access & Security',
-    resetTitle: 'Reset Password',
-    resetDesc: 'Sends a secure reset link to the student.',
-    resetBtn: 'Send Link',
-    successReset: 'Reset link sent to the student\'s email!'
+    successUpdate: 'Student data updated.',
   }
 };
 
@@ -224,7 +214,7 @@ export default function FormularioAluno({ params }: { params?: Promise<{ id?: st
             dataNascimento: aluno.data_nascimento?.split('T')[0] || '',
             sexo: aluno.sexo || '',
             modalidade: aluno.modalidade || '',
-            password: ''
+            password: '' // Sempre vem vazio por segurança
           });
         }
         setIsFetching(false);
@@ -232,16 +222,6 @@ export default function FormularioAluno({ params }: { params?: Promise<{ id?: st
       fetchAluno();
     }
   }, [isEditing, resolvedParams?.id]);
-
-  // Fluxo de envio de e-mail de redefinição (Exclusivo da Edição)
-  const handleResetEmail = async () => {
-    if (!formData.email) return showToast('error', t.errFill);
-    setLoading(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(formData.email);
-    setLoading(false);
-    if (error) showToast('error', error.message);
-    else showToast('success', t.successReset);
-  };
 
   const handleSubmit = async () => {
     if (!formData.nome || !formData.email) {
@@ -261,7 +241,9 @@ export default function FormularioAluno({ params }: { params?: Promise<{ id?: st
     setLoading(true);
     try {
       if (isEditing && resolvedParams?.id) {
-        const { error } = await supabase.from('alunos').update({
+        
+        // 1. Atualiza dados públicos na tabela 'alunos'
+        const { error: errAluno } = await supabase.from('alunos').update({
           nome: formData.nome, 
           telefone: formData.telefone.replace(/\D/g, ''),
           data_nascimento: formData.dataNascimento,
@@ -271,7 +253,21 @@ export default function FormularioAluno({ params }: { params?: Promise<{ id?: st
           status_pagamento: novoStatus
         }).eq('id', resolvedParams.id);
         
-        if (error) throw error;
+        if (errAluno) throw errAluno;
+
+        // 2. Atualiza e-mail na tabela 'profiles' (se existir no seu schema)
+        const { error: errProfile } = await supabase.from('profiles').update({
+          email: formData.email
+        }).eq('id', resolvedParams.id);
+        
+        if (errProfile) throw errProfile;
+
+        // 3. Atualiza E-mail/Senha na tabela Auth (auth.users)
+        // NOTA: Para isso funcionar, você precisará de uma Server Action usando a Service Role Key.
+        // if (formData.password || formData.email) {
+        //   await atualizarAlunoAction(resolvedParams.id, formData.email, formData.password);
+        // }
+
         showToast('success', t.successUpdate);
       } else {
         const { data: { session } } = await supabase.auth.getSession();
@@ -339,32 +335,19 @@ export default function FormularioAluno({ params }: { params?: Promise<{ id?: st
         {isFetching ? <FormSkeleton /> : (
           <div className="space-y-6 animate-in fade-in duration-500">
             <InputField label={t.name} name="nome" value={formData.nome} onChange={handleInputChange} placeholder={t.namePlaceholder} />
-            <InputField label={t.email} name="email" type="email" value={formData.email} onChange={handleInputChange} placeholder={t.emailPlaceholder} disabled={isEditing} />
             
-            {/* RENDERIZAÇÃO CONDICIONAL DA SENHA OU OPÇÃO DE SEGURANÇA */}
-            {!isEditing ? (
-              <InputField label={t.password} name="password" type="password" value={formData.password} onChange={handleInputChange} placeholder={t.passwordPlaceholder} />
-            ) : (
-              <div className="w-full space-y-2 mt-4">
-                <label className="text-[10px] font-black text-[var(--text-secondary)] uppercase tracking-[0.2em] px-1">
-                  {t.security}
-                </label>
-                <div className="flex items-center justify-between p-4 bg-[var(--surface-sec)] border border-[var(--border)] rounded-[1.2rem] shadow-inner">
-                  <div className="flex flex-col pr-2">
-                    <span className="text-sm font-bold text-[var(--text-primary)]">{t.resetTitle}</span>
-                    <span className="text-[10px] text-[var(--text-secondary)] font-medium mt-1 leading-relaxed">{t.resetDesc}</span>
-                  </div>
-                  <button 
-                    type="button"
-                    onClick={handleResetEmail}
-                    disabled={loading}
-                    className="px-4 py-2.5 bg-[var(--primary)]/10 text-[var(--primary)] hover:bg-[var(--primary)] hover:text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition-all active:scale-95 shrink-0 disabled:opacity-50"
-                  >
-                    {t.resetBtn}
-                  </button>
-                </div>
-              </div>
-            )}
+            {/* E-MAIL LIBERADO PARA EDIÇÃO */}
+            <InputField label={t.email} name="email" type="email" value={formData.email} onChange={handleInputChange} placeholder={t.emailPlaceholder} />
+            
+            {/* SENHA LIBERADA PARA CRIAÇÃO E EDIÇÃO */}
+            <InputField 
+              label={t.password} 
+              name="password" 
+              type="password" 
+              value={formData.password} 
+              onChange={handleInputChange} 
+              placeholder={isEditing ? t.passwordEditPlaceholder : t.passwordPlaceholder} 
+            />
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
               <InputField label={t.phone} name="telefone" type="tel" value={formData.telefone} onChange={handleInputChange} placeholder={t.phonePlaceholder} />

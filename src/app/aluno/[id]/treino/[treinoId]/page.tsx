@@ -126,6 +126,7 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
   const [concluidos, setConcluidos] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
   const [sessoesContador, setSessoesContador] = useState(0);
+  const [precisaParq, setPrecisaParq] = useState(false);
   
   // Controle de Carga e Unidade
   const [inputValues, setInputValues] = useState<Record<string, string>>({});
@@ -146,6 +147,84 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
   const [fbExercicio, setFbExercicio] = useState('');
   const [fbIntensidade, setFbIntensidade] = useState(5);
   const [fbTexto, setFbTexto] = useState('');
+
+
+
+  useEffect(() => {
+  const init = async () => {
+    setLoading(true);
+    
+    try {
+      // 1. Busca dados do aluno
+      const { data: aluno, error: alunoError } = await supabase
+        .from('alunos')
+        .select('status_pagamento, data_vencimento, parq_valido')
+        .eq('id', id)
+        .single();
+      
+      if (alunoError) throw alunoError;
+
+      if (aluno) {
+        const hoje = new Date(); 
+        hoje.setHours(0, 0, 0, 0);
+        
+        // Validação de data segura
+        const vencimento = aluno.data_vencimento ? new Date(aluno.data_vencimento) : new Date(0);
+        const dataLimite = new Date(vencimento); 
+        dataLimite.setDate(dataLimite.getDate() + 2);
+        
+        // 2. Checa Pagamento
+        if (aluno.status_pagamento === 'bloqueado' || hoje > dataLimite) {
+          router.push('/aluno/pagamento-pendente'); 
+          return;
+        }
+
+        // 3. VERIFICAÇÃO DO PAR-Q
+        if (aluno.parq_valido === false || aluno.parq_valido === null) {
+          setPrecisaParq(true);
+          setLoading(false); // Para o loading pois a tela do PAR-Q será exibida
+          return; 
+        }
+      }
+
+      // 4. Se passou pelas verificações, carrega as fichas
+      const [fichasRes, histRes] = await Promise.all([
+        supabase.from('fichas').select('*').eq('aluno_id', id),
+        supabase.from('conclusoes_treino').select('treino_id, data_conclusao').eq('aluno_id', id)
+      ]);
+
+      if (fichasRes.data) {
+        const historicoData = histRes.data || [];
+        const processadas = fichasRes.data.map(f => {
+          let exercicios = [];
+          try { 
+            exercicios = typeof f.descricao === 'string' ? JSON.parse(f.descricao || '[]') : (f.descricao || []); 
+          } catch { 
+            exercicios = []; 
+          }
+          const historicoDoTreino = historicoData.filter(h => h.treino_id === f.id);
+          return { 
+            ...f, 
+            exercicios, 
+            count: exercicios.length, 
+            sessõesCount: historicoDoTreino.length, 
+            ultimaSessao: historicoDoTreino.length > 0 ? historicoDoTreino[0].data_conclusao : null, 
+            ativo: f.ativo !== false 
+          };
+        });
+        
+      }
+    } catch (err) {
+      console.error("Erro na inicialização:", err);
+    } finally {
+      // setLoading(false) é chamado no finally para garantir que o loading suma 
+      // em caso de sucesso ou erro (exceto quando entra no if do PAR-Q)
+      setLoading(false);
+    }
+  };
+  
+  init();
+}, [id, router]);
 
   // Lógica do Cronômetro
   useEffect(() => {
@@ -392,6 +471,25 @@ const finalizarSessao = async () => {
     setLoading(false);
   }
 };
+
+
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // RENDERIZAÇÃO CONDICIONAL DO PAR-Q (BLOQUEIO)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  if (precisaParq) {
+    return (
+      <div style={themeStyles} className="min-h-screen bg-[var(--bg)] pt-10 px-4 pb-20">
+        <ParqForm 
+          alunoId={id} 
+          onComplete={() => {
+            // Quando ele preencher e assinar, a tela recarrega para liberar o acesso
+            window.location.reload();
+          }} 
+        />
+      </div>
+    );
+  }
 
   if (loading) return (
     <main style={themeStyles} className="min-h-screen bg-[var(--bg)] p-6 space-y-6 animate-pulse pt-[max(env(safe-area-inset-top),2rem)]">
