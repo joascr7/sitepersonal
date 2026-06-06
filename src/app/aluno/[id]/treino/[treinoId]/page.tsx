@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabaseClient';
 import ToastSucesso from '@/components/ui/ToastSucesso';
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
+import { startOfWeek, endOfWeek, eachDayOfInterval, format, isSameDay, parseISO, startOfMonth, endOfMonth, addMonths, subMonths, isSameMonth } from 'date-fns';
 import { 
   FaFilePdf, 
   FaCheck, 
