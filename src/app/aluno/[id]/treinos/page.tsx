@@ -84,7 +84,7 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
 
   const META_SESSOES = 30;
 
-  useEffect(() => {
+ useEffect(() => {
     const init = async () => {
       setLoading(true);
       // Otimização: Apenas uma chamada necessária para validar
@@ -101,6 +101,7 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
       }
 
       const [fichasRes, histRes] = await Promise.all([
+        // BUSCAMOS TUDO (ativos e inativos) para o histórico não ficar quebrado
         supabase.from('fichas').select('*').eq('aluno_id', id),
         supabase.from('conclusoes_treino').select('treino_id, data_conclusao').eq('aluno_id', id)
       ]);
@@ -111,7 +112,15 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
           let exercicios = [];
           try { exercicios = typeof f.descricao === 'string' ? JSON.parse(f.descricao || '[]') : (f.descricao || []); } catch { exercicios = []; }
           const historicoDoTreino = historicoData.filter(h => h.treino_id === f.id);
-          return { ...f, count: exercicios.length, sessõesCount: historicoDoTreino.length, ultimaSessao: historicoDoTreino.length > 0 ? historicoDoTreino[0].data_conclusao : null };
+          
+          return { 
+            ...f, 
+            count: exercicios.length, 
+            sessõesCount: historicoDoTreino.length, 
+            ultimaSessao: historicoDoTreino.length > 0 ? historicoDoTreino[0].data_conclusao : null,
+            // Adiciona a flag de controle visual
+            ativo: f.ativo !== false 
+          };
         });
         setFichas(processadas);
       }
@@ -164,7 +173,8 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
 
         {/* ━━━━━━━━━━ LISTA DE TREINOS ━━━━━━━━━━ */}
         <div className="space-y-4">
-          {fichas.map((f) => {
+          {/* 🔥 A MUDANÇA ESTÁ AQUI: Adicionamos o filter antes do map */}
+          {fichas.filter((f) => f.ativo).map((f) => {
             const progressoPercent = Math.min(Math.round((f.sessõesCount / META_SESSOES) * 100), 100);
             
             return (

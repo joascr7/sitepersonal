@@ -1,14 +1,14 @@
 'use client';
-import { useEffect, useState } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
 import { supabase } from '@/lib/supabaseClient';
+import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { 
   FaChevronLeft, FaGlobe, FaMoon, FaSun, FaExclamationCircle, 
-  FaCheckCircle, FaTrash, FaUpload, FaPlus, FaSave, FaSearch, FaVideo 
+  FaCheckCircle, FaTrash, FaUpload, FaPlus, FaSave, FaFolderOpen, FaVideo, FaSearch
 } from 'react-icons/fa';
 
 interface Serie {
-  ordem: string;
+  ordem?: string;
   reps: string;
   carga: number | string;
   CargaPlanejada: number | string;
@@ -91,7 +91,7 @@ const BuscadorExercicio = ({
 // SKELETON SCREEN (UX PREMIUM)
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 const DashboardSkeleton = () => (
-  <div className="max-w-3xl mx-auto space-y-8 animate-pulse pt-8">
+  <div className="max-w-3xl mx-auto space-y-8 animate-pulse pt-8 px-5">
     <div className="flex justify-between items-center mb-10">
       <div className="w-16 h-4 bg-[var(--surface-sec)] rounded-full" />
       <div className="w-48 h-8 bg-[var(--surface-sec)] rounded-xl" />
@@ -116,36 +116,36 @@ const translations = {
   'pt-BR': {
     back: 'Voltar', title: 'Editar Ficha', deleteWorkout: 'Excluir Ficha',
     workoutName: 'Nome do Treino', exName: 'Nome do Exercício', delete: 'Excluir',
-    videoUrl: 'URL do vídeo', uploadBtn: 'Upload de Vídeo', uploading: 'Enviando...',
+    videoUrl: 'URL da Mídia', uploadBtn: 'Upload de Vídeo/GIF', uploading: 'Enviando...',
     obs: 'Observação técnica...',
     series: 'Série', reps: 'Reps', load: 'Carga', rest: 'Desc.', planned: 'Planej.',
     addSeries: '+ Adicionar Série', save: 'Salvar Alterações',
     errLimit: 'Limite de 10MB excedido!', errDefault: 'Erro: ', successSave: 'Ficha atualizada com sucesso!',
-    confirmDelete: 'Tem certeza que deseja excluir esta ficha?', successVideo: 'Vídeo encontrado para '
+    confirmDelete: 'Tem certeza que deseja excluir esta ficha?', successVideo: 'Mídia encontrada para '
   },
   'pt-PT': {
     back: 'Voltar', title: 'Editar Ficha', deleteWorkout: 'Eliminar Ficha',
     workoutName: 'Nome do Treino', exName: 'Nome do Exercício', delete: 'Eliminar',
-    videoUrl: 'URL do vídeo', uploadBtn: 'Upload de Vídeo', uploading: 'A enviar...',
+    videoUrl: 'URL da Multimédia', uploadBtn: 'Upload de Vídeo/GIF', uploading: 'A enviar...',
     obs: 'Observação técnica...',
     series: 'Série', reps: 'Reps', load: 'Carga', rest: 'Desc.', planned: 'Planej.',
     addSeries: '+ Adicionar Série', save: 'Guardar Alterações',
     errLimit: 'Limite de 10MB excedido!', errDefault: 'Erro: ', successSave: 'Ficha atualizada com sucesso!',
-    confirmDelete: 'Tem certeza que deseja eliminar esta ficha?', successVideo: 'Vídeo encontrado para '
+    confirmDelete: 'Tem certeza que deseja eliminar esta ficha?', successVideo: 'Multimédia encontrada para '
   },
   'en': {
     back: 'Back', title: 'Edit Workout', deleteWorkout: 'Delete Workout',
     workoutName: 'Workout Name', exName: 'Exercise Name', delete: 'Delete',
-    videoUrl: 'Video URL', uploadBtn: 'Upload Video', uploading: 'Uploading...',
+    videoUrl: 'Media URL', uploadBtn: 'Upload Video/GIF', uploading: 'Uploading...',
     obs: 'Technical observation...',
     series: 'Set', reps: 'Reps', load: 'Load', rest: 'Rest', planned: 'Target',
     addSeries: '+ Add Set', save: 'Save Changes',
     errLimit: '10MB limit exceeded!', errDefault: 'Error: ', successSave: 'Workout updated successfully!',
-    confirmDelete: 'Are you sure you want to delete this workout?', successVideo: 'Video found for '
+    confirmDelete: 'Are you sure you want to delete this workout?', successVideo: 'Media found for '
   }
 };
 
-export default function EditarFicha() {
+function EditarFichaContent() {
   const params = useParams();
   const id = params?.id as string;
   const treinoId = (params?.treinoId || params?.treinoid) as string;
@@ -189,7 +189,6 @@ export default function EditarFicha() {
     const carregarDados = async () => {
       setLoading(true);
       
-      // Busca a ficha atual, os treinos padrão (para o autocomplete) e a biblioteca de vídeos
       const [fichaRes, pRes, bibRes] = await Promise.all([
         supabase.from('fichas').select('*').eq('id', treinoId).maybeSingle(),
         supabase.from('treinos_padrao').select('*'),
@@ -206,7 +205,6 @@ export default function EditarFicha() {
       
       let exerciciosExtraidos: any[] = [];
       
-      // Extrai exercícios dos Treinos Padrão para o buscador
       if (pRes.data) {
         pRes.data.forEach((treino) => {
           try {
@@ -245,7 +243,9 @@ export default function EditarFicha() {
   const atualizarSerie = (exIndex: number, sIndex: number, campo: keyof Serie, valor: string | number) => {
     setExercicios(prev => {
       const novos = [...prev];
-      novos[exIndex].series[sIndex] = { ...novos[exIndex].series[sIndex], [campo]: valor };
+      if (Array.isArray(novos[exIndex].series)) {
+        novos[exIndex].series[sIndex] = { ...novos[exIndex].series[sIndex], [campo]: valor };
+      }
       return novos;
     });
   };
@@ -254,23 +254,32 @@ export default function EditarFicha() {
     if (file.size > 10 * 1024 * 1024) return showToast('error', t.errLimit);
     try {
       setUploading(true);
-      const filePath = `exercicios/${Math.random()}-${file.name}`;
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const filePath = `exercicios/${fileName}`;
+      
       const { error: uploadError } = await supabase.storage.from('videos').upload(filePath, file);
       if (uploadError) throw uploadError;
+      
       const { data } = supabase.storage.from('videos').getPublicUrl(filePath);
       const n = [...exercicios];
       n[exIndex].video = data.publicUrl;
       setExercicios(n);
-    } catch (err: any) { showToast('error', t.errDefault + err.message); } finally { setUploading(false); }
+    } catch (err: any) { 
+      showToast('error', t.errDefault + err.message); 
+    } finally { 
+      setUploading(false); 
+    }
   };
 
   const atualizarFicha = async () => {
     setLoading(true);
+    
     const exerciciosLimpos = exercicios.map(ex => ({
       ...ex,
-      series: ex.series.map(s => ({
+      series: Array.isArray(ex.series) ? ex.series.map(s => ({
         ordem: String(s.ordem || ""), reps: String(s.reps || ""), carga: Number(s.carga) || 0, CargaPlanejada: Number(s.CargaPlanejada) || 0, intervalo: Number(s.intervalo) || 0
-      }))
+      })) : []
     }));
 
     const { error } = await supabase.from('fichas').update({ nome_treino: nome, descricao: JSON.stringify(exerciciosLimpos) }).eq('id', treinoId);
@@ -285,7 +294,7 @@ export default function EditarFicha() {
   const excluirFicha = async () => {
     if (!window.confirm(t.confirmDelete)) return;
     setLoading(true);
-    const { error } = await supabase.from('fichas').delete().eq('id', treinoId);
+    const { error } = await supabase.from('fichas').update({ ativo: false }).eq('id', treinoId);
     if (!error) router.push(`/dashboard/aluno/${id}`);
     else showToast('error', t.errDefault + error.message);
     setLoading(false);
@@ -373,17 +382,25 @@ export default function EditarFicha() {
               
               <div className="mb-8 space-y-3">
                 <div className="relative group">
-                  <input className="w-full pl-5 pr-12 py-4 bg-[var(--surface-sec)] border border-[var(--border)] rounded-[1.2rem] text-sm font-bold outline-none placeholder:text-[var(--text-secondary)] text-[var(--text-primary)] focus:border-[var(--primary)] transition-colors" placeholder={t.videoUrl} value={ex.video || ''} onChange={(e) => { const n = [...exercicios]; n[exIndex].video = e.target.value; setExercicios(n); }} />
+                  <input className="w-full pl-5 pr-12 py-4 bg-[var(--surface-sec)] border border-[var(--border)] rounded-[1.2rem] text-sm font-bold outline-none placeholder:text-[var(--text-secondary)] text-[var(--text-primary)] focus:border-[var(--primary)] transition-colors shadow-inner" placeholder={t.videoUrl} value={ex.video || ''} onChange={(e) => { const n = [...exercicios]; n[exIndex].video = e.target.value; setExercicios(n); }} />
                   <button type="button" onClick={() => document.getElementById(`file-${exIndex}`)?.click()} className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-[var(--primary)] text-white rounded-xl flex items-center justify-center hover:brightness-110 transition-all active:scale-95" title={t.uploadBtn}>
                     {uploading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <FaUpload size={14} />}
                   </button>
-                  <input type="file" id={`file-${exIndex}`} className="hidden" accept="video/*" onChange={(e) => e.target.files && uploadVideo(exIndex, e.target.files[0])} />
+                  
+                  {/* MUDANÇA: Upload agora aceita videos, gifs e imagens normais */}
+                  <input type="file" id={`file-${exIndex}`} className="hidden" accept="video/*,image/gif,image/jpeg,image/png" onChange={(e) => e.target.files && uploadVideo(exIndex, e.target.files[0])} />
                 </div>
                 
-                {/* PREVIEW DE VÍDEO INTELIGENTE */}
-                {ex.video && (ex.video.includes('youtube') || ex.video.includes('youtu.be')) && (
-                  <div className="w-full h-48 sm:h-64 bg-[var(--surface-sec)] rounded-[1.2rem] overflow-hidden border border-[var(--border)] shadow-inner mb-4 mt-2">
-                    <iframe className="w-full h-full" src={ex.video.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/').replace('/shorts/', '/embed/').split('&')[0]} frameBorder="0" allowFullScreen></iframe>
+                {/* PREVIEW INTELIGENTE DE MÍDIA */}
+                {ex.video && (
+                  <div className="w-full h-48 sm:h-64 bg-[var(--surface-sec)] rounded-[1.2rem] overflow-hidden border border-[var(--border)] shadow-inner mb-4 mt-2 flex items-center justify-center">
+                    {(ex.video.includes('youtube.com') || ex.video.includes('youtu.be')) ? (
+                      <iframe className="w-full h-full" src={ex.video.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/').replace('/shorts/', '/embed/').split('&')[0]} frameBorder="0" allowFullScreen></iframe>
+                    ) : (ex.video.toLowerCase().endsWith('.gif') || ex.video.toLowerCase().match(/\.(jpeg|jpg|png|webp)$/)) ? (
+                      <img src={ex.video} alt="Preview do Exercício" className="w-full h-full object-cover" />
+                    ) : (
+                      <video src={ex.video} controls className="w-full h-full object-cover bg-black" />
+                    )}
                   </div>
                 )}
 
@@ -395,9 +412,9 @@ export default function EditarFicha() {
                 <span>{t.series}</span><span>{t.reps}</span><span>{t.load}</span><span>{t.rest}</span><span>{t.planned}</span><span></span>
               </div>
 
-              {/* Grid Inputs */}
+              {/* Grid Inputs - Agora protegido com Array.isArray para evitar crashes */}
               <div className="space-y-3">
-                {ex.series?.map((s, sIndex) => (
+                {Array.isArray(ex.series) && ex.series.map((s, sIndex) => (
                   <div key={sIndex} className="grid grid-cols-6 gap-1 sm:gap-2 items-center">
                     <input type="text" className="w-full py-3 sm:p-3 bg-[var(--surface-sec)] border border-[var(--border)] rounded-xl text-xs sm:text-sm text-center font-bold text-[var(--text-primary)] outline-none focus:border-[var(--primary)] transition-colors" value={s.ordem ?? ''} onChange={(e) => atualizarSerie(exIndex, sIndex, 'ordem', e.target.value)} />
                     <input type="text" className="w-full py-3 sm:p-3 bg-[var(--surface-sec)] border border-[var(--border)] rounded-xl text-xs sm:text-sm text-center font-bold text-[var(--text-primary)] outline-none focus:border-[var(--primary)] transition-colors" value={s.reps ?? ''} onChange={(e) => atualizarSerie(exIndex, sIndex, 'reps', e.target.value)} />
@@ -414,7 +431,7 @@ export default function EditarFicha() {
                 <button 
                   onClick={() => { 
                     const n = [...exercicios]; 
-                    if(!n[exIndex].series) n[exIndex].series = [];
+                    if(!n[exIndex].series || !Array.isArray(n[exIndex].series)) n[exIndex].series = [];
                     n[exIndex].series.push({ordem: '', reps: '', carga: '', intervalo: '', CargaPlanejada: ''}); 
                     setExercicios(n); 
                   }} 
@@ -426,7 +443,7 @@ export default function EditarFicha() {
             </div>
           ))}
 
-          {/* Botão Adicionar Exercicio (Faltava no final para poder botar exercícios novos) */}
+          {/* Botão Adicionar Exercicio */}
           <button 
             onClick={() => setExercicios([...exercicios, { nome: '', video: '', metodo: 'Normal', tipoSerie: 'Repetições e carga', series: [{ ordem: '', reps: '', carga: '', CargaPlanejada: '', intervalo: '' }] }])} 
             className="w-full py-6 rounded-[2rem] font-black text-[10px] uppercase tracking-widest text-[var(--text-secondary)] border-2 border-dashed border-[var(--border)] hover:border-[var(--primary)] hover:text-[var(--primary)] transition-all mb-8 flex items-center justify-center gap-2 bg-[var(--surface)] shadow-sm"
@@ -441,5 +458,22 @@ export default function EditarFicha() {
         </div>
       )}
     </main>
+  );
+}
+
+export default function EditarFicha() {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+  
+  const bgTheme = mounted && localStorage.getItem('@premium_theme') === 'light' ? '#F3F6FB' : '#0F1115';
+
+  return (
+    <Suspense fallback={
+      <main style={{ backgroundColor: bgTheme }} className="min-h-screen transition-colors duration-500">
+        <NovaFichaSkeleton />
+      </main>
+    }>
+      <EditarFichaContent />
+    </Suspense>
   );
 }

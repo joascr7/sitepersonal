@@ -120,13 +120,24 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
   const [diasTreino, setDiasTreino] = useState<Date[]>([]);
   const [calendarioAberto, setCalendarioAberto] = useState(false);
   const [treinoDoDia, setTreinoDoDia] = useState<any>(null);
-
+  const [horaAtual, setHoraAtual] = useState(new Date());
   // Estados de Tema e i18n
   const [isDark, setIsDark] = useState(true);
   const [lang, setLang] = useState<'pt-BR' | 'pt-PT' | 'en'>('pt-BR');
 
 
 
+useEffect(() => {
+    const timer = setInterval(() => setHoraAtual(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const getSaudacao = () => {
+    const hora = horaAtual.getHours();
+    if (hora < 12) return 'Bom dia';
+    if (hora < 18) return 'Boa tarde';
+    return 'Boa noite';
+  };
 
   // Inicialização de Tema e Idioma (Persistência)
   useEffect(() => {
@@ -421,6 +432,25 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
             })}
           </div>
         </section>
+
+        {/* ━━━━━━━━━━ SAUDAÇÃO E HORÁRIO ATUAL ━━━━━━━━━━ */}
+<div className="px-2 animate-in fade-in duration-700 delay-300 flex justify-between items-end">
+   <div>
+     <h3 className="text-[14px] font-bold text-[var(--text-primary)]">
+       {getSaudacao()}, {aluno?.nome?.split(' ')[0] || 'Aluno'}! 👋
+     </h3>
+     <p className="text-[10px] font-medium text-[var(--text-secondary)] uppercase tracking-widest mt-1">
+       {format(horaAtual, "EEEE, d 'de' MMMM", { locale: lang === 'pt-BR' ? ptBR : lang === 'pt-PT' ? pt : enUS })}
+     </p>
+   </div>
+   
+   {/* Relógio em tempo real */}
+   <div className="bg-[var(--surface-sec)] px-3 py-1.5 rounded-lg border border-[var(--border)]">
+      <p className="text-[14px] font-black text-[var(--primary)] tabular-nums tracking-widest">
+        {format(horaAtual, 'HH:mm:ss')}
+      </p>
+   </div>
+</div>
 
         <button 
           onClick={() => setCalendarioAberto(true)}

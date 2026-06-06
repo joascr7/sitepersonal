@@ -69,10 +69,24 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
   const [sessoesContador, setSessoesContador] = useState(0);
   const [inputValues, setInputValues] = useState<Record<string, string>>({});
   const [showToast, setShowToast] = useState(false);
+  const [horaAtual, setHoraAtual] = useState(new Date());
   
   // Estados de Tema e i18n
   const [isDark, setIsDark] = useState(true);
   const [lang, setLang] = useState<'pt-BR' | 'pt-PT' | 'en'>('pt-BR');
+
+
+  useEffect(() => {
+    const timer = setInterval(() => setHoraAtual(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const getSaudacao = () => {
+    const hora = horaAtual.getHours();
+    if (hora < 12) return 'Bom dia';
+    if (hora < 18) return 'Boa tarde';
+    return 'Boa noite';
+  };
 
   // Inicialização de Tema e Idioma (Persistência)
   useEffect(() => {
@@ -125,17 +139,42 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
   const progresso = exercicios.length > 0 ? Math.round((concluidos.length / exercicios.length) * 100) : 0;
   const todosFinalizados = exercicios.length > 0 && concluidos.length === exercicios.length;
 
+  // Renderização Inteligente de Mídia (Corrigida para GIFs e playsInline)
   const renderizarVideo = (url: string) => {
     if (!url) return null;
     const isYoutube = url.includes("youtube.com") || url.includes("youtu.be");
-    const embedUrl = url.includes("shorts/") ? url.replace("shorts/", "embed/") : url.replace("watch?v=", "embed/");
+    const isImageOrGif = url.toLowerCase().match(/\.(jpeg|jpg|png|webp|gif)$/i);
+
+    // Se for Youtube
+    if (isYoutube) {
+      const embedUrl = url.includes("shorts/") ? url.replace("shorts/", "embed/") : url.replace("watch?v=", "embed/");
+      return (
+        <div className="relative w-full aspect-video bg-black overflow-hidden">
+          <iframe className="absolute top-0 left-0 w-full h-full" src={embedUrl.split('&')[0]} frameBorder="0" allowFullScreen />
+        </div>
+      );
+    }
+
+    // Se for Imagem ou GIF (O GIF dá play automaticamente na tag img)
+    if (isImageOrGif) {
+      return (
+        <div className="relative w-full aspect-video bg-[var(--surface-sec)] overflow-hidden flex items-center justify-center">
+          <img src={url} alt="Demonstração do Exercício" className="w-full h-full object-cover" />
+        </div>
+      );
+    }
+
+    // Se for Vídeo (MP4, etc.) - Usa playsInline para não ficar gigante no iOS
     return (
       <div className="relative w-full aspect-video bg-black overflow-hidden">
-        {isYoutube ? (
-          <iframe className="absolute top-0 left-0 w-full h-full" src={embedUrl.split('&')[0]} allowFullScreen />
-        ) : (
-          <video controls className="absolute top-0 left-0 w-full h-full object-cover" src={url} />
-        )}
+        <video 
+          controls 
+          playsInline 
+          webkit-playsinline="true"
+          preload="metadata"
+          className="absolute top-0 left-0 w-full h-full object-cover" 
+          src={url} 
+        />
       </div>
     );
   };
@@ -147,7 +186,7 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
     doc.text(ficha?.nome_treino || "Treino", 14, 20);
     const tabelaDados: any[] = [];
     exercicios.forEach((ex: any) => {
-      (ex.series || []).forEach((s: any, idx: number) => {
+      (Array.isArray(ex.series) ? ex.series : []).forEach((s: any, idx: number) => {
         const key = `${ex.nome}-${idx}`;
         tabelaDados.push([
           ex.nome, 
@@ -234,12 +273,22 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
         
         {/* ━━━━━━━━━━ HEADER COMPACTO ━━━━━━━━━━ */}
         <header className="flex justify-between items-center mb-8 pt-4">
-          <button 
-            onClick={() => router.back()} 
-            className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-[var(--text-secondary)] hover:text-[var(--text-primary)] bg-[var(--surface)] px-4 py-2.5 rounded-full border border-[var(--border)] active:scale-95 transition-all shadow-sm"
-          >
-            <FaChevronLeft size={10} /> {t.back}
-          </button>
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={() => router.back()} 
+              className="flex items-center justify-center w-10 h-10 rounded-full bg-[var(--surface)] border border-[var(--border)] active:scale-95 transition-all shadow-sm"
+            >
+              <FaChevronLeft size={12} />
+            </button>
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-widest text-[var(--text-secondary)]">
+                {getSaudacao()}, {ficha?.aluno_nome?.split(' ')[0] || 'Aluno'}!
+              </p>
+              <p className="text-[10px] font-bold text-[var(--primary)] uppercase tracking-widest">
+                {format(horaAtual, 'HH:mm:ss')}
+              </p>
+            </div>
+          </div>
           
           <div className="flex gap-2">
             <button 
@@ -333,7 +382,7 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
                       </div>
 
                       <div className="space-y-2">
-                        {ex.series?.map((s: any, sIndex: number) => {
+                        {Array.isArray(ex.series) && ex.series.map((s: any, sIndex: number) => {
                           const key = `${ex.nome}-${sIndex}`;
                           return (
                             <div key={sIndex} className="grid grid-cols-4 items-center gap-2 bg-[var(--bg)] p-2 rounded-xl border border-[var(--border)] shadow-inner">

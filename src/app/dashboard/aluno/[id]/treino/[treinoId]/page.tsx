@@ -153,7 +153,7 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
   const excluirFicha = async () => {
     if (!window.confirm(t.confirmDelete)) return;
     setLoading(true);
-    const { error } = await supabase.from('fichas').delete().eq('id', treinoId);
+    const { error } = await supabase.from('fichas').update({ ativo: false }).eq('id', treinoId);
     if (!error) router.push(`/dashboard/aluno/${id}`);
     else {
       showToast('error', error.message);

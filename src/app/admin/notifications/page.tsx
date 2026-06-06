@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { 
   FaBullhorn, FaPaperPlane, FaImage, FaUsers, 
-  FaClock, FaEye, FaCheckCircle, FaExclamationCircle 
+  FaClock, FaEye, FaCheckCircle, FaExclamationCircle, FaUpload 
 } from 'react-icons/fa';
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -24,8 +24,9 @@ const translations = {
     titlePlaceholder: 'Ex: Atualização Importante do Sistema 🚀',
     bodyLabel: 'Corpo do Push',
     bodyPlaceholder: 'Escreva o texto descritivo detalhado que aparecerá na tela bloqueada...',
-    mediaLabel: 'URL do Arquivo de Mídia (Opcional)',
-    mediaPlaceholder: 'https://suaplataforma.com/imagem.gif',
+    mediaLabel: 'Mídia: Vídeo, Imagem ou GIF',
+    mediaUploadBtn: 'Selecione um arquivo da galeria...',
+    mediaUploadSuccess: 'Arquivo Carregado ✓',
     typeLabel: 'Tipo de Formato',
     typeImg: 'Imagem Estática',
     typeGif: 'GIF Animado',
@@ -60,8 +61,9 @@ const translations = {
     titlePlaceholder: 'Ex: Atualização Importante do Sistema 🚀',
     bodyLabel: 'Corpo do Push',
     bodyPlaceholder: 'Escreva o texto descritivo detalhado que aparecerá no ecrã bloqueado...',
-    mediaLabel: 'URL do Ficheiro de Multimédia (Opcional)',
-    mediaPlaceholder: 'https://asuaplataforma.com/imagem.gif',
+    mediaLabel: 'Multimédia: Vídeo, Imagem ou GIF',
+    mediaUploadBtn: 'Selecione um ficheiro da galeria...',
+    mediaUploadSuccess: 'Ficheiro Carregado ✓',
     typeLabel: 'Tipo de Formato',
     typeImg: 'Imagem Estática',
     typeGif: 'GIF Animado',
@@ -96,8 +98,9 @@ const translations = {
     titlePlaceholder: 'Ex: Important System Update 🚀',
     bodyLabel: 'Push Body',
     bodyPlaceholder: 'Write the detailed descriptive text that will appear on the lock screen...',
-    mediaLabel: 'Media File URL (Optional)',
-    mediaPlaceholder: 'https://yourplatform.com/image.gif',
+    mediaLabel: 'Media: Video, Image or GIF',
+    mediaUploadBtn: 'Select a file from gallery...',
+    mediaUploadSuccess: 'File Uploaded ✓',
     typeLabel: 'Format Type',
     typeImg: 'Static Image',
     typeGif: 'Animated GIF',
@@ -183,7 +186,32 @@ export default function AdminBroadcaster() {
     setTimeout(() => setToast(null), 5000);
   };
 
-const handleDisparar = async (e: React.FormEvent) => {
+  // FUNÇÃO DE UPLOAD DIRETO DO CELULAR/PC
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setLoading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const filePath = `broadcasts/${fileName}`; // Salva na pasta broadcasts dentro do bucket
+
+      // Faz o upload para o bucket 'videos' (o mesmo usado nos exercícios)
+      const { error: uploadError } = await supabase.storage.from('videos').upload(filePath, file);
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage.from('videos').getPublicUrl(filePath);
+      setFormData({ ...formData, mediaUrl: data.publicUrl });
+      showToast('success', 'Upload concluído com sucesso!');
+    } catch (err: any) {
+      showToast('error', 'Erro no upload: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDisparar = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.titulo.trim() || !formData.corpo.trim()) {
       showToast('error', t.errFill);
@@ -213,7 +241,6 @@ const handleDisparar = async (e: React.FormEvent) => {
         headers: {
           'Content-Type': 'application/json'
         },
-        // O segredo está aqui: transformar o objeto em texto JSON antes de enviar
         body: JSON.stringify({ broadcast_id: campanha.id }) 
       });
 
@@ -224,7 +251,6 @@ const handleDisparar = async (e: React.FormEvent) => {
       carregarHistoricoCampanhas();
     } catch (err: any) {
       console.error("Erro final:", err);
-      // Extração de erro mais precisa
       const msgErro = err?.context?.message || err.message || "Falha na conexão com o servidor";
       showToast('error', "Erro: " + msgErro);
     } finally {
@@ -235,7 +261,7 @@ const handleDisparar = async (e: React.FormEvent) => {
   if (!mounted) return null;
 
   return (
-    <div style={themeStyles} className="min-h-screen bg-[var(--bg)] text-[var(--text-primary)] p-6 sm:p-10 font-sans box-border w-full transition-colors duration-500">
+    <div style={themeStyles} className="min-h-screen bg-[var(--bg)] text-[var(--text-primary)] p-4 sm:p-10 font-sans box-border w-full transition-colors duration-500 overflow-x-hidden">
       <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in duration-500">
         
         {/* Toasts de Feedback Premium */}
@@ -252,7 +278,7 @@ const handleDisparar = async (e: React.FormEvent) => {
 
         {/* Header Principal */}
         <div className="flex items-center gap-4 border-b border-[var(--border)] pb-6">
-          <div className="w-12 h-12 bg-[var(--primary)]/10 text-[var(--primary)] rounded-2xl flex items-center justify-center shadow-inner">
+          <div className="w-12 h-12 bg-[var(--primary)]/10 text-[var(--primary)] rounded-2xl flex items-center justify-center shadow-inner shrink-0">
             <FaBullhorn size={20} />
           </div>
           <div>
@@ -261,11 +287,11 @@ const handleDisparar = async (e: React.FormEvent) => {
           </div>
         </div>
 
-        {/* Grid Splitter Form vs Preview */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        {/* Grid Splitter Mobile-First (Flex Coluna no Mobile, Grid no PC) */}
+        <div className="flex flex-col lg:grid lg:grid-cols-12 gap-8 items-start">
           
-          {/* Formulário de Configuração (Esquerda) */}
-          <form onSubmit={handleDisparar} className="lg:col-span-7 bg-[var(--surface)] p-6 sm:p-8 rounded-[2rem] border border-[var(--border)] space-y-6 shadow-xl">
+          {/* FORMULÁRIO DE CONFIGURAÇÃO (Em cima no Mobile) */}
+          <form onSubmit={handleDisparar} className="w-full lg:col-span-7 order-1 bg-[var(--surface)] p-5 sm:p-8 rounded-[2rem] border border-[var(--border)] space-y-6 shadow-xl">
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="flex flex-col gap-2 group">
@@ -316,17 +342,41 @@ const handleDisparar = async (e: React.FormEvent) => {
               />
             </div>
 
+            {/* SEÇÃO DE UPLOAD OTIMIZADA */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="sm:col-span-2 flex flex-col gap-2 group">
                 <label className="text-[10px] font-black text-[var(--text-secondary)] group-focus-within:text-[var(--primary)] transition-colors uppercase tracking-widest flex items-center gap-1.5"><FaImage /> {t.mediaLabel}</label>
+                
+                {/* Botão de Upload Direto */}
+                <div className="relative">
+                  <input 
+                    type="file" 
+                    accept="image/*,video/mp4,image/gif"
+                    className="hidden" 
+                    id="fileUpload"
+                    onChange={handleFileUpload}
+                  />
+                  <button 
+                    type="button" 
+                    onClick={() => document.getElementById('fileUpload')?.click()}
+                    disabled={loading}
+                    className="w-full px-4 py-3.5 bg-[var(--surface-sec)] border border-[var(--border)] rounded-xl text-left text-sm font-bold text-[var(--text-primary)] flex items-center justify-between transition-all hover:border-[var(--primary)] active:scale-[0.98] disabled:opacity-50"
+                  >
+                    <span className="truncate pr-4">{formData.mediaUrl ? t.mediaUploadSuccess : t.mediaUploadBtn}</span>
+                    {loading ? <div className="w-4 h-4 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin shrink-0"/> : <FaUpload className="text-[var(--primary)] shrink-0" />}
+                  </button>
+                </div>
+                
+                {/* Input opcional para colar URL manualmente */}
                 <input 
                   type="url" 
-                  placeholder={t.mediaPlaceholder}
+                  placeholder="Ou cole uma URL externa direta..."
                   value={formData.mediaUrl}
                   onChange={(e) => setFormData({...formData, mediaUrl: e.target.value})}
-                  className="w-full px-4 py-3.5 bg-[var(--surface-sec)] border border-[var(--border)] rounded-xl outline-none focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)] text-sm font-bold text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/50 placeholder:font-normal shadow-inner transition-all"
+                  className="w-full px-4 py-2 bg-[var(--surface-sec)]/50 border border-[var(--border)] rounded-lg outline-none focus:border-[var(--primary)] text-xs font-medium text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/50 mt-1 transition-all shadow-inner"
                 />
               </div>
+
               <div className="flex flex-col gap-2 group">
                 <label className="text-[10px] font-black text-[var(--text-secondary)] group-focus-within:text-[var(--primary)] transition-colors uppercase tracking-widest">{t.typeLabel}</label>
                 <select 
@@ -361,12 +411,12 @@ const handleDisparar = async (e: React.FormEvent) => {
             </button>
           </form>
 
-          {/* Simulador Mobile em Tempo Real (Direita) */}
-          <div className="lg:col-span-5 flex flex-col items-center justify-center bg-[var(--surface)]/50 p-6 rounded-[2rem] border border-[var(--border)] space-y-6">
+          {/* SIMULADOR MOBILE (Embaixo no Mobile, Lado Direito no PC) */}
+          <div className="w-full lg:col-span-5 order-2 flex flex-col items-center justify-center bg-[var(--surface)]/50 p-6 sm:p-8 rounded-[2rem] border border-[var(--border)] space-y-6 lg:sticky lg:top-8 overflow-hidden">
             <h3 className="text-[10px] font-black text-[var(--text-secondary)] uppercase tracking-widest flex items-center gap-2"><FaEye /> {t.previewTitle}</h3>
             
-            {/* Corpo Físico do Aparelho (Este bloco sempre mantém cores hardcoded escuras para parecer um celular real) */}
-            <div className="w-[300px] h-[580px] bg-black rounded-[3rem] border-4 border-[#1B2330] relative shadow-2xl p-3 box-border overflow-hidden select-none">
+            {/* Corpo Físico do Aparelho com escala adaptativa para mobile */}
+            <div className="w-[280px] h-[550px] sm:w-[300px] sm:h-[580px] bg-black rounded-[3rem] border-4 border-[#1B2330] relative shadow-2xl p-3 box-border overflow-hidden select-none shrink-0 origin-top">
               
               {/* Wallpaper Simulado Fundo */}
               <div className="absolute inset-0 bg-gradient-to-tr from-slate-900 to-zinc-950 z-0" />
@@ -399,6 +449,7 @@ const handleDisparar = async (e: React.FormEvent) => {
                   {formData.corpo || t.previewEmptyBody}
                 </p>
 
+                {/* Exibição da Mídia enviada */}
                 {formData.mediaUrl && (
                   <div className="mt-2 w-full h-24 rounded-lg overflow-hidden border border-white/5 bg-black/40">
                     <img src={formData.mediaUrl} alt="Preview" className="w-full h-full object-cover" onError={(e) => e.currentTarget.style.display = 'none'} />
@@ -411,7 +462,7 @@ const handleDisparar = async (e: React.FormEvent) => {
             </div>
 
             {/* Listagem do Histórico de Campanhas Enviadas */}
-            <div className="w-full space-y-3">
+            <div className="w-full space-y-3 pt-4">
               <h4 className="text-[9px] font-black text-[var(--text-secondary)] uppercase tracking-widest">{t.historyTitle}</h4>
               {historicoCampanhas.map((camp) => (
                 <div key={camp.id} className="p-3 bg-[var(--surface-sec)] rounded-xl border border-[var(--border)] text-xs flex justify-between items-center transition-colors">

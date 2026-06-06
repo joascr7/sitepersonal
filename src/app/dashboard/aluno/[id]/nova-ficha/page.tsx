@@ -118,39 +118,39 @@ const translations = {
     myModels: 'Meus Modelos', defaultModels: 'Treinos Padrão',
     addFromModel: '+ Adicionar de "Meus Modelos" ou "Padrão"', workoutName: 'Nome do Treino',
     exName: 'Nome do Exercício', remove: 'Remover', videoUrl: 'Link do vídeo',
-    uploadVideo: 'Upload de Vídeo', uploading: 'Enviando...',
+    uploadVideo: 'Upload de Mídia', uploading: 'Enviando...',
     series: 'Série', reps: 'Reps', load: 'Carga', rest: 'Desc.', planned: 'Planej.',
     addSeries: '+ Adicionar Série', addExercise: '+ Adicionar Exercício',
     saveFinish: 'Finalizar e Salvar', saveModel: 'Salvar como Modelo', saving: 'Salvando...',
     errLimit: 'Arquivo maior que 10MB!', errName: 'Dê um nome ao treino!', errApply: 'Erro ao aplicar este modelo.',
-    errUpload: 'Erro ao enviar vídeo: ', errSave: 'Erro ao salvar: ',
-    successAdd: ' adicionado!', successVideo: 'Vídeo encontrado para ', successSave: 'Salvo para o aluno e como modelo!'
+    errUpload: 'Erro ao enviar arquivo: ', errSave: 'Erro ao salvar: ',
+    successAdd: ' adicionado!', successVideo: 'Mídia encontrada para ', successSave: 'Salvo para o aluno e como modelo!'
   },
   'pt-PT': {
     back: 'Voltar', title: 'Nova Ficha', library: 'Biblioteca de Treinos', close: 'Fechar',
     myModels: 'Os Meus Modelos', defaultModels: 'Treinos Padrão',
     addFromModel: '+ Adicionar de "Meus Modelos" ou "Padrão"', workoutName: 'Nome do Treino',
     exName: 'Nome do Exercício', remove: 'Remover', videoUrl: 'Link do vídeo',
-    uploadVideo: 'Upload de Vídeo', uploading: 'A enviar...',
+    uploadVideo: 'Upload de Mídia', uploading: 'A enviar...',
     series: 'Série', reps: 'Reps', load: 'Carga', rest: 'Desc.', planned: 'Planej.',
     addSeries: '+ Adicionar Série', addExercise: '+ Adicionar Exercício',
     saveFinish: 'Finalizar e Guardar', saveModel: 'Guardar como Modelo', saving: 'A guardar...',
     errLimit: 'Ficheiro maior que 10MB!', errName: 'Dê um nome ao treino!', errApply: 'Erro ao aplicar este modelo.',
-    errUpload: 'Erro ao enviar vídeo: ', errSave: 'Erro ao guardar: ',
-    successAdd: ' adicionado!', successVideo: 'Vídeo encontrado para ', successSave: 'Guardado para o aluno e como modelo!'
+    errUpload: 'Erro ao enviar ficheiro: ', errSave: 'Erro ao guardar: ',
+    successAdd: ' adicionado!', successVideo: 'Mídia encontrada para ', successSave: 'Guardado para o aluno e como modelo!'
   },
   'en': {
     back: 'Back', title: 'New Workout', library: 'Workout Library', close: 'Close',
     myModels: 'My Templates', defaultModels: 'Default Templates',
     addFromModel: '+ Add from "My Templates" or "Default"', workoutName: 'Workout Name',
     exName: 'Exercise Name', remove: 'Remove', videoUrl: 'Video Link',
-    uploadVideo: 'Upload Video', uploading: 'Uploading...',
+    uploadVideo: 'Upload Media', uploading: 'Uploading...',
     series: 'Set', reps: 'Reps', load: 'Load', rest: 'Rest', planned: 'Target',
     addSeries: '+ Add Set', addExercise: '+ Add Exercise',
     saveFinish: 'Finish and Save', saveModel: 'Save as Template', saving: 'Saving...',
     errLimit: 'File larger than 10MB!', errName: 'Give the workout a name!', errApply: 'Error applying this template.',
-    errUpload: 'Error uploading video: ', errSave: 'Error saving: ',
-    successAdd: ' added!', successVideo: 'Video found for ', successSave: 'Saved for student and as template!'
+    errUpload: 'Error uploading file: ', errSave: 'Error saving: ',
+    successAdd: ' added!', successVideo: 'Media found for ', successSave: 'Saved for student and as template!'
   }
 };
 
@@ -246,7 +246,6 @@ function NovaFichaContent() {
       const raw = ehPadrao ? modelo.exercicios_json : modelo.descricao;
       const novosExercicios = typeof raw === 'string' ? JSON.parse(raw) : raw;
       
-      // 🔥 BLINDAGEM AQUI: Força a propriedade 'series' a ser sempre um Array válido 
       const exerciciosTratados = novosExercicios.map((ex: any) => ({
         ...ex,
         series: Array.isArray(ex.series) ? ex.series : []
@@ -329,10 +328,10 @@ function NovaFichaContent() {
     
     if (error) throw error;
 
-    // 🔥 2. A MÁGICA AQUI: Acende o sininho para o aluno!
+    // 2. Acende o sininho para o aluno!
     try {
       await supabase.from('user_notifications').insert([{
-        user_id: id, // O ID do aluno que está na URL
+        user_id: id,
         titulo: 'Novo Treino Disponível! 💪',
         corpo: `O seu personal adicionou o treino "${nome}" à sua ficha.`,
         lida: false
@@ -474,12 +473,20 @@ function NovaFichaContent() {
                 <button type="button" onClick={() => document.getElementById(`file-${exIndex}`)?.click()} className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-[var(--primary)] text-white rounded-xl flex items-center justify-center hover:brightness-110 transition-all active:scale-95" title={t.uploadVideo}>
                   {uploading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <FaUpload size={14} />}
                 </button>
-                <input type="file" id={`file-${exIndex}`} className="hidden" accept="video/*" onChange={(e) => e.target.files && uploadVideo(exIndex, e.target.files[0])} />
+                {/* 1. MUDANÇA: Adicionado image/gif no accept */}
+                <input type="file" id={`file-${exIndex}`} className="hidden" accept="video/*,image/gif" onChange={(e) => e.target.files && uploadVideo(exIndex, e.target.files[0])} />
               </div>
             
-              {ex.video && (ex.video.includes('youtube') || ex.video.includes('youtu.be')) && (
-                <div className="w-full h-48 sm:h-64 bg-[var(--surface-sec)] rounded-[1.2rem] overflow-hidden border border-[var(--border)] shadow-inner">
-                  <iframe className="w-full h-full" src={ex.video.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/').replace('/shorts/', '/embed/').split('&')[0]} frameBorder="0" allowFullScreen></iframe>
+              {/* 2. MUDANÇA: Melhorada a lógica do visualizador de mídia */}
+              {ex.video && (
+                <div className="w-full h-48 sm:h-64 bg-[var(--surface-sec)] rounded-[1.2rem] overflow-hidden border border-[var(--border)] shadow-inner flex items-center justify-center">
+                  {(ex.video.includes('youtube.com') || ex.video.includes('youtu.be')) ? (
+                    <iframe className="w-full h-full" src={ex.video.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/').replace('/shorts/', '/embed/').split('&')[0]} frameBorder="0" allowFullScreen></iframe>
+                  ) : (ex.video.toLowerCase().endsWith('.gif') || ex.video.toLowerCase().match(/\.(jpeg|jpg|png|webp)$/)) ? (
+                    <img src={ex.video} alt="Preview do Exercício" className="w-full h-full object-cover" />
+                  ) : (
+                    <video src={ex.video} controls className="w-full h-full object-cover bg-black" />
+                  )}
                 </div>
               )}
             </div>
@@ -490,7 +497,6 @@ function NovaFichaContent() {
             </div>
 
             <div className="space-y-3">
-              {/* O map agora está completamente seguro */}
               {Array.isArray(ex.series) && ex.series.map((s: any, sIndex: number) => (
                 <div key={sIndex} className="grid grid-cols-5 gap-1 sm:gap-2 items-center">
                   <input type="number" className="w-full py-3 sm:p-3 bg-[var(--surface-sec)] border border-[var(--border)] rounded-xl text-xs sm:text-sm font-bold text-center text-[var(--text-primary)] outline-none focus:border-[var(--primary)] transition-colors" value={s.ordem ?? sIndex + 1} onChange={(e) => atualizarSerie(exIndex, sIndex, 'ordem', e.target.value)} />
