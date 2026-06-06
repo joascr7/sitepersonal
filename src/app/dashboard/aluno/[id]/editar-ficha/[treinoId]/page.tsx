@@ -109,6 +109,29 @@ const DashboardSkeleton = () => (
   </div>
 );
 
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// SKELETON SCREEN (UX PREMIUM) - DEFINIDO NO MESMO FICHEIRO
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const NovaFichaSkeleton = () => (
+  <div className="max-w-4xl mx-auto space-y-8 animate-pulse pt-8 px-5">
+    <div className="flex justify-between items-center mb-8">
+      <div className="w-16 h-4 bg-[var(--surface-sec)] rounded-full" />
+      <div className="w-40 h-8 bg-[var(--surface-sec)] rounded-xl" />
+      <div className="w-16 h-4 bg-transparent" />
+    </div>
+    <div className="w-full h-14 bg-[var(--surface-sec)] rounded-[1.2rem]" />
+    <div className="w-full h-16 bg-[var(--surface-sec)] rounded-[2rem]" />
+    {[1, 2].map((i) => (
+      <div key={i} className="p-8 bg-[var(--surface)] rounded-[2.5rem] border border-[var(--border)] space-y-6">
+        <div className="flex justify-between"><div className="w-1/2 h-8 bg-[var(--surface-sec)] rounded-xl" /><div className="w-8 h-8 bg-[var(--surface-sec)] rounded-lg" /></div>
+        <div className="w-full h-12 bg-[var(--surface-sec)] rounded-[1.2rem]" />
+        <div className="w-full h-32 bg-[var(--surface-sec)] rounded-[1.2rem]" />
+      </div>
+    ))}
+  </div>
+);
+
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // DICIONÁRIO DE INTERNACIONALIZAÇÃO (i18n)
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
