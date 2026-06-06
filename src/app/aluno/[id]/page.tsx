@@ -123,7 +123,6 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
   const [calendarioAberto, setCalendarioAberto] = useState(false);
   const [treinoDoDia, setTreinoDoDia] = useState<any>(null);
   const [horaAtual, setHoraAtual] = useState(new Date());
- 
   
   // Estados de Tema e i18n
   const [isDark, setIsDark] = useState(true);
@@ -261,24 +260,27 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
 
   if (loading) return (
     <main style={themeStyles} className="min-h-screen bg-[var(--bg)] p-6 space-y-8 animate-pulse pt-[max(env(safe-area-inset-top),1.5rem)]">
-      <div className="flex justify-between items-center mb-10">
-        <div className="flex items-center gap-4">
-          <div className="w-14 h-14 bg-[var(--surface-sec)] rounded-full" />
-          <div className="space-y-2">
-            <div className="w-24 h-4 bg-[var(--surface-sec)] rounded-full" />
-            <div className="w-16 h-3 bg-[var(--surface-sec)] rounded-full" />
+      {/* Container de loading também corrigido para ter a mesma largura */}
+      <div className="w-full max-w-md md:max-w-2xl mx-auto flex flex-col space-y-6">
+        <div className="flex justify-between items-center mb-10">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 bg-[var(--surface-sec)] rounded-full" />
+            <div className="space-y-2">
+              <div className="w-24 h-4 bg-[var(--surface-sec)] rounded-full" />
+              <div className="w-16 h-3 bg-[var(--surface-sec)] rounded-full" />
+            </div>
           </div>
         </div>
-      </div>
-      <div className="space-y-4">
-        <div className="w-48 h-8 bg-[var(--surface-sec)] rounded-full" />
-        <div className="w-32 h-3 bg-[var(--surface-sec)] rounded-full" />
-        <div className="w-full h-32 bg-[var(--surface-sec)] rounded-3xl" />
-      </div>
-      <div className="grid grid-cols-2 gap-4">
-        {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="h-28 bg-[var(--surface-sec)] rounded-3xl" />
-        ))}
+        <div className="space-y-4">
+          <div className="w-48 h-8 bg-[var(--surface-sec)] rounded-full" />
+          <div className="w-32 h-3 bg-[var(--surface-sec)] rounded-full" />
+          <div className="w-full h-32 bg-[var(--surface-sec)] rounded-3xl" />
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-28 bg-[var(--surface-sec)] rounded-3xl" />
+          ))}
+        </div>
       </div>
     </main>
   );
@@ -286,9 +288,10 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
   return (
     <main 
       style={themeStyles} 
-      className="min-h-screen bg-[var(--bg)] text-[var(--text-primary)] transition-colors duration-500 font-sans antialiased pb-[env(safe-area-inset-bottom)]"
+      className="min-h-screen bg-[var(--bg)] text-[var(--text-primary)] transition-colors duration-500 font-sans antialiased pb-[env(safe-area-inset-bottom)] flex flex-col"
     >
-      <div className="max-w-md mx-auto flex flex-col pt-[max(env(safe-area-inset-top),1.5rem)] px-5 pb-32 space-y-6">
+      {/* ⚠️ AQUI ESTÁ A CORREÇÃO DE LARGURA: w-full max-w-md md:max-w-2xl ⚠️ */}
+      <div className="w-full max-w-md md:max-w-2xl mx-auto flex flex-col pt-[max(env(safe-area-inset-top),1.5rem)] px-5 pb-32 space-y-6">
 
         {/* ━━━━━━━━━━ HEADER & PREFERENCES ━━━━━━━━━━ */}
         <header className="flex justify-between items-center w-full mt-4">
@@ -341,7 +344,6 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
               <button 
                 onClick={async () => {
                   await NotificationService.registrarDispositivo();
-                  // Força a atualização do ecrã para sumir com o banner após o clique
                   router.refresh();
                 }}
                 className="w-full py-2.5 bg-white text-[var(--primary)] rounded-xl font-black text-[11px] uppercase tracking-widest active:scale-[0.98] transition-all shadow-md"
@@ -380,7 +382,6 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
              </p>
            </div>
            
-           {/* Relógio em tempo real */}
            <div className="bg-[var(--surface-sec)] px-3 py-1.5 rounded-lg border border-[var(--border)]">
               <p className="text-[14px] font-black text-[var(--primary)] tabular-nums tracking-widest">
                 {format(horaAtual, 'HH:mm:ss')}
@@ -391,20 +392,17 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
         {/* ━━━━━━━━━━ HERO: TREINO DO DIA ━━━━━━━━━━ */}
         {treinoDoDia ? (
           (() => {
-            // Regex Inteligente: Extrai estritamente padrões como "Treino A", "Treino B", "Treino 1"
             let nomeLimpoHero = treinoDoDia.nome_treino || '';
             const matchTreino = nomeLimpoHero.match(/(treino\s+[a-z0-9]+)/i);
             
             if (matchTreino) {
               nomeLimpoHero = matchTreino[0].toUpperCase();
             } else if (nomeLimpoHero.includes('-')) {
-              // Caso não tenha "Treino A/B", pega a última parte após um traço
               nomeLimpoHero = nomeLimpoHero.split('-').pop()?.trim() || nomeLimpoHero;
             }
 
             return (
               <section className="relative overflow-hidden bg-gradient-to-br from-[var(--primary)] to-blue-800 p-8 rounded-[2rem] shadow-[0_10px_30px_-10px_var(--primary)] border border-white/10 group animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">
-                {/* Efeito Glow Premium */}
                 <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 blur-[50px] rounded-full transform translate-x-1/2 -translate-y-1/2" />
                 
                 <div className="relative z-10 flex justify-between items-start mb-8">
@@ -647,44 +645,22 @@ function ModalAvaliacao({ isOpen, onClose, avaliacao, historico, themeStyles, t,
                     fontWeight: 'bold'
                   }}
                   itemStyle={{ color: 'var(--primary)' }}
-                  labelStyle={{ display: 'none' }}
-                  formatter={(value: any) => [value ? `${value} kg` : '-', 'Peso']}
+                  labelStyle={{ display: 'none' }} 
                 />
-                
-                <Line 
-                  type="monotone" 
-                  dataKey="peso" 
-                  stroke="var(--primary)" 
-                  strokeWidth={4}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  dot={{ fill: 'var(--primary)', r: 4, strokeWidth: 2, stroke: 'var(--bg)' }} 
-                  activeDot={{ r: 6, fill: 'var(--surface)', stroke: 'var(--primary)', strokeWidth: 3 }}
-                  animationDuration={1500}
-                />
+                <Line type="monotone" dataKey="peso" stroke={primaryColor} strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
               </LineChart>
             </ResponsiveContainer>
           </div>
-
-          {/* KPIs */}
-          <div className="grid grid-cols-2 gap-4 mb-8">
-            <div className="bg-gradient-to-br from-[var(--primary)] to-blue-700 p-5 sm:p-6 rounded-[2rem] shadow-[0_10px_20px_-10px_var(--primary)] text-white relative overflow-hidden group">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 blur-[30px] rounded-full transform translate-x-1/2 -translate-y-1/2" />
-              <p className="text-[9px] font-bold uppercase opacity-80 mb-1 relative z-10">{t.currentWeight}</p>
-              <p className="font-black text-3xl leading-none relative z-10">{avaliacao.peso || 0}<span className="text-sm opacity-70 ml-1 font-bold">kg</span></p>
-              {pesoAnterior > 0 && (
-                <div className="mt-3 inline-flex items-center bg-black/20 px-2 py-1.5 rounded-[0.8rem] backdrop-blur-md border border-white/10 relative z-10">
-                  <span className={`text-[10px] font-black tracking-wider ${diferenca > 0 ? 'text-red-300' : 'text-green-300'}`}>
-                    {diferenca > 0 ? '+' : ''}{diferenca.toFixed(1)}kg
-                  </span>
-                </div>
-              )}
-            </div>
-            
-            <div className="bg-[var(--surface-sec)] p-5 sm:p-6 rounded-[2rem] border border-[var(--border)] shadow-sm flex flex-col justify-center">
-              <p className="text-[9px] font-bold uppercase text-[var(--text-secondary)] mb-1">{t.prevWeight}</p>
-              <p className="font-black text-2xl text-[var(--text-primary)] leading-none">{pesoAnterior || 0}<span className="text-xs text-[var(--text-secondary)] ml-1 font-bold">kg</span></p>
-            </div>
+          
+          {/* Medidas */}
+          <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-secondary)] mb-4">{t.details}</h3>
+          <div className="grid grid-cols-2 gap-3 mb-6">
+            {medidasList.map((m, i) => (
+              <div key={i} className="bg-[var(--surface-sec)] p-3 rounded-xl border border-[var(--border)] flex justify-between items-center">
+                <span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase">{m.label}</span>
+                <span className="text-sm font-black text-[var(--text-primary)]">{m.value || '--'}</span>
+              </div>
+            ))}
           </div>
         </div>
       </div>

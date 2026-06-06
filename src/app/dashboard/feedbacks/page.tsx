@@ -23,6 +23,7 @@ interface Feedback {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 const translations = {
   'pt-BR': {
+    back: 'Voltar', // <--- Adicione esta linha
     title: 'Central de Feedbacks',
     subtitle: 'Acompanhe o que seus alunos estão achando dos treinos',
     searchPlaceholder: 'Pesquisar por nome do aluno...',
@@ -32,6 +33,7 @@ const translations = {
     loading: 'Carregando feedbacks...'
   },
   'pt-PT': {
+    back: 'Voltar', // <--- Adicione esta linha
     title: 'Central de Feedbacks',
     subtitle: 'Acompanhe o que os seus alunos estão a achar dos treinos',
     searchPlaceholder: 'Procurar por nome do aluno...',
@@ -41,6 +43,7 @@ const translations = {
     loading: 'A carregar feedbacks...'
   },
   'en': {
+    back: 'Back', // <--- Adicione esta linha
     title: 'Feedback Center',
     subtitle: 'Track what your students think about the workouts',
     searchPlaceholder: 'Search by student name...',
