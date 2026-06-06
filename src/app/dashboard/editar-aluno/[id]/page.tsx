@@ -3,7 +3,7 @@ import { useState, useEffect, use } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
 import { cadastrarAlunoAction } from '../../../actions/aluno';
-import { FaChevronLeft, FaGlobe, FaMoon, FaSun, FaExclamationCircle, FaCheckCircle, FaUserEdit, FaUserPlus } from 'react-icons/fa';
+import { FaChevronLeft, FaGlobe, FaMoon, FaSun, FaExclamationCircle, FaCheckCircle, FaUserEdit, FaUserPlus, FaChevronDown } from 'react-icons/fa';
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // DICIONÁRIO DE INTERNACIONALIZAÇÃO (i18n)
@@ -19,9 +19,12 @@ const translations = {
     email: 'E-mail', emailPlaceholder: 'aluno@email.com',
     password: 'Senha Inicial', passwordPlaceholder: '••••••••',
     phone: 'WhatsApp', phonePlaceholder: '(00) 00000-0000',
+    dob: 'Data de Nascimento',
+    gender: 'Sexo', genderSelect: 'Selecione...',
+    male: 'Masculino', female: 'Feminino', other: 'Outros',
+    modality: 'Modalidade', modalitySelect: 'Selecione...',
+    online: 'Online', inPerson: 'Presencial',
     dueDate: 'Vencimento',
-    objective: 'Objetivo', objPlaceholder: 'Ex: Hipertrofia',
-    paymentLink: 'Link de Pagamento', payPlaceholder: 'https://...',
     submitEdit: 'Salvar Alterações', submitNew: 'Confirmar Cadastro',
     processing: 'Processando...',
     errFill: 'Preencha ao menos nome e e-mail.',
@@ -42,9 +45,12 @@ const translations = {
     email: 'E-mail', emailPlaceholder: 'aluno@email.com',
     password: 'Palavra-passe Inicial', passwordPlaceholder: '••••••••',
     phone: 'WhatsApp', phonePlaceholder: '(00) 00000-0000',
+    dob: 'Data de Nasc.',
+    gender: 'Género', genderSelect: 'Selecione...',
+    male: 'Masculino', female: 'Feminino', other: 'Outros',
+    modality: 'Modalidade', modalitySelect: 'Selecione...',
+    online: 'Online', inPerson: 'Presencial',
     dueDate: 'Vencimento',
-    objective: 'Objetivo', objPlaceholder: 'Ex: Hipertrofia',
-    paymentLink: 'Link de Pagamento', payPlaceholder: 'https://...',
     submitEdit: 'Guardar Alterações', submitNew: 'Confirmar Registo',
     processing: 'A processar...',
     errFill: 'Preencha pelo menos nome e e-mail.',
@@ -65,9 +71,12 @@ const translations = {
     email: 'Email', emailPlaceholder: 'student@email.com',
     password: 'Initial Password', passwordPlaceholder: '••••••••',
     phone: 'WhatsApp', phonePlaceholder: '(00) 00000-0000',
+    dob: 'Date of Birth',
+    gender: 'Gender', genderSelect: 'Select...',
+    male: 'Male', female: 'Female', other: 'Other',
+    modality: 'Modality', modalitySelect: 'Select...',
+    online: 'Online', inPerson: 'In-person',
     dueDate: 'Due Date',
-    objective: 'Goal', objPlaceholder: 'Ex: Hypertrophy',
-    paymentLink: 'Payment Link', payPlaceholder: 'https://...',
     submitEdit: 'Save Changes', submitNew: 'Confirm Registration',
     processing: 'Processing...',
     errFill: 'Fill in at least name and email.',
@@ -81,7 +90,7 @@ const translations = {
 };
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// SKELETON SCREEN (Para modo edição)
+// SKELETON SCREEN
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 const FormSkeleton = () => (
   <div className="w-full space-y-6 animate-pulse">
@@ -91,17 +100,17 @@ const FormSkeleton = () => (
       <div className="h-14 bg-[var(--surface-sec)] rounded-[1.2rem] w-full" />
       <div className="h-14 bg-[var(--surface-sec)] rounded-[1.2rem] w-full" />
     </div>
-    <div className="h-14 bg-[var(--surface-sec)] rounded-[1.2rem] w-full" />
+    <div className="grid grid-cols-2 gap-4">
+      <div className="h-14 bg-[var(--surface-sec)] rounded-[1.2rem] w-full" />
+      <div className="h-14 bg-[var(--surface-sec)] rounded-[1.2rem] w-full" />
+    </div>
     <div className="h-14 bg-[var(--surface-sec)] rounded-[1.2rem] w-full" />
     <div className="h-16 bg-[var(--surface-sec)] rounded-[1.2rem] w-full mt-10" />
   </div>
 );
 
-
-
-
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// COMPONENTE DE INPUT PREMIUM
+// COMPONENTES DE INPUT PREMIUM
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 const InputField = ({ label, name, value, onChange, type = "text", placeholder, disabled = false }: any) => (
   <div className="flex flex-col gap-2 w-full min-w-0 group">
@@ -115,13 +124,44 @@ const InputField = ({ label, name, value, onChange, type = "text", placeholder, 
   </div>
 );
 
+const SelectField = ({ label, name, value, onChange, options, defaultOption, disabled = false }: any) => (
+  <div className="flex flex-col gap-2 w-full min-w-0 group">
+    <label className={`text-[10px] font-black text-[var(--text-secondary)] uppercase tracking-[0.2em] px-1 truncate transition-colors ${disabled ? 'text-[var(--text-secondary)]/50' : 'text-[var(--text-secondary)] group-focus-within:text-[var(--primary)]'}`}>
+      {label}
+    </label>
+    <div className="relative">
+      <select 
+        name={name}
+        value={value ?? ''}
+        onChange={onChange}
+        disabled={disabled}
+        className="block w-full px-5 py-4 bg-[var(--surface-sec)] border border-[var(--border)] rounded-[1.2rem] outline-none focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)] transition-all text-sm font-bold text-[var(--text-primary)] appearance-none cursor-pointer shadow-inner disabled:opacity-60 disabled:cursor-not-allowed"
+      >
+        <option value="" disabled className="text-[var(--text-secondary)]">{defaultOption}</option>
+        {options.map((opt: any) => (
+          <option key={opt.value} value={opt.value} className="bg-[var(--surface)] text-[var(--text-primary)]">
+            {opt.label}
+          </option>
+        ))}
+      </select>
+      <div className="absolute inset-y-0 right-5 flex items-center pointer-events-none text-[var(--text-secondary)]">
+        <FaChevronDown size={12} />
+      </div>
+    </div>
+  </div>
+);
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// PÁGINA PRINCIPAL
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 export default function FormularioAluno({ params }: { params?: Promise<{ id?: string }> }) {
   const resolvedParams = params ? use(params) : null;
   const isEditing = !!resolvedParams?.id;
   const router = useRouter();
   
   const [formData, setFormData] = useState({
-    nome: '', objetivo: '', email: '', password: '', telefone: '', dataVencimento: '', linkPagamento: ''
+    nome: '', email: '', password: '', telefone: '', dataVencimento: '',
+    dataNascimento: '', sexo: '', modalidade: ''
   });
   const [loading, setLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(isEditing);
@@ -154,6 +194,21 @@ export default function FormularioAluno({ params }: { params?: Promise<{ id?: st
 
   const showToast = (type: 'success' | 'error', text: string) => { setToast({ type, text }); setTimeout(() => setToast(null), 4000); };
 
+  const formatarTelefone = (val: string) => {
+    const digits = val.replace(/\D/g, '').slice(0, 11);
+    if (digits.length <= 2) return `(${digits}`;
+    if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: name === 'telefone' ? formatarTelefone(value) : value
+    }));
+  };
+
   useEffect(() => {
     if (isEditing && resolvedParams?.id) {
       const fetchAluno = async () => {
@@ -162,9 +217,14 @@ export default function FormularioAluno({ params }: { params?: Promise<{ id?: st
         const { data: profile } = await supabase.from('profiles').select('email').eq('id', resolvedParams.id).single();
         if (aluno) {
           setFormData({
-            nome: aluno.nome || '', email: profile?.email || '', objetivo: aluno.objetivo || '',
-            telefone: aluno.telefone || '', dataVencimento: aluno.data_vencimento?.split('T')[0] || '',
-            linkPagamento: aluno.link_pagamento || '', password: ''
+            nome: aluno.nome || '', 
+            email: profile?.email || '', 
+            telefone: aluno.telefone || '', 
+            dataVencimento: aluno.data_vencimento?.split('T')[0] || '',
+            dataNascimento: aluno.data_nascimento?.split('T')[0] || '',
+            sexo: aluno.sexo || '',
+            modalidade: aluno.modalidade || '',
+            password: ''
           });
         }
         setIsFetching(false);
@@ -202,15 +262,23 @@ export default function FormularioAluno({ params }: { params?: Promise<{ id?: st
     try {
       if (isEditing && resolvedParams?.id) {
         const { error } = await supabase.from('alunos').update({
-          nome: formData.nome, objetivo: formData.objetivo, telefone: formData.telefone,
-          data_vencimento: formData.dataVencimento, link_pagamento: formData.linkPagamento, status_pagamento: novoStatus
+          nome: formData.nome, 
+          telefone: formData.telefone.replace(/\D/g, ''),
+          data_nascimento: formData.dataNascimento,
+          sexo: formData.sexo,
+          modalidade: formData.modalidade,
+          data_vencimento: formData.dataVencimento, 
+          status_pagamento: novoStatus
         }).eq('id', resolvedParams.id);
         
         if (error) throw error;
         showToast('success', t.successUpdate);
       } else {
         const { data: { session } } = await supabase.auth.getSession();
-        await cadastrarAlunoAction({ ...formData }, session?.user.id || '');
+        await cadastrarAlunoAction({ 
+          ...formData,
+          telefone: formData.telefone.replace(/\D/g, '')
+        }, session?.user.id || '');
         router.push('/dashboard');
       }
     } catch (err: any) {
@@ -270,12 +338,12 @@ export default function FormularioAluno({ params }: { params?: Promise<{ id?: st
         
         {isFetching ? <FormSkeleton /> : (
           <div className="space-y-6 animate-in fade-in duration-500">
-            <InputField label={t.name} name="nome" value={formData.nome} onChange={(e: any) => setFormData({...formData, nome: e.target.value})} placeholder={t.namePlaceholder} />
-            <InputField label={t.email} name="email" type="email" value={formData.email} onChange={(e: any) => setFormData({...formData, email: e.target.value})} placeholder={t.emailPlaceholder} disabled={isEditing} />
+            <InputField label={t.name} name="nome" value={formData.nome} onChange={handleInputChange} placeholder={t.namePlaceholder} />
+            <InputField label={t.email} name="email" type="email" value={formData.email} onChange={handleInputChange} placeholder={t.emailPlaceholder} disabled={isEditing} />
             
             {/* RENDERIZAÇÃO CONDICIONAL DA SENHA OU OPÇÃO DE SEGURANÇA */}
             {!isEditing ? (
-              <InputField label={t.password} name="password" type="password" value={formData.password} onChange={(e: any) => setFormData({...formData, password: e.target.value})} placeholder={t.passwordPlaceholder} />
+              <InputField label={t.password} name="password" type="password" value={formData.password} onChange={handleInputChange} placeholder={t.passwordPlaceholder} />
             ) : (
               <div className="w-full space-y-2 mt-4">
                 <label className="text-[10px] font-black text-[var(--text-secondary)] uppercase tracking-[0.2em] px-1">
@@ -299,13 +367,38 @@ export default function FormularioAluno({ params }: { params?: Promise<{ id?: st
             )}
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-              <InputField label={t.phone} name="telefone" value={formData.telefone} onChange={(e: any) => setFormData({...formData, telefone: e.target.value})} placeholder={t.phonePlaceholder} />
-              <InputField label={t.dueDate} name="dataVencimento" type="date" value={formData.dataVencimento} onChange={(e: any) => setFormData({...formData, dataVencimento: e.target.value})} />
+              <InputField label={t.phone} name="telefone" type="tel" value={formData.telefone} onChange={handleInputChange} placeholder={t.phonePlaceholder} />
+              <InputField label={t.dob} name="dataNascimento" type="date" value={formData.dataNascimento} onChange={handleInputChange} />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <SelectField 
+                label={t.gender} 
+                name="sexo" 
+                value={formData.sexo} 
+                onChange={handleInputChange} 
+                defaultOption={t.genderSelect}
+                options={[
+                  { value: 'masculino', label: t.male },
+                  { value: 'feminino', label: t.female },
+                  { value: 'outros', label: t.other }
+                ]} 
+              />
+              <SelectField 
+                label={t.modality} 
+                name="modalidade" 
+                value={formData.modalidade} 
+                onChange={handleInputChange} 
+                defaultOption={t.modalitySelect}
+                options={[
+                  { value: 'online', label: t.online },
+                  { value: 'presencial', label: t.inPerson }
+                ]} 
+              />
             </div>
             
-            <InputField label={t.objective} name="objetivo" value={formData.objetivo} onChange={(e: any) => setFormData({...formData, objetivo: e.target.value})} placeholder={t.objPlaceholder} />
-            <InputField label={t.paymentLink} name="linkPagamento" type="url" value={formData.linkPagamento} onChange={(e: any) => setFormData({...formData, linkPagamento: e.target.value})} placeholder={t.payPlaceholder} />
-          
+            <InputField label={t.dueDate} name="dataVencimento" type="date" value={formData.dataVencimento} onChange={handleInputChange} />
+            
             <button 
               onClick={handleSubmit}
               disabled={loading}

@@ -4,51 +4,62 @@ import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
 import AgendaGeral from '@/components/AgendaGeral';
 import SubscriptionGuard from '@/components/SubscriptionGuard';
-import { NotificationService } from '@/lib/notificationService';
 import { NotificationBell } from '@/components/NotificationBell';
+import RegistrationLink from '@/components/RegistrationLink';
+import BirthdaysWidget from '@/components/BirthdaysWidget';
+import NotificationManager from '@/components/NotificationManager';
+import ParqListPersonal from '@/components/ParqListPersonal';
+
 import { 
-  FaWallet, FaExclamationTriangle, FaSearch, FaPlus, FaChartLine, 
-  FaEdit, FaUser, FaTimes, FaCalendarAlt, FaCheckCircle, 
-  FaExclamationCircle, FaGlobe, FaMoon, FaSun 
+  FaSearch, FaChartLine, FaEdit, FaUser, FaTimes, 
+  FaCalendarAlt, FaCheckCircle, FaExclamationCircle, FaGlobe, 
+  FaMoon, FaSun, FaUsers, FaCommentDots, FaUserPlus, 
+  FaChevronRight, FaInfoCircle, FaDumbbell
 } from 'react-icons/fa';
 
 interface PersonalData {
   status_pagamento: string;
   data_expiracao_teste: string;
+  avatar_url?: string;
+  nome?: string;
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// SKELETON SCREEN (UX PREMIUM)
+// SKELETON SCREEN
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 const DashboardSkeleton = () => (
-  <div className="max-w-6xl mx-auto space-y-8 animate-pulse pt-8">
-    <div className="flex justify-between items-end">
-      <div className="space-y-2"><div className="h-10 w-48 bg-[var(--surface-sec)] rounded-2xl" /><div className="h-4 w-32 bg-[var(--surface-sec)] rounded-xl" /></div>
-      <div className="h-14 w-14 bg-[var(--surface-sec)] rounded-2xl" />
-    </div>
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <div className="h-40 bg-[var(--surface-sec)] rounded-[2.5rem]" />
-      <div className="md:col-span-2 h-40 bg-[var(--surface-sec)] rounded-[2.5rem]" />
-    </div>
-    <div className="h-20 bg-[var(--surface-sec)] rounded-[2.5rem]" />
-    <div className="space-y-4">
-      {[1,2,3].map(i => <div key={i} className="h-24 bg-[var(--surface-sec)] rounded-[2.5rem]" />)}
+  <div className="max-w-4xl mx-auto space-y-8 animate-pulse pt-8 px-5">
+    <div className="h-40 bg-[#1C283F] rounded-b-[2rem] w-full absolute top-0 left-0" />
+    <div className="relative z-10 pt-20">
+      <div className="flex gap-4 mb-8">
+        <div className="w-16 h-16 bg-slate-700 rounded-full" />
+        <div className="w-40 h-8 bg-slate-700 rounded-xl" />
+      </div>
+      <div className="h-14 w-full bg-slate-200 rounded-xl mb-8" />
+      <div className="flex justify-around mb-8">
+        {[1,2,3].map(i => <div key={i} className="w-16 h-16 bg-slate-200 rounded-full" />)}
+      </div>
+      <div className="grid grid-cols-2 gap-4 mb-4">
+        <div className="h-24 bg-blue-200 rounded-xl" />
+        <div className="h-24 bg-blue-200 rounded-xl" />
+      </div>
+      <div className="h-20 bg-slate-800 rounded-xl mb-8" />
     </div>
   </div>
 );
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// DICIONÁRIO DE INTERNACIONALIZAÇÃO (i18n)
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 const translations = {
   'pt-BR': {
-    title: 'Dashboard', subtitle: 'Gestão de Alta Performance', revenue: 'Mês Atual', report: 'Relatório por Mês', search: 'Buscar aluno...', statusBlocked: 'BLOQUEADO', statusActive: 'ATIVO', statusPending: 'PENDENTE', testPeriod: 'Você está no período de teste.', subscribe: 'Assinar Plano', renewal: 'Renovação próxima', confirmReativar: 'Confirmar reativação do acesso para ', confirmBloqueio: 'Confirmar bloqueio de acesso para ', errStatus: 'Erro ao alterar status.', successStatusReativado: 'Aluno reativado!', successStatusBloqueado: 'Acesso bloqueado!', errProcess: 'Falha ao processar: ', successPay: 'Pagamento registrado com sucesso!', confirmPagamento: 'Confirmar Pagamento', valorPlaceholder: 'Valor (R$)', registrarPagamento: 'Registrar Pagamento'
+    search: 'Buscar aluno...', statusBlocked: 'BLOQUEADO', statusActive: 'ATIVO', statusPending: 'PENDENTE', testPeriod: 'Você está no período de teste.', subscribe: 'Assinar Plano', renewal: 'Renovação próxima', confirmReativar: 'Confirmar reativação do acesso para ', confirmBloqueio: 'Confirmar bloqueio de acesso para ', errStatus: 'Erro ao alterar status.', successStatusReativado: 'Aluno reativado!', successStatusBloqueado: 'Acesso bloqueado!', errProcess: 'Falha ao processar: ', successPay: 'Pagamento registrado com sucesso!', confirmPagamento: 'Confirmar Pagamento', valorPlaceholder: 'Valor (R$)', registrarPagamento: 'Registrar Pagamento', report: 'Relatório por Mês',
+    addStudents: 'Adicionar alunos', registrationLink: 'Link de cadastro', students: 'Alunos', active: 'Ativos', inactive: 'Inativos', yourStudents: 'Seus alunos', manageStudents: 'Gerenciar Alunos'
   },
   'pt-PT': {
-    title: 'Dashboard', subtitle: 'Gestão de Alta Performance', revenue: 'Mês Atual', report: 'Relatório por Mês', search: 'Procurar aluno...', statusBlocked: 'BLOQUEADO', statusActive: 'ATIVO', statusPending: 'PENDENTE', testPeriod: 'Está no período de teste.', subscribe: 'Assinar Plano', renewal: 'Renovação próxima', confirmReativar: 'Confirmar reativação do acesso para ', confirmBloqueio: 'Confirmar bloqueio de acesso para ', errStatus: 'Erro ao alterar status.', successStatusReativado: 'Aluno reativado!', successStatusBloqueado: 'Acesso bloqueado!', errProcess: 'Falha ao processar: ', successPay: 'Pagamento registado com sucesso!', confirmPagamento: 'Confirmar Pagamento', valorPlaceholder: 'Valor', registrarPagamento: 'Registar Pagamento'
+    search: 'Procurar aluno...', statusBlocked: 'BLOQUEADO', statusActive: 'ATIVO', statusPending: 'PENDENTE', testPeriod: 'Está no período de teste.', subscribe: 'Assinar Plano', renewal: 'Renovação próxima', confirmReativar: 'Confirmar reativação do acesso para ', confirmBloqueio: 'Confirmar bloqueio de acesso para ', errStatus: 'Erro ao alterar status.', successStatusReativado: 'Aluno reativado!', successStatusBloqueado: 'Acesso bloqueado!', errProcess: 'Falha ao processar: ', successPay: 'Pagamento registado com sucesso!', confirmPagamento: 'Confirmar Pagamento', valorPlaceholder: 'Valor', registrarPagamento: 'Registar Pagamento', report: 'Relatório por Mês',
+    addStudents: 'Adicionar alunos', registrationLink: 'Link de registo', students: 'Alunos', active: 'Ativos', inactive: 'Inativos', yourStudents: 'Seus alunos', manageStudents: 'Gerir Alunos'
   },
   'en': {
-    title: 'Dashboard', subtitle: 'High Performance Management', revenue: 'Current Month', report: 'Monthly Report', search: 'Search student...', statusBlocked: 'BLOCKED', statusActive: 'ACTIVE', statusPending: 'PENDING', testPeriod: 'You are in the trial period.', subscribe: 'Subscribe', renewal: 'Upcoming renewal', confirmReativar: 'Confirm access reactivation for ', confirmBloqueio: 'Confirm access blocking for ', errStatus: 'Error changing status.', successStatusReativado: 'Student reactivated!', successStatusBloqueado: 'Access blocked!', errProcess: 'Failed to process: ', successPay: 'Payment registered successfully!', confirmPagamento: 'Confirm Payment', valorPlaceholder: 'Value', registrarPagamento: 'Register Payment'
+    search: 'Search student...', statusBlocked: 'BLOCKED', statusActive: 'ACTIVE', statusPending: 'PENDING', testPeriod: 'You are in the trial period.', subscribe: 'Subscribe', renewal: 'Upcoming renewal', confirmReativar: 'Confirm access reactivation for ', confirmBloqueio: 'Confirm access blocking for ', errStatus: 'Error changing status.', successStatusReativado: 'Student reactivated!', successStatusBloqueado: 'Access blocked!', errProcess: 'Failed to process: ', successPay: 'Payment registered successfully!', confirmPagamento: 'Confirm Payment', valorPlaceholder: 'Value', registrarPagamento: 'Register Payment', report: 'Monthly Report',
+    addStudents: 'Add students', registrationLink: 'Registration link', students: 'Students', active: 'Active', inactive: 'Inactive', yourStudents: 'Your students', manageStudents: 'Manage Students'
   }
 };
 
@@ -63,9 +74,14 @@ export default function Dashboard() {
   
   const [personalInfo, setPersonalInfo] = useState<PersonalData | null>(null);
   const [statusAcesso, setStatusAcesso] = useState({ emTeste: false, status: '' });
-  const [statusMsg, setStatusMsg] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+  const [statusMsg, setStatusMsg] = useState<{ type: 'success' | 'error' | 'info', text: string } | null>(null);
+  const [avatarError, setAvatarError] = useState(false);
   
-  const showStatus = (type: 'success' | 'error', text: string) => {
+  const [activeTab, setActiveTab] = useState<'inicio' | 'financas'>('inicio');
+  const [mostrarAlunos, setMostrarAlunos] = useState(false); // NOVO ESTADO: Controla a visibilidade da lista
+ const [isParqModalOpen, setIsParqModalOpen] = useState(false);
+
+  const showStatus = (type: 'success' | 'error' | 'info', text: string) => {
     setStatusMsg({ type, text });
     setTimeout(() => setStatusMsg(null), 3000);
   };
@@ -74,7 +90,7 @@ export default function Dashboard() {
   const [mesSelecionado, setMesSelecionado] = useState(new Date().getMonth());
   const [anoSelecionado, setAnoSelecionado] = useState(new Date().getFullYear());
   
-  // Estados UI Premium
+  const [horaAtual, setHoraAtual] = useState(new Date());
   const [loading, setLoading] = useState(true);
   const [isDark, setIsDark] = useState(true);
   const [lang, setLang] = useState<'pt-BR' | 'pt-PT' | 'en'>('pt-BR');
@@ -82,7 +98,6 @@ export default function Dashboard() {
   
   const router = useRouter();
 
-  // Configuração Dinâmica do Tema Premium
   const themeStyles = isDark ? {
     '--bg': '#0F1115', '--surface': '#151A22', '--surface-sec': '#1B2330', '--primary': '#3B82F6', '--primary-soft': '#60A5FA', '--danger': '#EF4444', '--success': '#22C55E', '--warning': '#F59E0B', '--text-primary': '#F8FAFC', '--text-secondary': '#94A3B8', '--border': 'rgba(255,255,255,0.05)',
   } as React.CSSProperties : {
@@ -95,8 +110,17 @@ export default function Dashboard() {
     const savedLang = localStorage.getItem('@premium_lang') as 'pt-BR' | 'pt-PT' | 'en';
     if (savedLang) setLang(savedLang);
     setMounted(true);
-  
+
+    const timer = setInterval(() => setHoraAtual(new Date()), 1000);
+    return () => clearInterval(timer);
   }, []);
+
+  const getSaudacao = () => {
+    const hora = horaAtual.getHours();
+    if (hora < 12) return 'Bom dia';
+    if (hora < 18) return 'Boa tarde';
+    return 'Boa noite';
+  };
 
   const toggleTheme = () => { const newTheme = !isDark; setIsDark(newTheme); localStorage.setItem('@premium_theme', newTheme ? 'dark' : 'light'); window.dispatchEvent(new Event('storage')); };
   const toggleLang = () => { const langs: ('pt-BR' | 'pt-PT' | 'en')[] = ['pt-BR', 'pt-PT', 'en']; const nextLang = langs[(langs.indexOf(lang) + 1) % langs.length]; setLang(nextLang); localStorage.setItem('@premium_lang', nextLang); };
@@ -125,7 +149,8 @@ export default function Dashboard() {
       }
       const personalId = data.session.user.id;
       
-      const { data: personal } = await supabase.from('personais').select('status_pagamento, data_expiracao_teste').eq('id', personalId).single();
+      // ATUALIZADO: Busca também o avatar_url e nome diretamente da tabela personais
+      const { data: personal } = await supabase.from('personais').select('status_pagamento, data_expiracao_teste, avatar_url, nome').eq('id', personalId).single();
 
       if (personal) {
         setPersonalInfo(personal as PersonalData); 
@@ -229,26 +254,32 @@ export default function Dashboard() {
     return hoje >= vencimento && hoje <= limite;
   });
 
+  const alunosAtivosCount = alunos.filter(a => a.ativo).length;
+  const alunosInativosCount = alunos.length - alunosAtivosCount;
+
+  // Lógica inteligente de Avatar
+  const avatarUrlRender = personalInfo?.avatar_url || user?.user_metadata?.avatar_url;
+  const nomeDisplay = personalInfo?.nome || user?.user_metadata?.nome || 'Personal';
+
   if (!mounted) return <main className="min-h-screen bg-[#0F1115]" />;
 
   return (
     <SubscriptionGuard>
-      {/* AQUI ESTÁ A CORREÇÃO VISUAL:
-        px-5: Devolve o respiro lateral para os cards não grudarem na borda.
-        pt-8: Desgruda do topo da tela.
-        pb-32: Adiciona espaço no final da página para a Navbar não sobrepor a lista de alunos.
-      */}
-      <div style={themeStyles} className="w-full px-5 pt-8 pb-32 bg-[var(--bg)] text-[var(--text-primary)] transition-colors duration-500 font-sans">
+      <div style={themeStyles} className="w-full min-h-screen bg-[var(--bg)] text-[var(--text-primary)] transition-colors duration-500 font-sans pb-12 relative">
         
-        {/* Toast Flutuante Premium */}
+        {/* Toast Flutuante */}
         {statusMsg && (
-          <div className={`fixed top-[max(env(safe-area-inset-top,24px),24px)] left-1/2 -translate-x-1/2 px-6 py-4 rounded-[1.2rem] shadow-2xl z-[500] flex items-center gap-3 backdrop-blur-md border animate-in slide-in-from-top-4 fade-in ${statusMsg.type === 'success' ? 'bg-[var(--success)]/10 text-[var(--success)] border-[var(--success)]/20' : 'bg-[var(--danger)]/10 text-[var(--danger)] border-[var(--danger)]/20'}`}>
-            {statusMsg.type === 'success' ? <FaCheckCircle size={16} /> : <FaExclamationCircle size={16} />}
+          <div className={`fixed top-[max(env(safe-area-inset-top,24px),24px)] left-1/2 -translate-x-1/2 px-6 py-4 rounded-[1.2rem] shadow-2xl z-[500] flex items-center gap-3 backdrop-blur-md border animate-in slide-in-from-top-4 fade-in ${
+            statusMsg.type === 'success' ? 'bg-[var(--success)]/10 text-[var(--success)] border-[var(--success)]/20' : 
+            statusMsg.type === 'error' ? 'bg-[var(--danger)]/10 text-[var(--danger)] border-[var(--danger)]/20' : 
+            'bg-[var(--primary)]/10 text-[var(--primary)] border-[var(--primary)]/20'
+          }`}>
+            {statusMsg.type === 'success' ? <FaCheckCircle size={16} /> : statusMsg.type === 'error' ? <FaExclamationCircle size={16} /> : <FaInfoCircle size={16} />}
             <span className="text-[10px] font-black uppercase tracking-widest">{statusMsg.text}</span>
           </div>
         )}
 
-        {/* Modal de Pagamento Premium */}
+        {/* Modal de Pagamento */}
         {isModalOpen && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-xl z-[300] flex items-center justify-center p-5 animate-in fade-in duration-300">
             <div className="bg-[var(--surface)] p-8 rounded-[2.5rem] w-full max-w-sm border border-[var(--border)] shadow-2xl animate-in zoom-in-95 slide-in-from-bottom-4">
@@ -262,173 +293,226 @@ export default function Dashboard() {
           </div>
         )}
 
-        {loading ? <DashboardSkeleton /> : (
-  <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in duration-700">
-    <header className="flex justify-between items-end">
-      <div>
-        <h1 className="text-4xl font-black tracking-tighter">{t.title}</h1>
-        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-secondary)] mt-1">{t.subtitle}</p>
+        {/* Modal de Avaliações PAR-Q */}
+{isParqModalOpen && (
+  <div className="fixed inset-0 bg-black/60 backdrop-blur-xl z-[400] flex items-center justify-center p-5 animate-in fade-in duration-300">
+    <div className="bg-[var(--surface)] p-6 rounded-[2.5rem] w-full max-w-2xl max-h-[80vh] overflow-y-auto border border-[var(--border)] shadow-2xl animate-in zoom-in-95 slide-in-from-bottom-4 relative">
+      <div className="flex justify-between items-center mb-6">
+        <h3 className="font-black text-lg tracking-tighter">Avaliações PAR-Q dos Alunos</h3>
+        <button onClick={() => setIsParqModalOpen(false)} className="text-[var(--text-secondary)] hover:text-[var(--danger)] transition-colors p-2">
+          <FaTimes size={18} />
+        </button>
       </div>
       
-      <div className="flex gap-2">
-        {/* COMPONENTE DO SININHO ADICIONADO AQUI */}
-        <NotificationBell />
-
-        <button onClick={toggleLang} className="w-12 h-12 rounded-[1.2rem] bg-[var(--surface)] border border-[var(--border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--primary)] transition-all active:scale-95 shadow-sm relative">
-          <FaGlobe size={18} />
-          <span className="absolute -top-1 -right-1 bg-[var(--primary)] text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full">{lang.split('-')[0].toUpperCase()}</span>
-        </button>
-        
-        <button onClick={toggleTheme} className="w-12 h-12 rounded-[1.2rem] bg-[var(--surface)] border border-[var(--border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--primary)] transition-all active:scale-95 shadow-sm">
-          {isDark ? <FaSun size={18} /> : <FaMoon size={18} />}
-        </button>
-        
-        <button onClick={() => router.push('/dashboard/adicionar-aluno')} className="w-12 h-12 flex items-center justify-center bg-[var(--primary)] text-white rounded-[1.2rem] shadow-lg shadow-[var(--primary)]/20 hover:brightness-110 active:scale-95 transition-all">
-          <FaPlus size={18} />
-        </button>
-      </div>
-    </header>
-
-
-           {/* ━━━━━━━━━━ BANNER DE ATIVAÇÃO PUSH ━━━━━━━━━━ */}
-{typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default' && (
-  <div className="bg-gradient-to-r from-blue-600 to-[var(--primary)] p-5 rounded-[1.5rem] border border-white/10 shadow-lg animate-in fade-in slide-in-from-top-4 duration-500">
-    <div className="flex flex-col gap-3">
-      <div>
-        <h3 className="font-black text-sm text-white tracking-tight flex items-center gap-2">
-          Atualizações AuraFit 
-        </h3>
-        <p className="text-white/90 text-[11px] font-medium leading-relaxed mt-1">
-          Sua consultoria merece o melhor. Ative as notificações para receber atualizações em tempo real, melhorias de desempenho e garantir agilidade no suporte aos seus alunos.
-        </p>
-      </div>
-      <button 
-        onClick={async () => {
-          // O fluxo de registro do Firebase/Service Worker
-          await NotificationService.registrarDispositivo();
-          
-          // Força a atualização do estado local para esconder o banner
-          // Dica: Se usar estado local em vez de router.refresh(), a UX fica mais fluida
-          window.location.reload(); 
-        }}
-        className="w-full py-2.5 bg-white text-[var(--primary)] rounded-xl font-black text-[11px] uppercase tracking-widest active:scale-[0.98] transition-all shadow-md hover:bg-white/90"
-      >
-        Ativar Notificações
-      </button>
+      {/* Aqui carregamos seu componente organizado */}
+      <ParqListPersonal personalId={user?.id} />
+      
     </div>
   </div>
 )}
 
-            {/* Aviso de Teste Grátis */}
-            {statusAcesso.emTeste && (
-              <div className="bg-[var(--primary)]/10 border border-[var(--primary)]/20 p-6 rounded-[2rem] flex flex-col sm:flex-row justify-between items-center gap-4 text-center sm:text-left">
-                <p className="text-[10px] font-black text-[var(--primary)] uppercase tracking-widest">{t.testPeriod}</p>
-                <button onClick={() => router.push('/acesso-personal')} className="w-full sm:w-auto bg-[var(--primary)] text-white px-8 py-3.5 rounded-[1.2rem] text-[10px] font-black uppercase hover:brightness-110 active:scale-95 transition-all shadow-md">{t.subscribe}</button>
+        {loading ? <DashboardSkeleton /> : (
+          <div className="max-w-4xl mx-auto flex flex-col">
+            
+            <header className="bg-[#1C283F] text-white pt-[max(env(safe-area-inset-top),2rem)] pb-12 px-6 relative">
+              <div className="absolute top-[max(env(safe-area-inset-top),2rem)] right-6 flex gap-3">
+                <button onClick={toggleTheme} className="text-slate-300 hover:text-white transition-colors">
+                  {isDark ? <FaSun size={18} /> : <FaMoon size={18} />}
+                </button>
+                <button onClick={toggleLang} className="text-slate-300 hover:text-white transition-colors relative">
+                  <FaGlobe size={18} />
+                  <span className="absolute -top-1 -right-2 bg-blue-500 text-[8px] font-bold px-1 rounded-full">{lang.split('-')[0]}</span>
+                </button>
+              </div>
+
+              <div className="flex justify-center items-center w-full mt-2 mb-8">
+                <div className="flex items-center gap-2 text-2xl font-black tracking-widest">
+                  <FaDumbbell className="text-white" />
+                  AURAFIT<span className="font-light">PERSONAL</span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 rounded-full border-2 border-white/20 bg-slate-700 flex items-center justify-center font-black text-xl overflow-hidden shrink-0">
+                  {avatarUrlRender && !avatarError ? (
+                    <img 
+                      src={avatarUrlRender} 
+                      alt="Avatar do Usuário"
+                      className="w-full h-full object-cover"
+                      onError={() => setAvatarError(true)}
+                    />
+                  ) : (
+                    <span>{nomeDisplay.charAt(0).toUpperCase()}</span>
+                  )}
+                </div>
+                <div>
+                  <h2 className="text-[17px] font-light text-slate-100 leading-tight">
+                    {getSaudacao()} <span className="font-medium text-white">{nomeDisplay}</span>
+                  </h2>
+                </div>
+              </div>
+            </header>
+
+            <div className="px-6 -mt-6 relative z-10">
+              <div className="flex bg-[var(--surface)] p-1.5 rounded-[1rem] shadow-xl border border-[var(--border)]">
+                <button onClick={() => setActiveTab('inicio')} className={`flex-1 py-3 text-sm font-black rounded-xl transition-all ${activeTab === 'inicio' ? 'bg-[var(--bg)] text-[var(--text-primary)] shadow-sm' : 'text-[var(--text-secondary)] bg-[#3B82F6] text-white hover:brightness-110'}`}>Início</button>
+                <button onClick={() => setActiveTab('financas')} className={`flex-1 py-3 text-sm font-black rounded-xl transition-all ${activeTab === 'financas' ? 'bg-[var(--bg)] text-[var(--text-primary)] shadow-sm' : 'text-[var(--text-secondary)] bg-[#3B82F6] text-white hover:brightness-110'}`}>Finanças</button>
+              </div>
+            </div>
+
+           {activeTab === 'inicio' && (
+  <div className="px-5 mt-8 space-y-8 animate-in fade-in duration-500">
+    
+    {/* Ações Rápidas Topo */}
+    <div className="flex justify-around items-end">
+      
+      {/* Botão Feedbacks */}
+      <div onClick={() => router.push('/dashboard/feedbacks')} className="flex flex-col items-center gap-2 group cursor-pointer">
+        <div className="relative">
+          <div className="w-14 h-14 bg-[var(--surface)] text-[#3B82F6] rounded-full shadow-md border border-blue-100 flex items-center justify-center text-xl group-hover:scale-105 transition-transform">
+            <FaCommentDots />
+          </div>
+        </div>
+        <span className="text-[11px] font-bold text-[var(--text-secondary)]">Feedbacks</span>
+      </div>
+      
+      {/* Botão PAR-Q (Atualizações) */}
+      <div onClick={() => setIsParqModalOpen(true)} className="flex flex-col items-center gap-2 group cursor-pointer">
+        <div className="relative">
+          <div className="w-14 h-14 bg-[var(--surface)] text-[#3B82F6] rounded-full shadow-md border border-blue-100 flex items-center justify-center text-xl group-hover:scale-105 transition-transform">
+            <FaCalendarAlt />
+          </div>
+          {/* Badge opcional de alerta de PAR-Q se necessário no futuro */}
+          {alunosVencendo.length > 0 && (
+            <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full border-2 border-[var(--bg)] shadow-sm">
+              {alunosVencendo.length}
+            </span>
+          )}
+        </div>
+        <span className="text-[11px] font-bold text-[var(--text-secondary)]">PAR-Q</span>
+      </div>
+      
+      {/* Botão Notificações */}
+      <div className="flex flex-col items-center gap-2 group cursor-pointer">
+        <div className="w-14 h-14 bg-[var(--surface)] text-[#3B82F6] rounded-full shadow-md border border-blue-100 flex items-center justify-center text-xl group-hover:scale-105 transition-transform">
+          <NotificationBell />
+        </div>
+        <span className="text-[11px] font-bold text-[var(--text-secondary)]">Notificações</span>
+      </div>
+    </div>
+
+                <section>
+                  <h3 className="font-black text-sm text-[var(--text-primary)] mb-4">{t.yourStudents}</h3>
+                  
+                  <BirthdaysWidget alunos={alunos} />
+
+                  <div className="grid grid-cols-2 gap-3 mb-3">
+                    <button onClick={() => router.push('/dashboard/adicionar-aluno')} className="bg-[#3B82F6] text-white p-5 rounded-xl flex flex-col gap-3 shadow-md hover:brightness-110 active:scale-95 transition-all">
+                      <FaUserPlus size={22} />
+                      <span className="font-bold text-sm text-left">{t.addStudents}</span>
+                    </button>
+                    
+                    <RegistrationLink userId={user?.id} t={t} showStatus={showStatus} />
+                  </div>
+
+                  {/* NOVO: Este botão agora funciona como um "Acordeão" para exibir ou ocultar a lista */}
+                  <button 
+                    onClick={() => setMostrarAlunos(!mostrarAlunos)} 
+                    className="w-full bg-gradient-to-r from-blue-700 to-slate-900 text-white p-5 rounded-xl flex justify-between items-center shadow-lg mb-6 hover:brightness-110 active:scale-95 transition-all"
+                  >
+                    <div className="flex items-center gap-4">
+                      <FaUsers size={28} />
+                      <div className="flex flex-col items-start gap-1.5">
+                        <span className="font-black text-sm">{t.students}</span>
+                        <div className="flex gap-2">
+                          <span className="bg-green-400 text-green-900 text-[9px] px-2 py-0.5 rounded uppercase tracking-wider font-black">{t.active}: {alunosAtivosCount}</span>
+                          <span className="bg-yellow-400 text-yellow-900 text-[9px] px-2 py-0.5 rounded uppercase tracking-wider font-black">{t.inactive}: {alunosInativosCount}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <FaChevronRight className={`transition-transform duration-300 opacity-50 ${mostrarAlunos ? 'rotate-90' : ''}`} />
+                  </button>
+                  
+                  <NotificationManager personalId={user?.id} alunos={alunos} showStatus={showStatus} />
+                </section>
+
+                {/* NOVO: A lista de alunos só aparece se "mostrarAlunos" for verdadeiro */}
+                {mostrarAlunos && (
+                  <section id="lista-alunos" className="pt-8 border-t border-[var(--border)] animate-in fade-in slide-in-from-top-4 duration-500">
+                     <h3 className="font-black text-sm text-[var(--text-primary)] mb-4">{t.manageStudents}</h3>
+                     <div className="relative group mb-4">
+                      <FaSearch className="absolute left-6 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] group-focus-within:text-[var(--primary)] transition-colors" size={16} />
+                      <input className="w-full bg-[var(--surface)] p-5 pl-14 rounded-[1.5rem] border border-[var(--border)] shadow-sm outline-none text-sm font-bold text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] placeholder:font-medium focus:border-[var(--primary)] transition-all" placeholder={t.search} value={busca} onChange={(e) => setBusca(e.target.value)} />
+                    </div>
+
+                    <div className="space-y-4">
+                      {alunosFiltrados.map((a) => {
+                        const statusDisplay = getStatusDisplay(a);
+                        return (
+                          <div key={a.id} className="bg-[var(--surface)] p-5 rounded-[1.5rem] border border-[var(--border)] flex flex-col sm:flex-row items-center justify-between shadow-sm hover:border-[#3B82F6]/50 transition-all gap-5">
+                            <div className="flex items-center gap-4 w-full sm:w-auto">
+                              <div className="shrink-0 w-12 h-12 rounded-full bg-[var(--surface-sec)] flex items-center justify-center font-black text-lg text-[var(--text-secondary)] border border-[var(--border)] overflow-hidden">
+                                {a.avatar_url ? <img src={a.avatar_url} className="w-full h-full object-cover" alt={a.nome} /> : a.nome.charAt(0)}
+                              </div>
+                              <div className="flex flex-col gap-1">
+                                <h3 className="font-black text-[var(--text-primary)] text-sm tracking-tight">{a.nome}</h3>
+                                <span className={`self-start text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md ${statusDisplay.color}`}>
+                                  {statusDisplay.text}
+                                </span>
+                              </div>
+                            </div>
+                            
+                            <div className="grid grid-cols-4 sm:flex gap-2 w-full sm:w-auto">
+                              <button onClick={() => toggleStatus(a)} className={`flex items-center justify-center p-3.5 rounded-xl transition-all active:scale-95 border ${a.ativo ? 'bg-[var(--primary)]/10 text-[var(--primary)] border-[var(--primary)]/20' : 'bg-[var(--danger)]/10 text-[var(--danger)] border-[var(--danger)]/20'}`} title="Alterar Status">
+                                {a.ativo ? <FaTimes size={14} /> : <FaUser size={14} />} 
+                              </button>
+                              <button onClick={() => router.push(`/dashboard/editar-aluno/${a.id}`)} className="flex items-center justify-center bg-[var(--surface-sec)] p-3.5 rounded-xl text-[var(--text-secondary)] hover:text-[#3B82F6] transition-all active:scale-95" title="Editar">
+                                <FaEdit size={14} />
+                              </button>
+                              <button onClick={() => router.push(`/dashboard/aluno/${a.id}`)} className="flex items-center justify-center bg-[var(--surface-sec)] p-3.5 rounded-xl text-[var(--text-secondary)] hover:text-[#3B82F6] transition-all active:scale-95" title="Perfil">
+                                <FaUser size={14} />
+                              </button>
+                              <button onClick={() => router.push(`/dashboard/aluno/${a.id}/progresso`)} className="flex items-center justify-center bg-[#3B82F6] text-white p-3.5 rounded-xl shadow-md hover:brightness-110 active:scale-95 transition-all" title="Progresso">
+                                <FaChartLine size={14} />
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                      {alunosFiltrados.length === 0 && (
+                        <p className="text-center text-sm text-[var(--text-secondary)] py-4">Nenhum aluno encontrado.</p>
+                      )}
+                    </div>
+                  </section>
+                )}
               </div>
             )}
-              
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="space-y-6">
-                {/* Card Mês Atual */}
+
+            {activeTab === 'financas' && (
+              <div className="px-5 mt-8 space-y-6 animate-in fade-in duration-500">
                 <div className="bg-[var(--surface)] p-8 rounded-[2.5rem] border border-[var(--border)] shadow-sm">
-                  <FaWallet className="text-[var(--primary)] mb-3 text-xl" />
-                  <h2 className="text-[9px] font-black text-[var(--text-secondary)] uppercase tracking-widest">{t.revenue}</h2>
-                  <p className="text-2xl font-black text-[var(--text-primary)] mt-1">
-                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalMes)}
-                  </p>
-                </div>
-                
-                {/* Card Relatório por Mês */}
-                <div className="bg-[var(--surface)] p-8 rounded-[2.5rem] border border-[var(--border)] shadow-sm">
-                  <div className="flex items-center gap-2 mb-4 text-[var(--text-secondary)]">
+                  <div className="flex items-center gap-2 mb-6 text-[var(--text-secondary)]">
                     <FaCalendarAlt size={14} /> 
-                    <h2 className="text-[9px] font-black uppercase tracking-widest">{t.report}</h2>
+                    <h2 className="text-[10px] font-black uppercase tracking-[0.2em]">{t.report}</h2>
                   </div>
-                  <div className="flex gap-3">
-                    <div className="relative w-full">
-                      <select 
-                        className="w-full appearance-none bg-[var(--surface-sec)] p-4 rounded-[1.2rem] text-[11px] font-bold outline-none text-[var(--text-primary)] transition-all focus:border-[var(--primary)] border border-[var(--border)]" 
-                        value={mesSelecionado} 
-                        onChange={(e) => setMesSelecionado(Number(e.target.value))}
-                      >
-                        {['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'].map((m, i) => (
-                          <option key={i} value={i} className="bg-[var(--surface)] text-[var(--text-primary)]">{m}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <input 
-                      type="number" 
-                      className="w-24 bg-[var(--surface-sec)] p-4 rounded-[1.2rem] text-[11px] font-bold text-center outline-none text-[var(--text-primary)] transition-all focus:border-[var(--primary)] border border-[var(--border)]" 
-                      value={anoSelecionado} 
-                      onChange={(e) => setAnoSelecionado(Number(e.target.value))} 
-                    />
+                  <div className="flex gap-3 mb-6">
+                    <select className="w-full appearance-none bg-[var(--surface-sec)] p-4 rounded-[1.2rem] text-xs font-bold outline-none text-[var(--text-primary)] focus:border-[#3B82F6] border border-[var(--border)]" value={mesSelecionado} onChange={(e) => setMesSelecionado(Number(e.target.value))}>
+                      {['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'].map((m, i) => (
+                        <option key={i} value={i} className="bg-[var(--surface)]">{m}</option>
+                      ))}
+                    </select>
+                    <input type="number" className="w-28 bg-[var(--surface-sec)] p-4 rounded-[1.2rem] text-xs font-bold text-center outline-none text-[var(--text-primary)] focus:border-[#3B82F6] border border-[var(--border)]" value={anoSelecionado} onChange={(e) => setAnoSelecionado(Number(e.target.value))} />
                   </div>
-                  <p className="text-2xl font-black mt-4 text-[var(--primary)]">
+                  <p className="text-4xl font-black text-[#3B82F6] tracking-tight">
                     {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(faturamentoMes)}
                   </p>
                 </div>
-              </div>
 
-              <div className="md:col-span-2 bg-[var(--surface)] p-8 rounded-[2.5rem] border border-[var(--border)] shadow-sm overflow-hidden">
-                 <AgendaGeral />
-              </div>
-            </div>
-
-            {alunosVencendo.length > 0 && (
-              <div className="p-6 bg-[var(--warning)]/10 border border-[var(--warning)]/20 rounded-[2rem] flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div className="flex items-center gap-3 text-[var(--warning)]">
-                  <FaExclamationTriangle size={16} /> 
-                  <span className="font-black text-[10px] uppercase tracking-widest">{t.renewal}</span>
-                </div>
-                <div className="flex flex-wrap gap-2 w-full sm:w-auto justify-center">
-                  {alunosVencendo.map(a => (
-                    <button key={a.id} onClick={() => { setAlunoSelecionado(a); setIsModalOpen(true); }} className="bg-[var(--warning)] text-white px-5 py-2.5 rounded-[1rem] text-[10px] font-black active:scale-95 transition-all uppercase tracking-wider shadow-sm">{a.nome}</button>
-                  ))}
+                <div className="bg-[var(--surface)] p-6 sm:p-8 rounded-[2.5rem] border border-[var(--border)] shadow-sm overflow-hidden">
+                   <AgendaGeral />
                 </div>
               </div>
             )}
-
-            <div className="relative group">
-              <FaSearch className="absolute left-6 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] group-focus-within:text-[var(--primary)] transition-colors" size={18} />
-              <input className="w-full bg-[var(--surface)] p-6 pl-14 rounded-[2rem] border border-[var(--border)] shadow-sm outline-none text-sm font-bold text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] placeholder:font-medium focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)] transition-all" placeholder={t.search} value={busca} onChange={(e) => setBusca(e.target.value)} />
-            </div>
-
-            <div className="space-y-4">
-              {alunosFiltrados.map((a) => {
-                const statusDisplay = getStatusDisplay(a);
-                return (
-                  <div key={a.id} className="bg-[var(--surface)] p-5 sm:p-6 rounded-[2.5rem] border border-[var(--border)] flex flex-col sm:flex-row items-center justify-between shadow-sm hover:border-[var(--primary)]/30 transition-all gap-4">
-                    <div className="flex items-center gap-5 w-full sm:w-auto">
-                      <div className="shrink-0 w-14 h-14 rounded-full bg-[var(--surface-sec)] flex items-center justify-center font-black text-[var(--text-secondary)] border border-[var(--border)] overflow-hidden">
-                        {a.avatar_url ? <img src={a.avatar_url} className="w-full h-full object-cover" alt={a.nome} /> : a.nome.charAt(0)}
-                      </div>
-                      <div className="flex flex-col gap-1">
-                        <h3 className="font-black text-[var(--text-primary)] text-sm">{a.nome}</h3>
-                        <span className={`self-start text-[8px] font-black uppercase tracking-widest px-2.5 py-1 rounded-md ${statusDisplay.color}`}>
-                          {statusDisplay.text}
-                        </span>
-                      </div>
-                    </div>
-                    
-                    {/* OS 4 BOTÕES ORIGINAIS PRESERVADOS */}
-                    <div className="flex gap-2 items-center w-full sm:w-auto justify-between sm:justify-end">
-                      <button onClick={() => toggleStatus(a)} className={`flex-1 sm:flex-none flex items-center justify-center p-4 rounded-[1.2rem] transition-all active:scale-95 ${a.ativo ? 'bg-[var(--primary)]/10 text-[var(--primary)] hover:bg-[var(--primary)]/20' : 'bg-[var(--danger)]/10 text-[var(--danger)] hover:bg-[var(--danger)]/20'}`} aria-label="Alterar Status">
-                        {a.ativo ? <FaTimes size={16} /> : <FaUser size={16} />} 
-                      </button>
-                      <button onClick={() => router.push(`/dashboard/editar-aluno/${a.id}`)} className="flex-1 sm:flex-none flex items-center justify-center bg-[var(--surface-sec)] p-4 rounded-[1.2rem] text-[var(--text-secondary)] hover:bg-[var(--primary)] hover:text-white transition-all active:scale-95" aria-label="Editar">
-                        <FaEdit size={16} />
-                      </button>
-                      <button onClick={() => router.push(`/dashboard/aluno/${a.id}`)} className="flex-1 sm:flex-none flex items-center justify-center bg-[var(--surface-sec)] p-4 rounded-[1.2rem] text-[var(--text-secondary)] hover:bg-[var(--primary)] hover:text-white transition-all active:scale-95" aria-label="Perfil">
-                        <FaUser size={16} />
-                      </button>
-                      <button onClick={() => router.push(`/dashboard/aluno/${a.id}/progresso`)} className="flex-1 sm:flex-none flex items-center justify-center bg-[var(--primary)] text-white p-4 rounded-[1.2rem] shadow-md shadow-[var(--primary)]/20 hover:brightness-110 active:scale-95 transition-all" aria-label="Progresso">
-                        <FaChartLine size={16} />
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
             
           </div>
         )}

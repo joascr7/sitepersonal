@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
 import { cadastrarAlunoAction } from '../../actions/aluno';
-import { FaChevronLeft, FaGlobe, FaMoon, FaSun, FaExclamationCircle, FaCheckCircle } from 'react-icons/fa';
+import { FaChevronLeft, FaGlobe, FaMoon, FaSun, FaExclamationCircle, FaCheckCircle, FaChevronDown } from 'react-icons/fa';
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // DICIONÁRIO DE INTERNACIONALIZAÇÃO (i18n)
@@ -23,11 +23,17 @@ const translations = {
     namePlaceholder: 'Nome do aluno',
     phone: 'WhatsApp',
     phonePlaceholder: '(00) 00000-0000',
+    dob: 'Data de Nascimento',
+    gender: 'Sexo',
+    genderSelect: 'Selecione...',
+    male: 'Masculino',
+    female: 'Feminino',
+    other: 'Outros',
+    modality: 'Modalidade',
+    modalitySelect: 'Selecione...',
+    online: 'Online',
+    inPerson: 'Presencial',
     dueDate: 'Vencimento',
-    objective: 'Objetivo',
-    objPlaceholder: 'Ex: Hipertrofia',
-    paymentLink: 'Link de Pagamento',
-    payPlaceholder: 'https://...',
     submit: 'Confirmar Cadastro',
     loading: 'Cadastrando...',
     errSession: 'Sessão expirada.',
@@ -47,11 +53,17 @@ const translations = {
     namePlaceholder: 'Nome do aluno',
     phone: 'WhatsApp',
     phonePlaceholder: '(00) 00000-0000',
+    dob: 'Data de Nasc.',
+    gender: 'Género',
+    genderSelect: 'Selecione...',
+    male: 'Masculino',
+    female: 'Feminino',
+    other: 'Outros',
+    modality: 'Modalidade',
+    modalitySelect: 'Selecione...',
+    online: 'Online',
+    inPerson: 'Presencial',
     dueDate: 'Vencimento',
-    objective: 'Objetivo',
-    objPlaceholder: 'Ex: Hipertrofia',
-    paymentLink: 'Link de Pagamento',
-    payPlaceholder: 'https://...',
     submit: 'Confirmar Registo',
     loading: 'A registar...',
     errSession: 'Sessão expirada.',
@@ -71,11 +83,17 @@ const translations = {
     namePlaceholder: 'Student name',
     phone: 'WhatsApp',
     phonePlaceholder: '(00) 00000-0000',
+    dob: 'Date of Birth',
+    gender: 'Gender',
+    genderSelect: 'Select...',
+    male: 'Male',
+    female: 'Female',
+    other: 'Other',
+    modality: 'Modality',
+    modalitySelect: 'Select...',
+    online: 'Online',
+    inPerson: 'In-person',
     dueDate: 'Due Date',
-    objective: 'Goal',
-    objPlaceholder: 'Ex: Hypertrophy',
-    paymentLink: 'Payment Link',
-    payPlaceholder: 'https://...',
     submit: 'Confirm Registration',
     loading: 'Registering...',
     errSession: 'Session expired.',
@@ -84,7 +102,7 @@ const translations = {
 };
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// COMPONENTE DE INPUT PREMIUM
+// COMPONENTES DE INPUT PREMIUM
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 const InputField = ({ label, name, value, onChange, type = "text", placeholder, autoComplete }: any) => (
   <div className="flex flex-col gap-2 w-full min-w-0 group">
@@ -103,13 +121,47 @@ const InputField = ({ label, name, value, onChange, type = "text", placeholder, 
   </div>
 );
 
+const SelectField = ({ label, name, value, onChange, options, defaultOption }: any) => (
+  <div className="flex flex-col gap-2 w-full min-w-0 group">
+    <label className="text-[10px] font-black text-[var(--text-secondary)] uppercase tracking-[0.2em] px-1 truncate group-focus-within:text-[var(--primary)] transition-colors">
+      {label}
+    </label>
+    <div className="relative">
+      <select 
+        name={name}
+        value={value}
+        onChange={onChange}
+        className="block w-full px-5 py-4 bg-[var(--surface-sec)] border border-[var(--border)] rounded-[1.2rem] outline-none focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)] transition-all text-sm font-bold text-[var(--text-primary)] appearance-none cursor-pointer shadow-inner"
+      >
+        <option value="" disabled className="text-[var(--text-secondary)]">{defaultOption}</option>
+        {options.map((opt: any) => (
+          <option key={opt.value} value={opt.value} className="bg-[var(--surface)] text-[var(--text-primary)]">
+            {opt.label}
+          </option>
+        ))}
+      </select>
+      <div className="absolute inset-y-0 right-5 flex items-center pointer-events-none text-[var(--text-secondary)]">
+        <FaChevronDown size={12} />
+      </div>
+    </div>
+  </div>
+);
+
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // PÁGINA PRINCIPAL
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 export default function AdicionarAluno() {
   const [formData, setFormData] = useState({
-    nome: '', objetivo: '', email: '', password: '', telefone: '', dataVencimento: '', linkPagamento: ''
+    nome: '', 
+    email: '', 
+    password: '', 
+    telefone: '', 
+    dataNascimento: '', 
+    sexo: '', 
+    modalidade: '', 
+    dataVencimento: ''
   });
+  
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   
@@ -163,7 +215,7 @@ export default function AdicionarAluno() {
     return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
@@ -181,7 +233,7 @@ export default function AdicionarAluno() {
 
       const result = await cadastrarAlunoAction({
         ...formData,
-        telefone: formData.telefone.replace(/\D/g, '')
+        telefone: formData.telefone.replace(/\D/g, '') // Envia apenas os números
       }, session.user.id);
 
       if (result.error) throw new Error(result.error);
@@ -237,6 +289,8 @@ export default function AdicionarAluno() {
         </header>
         
         <div className="space-y-8">
+          
+          {/* SESSÃO: ACESSO */}
           <section className="space-y-4">
             <h2 className="text-[9px] font-black uppercase text-[var(--primary)] tracking-widest mb-2 flex items-center gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-[var(--primary)]"></span> {t.access}
@@ -247,19 +301,46 @@ export default function AdicionarAluno() {
 
           <div className="h-px w-full bg-[var(--border)]" />
 
+          {/* SESSÃO: PERFIL */}
           <section className="space-y-4">
             <h2 className="text-[9px] font-black uppercase text-[var(--primary)] tracking-widest mb-2 flex items-center gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-[var(--primary)]"></span> {t.profile}
             </h2>
+            
             <InputField label={t.name} name="nome" autoComplete="name" value={formData.nome} onChange={handleInputChange} placeholder={t.namePlaceholder} />
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <InputField label={t.phone} name="telefone" type="tel" value={formData.telefone} onChange={handleInputChange} placeholder={t.phonePlaceholder} />
-              <InputField label={t.dueDate} name="dataVencimento" type="date" value={formData.dataVencimento} onChange={handleInputChange} />
+              <InputField label={t.dob} name="dataNascimento" type="date" value={formData.dataNascimento} onChange={handleInputChange} />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <SelectField 
+                label={t.gender} 
+                name="sexo" 
+                value={formData.sexo} 
+                onChange={handleInputChange} 
+                defaultOption={t.genderSelect}
+                options={[
+                  { value: 'masculino', label: t.male },
+                  { value: 'feminino', label: t.female },
+                  { value: 'outros', label: t.other }
+                ]} 
+              />
+              <SelectField 
+                label={t.modality} 
+                name="modalidade" 
+                value={formData.modalidade} 
+                onChange={handleInputChange} 
+                defaultOption={t.modalitySelect}
+                options={[
+                  { value: 'online', label: t.online },
+                  { value: 'presencial', label: t.inPerson }
+                ]} 
+              />
             </div>
             
-            <InputField label={t.objective} name="objetivo" value={formData.objetivo} onChange={handleInputChange} placeholder={t.objPlaceholder} />
-            <InputField label={t.paymentLink} name="linkPagamento" type="url" value={formData.linkPagamento} onChange={handleInputChange} placeholder={t.payPlaceholder} />
+            <InputField label={t.dueDate} name="dataVencimento" type="date" value={formData.dataVencimento} onChange={handleInputChange} />
           </section>
         </div>
 
