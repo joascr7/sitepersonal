@@ -15,29 +15,37 @@ export const NotificationBell = () => {
   const [lang, setLang] = useState<'pt-BR' | 'pt-PT' | 'en'>('pt-BR');
 
  useEffect(() => {
-  const setupRealtime = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    let channel: any;
 
-    carregar(); // Carrega inicial
+    const setupRealtime = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-    // Canal com filtro aplicado
-    const channel = supabase.channel('realtime_notif')
-      .on('postgres_changes', { 
-        event: 'INSERT', 
-        schema: 'public', 
-        table: 'user_notifications',
-        filter: `user_id=eq.${user.id}` // <--- ISSO É OBRIGATÓRIO
-      }, (payload) => {
-        setNotificacoes((prev) => [payload.new, ...prev]);
-      })
-      .subscribe();
+      carregar(); // Carrega as antigas
 
-    return () => { supabase.removeChannel(channel); };
-  };
+      // Canal com filtro aplicado
+      channel = supabase.channel('realtime_notif')
+        .on('postgres_changes', { 
+          event: 'INSERT', 
+          schema: 'public', 
+          table: 'user_notifications',
+          filter: `user_id=eq.${user.id}`
+        }, (payload) => {
+          // Quando chega uma nova, adiciona ao topo da lista e faz a bolinha piscar
+          setNotificacoes((prev) => [payload.new, ...prev]);
+        })
+        .subscribe();
+    };
 
-  setupRealtime();
-}, []);
+    setupRealtime();
+
+    // A limpeza TEM de ficar aqui fora, diretamente no useEffect
+    return () => { 
+      if (channel) {
+        supabase.removeChannel(channel); 
+      }
+    };
+  }, []);
 
   const t = i18n[lang];
 

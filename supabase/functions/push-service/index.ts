@@ -10,13 +10,27 @@ if (serviceAccountKey && !admin.apps.length) {
   });
 }
 
+// Cabeçalhos OBRIGATÓRIOS para o navegador não bloquear
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
 serve(async (req) => {
+  // 0. BLOCO DE CORS (Evita o erro "Unexpected end of JSON input")
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
+  }
+
   try {
     const body = await req.json();
     const notificacao = body.record || body;
 
     if (!notificacao.user_id) {
-        return new Response(JSON.stringify({ error: "Missing user_id" }), { status: 400 });
+        return new Response(JSON.stringify({ error: "Missing user_id" }), { 
+          status: 400, 
+          headers: { ...corsHeaders, "Content-Type": "application/json" } 
+        });
     }
 
     // Inicialização Supabase com service_role
@@ -36,7 +50,10 @@ serve(async (req) => {
 
     if (existente) {
       console.log(`Duplicada ignorada: ${notificacao.user_id}`);
-      return new Response(JSON.stringify({ status: "Ignored" }), { status: 200 });
+      return new Response(JSON.stringify({ status: "Ignored" }), { 
+        status: 200, 
+        headers: { ...corsHeaders, "Content-Type": "application/json" } 
+      });
     }
 
     // 2. SALVA NO BANCO (USANDO UPSERT PARA EVITAR ERROS DE CONFLITO)
@@ -80,12 +97,15 @@ serve(async (req) => {
     }
 
     return new Response(JSON.stringify({ success: true }), { 
-      headers: { "Content-Type": "application/json" },
-      status: 200 
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" } 
     });
 
   } catch (err: any) {
     console.error("ERRO FINAL:", err);
-    return new Response(JSON.stringify({ error: err.message }), { status: 500 });
+    return new Response(JSON.stringify({ error: err.message }), { 
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" } 
+    });
   }
 })

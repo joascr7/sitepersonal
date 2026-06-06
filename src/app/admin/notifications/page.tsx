@@ -183,7 +183,7 @@ export default function AdminBroadcaster() {
     setTimeout(() => setToast(null), 5000);
   };
 
-  const handleDisparar = async (e: React.FormEvent) => {
+const handleDisparar = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.titulo.trim() || !formData.corpo.trim()) {
       showToast('error', t.errFill);
@@ -192,47 +192,45 @@ export default function AdminBroadcaster() {
 
     setLoading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-
-      // 1. Inserir a campanha no banco
+      // 1. Inserção no banco
       const { data: campanha, error: insertError } = await supabase
         .from('notification_broadcasts')
         .insert({
           titulo: formData.titulo.trim(),
           corpo: formData.corpo.trim(),
           segmentacao: formData.segmentacao,
-          media_url: formData.mediaUrl.trim() || null,
-          tipo_midia: formData.mediaUrl.trim() ? formData.tipoMidia : null,
-          cta_link: formData.ctaLink.trim() || null,
-          agendado_para: formData.agendamento ? new Date(formData.agendamento).toISOString() : null,
-          status: formData.agendamento ? 'pendente' : 'processando', // Mudamos para 'processando'
-          criado_por: user?.id
+          status: 'processando',
+          criado_por: (await supabase.auth.getUser()).data.user?.id
         })
         .select()
         .single();
 
       if (insertError) throw insertError;
 
-      // 2. DISPARO REAL (A parte que faltava)
-      if (!formData.agendamento && campanha) {
-        // Chamamos a Edge Function que processa o disparo em massa
-        const { error: invokeError } = await supabase.functions.invoke('push-broadcast', {
-          body: { broadcast_id: campanha.id }
-        });
+      // 2. Chamada da função com formatação FORÇADA
+      const { data, error: invokeError } = await supabase.functions.invoke('push-broadcast', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        // O segredo está aqui: transformar o objeto em texto JSON antes de enviar
+        body: JSON.stringify({ broadcast_id: campanha.id }) 
+      });
 
-        if (invokeError) throw invokeError;
-      }
+      if (invokeError) throw invokeError;
 
-      showToast('success', formData.agendamento ? t.successSchedule : t.successSend);
+      showToast('success', t.successSend);
       setFormData({ titulo: '', corpo: '', segmentacao: 'todos', mediaUrl: '', tipoMidia: 'imagem', ctaLink: '', agendamento: '' });
       carregarHistoricoCampanhas();
     } catch (err: any) {
-      console.error("Erro no disparo:", err);
-      showToast('error', t.errSend + err.message);
+      console.error("Erro final:", err);
+      // Extração de erro mais precisa
+      const msgErro = err?.context?.message || err.message || "Falha na conexão com o servidor";
+      showToast('error', "Erro: " + msgErro);
     } finally {
       setLoading(false);
     }
-};
+  };
 
   if (!mounted) return null;
 
