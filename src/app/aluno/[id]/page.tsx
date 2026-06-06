@@ -109,6 +109,11 @@ const translations = {
   }
 };
 
+type Treino = {
+  sessõesCount: number;
+  [key: string]: any; // Permite outros campos que o Supabase retorna
+};
+
 export default function AreaDoAluno({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
@@ -121,6 +126,7 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
   const [calendarioAberto, setCalendarioAberto] = useState(false);
   const [treinoDoDia, setTreinoDoDia] = useState<any>(null);
   const [horaAtual, setHoraAtual] = useState(new Date());
+  const [treinos, setTreinos] = useState<Treino[]>([]);
   
   // Estados de Tema e i18n
   const [isDark, setIsDark] = useState(true);
