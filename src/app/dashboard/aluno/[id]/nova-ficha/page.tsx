@@ -190,7 +190,6 @@ function NovaFichaContent() {
     const fetchData = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       
-      // Busca os treinos padrão e a biblioteca de vídeos
       const [pRes, bRes] = await Promise.all([
         supabase.from('treinos_padrao').select('*'),
         supabase.from('videos_biblioteca').select('*')
@@ -198,7 +197,6 @@ function NovaFichaContent() {
       
       let exerciciosExtraidos: any[] = [];
 
-      // Extrai todos os exercícios de dentro dos Treinos Padrão
       if (pRes.data) {
         setTreinosPadrao(pRes.data);
         pRes.data.forEach((treino) => {
@@ -214,14 +212,12 @@ function NovaFichaContent() {
         });
       }
 
-      // Junta os exercícios extraídos com os vídeos isolados (se houver)
       if (bRes.data) {
         exerciciosExtraidos = [...exerciciosExtraidos, ...bRes.data];
       }
 
       setBiblioteca(exerciciosExtraidos);
 
-      // Busca os modelos do próprio personal
       if (user?.id) {
         const { data: mData } = await supabase.from('modelos_personal').select('*').eq('personal_id', user.id);
         if (mData) setMeusModelos(mData);
@@ -234,7 +230,6 @@ function NovaFichaContent() {
   const toggleLang = () => { const langs: ('pt-BR' | 'pt-PT' | 'en')[] = ['pt-BR', 'pt-PT', 'en']; const nextLang = langs[(langs.indexOf(lang) + 1) % langs.length]; setLang(nextLang); localStorage.setItem('@premium_lang', nextLang); };
   const t = translations[lang] || translations['pt-BR'];
 
-  // Configuração Dinâmica do Tema Premium
   const themeStyles = isDark ? {
     '--bg': '#0F1115', '--surface': '#151A22', '--surface-sec': '#1B2330', '--primary': '#3B82F6', '--danger': '#EF4444', '--success': '#22C55E', '--text-primary': '#F8FAFC', '--text-secondary': '#94A3B8', '--border': 'rgba(255,255,255,0.05)',
   } as React.CSSProperties : {
@@ -250,7 +245,14 @@ function NovaFichaContent() {
     try {
       const raw = ehPadrao ? modelo.exercicios_json : modelo.descricao;
       const novosExercicios = typeof raw === 'string' ? JSON.parse(raw) : raw;
-      setExercicios(prev => [...prev, ...novosExercicios]);
+      
+      // 🔥 BLINDAGEM AQUI: Força a propriedade 'series' a ser sempre um Array válido 
+      const exerciciosTratados = novosExercicios.map((ex: any) => ({
+        ...ex,
+        series: Array.isArray(ex.series) ? ex.series : []
+      }));
+
+      setExercicios(prev => [...prev, ...exerciciosTratados]);
       setIsModalOpen(false);
       showToast('success', `${modelo.nome_modelo || modelo.nome}${t.successAdd}`);
     } catch (e) {
@@ -290,8 +292,10 @@ function NovaFichaContent() {
   
   const atualizarSerie = (exIndex: number, sIndex: number, campo: keyof Serie, valor: string) => { 
     const n = [...exercicios]; 
-    n[exIndex].series[sIndex][campo] = valor; 
-    setExercicios(n); 
+    if(Array.isArray(n[exIndex].series)) {
+      n[exIndex].series[sIndex][campo] = valor; 
+      setExercicios(n); 
+    }
   };
   
   const buscarVideo = (nomeExercicio: string, index: number) => {
@@ -308,17 +312,34 @@ function NovaFichaContent() {
   const salvarFicha = async () => {
     if (!nome) throw new Error(t.errName);
     setLoading(true);
+    
     const exerciciosLimpos = exercicios.map(ex => ({
       ...ex, 
-      series: ex.series.map(s => ({
+      series: Array.isArray(ex.series) ? ex.series.map(s => ({
         ordem: s.ordem || '', reps: s.reps || '', carga: Number(s.carga) || 0, CargaPlanejada: Number(s.CargaPlanejada) || 0, intervalo: Number(s.intervalo) || 0
-      }))
+      })) : []
     }));
+
     const { data: { user } } = await supabase.auth.getUser();
+    
+    // 1. Salva a ficha no banco de dados
     const { error } = await supabase.from('fichas').insert([{ 
       aluno_id: id, nome_treino: nome, descricao: JSON.stringify(exerciciosLimpos), ordem: 1, personal_id: user?.id 
     }]);
+    
     if (error) throw error;
+
+    // 🔥 2. A MÁGICA AQUI: Acende o sininho para o aluno!
+    try {
+      await supabase.from('user_notifications').insert([{
+        user_id: id, // O ID do aluno que está na URL
+        titulo: 'Novo Treino Disponível! 💪',
+        corpo: `O seu personal adicionou o treino "${nome}" à sua ficha.`,
+        lida: false
+      }]);
+    } catch (notifError) {
+      console.error("Erro ao gerar notificação de novo treino:", notifError);
+    }
   };
 
   const salvarCombo = async () => {
@@ -421,7 +442,6 @@ function NovaFichaContent() {
         {exercicios.map((ex, exIndex) => (
           <div key={exIndex} className="bg-[var(--surface)] p-6 sm:p-8 rounded-[2.5rem] border border-[var(--border)] mb-8 shadow-xl">
             
-            {/* NOVO CAMPO: BUSCA DE EXERCÍCIOS AUTOCOMPLETE */}
             <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6 border-b border-[var(--border)] pb-4">
               <BuscadorExercicio 
                 valorNome={ex.nome}
@@ -470,7 +490,8 @@ function NovaFichaContent() {
             </div>
 
             <div className="space-y-3">
-              {ex.series?.map((s: any, sIndex: number) => (
+              {/* O map agora está completamente seguro */}
+              {Array.isArray(ex.series) && ex.series.map((s: any, sIndex: number) => (
                 <div key={sIndex} className="grid grid-cols-5 gap-1 sm:gap-2 items-center">
                   <input type="number" className="w-full py-3 sm:p-3 bg-[var(--surface-sec)] border border-[var(--border)] rounded-xl text-xs sm:text-sm font-bold text-center text-[var(--text-primary)] outline-none focus:border-[var(--primary)] transition-colors" value={s.ordem ?? sIndex + 1} onChange={(e) => atualizarSerie(exIndex, sIndex, 'ordem', e.target.value)} />
                   <input type="text" className="w-full py-3 sm:p-3 bg-[var(--surface-sec)] border border-[var(--border)] rounded-xl text-xs sm:text-sm font-bold text-center text-[var(--text-primary)] outline-none focus:border-[var(--primary)] transition-colors" value={s?.reps ?? ''} onChange={(e) => atualizarSerie(exIndex, sIndex, 'reps', e.target.value)} />

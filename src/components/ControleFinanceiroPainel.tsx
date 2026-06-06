@@ -228,13 +228,15 @@ function PainelConteudo() {
   };
 
   if (loading || !mounted) return (
-    <main className="min-h-screen bg-[#0F1115] flex items-center justify-center text-[#3B82F6] font-black tracking-widest text-sm uppercase animate-pulse">
+    <div className="min-h-screen flex items-center justify-center text-[#3B82F6] font-black tracking-widest text-sm uppercase animate-pulse w-full">
       {mounted ? t.loading : 'CARREGANDO...'}
-    </main>
+    </div>
   );
 
   return (
-    <main style={themeStyles} className="min-h-screen bg-[var(--bg)] p-6 md:p-12 text-[var(--text-primary)] transition-colors duration-500 font-sans antialiased md:ml-64">
+    // CORREÇÃO AQUI: Trocámos o <main> por um <div> limpo. 
+    // O Layout já está a tratar da cor de fundo, da margem lateral (ml-64) e das alturas (min-h-screen).
+    <div style={themeStyles} className="w-full transition-colors duration-500 font-sans antialiased relative">
       
       {/* ━━━━━━━━━━ NOTIFICAÇÃO PREMIUM FLOATING ━━━━━━━━━━ */}
       {toast && (
@@ -248,32 +250,33 @@ function PainelConteudo() {
         </div>
       )}
 
-      <div className="max-w-7xl mx-auto pb-20">
+      {/* CORREÇÃO AQUI: Removemos o max-w-6xl porque o Layout já limita a largura a 1400px com os devidos paddings */}
+      <div className="w-full space-y-8 pb-24">
         
         {/* HEADER */}
-        <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-6">
+        <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
           <h1 className="text-3xl md:text-4xl font-black tracking-tighter flex items-center gap-3">
-            <FaUserShield className="text-[var(--primary)]" /> {t.admin}
+            <FaUserShield className="text-[var(--primary)] shrink-0" /> {t.admin}
           </h1>
           
-          <div className="flex items-center gap-4 w-full md:w-auto">
-            <div className="flex bg-[var(--surface)] rounded-full p-1 border border-[var(--border)] w-full md:w-auto shadow-sm">
-              <a href="?aba=gestao" className={`flex-1 md:flex-none text-center px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${aba === 'gestao' ? 'bg-[var(--primary)] text-white shadow-md' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}>
-                {t.tabManagement}
-              </a>
-              <a href="?aba=financeiro" className={`flex-1 md:flex-none text-center px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${aba === 'financeiro' ? 'bg-[var(--primary)] text-white shadow-md' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}>
-                {t.tabFinancial}
-              </a>
-            </div>
+          <div className="flex bg-[var(--surface)] rounded-full p-1 border border-[var(--border)] w-full md:w-auto shadow-sm shrink-0">
+            <a href="?aba=gestao" className={`flex-1 md:flex-none text-center px-8 py-3 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${aba === 'gestao' ? 'bg-[var(--primary)] text-white shadow-md' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}>
+              {t.tabManagement}
+            </a>
+            <a href="?aba=financeiro" className={`flex-1 md:flex-none text-center px-8 py-3 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${aba === 'financeiro' ? 'bg-[var(--primary)] text-white shadow-md' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}>
+              {t.tabFinancial}
+            </a>
           </div>
         </header>
 
         {aba === 'gestao' ? (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="lg:col-span-2 space-y-8">
+          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            
+            {/* GRELHA CONFIGURAÇÕES E MÉTRICAS */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               
-              {/* CONFIGURAÇÕES */}
-              <div className="bg-[var(--surface)] p-8 rounded-[2.5rem] border border-[var(--border)] shadow-sm">
+              {/* CONFIGURAÇÕES (Ocupa 2 colunas no PC) */}
+              <div className="lg:col-span-2 bg-[var(--surface)] p-6 sm:p-8 rounded-[2rem] border border-[var(--border)] shadow-sm">
                 <h2 className="flex items-center gap-2 text-[10px] font-black text-[var(--text-secondary)] uppercase tracking-[0.2em] mb-8">
                   <FaCog/> {t.configTitle}
                 </h2>
@@ -308,9 +311,28 @@ function PainelConteudo() {
                 </button>
               </div>
 
-              {/* TABELA DE GESTÃO */}
-              <div className="bg-[var(--surface)] rounded-[2.5rem] border border-[var(--border)] overflow-hidden shadow-sm overflow-x-auto">
-                <table className="w-full text-left min-w-[600px]">
+              {/* MÉTRICAS (Ocupa 1 coluna no PC) */}
+              <div className="lg:col-span-1 bg-[var(--surface)] p-6 sm:p-8 rounded-[2rem] border border-[var(--border)] shadow-sm relative overflow-hidden group flex flex-col justify-center">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--primary)]/10 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none transition-all group-hover:bg-[var(--primary)]/20" />
+                <h3 className="text-[10px] font-black uppercase text-[var(--text-secondary)] tracking-widest mb-8 relative z-10">{t.metricsTitle}</h3>
+                <div className="space-y-6 relative z-10 w-full">
+                  <div className="flex justify-between items-center border-b border-[var(--border)] pb-4 w-full">
+                    <span className="text-sm font-bold text-[var(--text-secondary)]">{t.metricsActive}</span>
+                    <span className="font-black text-3xl text-[var(--primary)]">{personais.filter(p => p.status_pagamento === 'ativo').length}</span>
+                  </div>
+                  <div className="flex justify-between items-center w-full">
+                    <span className="text-sm font-bold text-[var(--text-secondary)]">{t.metricsTotal}</span>
+                    <span className="font-black text-3xl text-[var(--text-primary)]">{personais.length}</span>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            {/* TABELA DE GESTÃO - COM SCROLL HORIZONTAL SEGURO NO MOBILE */}
+            <div className="w-full overflow-x-auto bg-[var(--surface)] rounded-[2rem] border border-[var(--border)] shadow-sm">
+              <div className="min-w-[800px]">
+                <table className="w-full text-left">
                   <thead className="bg-[var(--surface-sec)]/50 text-[9px] uppercase font-black text-[var(--text-secondary)] tracking-[0.2em]">
                     <tr>
                       <th className="p-6 pl-8">{t.tableTrainer}</th>
@@ -353,31 +375,16 @@ function PainelConteudo() {
               </div>
             </div>
 
-            {/* MÉTRICAS */}
-            <div className="bg-[var(--surface)] p-8 rounded-[2.5rem] border border-[var(--border)] h-fit shadow-sm relative overflow-hidden group">
-               <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--primary)]/10 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none transition-all group-hover:bg-[var(--primary)]/20" />
-               <h3 className="text-[10px] font-black uppercase text-[var(--text-secondary)] tracking-widest mb-8 relative z-10">{t.metricsTitle}</h3>
-               <div className="space-y-6 relative z-10">
-                  <div className="flex justify-between items-center border-b border-[var(--border)] pb-4">
-                    <span className="text-sm font-bold text-[var(--text-secondary)]">{t.metricsActive}</span>
-                    <span className="font-black text-3xl text-[var(--primary)]">{personais.filter(p => p.status_pagamento === 'ativo').length}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-bold text-[var(--text-secondary)]">{t.metricsTotal}</span>
-                    <span className="font-black text-3xl text-[var(--text-primary)]">{personais.length}</span>
-                  </div>
-               </div>
-            </div>
           </div>
         ) : (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             
             {/* GRÁFICO */}
-            <div className="bg-[var(--surface)] p-6 md:p-8 rounded-[2.5rem] border border-[var(--border)] h-96 shadow-sm">
+            <div className="bg-[var(--surface)] p-6 md:p-8 rounded-[2rem] border border-[var(--border)] h-[400px] shadow-sm">
               <h2 className="font-black flex items-center gap-2 mb-8 text-[var(--text-secondary)] text-[10px] uppercase tracking-widest">
                 <FaChartLine/> {t.chartTitle}
               </h2>
-              <div className="w-full h-[calc(100%-3rem)]">
+              <div className="w-full h-[calc(100%-4rem)]">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={pagamentos.slice(0, 15).reverse()} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                     <defs>
@@ -399,9 +406,10 @@ function PainelConteudo() {
               </div>
             </div>
 
-            {/* TABELA FINANCEIRA */}
-            <div className="bg-[var(--surface)] rounded-[2.5rem] border border-[var(--border)] overflow-hidden shadow-sm overflow-x-auto">
-               <table className="w-full text-left min-w-[600px]">
+            {/* TABELA FINANCEIRA - COM SCROLL HORIZONTAL SEGURO NO MOBILE */}
+            <div className="w-full overflow-x-auto bg-[var(--surface)] rounded-[2rem] border border-[var(--border)] shadow-sm">
+               <div className="min-w-[600px]">
+                 <table className="w-full text-left">
                   <thead className="bg-[var(--surface-sec)]/50 text-[9px] uppercase font-black text-[var(--text-secondary)] tracking-[0.2em]">
                     <tr>
                       <th className="p-6 pl-8">{t.tableTrainer}</th>
@@ -418,21 +426,22 @@ function PainelConteudo() {
                       </tr>
                     ))}
                   </tbody>
-               </table>
+                 </table>
+               </div>
             </div>
           </div>
         )}
       </div>
-    </main>
+    </div>
   );
 }
 
 export default function AdminFinanceiro() {
   return (
     <Suspense fallback={
-      <main className="min-h-screen bg-[#0F1115] flex items-center justify-center text-[#3B82F6] font-black tracking-widest text-sm uppercase animate-pulse">
+      <div className="flex items-center justify-center text-[#3B82F6] font-black tracking-widest text-sm uppercase animate-pulse w-full">
         CARREGANDO...
-      </main>
+      </div>
     }>
       <PainelConteudo />
     </Suspense>

@@ -115,6 +115,9 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="AuraFit" />
         <meta name="theme-color" content={isDark ? '#0F1115' : '#F3F6FB'} />
+        
+        {/* CORREÇÃO DO ÍCONE NO IOS (PWA) */}
+        <link rel="apple-touch-icon" href="/icon-192.png" />
       </head>
       <body 
         className={`

@@ -15,16 +15,20 @@ export const NotificationBell = () => {
   const [lang] = useState<'pt-BR' | 'pt-PT' | 'en'>('pt-BR');
 
   useEffect(() => {
-    let channel: any;
+    let isMounted = true;
+    let channel: any = null;
 
     const setupRealtime = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      // Se desmontou ou não tem user, aborta
+      if (!user || !isMounted) return; 
 
       carregar();
 
-      // Inicia a escuta em tempo real
-      channel = supabase.channel('realtime_notif')
+      // O SEGREDO: Criar um nome de canal 100% único para evitar colisões no cache do Supabase
+      const channelName = `notif_${user.id}_${Math.random().toString(36).substring(7)}`;
+
+      channel = supabase.channel(channelName)
         .on('postgres_changes', { 
           event: 'INSERT', 
           schema: 'public', 
@@ -40,7 +44,10 @@ export const NotificationBell = () => {
     setupRealtime();
 
     return () => { 
-      if (channel) supabase.removeChannel(channel); 
+      isMounted = false;
+      if (channel) {
+        supabase.removeChannel(channel); 
+      }
     };
   }, []);
 

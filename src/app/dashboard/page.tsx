@@ -263,25 +263,31 @@ export default function Dashboard() {
         )}
 
         {loading ? <DashboardSkeleton /> : (
-          <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in duration-700">
-            <header className="flex justify-between items-end">
-              <div>
-                <h1 className="text-4xl font-black tracking-tighter">{t.title}</h1>
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-secondary)] mt-1">{t.subtitle}</p>
-              </div>
-              <div className="flex gap-2">
-                <button onClick={toggleLang} className="w-12 h-12 rounded-[1.2rem] bg-[var(--surface)] border border-[var(--border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--primary)] transition-all active:scale-95 shadow-sm relative">
-                  <FaGlobe size={18} />
-                  <span className="absolute -top-1 -right-1 bg-[var(--primary)] text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full">{lang.split('-')[0].toUpperCase()}</span>
-                </button>
-                <button onClick={toggleTheme} className="w-12 h-12 rounded-[1.2rem] bg-[var(--surface)] border border-[var(--border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--primary)] transition-all active:scale-95 shadow-sm">
-                  {isDark ? <FaSun size={18} /> : <FaMoon size={18} />}
-                </button>
-                <button onClick={() => router.push('/dashboard/adicionar-aluno')} className="w-12 h-12 flex items-center justify-center bg-[var(--primary)] text-white rounded-[1.2rem] shadow-lg shadow-[var(--primary)]/20 hover:brightness-110 active:scale-95 transition-all">
-                  <FaPlus size={18} />
-                </button>
-              </div>
-            </header>
+  <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in duration-700">
+    <header className="flex justify-between items-end">
+      <div>
+        <h1 className="text-4xl font-black tracking-tighter">{t.title}</h1>
+        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-secondary)] mt-1">{t.subtitle}</p>
+      </div>
+      
+      <div className="flex gap-2">
+        {/* COMPONENTE DO SININHO ADICIONADO AQUI */}
+        <NotificationBell />
+
+        <button onClick={toggleLang} className="w-12 h-12 rounded-[1.2rem] bg-[var(--surface)] border border-[var(--border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--primary)] transition-all active:scale-95 shadow-sm relative">
+          <FaGlobe size={18} />
+          <span className="absolute -top-1 -right-1 bg-[var(--primary)] text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full">{lang.split('-')[0].toUpperCase()}</span>
+        </button>
+        
+        <button onClick={toggleTheme} className="w-12 h-12 rounded-[1.2rem] bg-[var(--surface)] border border-[var(--border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--primary)] transition-all active:scale-95 shadow-sm">
+          {isDark ? <FaSun size={18} /> : <FaMoon size={18} />}
+        </button>
+        
+        <button onClick={() => router.push('/dashboard/adicionar-aluno')} className="w-12 h-12 flex items-center justify-center bg-[var(--primary)] text-white rounded-[1.2rem] shadow-lg shadow-[var(--primary)]/20 hover:brightness-110 active:scale-95 transition-all">
+          <FaPlus size={18} />
+        </button>
+      </div>
+    </header>
 
 
            {/* ━━━━━━━━━━ BANNER DE ATIVAÇÃO PUSH ━━━━━━━━━━ */}

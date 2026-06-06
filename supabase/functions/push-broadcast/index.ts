@@ -54,11 +54,14 @@ serve(async (req) => {
       });
     }
 
-    // 3. Inserir no histórico (Sininho) para todos
-    for (let i = 0; i < records.length; i += 100) {
-      const chunk = records.slice(i, i + 100);
-      const notifications = chunk.map(r => ({
-        user_id: r.user_id,
+    // 🔥 CORREÇÃO: Extrair apenas os IDs ÚNICOS de utilizadores para não duplicar no Sininho
+    const uniqueUserIds = [...new Set(records.map(r => r.user_id))];
+
+    // 3. Inserir no histórico (Sininho) para todos - AGORA SEM DUPLICADOS
+    for (let i = 0; i < uniqueUserIds.length; i += 100) {
+      const chunk = uniqueUserIds.slice(i, i + 100);
+      const notifications = chunk.map(userId => ({
+        user_id: userId,
         titulo: campanha.titulo,
         corpo: campanha.corpo,
         lida: false
@@ -68,7 +71,7 @@ serve(async (req) => {
       if (insertError) console.error("Erro ao inserir lote:", insertError);
     }
 
-    // 4. Disparar Push (Lotes de 500 para Firebase)
+    // 4. Disparar Push (Lotes de 500 para Firebase) - Mantém para todos os aparelhos
     const tokens = records.map(r => r.token).filter(t => t !== null);
     for (let i = 0; i < tokens.length; i += 500) {
       const chunk = tokens.slice(i, i + 500);
