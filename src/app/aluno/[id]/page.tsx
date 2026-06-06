@@ -374,6 +374,25 @@ useEffect(() => {
           </div>
         )}
 
+        {/* ━━━━━━━━━━ SAUDAÇÃO E HORÁRIO ATUAL ━━━━━━━━━━ */}
+<div className="px-2 animate-in fade-in duration-700 delay-300 flex justify-between items-end">
+   <div>
+     <h3 className="text-[14px] font-bold text-[var(--text-primary)]">
+       {getSaudacao()}, {aluno?.nome?.split(' ')[0] || 'Aluno'}! 👋
+     </h3>
+     <p className="text-[10px] font-medium text-[var(--text-secondary)] uppercase tracking-widest mt-1">
+       {format(horaAtual, "EEEE, d 'de' MMMM", { locale: lang === 'pt-BR' ? ptBR : lang === 'pt-PT' ? pt : enUS })}
+     </p>
+   </div>
+   
+   {/* Relógio em tempo real */}
+   <div className="bg-[var(--surface-sec)] px-3 py-1.5 rounded-lg border border-[var(--border)]">
+      <p className="text-[14px] font-black text-[var(--primary)] tabular-nums tracking-widest">
+        {format(horaAtual, 'HH:mm:ss')}
+      </p>
+   </div>
+</div>
+
         {/* ━━━━━━━━━━ HERO: TREINO DO DIA ━━━━━━━━━━ */}
         {treinoDoDia ? (
           <section className="relative overflow-hidden bg-gradient-to-br from-[var(--primary)] to-blue-800 p-8 rounded-[2rem] shadow-[0_10px_30px_-10px_var(--primary)] border border-white/10 group animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">
@@ -433,24 +452,7 @@ useEffect(() => {
           </div>
         </section>
 
-        {/* ━━━━━━━━━━ SAUDAÇÃO E HORÁRIO ATUAL ━━━━━━━━━━ */}
-<div className="px-2 animate-in fade-in duration-700 delay-300 flex justify-between items-end">
-   <div>
-     <h3 className="text-[14px] font-bold text-[var(--text-primary)]">
-       {getSaudacao()}, {aluno?.nome?.split(' ')[0] || 'Aluno'}! 👋
-     </h3>
-     <p className="text-[10px] font-medium text-[var(--text-secondary)] uppercase tracking-widest mt-1">
-       {format(horaAtual, "EEEE, d 'de' MMMM", { locale: lang === 'pt-BR' ? ptBR : lang === 'pt-PT' ? pt : enUS })}
-     </p>
-   </div>
-   
-   {/* Relógio em tempo real */}
-   <div className="bg-[var(--surface-sec)] px-3 py-1.5 rounded-lg border border-[var(--border)]">
-      <p className="text-[14px] font-black text-[var(--primary)] tabular-nums tracking-widest">
-        {format(horaAtual, 'HH:mm:ss')}
-      </p>
-   </div>
-</div>
+        
 
         <button 
           onClick={() => setCalendarioAberto(true)}
