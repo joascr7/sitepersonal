@@ -13,12 +13,13 @@ import {
   FaUserEdit,
   FaCheckCircle,
   FaExclamationCircle,
-  FaChevronDown
+  FaChevronDown,
+  FaLock
 } from 'react-icons/fa';
 import InputField from '@/components/InputField';
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// COMPONENTE SELECT PREMIUM (Adicionado para manter o padrão visual)
+// COMPONENTE SELECT PREMIUM
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 const SelectField = ({ label, name, value, onChange, options, defaultOption }: any) => (
   <div className="flex flex-col gap-1 w-full min-w-0 group relative">
@@ -56,7 +57,6 @@ const translations = {
     tabSecurity: 'Segurança',
     name: 'Nome Completo',
     phone: 'Telefone',
-    goal: 'Objetivo',
     dob: 'Data de Nascimento',
     gender: 'Sexo',
     genderSelect: 'Selecione...',
@@ -64,7 +64,6 @@ const translations = {
     female: 'Feminino',
     other: 'Outros',
     modality: 'Modalidade',
-    modalitySelect: 'Selecione...',
     online: 'Online',
     inPerson: 'Presencial',
     dueDate: 'Data de Vencimento',
@@ -73,7 +72,7 @@ const translations = {
     savePassword: 'Atualizar Senha',
     saving: 'Salvando...',
     logout: 'Encerrar Sessão',
-    successData: 'Dados atualizados com sucesso!',
+    successData: 'Dados updated successfully!',
     errorData: 'Erro ao salvar: ',
     successPass: 'Senha atualizada com sucesso!',
     errorPass: 'Erro ao atualizar senha: ',
@@ -89,7 +88,6 @@ const translations = {
     tabSecurity: 'Segurança',
     name: 'Nome Completo',
     phone: 'Telefone',
-    goal: 'Objetivo',
     dob: 'Data de Nasc.',
     gender: 'Género',
     genderSelect: 'Selecione...',
@@ -97,7 +95,6 @@ const translations = {
     female: 'Feminino',
     other: 'Outros',
     modality: 'Modalidade',
-    modalitySelect: 'Selecione...',
     online: 'Online',
     inPerson: 'Presencial',
     dueDate: 'Vencimento',
@@ -122,7 +119,6 @@ const translations = {
     tabSecurity: 'Security',
     name: 'Full Name',
     phone: 'Phone',
-    goal: 'Goal',
     dob: 'Date of Birth',
     gender: 'Gender',
     genderSelect: 'Select...',
@@ -130,7 +126,6 @@ const translations = {
     female: 'Female',
     other: 'Other',
     modality: 'Modality',
-    modalitySelect: 'Select...',
     online: 'Online',
     inPerson: 'In-person',
     dueDate: 'Due Date',
@@ -154,13 +149,15 @@ export default function PerfilAluno({ params }: { params: Promise<{ id: string }
   const [uploading, setUploading] = useState(false);
   const [activeTab, setActiveTab] = useState('dados'); 
   
-  // Estado Expandido com todos os campos do banco
+  // Estado Expandido com campos travados incluídos
   const [perfil, setPerfil] = useState({ 
-    nome: '',  
+    nome: '',   
     telefone: '', 
     avatar_url: '',
     data_nascimento: '',
-    sexo: '' 
+    sexo: '',
+    modalidade: '',
+    data_vencimento: ''
   });
   const [novaSenha, setNovaSenha] = useState('');
 
@@ -228,13 +225,14 @@ export default function PerfilAluno({ params }: { params: Promise<{ id: string }
   const fetchPerfil = async () => {
     const { data } = await supabase.from('alunos').select('*').eq('id', id).maybeSingle();
     if (data) {
-      // Formata a data vindo do banco caso seja necessário (garante o valor default para os inputs)
       setPerfil({
         nome: data.nome || '',
         telefone: data.telefone || '',
         avatar_url: data.avatar_url || '',
         data_nascimento: data.data_nascimento || '',
-        sexo: data.sexo || ''
+        sexo: data.sexo || '',
+        modalidade: data.modalidade || '',
+        data_vencimento: data.data_vencimento || ''
       });
     }
     setLoading(false);
@@ -271,7 +269,6 @@ export default function PerfilAluno({ params }: { params: Promise<{ id: string }
     return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
   };
 
-  // Trata corretamente Eventos ou Strings diretas vindas dos componentes de Input
   const handleChange = (field: string) => (e: any) => {
     let val = e?.target?.value !== undefined ? e.target.value : e;
     if (field === 'telefone') val = formatarTelefone(val);
@@ -283,10 +280,11 @@ export default function PerfilAluno({ params }: { params: Promise<{ id: string }
     try {
       const { error } = await supabase.from('alunos').update({ 
         nome: perfil.nome, 
-        telefone: perfil.telefone.replace(/\D/g, ''), // Salvamos apenas os números no banco
+        telefone: perfil.telefone.replace(/\D/g, ''),
         avatar_url: perfil.avatar_url,
         data_nascimento: perfil.data_nascimento,
         sexo: perfil.sexo
+        // Modalidade e Vencimento foram removidos daqui de propósito para que o aluno não consiga sobrescrevê-los no banco
       }).eq('id', id);
       if (error) throw error;
       showToast(t.successData, 'success');
@@ -310,6 +308,20 @@ export default function PerfilAluno({ params }: { params: Promise<{ id: string }
     } finally { 
       setSaving(false); 
     }
+  };
+
+  // Tratamento visual para exibir o texto amigável da modalidade bloqueada
+  const formatModalidade = (mod: string) => {
+    if (mod === 'online') return t.online;
+    if (mod === 'presencial') return t.inPerson;
+    return mod;
+  };
+
+  // Formata a data de vencimento de YYYY-MM-DD para DD/MM/YYYY na exibição bloqueada
+  const formatVencimento = (dataStr: string) => {
+    if (!dataStr) return '';
+    const [ano, mes, dia] = dataStr.split('-');
+    return `${dia}/${mes}/${ano}`;
   };
 
   if (!mounted || loading) return (
@@ -450,6 +462,30 @@ export default function PerfilAluno({ params }: { params: Promise<{ id: string }
                 </div>
               </div>
 
+              {/* DIVISOR DE SEÇÃO PARA CAMPOS CONTRATUAIS */}
+              <div className="h-px w-full bg-[var(--border)] my-2" />
+
+              {/* CAMPOS BLOQUEADOS (MODALIDADE E VENCIMENTO) */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 opacity-75">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest pl-1 flex items-center gap-1.5">
+                    <FaLock size={8} /> {t.modality}
+                  </label>
+                  <div className="w-full px-5 py-4 bg-[var(--surface-sec)]/50 border border-[var(--border)] rounded-[1.2rem] text-sm font-bold text-[var(--text-secondary)] cursor-not-allowed select-none shadow-inner flex items-center justify-between">
+                    <span>{formatModalidade(perfil.modalidade) || '—'}</span>
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest pl-1 flex items-center gap-1.5">
+                    <FaLock size={8} /> {t.dueDate}
+                  </label>
+                  <div className="w-full px-5 py-4 bg-[var(--surface-sec)]/50 border border-[var(--border)] rounded-[1.2rem] text-sm font-bold text-[var(--text-secondary)] cursor-not-allowed select-none shadow-inner flex items-center justify-between">
+                    <span>{formatVencimento(perfil.data_vencimento) || '—'}</span>
+                  </div>
+                </div>
+              </div>
+
             </div>
           ) : (
             <div className="space-y-6 animate-in slide-in-from-right-4 fade-in duration-300">
@@ -479,7 +515,7 @@ export default function PerfilAluno({ params }: { params: Promise<{ id: string }
             disabled={saving} 
             className={`w-full py-5 rounded-[1.5rem] font-black text-[12px] uppercase tracking-[0.2em] transition-all transform active:scale-[0.98] ${
               saving 
-                ? 'bg-[var(--surface-sec)] text-[var(--text-secondary)] border border-[var(--border)] cursor-not-allowed' 
+                ? 'bg-[var(--surface-sec)] text-[var(--text-secondary)] border border(--border)] cursor-not-allowed' 
                 : 'bg-[var(--primary)] text-white shadow-[0_10px_30px_-10px_var(--primary)] hover:bg-blue-600'
             }`}
           >
