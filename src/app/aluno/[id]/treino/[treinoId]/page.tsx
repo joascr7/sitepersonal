@@ -10,11 +10,12 @@ import { format } from 'date-fns';
 import ParqForm from '@/components/ParqForm';
 import { 
   FaFilePdf, FaCheck, FaInfoCircle, FaChevronLeft, 
-  FaMoon, FaSun, FaGlobe, FaCommentAlt, FaStopwatch, FaTimes, FaBell
+  FaMoon, FaSun, FaGlobe, FaCommentAlt, FaStopwatch, FaTimes, FaBell,
+  FaPlay, FaClock
 } from "react-icons/fa";
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// TIPAGENS (Substituindo os 'any')
+// TIPAGENS 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 interface Serie {
   ordem?: number;
@@ -61,7 +62,8 @@ const translations = {
     fbObs: 'Escreva aqui se sentiu alguma dor, facilidade, ou observação geral...',
     fbSelectEx: 'Sobre qual exercício?', fbGeneral: 'Treino em Geral',
     timerReady: 'Pronto! Vamos lá.', timerRest: 'Descanso',
-    errorLoading: 'Erro ao carregar o treino.', errorSaving: 'Erro ao salvar o treino.'
+    errorLoading: 'Erro ao carregar o treino.', errorSaving: 'Erro ao salvar o treino.',
+    startWorkout: 'Iniciar Treino', ready: 'Pronto para treinar?'
   },
   'pt-PT': {
     back: 'Voltar', download: 'Descarregar Treino', totalSessions: 'Sessões Totais',
@@ -72,7 +74,8 @@ const translations = {
     fbObs: 'Escreva aqui se sentiu alguma dor, facilidade, ou observação geral...',
     fbSelectEx: 'Sobre qual exercício?', fbGeneral: 'Treino em Geral',
     timerReady: 'Pronto! Vamos lá.', timerRest: 'Descanso',
-    errorLoading: 'Erro ao carregar o treino.', errorSaving: 'Erro ao guardar o treino.'
+    errorLoading: 'Erro ao carregar o treino.', errorSaving: 'Erro ao guardar o treino.',
+    startWorkout: 'Iniciar Treino', ready: 'Pronto para treinar?'
   },
   'en': {
     back: 'Back', download: 'Download', totalSessions: 'Total Sessions',
@@ -83,12 +86,13 @@ const translations = {
     fbObs: 'Write here if you felt any pain, ease, or general observation...',
     fbSelectEx: 'About which exercise?', fbGeneral: 'General Workout',
     timerReady: 'Ready! Lets go.', timerRest: 'Resting',
-    errorLoading: 'Error loading workout.', errorSaving: 'Error saving workout.'
+    errorLoading: 'Error loading workout.', errorSaving: 'Error saving workout.',
+    startWorkout: 'Start Workout', ready: 'Ready to train?'
   }
 };
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// COMPONENTE ISOLADO DO RELÓGIO (Previne re-renderização da tela inteira)
+// COMPONENTE ISOLADO DO RELÓGIO
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 const CabecalhoRelogio = ({ nomeAluno }: { nomeAluno?: string }) => {
   const [horaAtual, setHoraAtual] = useState(new Date());
@@ -126,10 +130,20 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
   const [registros, setRegistros] = useState<RegistroSerie[]>([]);
   const [concluidos, setConcluidos] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [sessoesContador, setSessoesContador] = useState(0);
   const [precisaParq, setPrecisaParq] = useState(false);
-  const [cronometroModalAberto, setCronometroModalAberto] = useState(false);
   
+  // ━━━━━━━━━ ESTADOS DE CONTROLE GERAL DO TREINO ━━━━━━━━━
+  const [treinoIniciado, setTreinoIniciado] = useState(false);
+  const [dataInicio, setDataInicio] = useState<Date | null>(null);
+  const [segundosTreino, setSegundosTreino] = useState(0);
+  
+  // Controle de Descanso
+  const [cronometroModalAberto, setCronometroModalAberto] = useState(false);
+  const [tempoRestante, setTempoRestante] = useState<number | null>(null);
+  const [timerAtivo, setTimerAtivo] = useState(false);
+
   // Controle de Carga e Unidade
   const [inputValues, setInputValues] = useState<Record<string, string>>({});
   const [inputUnits, setInputUnits] = useState<Record<string, string>>({});
@@ -137,10 +151,6 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
   const [showToast, setShowToast] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
   
-  // Estados do Cronômetro Inteligente
-  const [tempoRestante, setTempoRestante] = useState<number | null>(null);
-  const [timerAtivo, setTimerAtivo] = useState(false);
-
   // Estados de Tema e i18n
   const [isDark, setIsDark] = useState(true);
   const [lang, setLang] = useState<'pt-BR' | 'pt-PT' | 'en'>('pt-BR');
@@ -150,14 +160,11 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
   const [fbIntensidade, setFbIntensidade] = useState(5);
   const [fbTexto, setFbTexto] = useState('');
 
-
-
+  // INICIALIZAÇÃO
   useEffect(() => {
   const init = async () => {
     setLoading(true);
-    
     try {
-      // 1. Busca dados do aluno
       const { data: aluno, error: alunoError } = await supabase
         .from('alunos')
         .select('status_pagamento, data_vencimento, parq_valido')
@@ -170,26 +177,22 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
         const hoje = new Date(); 
         hoje.setHours(0, 0, 0, 0);
         
-        // Validação de data segura
         const vencimento = aluno.data_vencimento ? new Date(aluno.data_vencimento) : new Date(0);
         const dataLimite = new Date(vencimento); 
         dataLimite.setDate(dataLimite.getDate() + 2);
         
-        // 2. Checa Pagamento
         if (aluno.status_pagamento === 'bloqueado' || hoje > dataLimite) {
           router.push('/aluno/pagamento-pendente'); 
           return;
         }
 
-        // 3. VERIFICAÇÃO DO PAR-Q
         if (aluno.parq_valido === false || aluno.parq_valido === null) {
           setPrecisaParq(true);
-          setLoading(false); // Para o loading pois a tela do PAR-Q será exibida
+          setLoading(false); 
           return; 
         }
       }
 
-      // 4. Se passou pelas verificações, carrega as fichas
       const [fichasRes, histRes] = await Promise.all([
         supabase.from('fichas').select('*').eq('aluno_id', id),
         supabase.from('conclusoes_treino').select('treino_id, data_conclusao').eq('aluno_id', id)
@@ -201,9 +204,7 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
           let exercicios = [];
           try { 
             exercicios = typeof f.descricao === 'string' ? JSON.parse(f.descricao || '[]') : (f.descricao || []); 
-          } catch { 
-            exercicios = []; 
-          }
+          } catch { exercicios = []; }
           const historicoDoTreino = historicoData.filter(h => h.treino_id === f.id);
           return { 
             ...f, 
@@ -214,27 +215,32 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
             ativo: f.ativo !== false 
           };
         });
-        
       }
     } catch (err) {
       console.error("Erro na inicialização:", err);
     } finally {
-      // setLoading(false) é chamado no finally para garantir que o loading suma 
-      // em caso de sucesso ou erro (exceto quando entra no if do PAR-Q)
       setLoading(false);
     }
   };
-  
   init();
 }, [id, router]);
 
-  // Lógica do Cronômetro
+  // Cronômetro GERAL de Execução de Treino
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (treinoIniciado) {
+      interval = setInterval(() => {
+        setSegundosTreino(p => p + 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [treinoIniciado]);
+
+  // Cronômetro de DESCANSO
   useEffect(() => {
     let interval: NodeJS.Timeout;
     if (timerAtivo && tempoRestante !== null && tempoRestante > 0) {
-      interval = setInterval(() => {
-        setTempoRestante(prev => prev! - 1);
-      }, 1000);
+      interval = setInterval(() => setTempoRestante(prev => prev! - 1), 1000);
     } else if (tempoRestante === 0) {
       setTimerAtivo(false);
       setTimeout(() => setTempoRestante(null), 4000); 
@@ -252,7 +258,7 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
     return 0;
   };
 
-  const iniciarCronometro = (intervaloStr: string) => {
+  const iniciarCronometroDescanso = (intervaloStr: string) => {
     const segundos = parseIntervalo(intervaloStr);
     if (segundos > 0) {
       setTempoRestante(segundos);
@@ -261,7 +267,14 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
     }
   };
 
-  const formatarTempo = (segundos: number) => {
+  const formatarTempoGeral = (segundos: number) => {
+    const h = Math.floor(segundos / 3600);
+    const m = Math.floor((segundos % 3600) / 60).toString().padStart(2, '0');
+    const s = (segundos % 60).toString().padStart(2, '0');
+    return h > 0 ? `${h}:${m}:${s}` : `${m}:${s}`;
+  };
+
+  const formatarTempoDescanso = (segundos: number) => {
     const m = Math.floor(segundos / 60).toString().padStart(2, '0');
     const s = (segundos % 60).toString().padStart(2, '0');
     return `${m}:${s}`;
@@ -329,7 +342,7 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
     try {
       const [fichaRes, regRes, concRes] = await Promise.all([
         supabase.from('fichas').select('*').eq('id', treinoId).maybeSingle(),
-        supabase.from('registro_series').select('*').eq('treino_id', treinoId),
+        supabase.from('registro_series').select('id, treino_id, exercicio_nome, serie_index, carga, repeticoes, unidade_carga').eq('treino_id', treinoId),
         supabase.from('conclusoes_treino').select('id', { count: 'exact' }).eq('treino_id', treinoId)
       ]);
       
@@ -359,137 +372,104 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
 
   useEffect(() => { fetchData(); }, [treinoId]);
 
- const registrarCarga = async (nomeExercicio: string, carga: number, unidade: string, reps: string, serieIndex: number) => {
-  if (!carga || carga <= 0) return;
-  
-  const registroExistente = registros.find(r => r.exercicio_nome === nomeExercicio && r.serie_index === serieIndex);
-  
-  const payload = { 
-    aluno_id: id, 
-    treino_id: treinoId, 
-    exercicio_nome: nomeExercicio, 
-    carga: Number(carga), 
-    repeticoes: Number(reps) || 0, 
-    serie_index: serieIndex 
+  const registrarCarga = async (nomeExercicio: string, carga: number, unidade: string, reps: string, serieIndex: number) => {
+    if (!carga || carga <= 0) return;
+    
+    const registroExistente = registros.find(r => r.exercicio_nome === nomeExercicio && r.serie_index === serieIndex);
+    
+    // CORREÇÃO: O payload agora inclui 'unidade_carga'
+    const payload = { 
+      aluno_id: id, 
+      treino_id: treinoId, 
+      exercicio_nome: nomeExercicio, 
+      carga: Number(carga), 
+      repeticoes: Number(reps) || 0, 
+      serie_index: serieIndex,
+      unidade_carga: unidade // <--- LINHA ADICIONADA AQUI
+    };
+
+    const dadosParaUpsert = registroExistente ? { ...payload, id: registroExistente.id } : payload;
+
+    try {
+      const { data, error } = await supabase.from('registro_series').upsert(dadosParaUpsert as any).select();
+      if (error) throw error;
+      if (data && data.length > 0) {
+        setRegistros(prev => [...prev.filter(r => r.id !== data[0].id), ...(data as any)]);
+      }
+    } catch (error: any) {
+      console.error("Erro ao salvar carga:", error.message);
+    }
   };
 
-  // Correção: Estrutura o objeto fora do método para satisfazer o TypeScript
-  const dadosParaUpsert = registroExistente 
-    ? { ...payload, id: registroExistente.id } 
-    : payload;
-
+ const finalizarSessao = async () => {
+  setSaving(true);
+  
   try {
-    const { data, error } = await supabase
-      .from('registro_series')
-      .upsert(dadosParaUpsert as any) // 'as any' corrige o erro de tipagem no build
-      .select();
-      
-    if (error) throw error;
-
-    if (data && data.length > 0) {
-      setRegistros(prev => [
-        ...prev.filter(r => r.id !== data[0].id), 
-        ...(data as any)
-      ]);
-    }
-  } catch (error: any) {
-    console.error("--- DEBUG DO ERRO SUPABASE ---");
-    console.error("Code:", error.code);
-    console.error("Message:", error.message);
-    console.error("Details:", error.details);
-  }
-};
-
-const finalizarSessao = async () => {
-  console.log("DEBUG: Iniciando finalização para Treino ID:", treinoId);
-  setLoading(true);
-
-  try {
-    // 0. Recuperar o personal_id vinculado ao aluno
     const { data: alunoData, error: alunoErr } = await supabase
       .from('alunos')
-      .select('personal_id') 
+      .select('personal_id')
       .eq('id', id)
       .single();
 
-    if (alunoErr || !alunoData) {
-      throw new Error("Não foi possível identificar o personal responsável pelo aluno.");
-    }
-
+    if (alunoErr || !alunoData) throw new Error("Erro ao identificar personal.");
     const pId = alunoData.personal_id;
 
-    // 1. Conclusão do Treino
-    console.log("DEBUG: Registrando conclusão...");
-    const { error: err1 } = await supabase
-      .from('conclusoes_treino')
-      .insert({ 
-        aluno_id: id, 
-        treino_id: treinoId || null, 
-        data_conclusao: new Date().toISOString() 
-      });
-    if (err1) throw new Error(`Erro em conclusoes_treino: ${err1.message}`);
+    const dataFim = new Date();
+    const dataInicioIso = dataInicio ? dataInicio.toISOString() : dataFim.toISOString();
+    const dataFimIso = dataFim.toISOString();
+    const duracaoMinutos = Math.max(1, Math.ceil(segundosTreino / 60));
 
-    // 2. Histórico do Treino
-    console.log("DEBUG: Registrando histórico...");
-    const { error: err2 } = await supabase
-      .from('historico_treinos')
-      .insert({ 
-        aluno_id: id, 
-        treino_id: treinoId || null, 
-        data_treino: new Date().toISOString() 
-      });
-    if (err2) throw new Error(`Erro em historico_treinos: ${err2.message}`);
+    const { error: err1 } = await supabase.from('conclusoes_treino').insert({ 
+      aluno_id: id, 
+      treino_id: treinoId || null, 
+      data_inicio: dataInicioIso,
+      data_fim: dataFimIso,
+      duracao_minutos: duracaoMinutos,
+      data_conclusao: dataFimIso 
+    });
+    if (err1) throw new Error(`Erro conclusões: ${err1.message}`);
 
-    // 3. Feedback (Opcional)
+    const { error: err2 } = await supabase.from('historico_treinos').insert({ 
+      aluno_id: id, 
+      treino_id: treinoId || null, 
+      data_treino: dataFimIso 
+    });
+    if (err2) throw new Error(`Erro histórico: ${err2.message}`);
+
     if (fbTexto.trim() || fbIntensidade !== 5 || fbExercicio) {
-      console.log("DEBUG: Registrando feedback...");
       const observacaoFinal = fbExercicio ? `[${fbExercicio}] ${fbTexto}` : fbTexto;
-      
-      const { error: err3 } = await supabase
-        .from('feedbacks_treino')
-        .insert({
-          aluno_id: id,
-          treino_id: treinoId || null,
-          personal_id: pId,
-          intensidade: fbIntensidade,
-          observacoes: observacaoFinal.trim() || 'Treino concluído sem observações textuais.',
-          data_criacao: new Date().toISOString()
-        });
-      if (err3) throw new Error(`Erro em feedbacks_treino: ${err3.message}`);
+      const { error: err3 } = await supabase.from('feedbacks_treino').insert({
+        aluno_id: id,
+        treino_id: treinoId || null,
+        personal_id: pId,
+        intensidade: fbIntensidade,
+        observacoes: observacaoFinal.trim() || 'Treino concluído sem observações textuais.',
+        data_criacao: dataFimIso
+      });
+      if (err3) throw new Error(`Erro feedback: ${err3.message}`);
     }
 
-    console.log("DEBUG: Tudo finalizado com sucesso!");
+    setTreinoIniciado(false);
     setToastMsg(t.workoutLogged);
     setShowToast(true);
     
     setTimeout(() => {
       setShowToast(false);
       router.push(`/aluno/${id}/treinos`);
-    }, 2000);
+    }, 2500);
 
   } catch (error: any) {
-    console.error("--- FALHA FATAL NO FINALIZAR ---");
-    console.error("Erro capturado:", error.message);
+    console.error("Erro no fluxo de finalização:", error);
     alert(`Erro ao salvar treino: ${error.message}`);
-    setLoading(false);
+  } finally {
+    setSaving(false);
   }
 };
 
-
-
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  // RENDERIZAÇÃO CONDICIONAL DO PAR-Q (BLOQUEIO)
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   if (precisaParq) {
     return (
       <div style={themeStyles} className="min-h-screen bg-[var(--bg)] pt-10 px-4 pb-20">
-        <ParqForm 
-          alunoId={id} 
-          onComplete={() => {
-            // Quando ele preencher e assinar, a tela recarrega para liberar o acesso
-            window.location.reload();
-          }} 
-        />
+        <ParqForm alunoId={id} onComplete={() => window.location.reload()} />
       </div>
     );
   }
@@ -498,36 +478,25 @@ const finalizarSessao = async () => {
     <main style={themeStyles} className="min-h-screen bg-[var(--bg)] p-6 space-y-6 animate-pulse pt-[max(env(safe-area-inset-top),2rem)]">
       <div className="flex justify-between items-center mb-10"><div className="w-20 h-10 bg-[var(--surface-sec)] rounded-full" /><div className="w-32 h-10 bg-[var(--surface-sec)] rounded-full" /></div>
       <div className="space-y-4"><div className="w-3/4 h-10 bg-[var(--surface-sec)] rounded-full" /><div className="w-1/3 h-4 bg-[var(--surface-sec)] rounded-full" /><div className="w-full h-2 bg-[var(--surface-sec)] rounded-full mt-6" /></div>
-      {[1, 2, 3].map((i) => <div key={i} className="bg-[var(--surface)] rounded-[2rem] border border-[var(--border)] overflow-hidden space-y-4"><div className="w-full aspect-video bg-[var(--surface-sec)]" /><div className="p-6 space-y-4"><div className="w-1/2 h-6 bg-[var(--surface-sec)] rounded-full" /><div className="w-full h-12 bg-[var(--surface-sec)] rounded-xl" /></div></div>)}
     </main>
   );
   
   return (
     <main style={themeStyles} className="min-h-screen w-full bg-[var(--bg)] text-[var(--text-primary)] transition-colors duration-500 font-sans antialiased pt-[max(env(safe-area-inset-top),1.5rem)] pb-[env(safe-area-inset-bottom)] px-4 relative">
       
-      {/* ━━━━━━━━━━ CRONÔMETRO FLUTUANTE ━━━━━━━━━━ */}
+      {/* ━━━━━━━━━━ CRONÔMETRO FLUTUANTE DE DESCANSO ━━━━━━━━━━ */}
       {tempoRestante !== null && (
         <div className={`fixed top-[max(env(safe-area-inset-top,24px),24px)] left-1/2 -translate-x-1/2 z-[100] border shadow-2xl px-5 py-3 rounded-full flex items-center gap-4 transition-all duration-300 animate-in slide-in-from-top-4 fade-in ${
           tempoRestante === 0 
             ? 'bg-[var(--success)]/10 border-[var(--success)]/30 text-[var(--success)] backdrop-blur-md' 
             : 'bg-[var(--surface)]/90 border-[var(--primary)]/30 text-[var(--text-primary)] backdrop-blur-xl'
         }`}>
-          {tempoRestante === 0 ? (
-            <FaBell className="animate-bounce" size={16} />
-          ) : (
-            <div className="w-3 h-3 rounded-full bg-[var(--primary)] animate-pulse shadow-[0_0_10px_var(--primary)]" />
-          )}
+          {tempoRestante === 0 ? <FaBell className="animate-bounce" size={16} /> : <div className="w-3 h-3 rounded-full bg-[var(--primary)] animate-pulse shadow-[0_0_10px_var(--primary)]" />}
           <div className="flex flex-col">
-            <span className="text-[8px] font-black uppercase tracking-widest opacity-80 leading-none">
-              {tempoRestante === 0 ? t.timerReady : t.timerRest}
-            </span>
-            <span className="font-black text-xl font-mono leading-none tracking-tight">
-              {formatarTempo(tempoRestante)}
-            </span>
+            <span className="text-[8px] font-black uppercase tracking-widest opacity-80 leading-none">{tempoRestante === 0 ? t.timerReady : t.timerRest}</span>
+            <span className="font-black text-xl font-mono leading-none tracking-tight">{formatarTempoDescanso(tempoRestante)}</span>
           </div>
-          <button onClick={() => setTempoRestante(null)} className="ml-2 w-8 h-8 rounded-full bg-[var(--surface-sec)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--danger)] transition-colors">
-            <FaTimes size={12} />
-          </button>
+          <button onClick={() => setTempoRestante(null)} className="ml-2 w-8 h-8 rounded-full bg-[var(--surface-sec)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--danger)] transition-colors"><FaTimes size={12} /></button>
         </div>
       )}
 
@@ -553,14 +522,24 @@ const finalizarSessao = async () => {
           </div>
         </header>
 
-        {/* TÍTULO E PROGRESSO */}
-        <div className="mb-10">
-          <div>
-            <h1 className="text-3xl font-black tracking-tight leading-tight">{ficha?.nome_treino}</h1>
-            <p className="text-[var(--primary)] font-bold text-[11px] uppercase tracking-[0.2em] mt-2 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-[var(--primary)] animate-pulse"></span>
-              {t.totalSessions}: <span className="text-[var(--text-primary)]">{sessoesContador}</span>
-            </p>
+        {/* TÍTULO E RELÓGIO DE TREINO */}
+        <div className="mb-8">
+          <div className="flex justify-between items-start">
+            <div>
+              <h1 className="text-3xl font-black tracking-tight leading-tight">{ficha?.nome_treino}</h1>
+              <p className="text-[var(--primary)] font-bold text-[11px] uppercase tracking-[0.2em] mt-2 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-[var(--primary)] animate-pulse"></span>
+                {t.totalSessions}: <span className="text-[var(--text-primary)]">{sessoesContador}</span>
+              </p>
+            </div>
+            
+            {/* Relógio do Treino Decorrido */}
+            {treinoIniciado && (
+              <div className="flex flex-col items-end bg-[var(--primary)]/10 px-4 py-2 rounded-2xl border border-[var(--primary)]/20">
+                <span className="text-[8px] font-black uppercase text-[var(--primary)] tracking-widest mb-1 flex items-center gap-1"><FaClock size={8}/> Tempo Decorrido</span>
+                <span className="font-mono text-xl font-black text-[var(--primary)] leading-none">{formatarTempoGeral(segundosTreino)}</span>
+              </div>
+            )}
           </div>
           
           <div className="w-full h-2 bg-[var(--surface-sec)] mt-6 rounded-full overflow-hidden border border-[var(--border)] shadow-inner">
@@ -569,9 +548,20 @@ const finalizarSessao = async () => {
             </div>
           </div>
         </div>
+
+        {/* CARD DE INICIAR TREINO */}
+        {!treinoIniciado && (
+           <div className="bg-[var(--surface)] p-8 rounded-[2rem] text-center border border-[var(--border)] mb-8 shadow-xl animate-in zoom-in-95">
+             <h2 className="text-2xl font-black mb-2">{t.ready}</h2>
+             <p className="text-[var(--text-secondary)] text-xs mb-6 font-medium">Inicie o cronômetro para começar a sua sessão e registrar seu tempo.</p>
+             <button onClick={() => { setTreinoIniciado(true); setDataInicio(new Date()); }} className="w-full py-5 bg-[var(--primary)] text-white rounded-[1.2rem] font-black uppercase tracking-widest flex items-center justify-center gap-3 shadow-lg shadow-[var(--primary)]/20 active:scale-95 transition-all">
+               <FaPlay size={14} /> {t.startWorkout}
+             </button>
+           </div>
+        )}
         
-        {/* LISTA DE EXERCÍCIOS (4 COLUNAS) */}
-        <div className="space-y-6">
+        {/* LISTA DE EXERCÍCIOS */}
+        <div className={`space-y-6 transition-all duration-500 ${treinoIniciado ? 'opacity-100' : 'opacity-40 pointer-events-none'}`}>
           {exercicios.map((ex, exIndex) => {
             const isConcluido = concluidos.includes(exIndex);
             
@@ -587,10 +577,9 @@ const finalizarSessao = async () => {
                   <div className="p-5 sm:p-6 flex-1 flex flex-col justify-center">
                     <div className="flex justify-between items-start mb-5">
                       <h3 className="font-black text-[var(--text-primary)] text-lg leading-tight tracking-tight pr-4">{ex.nome}</h3>
-                      
-                      {/* Botão de Check/Concluir */}
                       <button 
                         onClick={() => {
+                          if (!treinoIniciado) return;
                           if (isConcluido) setConcluidos(concluidos.filter(c => c !== exIndex));
                           else setConcluidos([...concluidos, exIndex]);
                         }} 
@@ -606,10 +595,7 @@ const finalizarSessao = async () => {
                       </div>
                     )}
 
-                    {/* Tabela de Séries (Estritamente 4 Colunas com Play de Descanso) */}
                     <div className="bg-[var(--surface-sec)] rounded-[1.2rem] p-3 border border-[var(--border)]">
-                      
-                      {/* Cabeçalho da Grade */}
                       <div className="grid grid-cols-[2.5rem_1fr_1.5fr_1.5fr] sm:grid-cols-[3.5rem_1fr_1.5fr_1fr] gap-2 mb-2 px-1">
                         <span className="text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-widest text-center">{t.set}</span>
                         <span className="text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-widest text-center">{t.reps}</span>
@@ -622,11 +608,9 @@ const finalizarSessao = async () => {
                           const key = `${ex.nome}-${sIndex}`;
                           return (
                             <div key={sIndex} className="grid grid-cols-[2.5rem_1fr_1.5fr_1.5fr] sm:grid-cols-[3.5rem_1fr_1.5fr_1fr] items-center gap-1 sm:gap-2 bg-[var(--bg)] p-2 rounded-xl border border-[var(--border)] shadow-inner">
-                              
                               <span className="text-[11px] font-black text-[var(--text-secondary)] text-center">{s.ordem || sIndex + 1}ª</span>
                               <span className="text-[11px] sm:text-[12px] font-bold text-[var(--text-primary)] text-center truncate">{s.reps || '-'}</span>
                               
-                              {/* Input de Carga com Select Embutido (KG/LBS) */}
                               <div className="relative flex items-center justify-center w-full bg-[var(--surface)] border border-[var(--border)] rounded-lg overflow-hidden focus-within:border-[var(--primary)] transition-all">
                                 <input 
                                   type="number" 
@@ -649,19 +633,15 @@ const finalizarSessao = async () => {
                                   <option value="lbs" className="bg-[var(--surface)] text-[var(--text-primary)]">LBS</option>
                                 </select>
                               </div>
-
-                              {/* Coluna de Descanso com Botão de Play */}
-                              <div className="flex items-center justify-center gap-1 sm:gap-2">
-                                <span className="text-[11px] sm:text-[12px] font-bold text-[var(--text-primary)] truncate">{s.intervalo || '-'}</span>
-                                {s.intervalo && (
-                                  <button 
-                                    onClick={() => iniciarCronometro(s.intervalo!)} 
-                                    title="Iniciar Cronômetro"
-                                    className="w-6 h-6 sm:w-8 sm:h-8 flex shrink-0 items-center justify-center rounded-lg bg-[var(--primary)]/10 text-[var(--primary)] hover:bg-[var(--primary)] hover:text-white transition-colors active:scale-95"
-                                  >
-                                    <FaStopwatch size={12} />
-                                  </button>
-                                )}
+                              
+                              {/* Descanso */}
+                              <div className="flex justify-center">
+                                <button 
+                                  onClick={() => s.intervalo ? iniciarCronometroDescanso(s.intervalo) : null} 
+                                  className="w-8 h-8 flex items-center justify-center rounded-full bg-[var(--surface)] border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--primary)] transition-colors active:scale-95"
+                                >
+                                  <FaStopwatch size={12} />
+                                </button>
                               </div>
 
                             </div>
@@ -669,7 +649,6 @@ const finalizarSessao = async () => {
                         })}
                       </div>
                     </div>
-                    
                   </div>
                 </div>
               </div>
@@ -677,103 +656,37 @@ const finalizarSessao = async () => {
           })}
         </div>
 
-        {/* ━━━━━━━━━━ FEEDBACK FIXO NO FINAL DO TREINO ━━━━━━━━━━ */}
-        {todosFinalizados && (
-          <div className="mt-10 p-6 sm:p-8 bg-[var(--surface)] border border-[var(--border)] rounded-[2.5rem] shadow-xl animate-in slide-in-from-bottom-4 fade-in duration-500">
-            <h3 className="text-xl sm:text-2xl font-black tracking-tighter text-[var(--text-primary)] flex items-center gap-3 mb-6">
-              <FaCommentAlt className="text-[var(--primary)]" /> {t.feedbackTitle}
-            </h3>
-            
-            <div className="space-y-6">
-              
-              {/* Seleção do Exercício (Opcional) */}
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase text-[var(--text-secondary)] tracking-widest pl-1">{t.fbSelectEx}</label>
-                <select 
-                  value={fbExercicio}
-                  onChange={(e) => setFbExercicio(e.target.value)}
-                  className="w-full p-4 bg-[var(--surface-sec)] border border-[var(--border)] rounded-[1.2rem] font-bold text-[var(--text-primary)] text-sm outline-none focus:border-[var(--primary)] transition-all shadow-inner appearance-none custom-select"
-                >
-                  <option value="" className="bg-[var(--surface)] font-bold text-[var(--primary)]">{t.fbGeneral}</option>
-                  {exercicios.map((ex, idx) => (
-                    <option key={idx} value={ex.nome} className="bg-[var(--surface)]">{ex.nome}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Intensidade (1 a 10) */}
-              <div className="space-y-3">
-                <label className="text-[10px] font-black uppercase text-[var(--text-secondary)] tracking-widest pl-1">{t.fbIntensity} ({fbIntensidade}/10)</label>
-                <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar snap-x">
-                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => (
-                    <button
-                      key={num}
-                      onClick={() => setFbIntensidade(num)}
-                      className={`w-12 h-12 shrink-0 rounded-2xl font-black text-lg flex items-center justify-center transition-all snap-center border ${
-                        fbIntensidade === num 
-                          ? num > 7 ? 'bg-[var(--danger)] text-white border-[var(--danger)] shadow-lg shadow-[var(--danger)]/30' : 'bg-[var(--primary)] text-white border-[var(--primary)] shadow-lg shadow-[var(--primary)]/30'
-                          : 'bg-[var(--surface-sec)] text-[var(--text-secondary)] border-[var(--border)] hover:border-[var(--primary)]/50'
-                      }`}
-                    >
-                      {num}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Observações */}
-              <textarea 
-                className="w-full p-5 bg-[var(--surface-sec)] border border-[var(--border)] rounded-[1.5rem] outline-none font-medium text-sm h-32 focus:border-[var(--primary)] transition-all text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] shadow-inner resize-none custom-scrollbar" 
-                placeholder={t.fbObs} 
-                value={fbTexto}
-                onChange={(e) => setFbTexto(e.target.value)} 
-              />
-            </div>
+        {/* BOTÃO FINALIZAR SESSÃO */}
+        {treinoIniciado && (
+          <div className="mt-8 animate-in fade-in slide-in-from-bottom-4">
+            <button 
+              onClick={finalizarSessao} 
+              disabled={!todosFinalizados || saving}
+              className={`w-full py-5 rounded-[1.2rem] font-black uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-3 shadow-xl ${
+                todosFinalizados 
+                  ? 'bg-[var(--primary)] text-white hover:bg-[var(--primary-soft)] hover:shadow-[var(--primary)]/30 active:scale-95' 
+                  : 'bg-[var(--surface-sec)] text-[var(--text-secondary)] cursor-not-allowed opacity-70'
+              }`}
+            >
+              {saving ? (
+                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <>
+                  <FaCheck size={16} /> {t.finish}
+                </>
+              )}
+            </button>
+            {!todosFinalizados && (
+              <p className="text-center text-[10px] text-[var(--text-secondary)] font-bold uppercase tracking-widest mt-4">
+                {t.incomplete}
+              </p>
+            )}
           </div>
         )}
 
-        {/* ━━━━━━━━━━ BOTÃO DE FINALIZAR ━━━━━━━━━━ */}
-        <div className="mt-8 mb-8 sticky bottom-[env(safe-area-inset-bottom,20px)] z-40">
-          <button 
-            onClick={finalizarSessao} 
-            disabled={!todosFinalizados} 
-            className={`w-full py-5 rounded-[1.5rem] font-black text-[12px] uppercase tracking-[0.2em] transition-all duration-300 transform flex items-center justify-center gap-3 ${
-              todosFinalizados ? 'bg-[var(--primary)] text-white shadow-[0_10px_30px_-10px_var(--primary)] hover:brightness-110 active:scale-[0.98]' : 'bg-[var(--surface-sec)] text-[var(--text-secondary)] border border-[var(--border)] opacity-80 cursor-not-allowed'
-            }`}
-          >
-            {todosFinalizados ? <><FaCheck size={16} /> {t.finish}</> : t.incomplete}
-          </button>
-        </div>
-
-        {showToast && <ToastSucesso mensagem={toastMsg} onClose={() => setShowToast(false)} />}
-        
-        <div className="h-40 w-full shrink-0" aria-hidden="true" />
       </div>
-
-{/* MODAL DE CRONÔMETRO EM TELA CHEIA */}
-{cronometroModalAberto && tempoRestante !== null && (
-  <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in duration-300">
-    <div className="bg-[var(--surface)] p-8 rounded-[2rem] w-full max-w-sm text-center border border-[var(--border)] shadow-2xl">
-      <h3 className="text-[var(--text-secondary)] font-black uppercase tracking-widest text-xs mb-2">Descanso</h3>
       
-      <div className={`text-7xl font-mono font-black mb-8 ${tempoRestante <= 10 ? 'text-[var(--danger)] animate-pulse' : 'text-[var(--primary)]'}`}>
-        {formatarTempo(tempoRestante)}
-      </div>
-
-      <button 
-        onClick={() => {
-          setCronometroModalAberto(false);
-          setTimerAtivo(false);
-          setTempoRestante(null);
-        }}
-        className="w-full py-4 bg-[var(--surface-sec)] text-[var(--text-primary)] font-black uppercase tracking-widest text-xs rounded-2xl hover:bg-[var(--danger)]/10 hover:text-[var(--danger)] transition-all"
-      >
-        Encerrar Descanso
-      </button>
-    </div>
-  </div>
-)}
-
+      {showToast && <ToastSucesso mensagem={toastMsg} onClose={() => setShowToast(false)} />}
     </main>
   );
 }

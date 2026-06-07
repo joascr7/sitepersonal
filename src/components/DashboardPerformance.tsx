@@ -77,14 +77,15 @@ export default function DashboardPerformance({ alunoId }: { alunoId: string }) {
           .select('id, data_conclusao')
           .eq('aluno_id', alunoId.trim());
 
+        // 🎯 CORREÇÃO DE QUERY: Adicionada a busca da 'unidade_carga'
         const { data: registros, error: regError } = await supabase
           .from('registro_series')
-          .select('exercicio_nome, carga')
+          .select('exercicio_nome, carga, unidade_carga')
           .eq('aluno_id', alunoId.trim());
 
         if (treinosError || regError) throw new Error("Erro ao buscar dados");
 
-        // 🎯 CORREÇÃO 1: Contabilizar apenas dias únicos de treino
+        // Contabilizar apenas dias únicos de treino
         const treinosUnicos = new Set(
           (treinos || []).map(t => {
             if (!t.data_conclusao) return t.id; // Fallback se não houver data
@@ -92,20 +93,38 @@ export default function DashboardPerformance({ alunoId }: { alunoId: string }) {
           })
         ).size;
 
-        // 🎯 CORREÇÃO 2: Função blindada para converter "20kg" ou "15,5" em número
+        // Função blindada para extrair os números
         const extrairCarga = (valor: any) => {
           if (!valor) return 0;
           const num = parseFloat(String(valor).replace(',', '.').replace(/[^0-9.]/g, ''));
           return isNaN(num) ? 0 : num;
         };
 
-        // 🎯 CORREÇÃO 3: Processamento dos PRs ignorando exercícios sem peso
+        // 🎯 CORREÇÃO MESTRE: Processamento dos PRs com Conversão Interna KG/LBS
+       
         const prMap = (registros || []).reduce((acc: any, curr) => {
+          const cargaStr = String(curr.carga || '').toLowerCase();
           const cargaNum = extrairCarga(curr.carga);
           
+          // 1. Tenta pegar a unidade da coluna específica. 
+          // 2. Se for nula, procura 'lbs' ou 'lb' no próprio texto da carga. 
+          // 3. Se não achar nada, assume 'kg'.
+          let unidade = (curr.unidade_carga || '').toLowerCase();
+          if (!unidade || unidade.trim() === '') {
+            unidade = (cargaStr.includes('lbs') || cargaStr.includes('lb')) ? 'lbs' : 'kg';
+          }
+          
+          // Normaliza para KG APENAS para fazer uma comparação de força justa (1 lb = ~0.453592 kg)
+          const cargaEmKg = unidade === 'lbs' ? cargaNum * 0.453592 : cargaNum;
+          
           if (cargaNum > 0 && curr.exercicio_nome) {
-            if (!acc[curr.exercicio_nome] || cargaNum > acc[curr.exercicio_nome]) {
-              acc[curr.exercicio_nome] = cargaNum;
+            // Compara o peso absoluto real convertido
+            if (!acc[curr.exercicio_nome] || cargaEmKg > acc[curr.exercicio_nome].cargaComparacao) {
+              acc[curr.exercicio_nome] = {
+                val: cargaNum,             // Mantém o valor numérico visual original (ex: 50)
+                unidade: unidade,          // Mantém a sigla correta detectada ('kg' ou 'lbs')
+                cargaComparacao: cargaEmKg // Usado apenas para o cálculo matemático do recorde
+              };
             }
           }
           return acc;
@@ -121,9 +140,10 @@ export default function DashboardPerformance({ alunoId }: { alunoId: string }) {
 
         setDados({
           frequencia: frequenciaMap,
+          // Transforma, ordena pelos mais pesados da academia e exibe os tops 4
           prs: Object.entries(prMap)
-            .map(([name, val]) => ({ name, val }))
-            .sort((a: any, b: any) => b.val - a.val)
+            .map(([name, data]: any) => ({ name, val: data.val, unidade: data.unidade, cargaComparacao: data.cargaComparacao }))
+            .sort((a: any, b: any) => b.cargaComparacao - a.cargaComparacao)
             .slice(0, 4),
           totalTreinos: treinosUnicos
         });
@@ -238,14 +258,16 @@ export default function DashboardPerformance({ alunoId }: { alunoId: string }) {
                 key={i} 
                 className="flex justify-between items-center bg-[var(--bg)] p-4 rounded-[1.2rem] border border-[var(--border)] hover:border-[var(--primary)]/30 transition-colors group"
               >
-                <div className="flex items-center gap-3">
-                  <span className="flex items-center justify-center w-6 h-6 rounded-full bg-[var(--surface-sec)] text-[9px] font-black text-[var(--text-secondary)] group-hover:text-[var(--primary)] group-hover:bg-[var(--primary)]/10 transition-colors">
+                <div className="flex items-center gap-3 overflow-hidden">
+                  <span className="flex shrink-0 items-center justify-center w-6 h-6 rounded-full bg-[var(--surface-sec)] text-[9px] font-black text-[var(--text-secondary)] group-hover:text-[var(--primary)] group-hover:bg-[var(--primary)]/10 transition-colors">
                     {i + 1}
                   </span>
-                  <span className="text-[11px] sm:text-xs font-bold text-[var(--text-primary)] uppercase tracking-wider">{pr.name}</span>
+                  <span className="text-[11px] sm:text-xs font-bold text-[var(--text-primary)] uppercase tracking-wider truncate">{pr.name}</span>
                 </div>
-                <span className="text-sm font-black text-[var(--primary)]">
-                  {pr.val}<span className="text-[9px] text-[var(--text-secondary)] ml-1">kg</span>
+                
+                {/* 🎯 CORREÇÃO DE EXIBIÇÃO: Mostra a Sigla Dinâmica do BD */}
+                <span className="shrink-0 text-sm font-black text-[var(--primary)] ml-2">
+                  {pr.val}<span className="text-[9px] text-[var(--text-secondary)] ml-1 uppercase">{pr.unidade}</span>
                 </span>
               </div>
             )) : (

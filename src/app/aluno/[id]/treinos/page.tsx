@@ -2,9 +2,8 @@
 import { useEffect, useState, use, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
-import { FaChevronLeft, FaPlay, FaChevronDown } from 'react-icons/fa';
+import { FaChevronLeft, FaPlay, FaChevronDown, FaCheckCircle, FaClock } from 'react-icons/fa';
 import ParqForm from '@/components/ParqForm'; // Importação do Formulário
-
 
 const BadgeInfo = ({ children }: { children: React.ReactNode }) => (
   <span className="text-[8px] font-black bg-[var(--surface-sec)] text-[var(--text-secondary)] px-2 py-1 rounded-lg border border-[var(--border)] uppercase tracking-widest mr-2">
@@ -24,7 +23,12 @@ const translations = {
     never: 'Inédito',
     progress: 'Progresso',
     start: 'Iniciar Treino',
-    back: 'Voltar para Perfil'
+    back: 'Voltar para Perfil',
+    doneToday: 'Concluído Hoje',
+    lastExec: 'Última Execução',
+    date: 'Data:',
+    time: 'Horário:',
+    duration: 'Duração:'
   },
   'pt-PT': {
     title: 'Treinos',
@@ -34,7 +38,12 @@ const translations = {
     never: 'Inédito',
     progress: 'Progresso',
     start: 'Iniciar Treino',
-    back: 'Voltar ao Perfil'
+    back: 'Voltar ao Perfil',
+    doneToday: 'Concluído Hoje',
+    lastExec: 'Última Execução',
+    date: 'Data:',
+    time: 'Horário:',
+    duration: 'Duração:'
   },
   'en': {
     title: 'Workouts',
@@ -44,7 +53,12 @@ const translations = {
     never: 'Never',
     progress: 'Progress',
     start: 'Start Workout',
-    back: 'Back to Profile'
+    back: 'Back to Profile',
+    doneToday: 'Completed Today',
+    lastExec: 'Last Execution',
+    date: 'Date:',
+    time: 'Time:',
+    duration: 'Duration:'
   }
 };
 
@@ -110,10 +124,13 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
         }
       }
 
-      // 3. Se tudo estiver ok, carrega os treinos
+      // 3. Se tudo estiver ok, carrega os treinos + DADOS PRECISOS DE TEMPO DO HISTÓRICO
       const [fichasRes, histRes] = await Promise.all([
         supabase.from('fichas').select('*, tipo_treino, objetivo, dificuldade').eq('aluno_id', id),
-        supabase.from('conclusoes_treino').select('treino_id, data_conclusao').eq('aluno_id', id)
+        supabase.from('conclusoes_treino')
+                .select('treino_id, data_conclusao, data_inicio, data_fim, duracao_minutos')
+                .eq('aluno_id', id)
+                .order('data_conclusao', { ascending: false }) // Garante que o índice [0] seja sempre o mais recente
       ]);
 
       if (fichasRes.data) {
@@ -126,10 +143,15 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
             exercicios = []; 
           }
           const historicoDoTreino = historicoData.filter(h => h.treino_id === f.id);
+          const ultimaSessaoObj = historicoDoTreino.length > 0 ? historicoDoTreino[0] : null;
           
           return { 
-            ...f, exercicios, count: exercicios.length, sessõesCount: historicoDoTreino.length, 
-            ultimaSessao: historicoDoTreino.length > 0 ? historicoDoTreino[0].data_conclusao : null,
+            ...f, 
+            exercicios, 
+            count: exercicios.length, 
+            sessõesCount: historicoDoTreino.length, 
+            ultimaSessaoObj,
+            ultimaSessao: ultimaSessaoObj ? ultimaSessaoObj.data_conclusao : null,
             ativo: f.ativo !== false 
           };
         });
@@ -203,46 +225,50 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
             return (
               <div key={programaMaster} className="bg-[var(--surface)]/30 rounded-3xl p-2 border border-[var(--border)]">
                 <button 
-  onClick={() => toggleSection(programaMaster)} 
-  className="w-full flex flex-col items-start p-3 rounded-2xl hover:bg-[var(--surface-sec)] transition-colors"
->
-  <div className="w-full flex items-center justify-between">
-    <div className="flex items-center gap-2.5">
-      <span className={`h-5 w-1 bg-gradient-to-b from-[var(--primary-soft)] to-[var(--primary)] rounded-full transition-all duration-300 ${isExpanded ? 'opacity-100' : 'opacity-50'}`} />
-      <h2 className="text-lg font-black uppercase tracking-wider text-[var(--text-primary)]">
-        {programaMaster}
-      </h2>
-    </div>
-    <div className={`w-8 h-8 rounded-full flex items-center justify-center bg-[var(--surface-sec)] transition-transform duration-300 ${isExpanded ? 'rotate-180 bg-[var(--primary)] text-white' : 'text-[var(--text-secondary)]'}`}>
-      <FaChevronDown size={12} />
-    </div>
-  </div>
+                  onClick={() => toggleSection(programaMaster)} 
+                  className="w-full flex flex-col items-start p-3 rounded-2xl hover:bg-[var(--surface-sec)] transition-colors"
+                >
+                  <div className="w-full flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <span className={`h-5 w-1 bg-gradient-to-b from-[var(--primary-soft)] to-[var(--primary)] rounded-full transition-all duration-300 ${isExpanded ? 'opacity-100' : 'opacity-50'}`} />
+                      <h2 className="text-lg font-black uppercase tracking-wider text-[var(--text-primary)]">
+                        {programaMaster}
+                      </h2>
+                    </div>
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center bg-[var(--surface-sec)] transition-transform duration-300 ${isExpanded ? 'rotate-180 bg-[var(--primary)] text-white' : 'text-[var(--text-secondary)]'}`}>
+                      <FaChevronDown size={12} />
+                    </div>
+                  </div>
 
-  {/* Badges de configuração que vêm do banco */}
-<div className="flex flex-wrap gap-1.5 mt-3 ml-3.5">
-  {(treinos as any[])[0]?.tipo_treino && (
-    <span className="text-[8px] font-black bg-[var(--surface-sec)] text-[var(--text-secondary)] px-2 py-1 rounded-lg border border-[var(--border)] uppercase tracking-widest">
-      {(treinos as any[])[0].tipo_treino}
-    </span>
-  )}
-  {(treinos as any[])[0]?.objetivo && (
-    <span className="text-[8px] font-black bg-[var(--surface-sec)] text-[var(--text-secondary)] px-2 py-1 rounded-lg border border-[var(--border)] uppercase tracking-widest">
-      {(treinos as any[])[0].objetivo}
-    </span>
-  )}
-  {(treinos as any[])[0]?.dificuldade && (
-    <span className="text-[8px] font-black bg-[var(--surface-sec)] text-[var(--text-secondary)] px-2 py-1 rounded-lg border border-[var(--border)] uppercase tracking-widest">
-      {(treinos as any[])[0].dificuldade}
-    </span>
-  )}
-</div>
-</button>
+                  {/* Badges de configuração que vêm do banco */}
+                  <div className="flex flex-wrap gap-1.5 mt-3 ml-3.5">
+                    {(treinos as any[])[0]?.tipo_treino && (
+                      <span className="text-[8px] font-black bg-[var(--surface-sec)] text-[var(--text-secondary)] px-2 py-1 rounded-lg border border-[var(--border)] uppercase tracking-widest">
+                        {(treinos as any[])[0].tipo_treino}
+                      </span>
+                    )}
+                    {(treinos as any[])[0]?.objetivo && (
+                      <span className="text-[8px] font-black bg-[var(--surface-sec)] text-[var(--text-secondary)] px-2 py-1 rounded-lg border border-[var(--border)] uppercase tracking-widest">
+                        {(treinos as any[])[0].objetivo}
+                      </span>
+                    )}
+                    {(treinos as any[])[0]?.dificuldade && (
+                      <span className="text-[8px] font-black bg-[var(--surface-sec)] text-[var(--text-secondary)] px-2 py-1 rounded-lg border border-[var(--border)] uppercase tracking-widest">
+                        {(treinos as any[])[0].dificuldade}
+                      </span>
+                    )}
+                  </div>
+                </button>
 
                 <div className={`grid transition-all duration-300 ease-in-out ${isExpanded ? 'grid-rows-[1fr] opacity-100 mt-3' : 'grid-rows-[0fr] opacity-0'}`}>
                   <div className="overflow-hidden space-y-4 px-1 pb-1">
                     {(treinos as any[]).map((f) => {
                       const progressoPercent = Math.min(Math.round((f.sessõesCount / META_SESSOES) * 100), 100);
                       
+                      // VERIFICAÇÃO SE O TREINO FOI FEITO HOJE
+                      const ultima = f.ultimaSessaoObj;
+                      const isHoje = ultima && new Date(ultima.data_fim || ultima.data_conclusao).toDateString() === new Date().toDateString();
+
                       return (
                         <div key={f.id} className="bg-[var(--surface)] p-6 rounded-[2rem] border border-[var(--border)] shadow-sm hover:shadow-md transition-all relative overflow-hidden group">
                           <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--primary)]/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none" />
@@ -292,6 +318,45 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
                               <div className="h-full bg-gradient-to-r from-[var(--primary-soft)] to-[var(--primary)] rounded-full transition-all duration-1000 ease-out" style={{ width: `${progressoPercent}%` }} />
                             </div>
                           </div>
+
+                          {/* ━━━━━━━━━━ BANNER DE INFORMAÇÃO DE TEMPO DA ÚLTIMA SESSÃO ━━━━━━━━━━ */}
+                          {ultima && (
+                            <div className={`mb-5 p-3 rounded-xl border relative z-10 ${
+                              isHoje
+                                ? 'bg-[var(--success)]/10 border-[var(--success)]/20'
+                                : 'bg-[var(--surface-sec)] border-[var(--border)]'
+                            }`}>
+                              <div className="flex items-center gap-2 mb-1">
+                                {isHoje ? (
+                                  <FaCheckCircle className="text-[var(--success)] text-sm" />
+                                ) : (
+                                  <FaClock className="text-[var(--text-secondary)] text-sm" />
+                                )}
+                                <span className={`text-[10px] font-black uppercase tracking-widest ${isHoje ? 'text-[var(--success)]' : 'text-[var(--text-secondary)]'}`}>
+                                  {isHoje ? t.doneToday : t.lastExec}
+                                </span>
+                              </div>
+                              <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs font-bold text-[var(--text-primary)] pl-6">
+                                 <span>
+                                   {t.date} <span className="font-medium text-[var(--text-secondary)]">
+                                     {new Date(ultima.data_fim || ultima.data_conclusao).toLocaleDateString(lang)}
+                                   </span>
+                                 </span>
+                                 {ultima.data_inicio && ultima.data_fim && (
+                                   <span>
+                                     {t.time} <span className="font-medium text-[var(--text-secondary)]">
+                                       {new Date(ultima.data_inicio).toLocaleTimeString(lang, { hour: '2-digit', minute: '2-digit' })} às {new Date(ultima.data_fim).toLocaleTimeString(lang, { hour: '2-digit', minute: '2-digit' })}
+                                     </span>
+                                   </span>
+                                 )}
+                                 {ultima.duracao_minutos && (
+                                   <span>
+                                     {t.duration} <span className="font-medium text-[var(--text-secondary)]">{ultima.duracao_minutos} min</span>
+                                   </span>
+                                 )}
+                              </div>
+                            </div>
+                          )}
 
                           <button onClick={() => router.push(`/aluno/${id}/treino/${f.id}`)} className="w-full relative z-10 flex items-center justify-center gap-2 bg-[var(--primary)] text-white py-4 rounded-[1.2rem] font-black text-[11px] uppercase tracking-widest active:scale-[0.98] transition-all shadow-lg shadow-[var(--primary)]/20 hover:shadow-[var(--primary)]/30 hover:bg-blue-600">
                             <FaPlay className="text-[10px]" /> {t.start}
