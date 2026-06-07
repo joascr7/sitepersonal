@@ -120,7 +120,7 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
   const [arquivos, setArquivos] = useState<any[]>([]);
   const [isModalAvaliacaoOpen, setIsModalAvaliacaoOpen] = useState(false);
   const [toast, setToast] = useState<{ type: 'success' | 'error', text: string } | null>(null);
-  
+  const [indexAberto, setIndexAberto] = useState<number | null>(null);
   // Gestão de Treinos Otimizada
   const [mostrarArquivados, setMostrarArquivados] = useState(false);
   const [isModalAtribuirOpen, setIsModalAtribuirOpen] = useState(false);
@@ -430,125 +430,102 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
           </div>
 
           {abaAtiva === 'treinos' && (
-            <section className="space-y-6 animate-in slide-in-from-right-4 fade-in duration-500">
+  <section className="space-y-6 animate-in slide-in-from-right-4 fade-in duration-500">
+    
+    {/* Toggles Ativos / Arquivados */}
+    <div className="flex gap-2">
+      <button onClick={() => { setMostrarArquivados(false); setIndexAberto(null); }} className={`flex-1 py-3 rounded-[1rem] font-black text-[10px] uppercase tracking-widest transition-all ${!mostrarArquivados ? 'bg-[var(--primary)] text-white shadow-lg shadow-[var(--primary)]/20' : 'bg-[var(--surface-sec)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border)]'}`}>
+        {t.workouts.active}
+      </button>
+      <button onClick={() => { setMostrarArquivados(true); setIndexAberto(null); }} className={`flex-1 py-3 rounded-[1rem] font-black text-[10px] uppercase tracking-widest transition-all ${mostrarArquivados ? 'bg-[var(--primary)] text-white shadow-lg shadow-[var(--primary)]/20' : 'bg-[var(--surface-sec)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border)]'}`}>
+        {t.workouts.archived}
+      </button>
+    </div>
+
+    <div className="grid grid-cols-1 gap-6">
+      {fichasAgrupadas.length > 0 ? (
+        fichasAgrupadas.map((grupo, gIndex) => {
+          const estaAberto = indexAberto === gIndex;
+          
+          return (
+            <div key={gIndex} className={`bg-[var(--surface)] p-6 sm:p-8 rounded-[2.5rem] border border-[var(--border)] shadow-xl relative transition-all ${mostrarArquivados ? 'opacity-80 grayscale-[20%]' : ''}`}>
               
-              {/* Toggles Ativos / Arquivados */}
-              <div className="flex gap-2">
-                <button onClick={() => setMostrarArquivados(false)} className={`flex-1 py-3 rounded-[1rem] font-black text-[10px] uppercase tracking-widest transition-all ${!mostrarArquivados ? 'bg-[var(--primary)] text-white shadow-lg shadow-[var(--primary)]/20' : 'bg-[var(--surface-sec)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border)]'}`}>
-                  {t.workouts.active}
-                </button>
-                <button onClick={() => setMostrarArquivados(true)} className={`flex-1 py-3 rounded-[1rem] font-black text-[10px] uppercase tracking-widest transition-all ${mostrarArquivados ? 'bg-[var(--primary)] text-white shadow-lg shadow-[var(--primary)]/20' : 'bg-[var(--surface-sec)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border)]'}`}>
-                  {t.workouts.archived}
-                </button>
+              {/* Cabeçalho do Programa (Clicável para expandir) */}
+              <div 
+                className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6 border-b border-[var(--border)] pb-4 cursor-pointer"
+                onClick={() => setIndexAberto(estaAberto ? null : gIndex)}
+              >
+                <div>
+                  <span className={`text-[8px] font-black uppercase tracking-widest px-2.5 py-1 rounded-md border ${mostrarArquivados ? 'bg-[var(--text-secondary)]/10 text-[var(--text-secondary)] border-[var(--border)]' : 'bg-[var(--primary)]/10 text-[var(--primary)] border-[var(--primary)]/20'}`}>
+                    {mostrarArquivados ? t.workouts.archived : t.workouts.program}
+                  </span>
+                  <h2 className="text-xl sm:text-2xl font-black mt-3 text-[var(--text-primary)] tracking-tight">
+                    {grupo.nomeMaster}
+                  </h2>
+                </div>
+                
+                <div className="flex flex-wrap gap-2" onClick={(e) => e.stopPropagation()}>
+                  <button onClick={() => { setProgramaParaAtribuir(grupo.treinos); setIsModalAtribuirOpen(true); }} className="bg-[var(--primary)]/10 text-[var(--primary)] p-3 rounded-xl hover:bg-[var(--primary)] hover:text-white transition-colors" title={t.workouts.assign}>
+                    <FaUsers size={14} />
+                  </button>
+                  
+                  {mostrarArquivados ? (
+                    <button onClick={() => toggleArquivarPrograma(grupo.treinos, false)} className="bg-[var(--success)]/10 text-[var(--success)] p-3 rounded-xl hover:bg-[var(--success)] hover:text-white transition-colors" title={t.workouts.restore}>
+                      <FaUndo size={14} />
+                    </button>
+                  ) : (
+                    <button onClick={() => toggleArquivarPrograma(grupo.treinos, true)} className="bg-[var(--text-secondary)]/10 text-[var(--text-secondary)] p-3 rounded-xl hover:bg-[var(--text-secondary)] hover:text-[var(--bg)] transition-colors" title={t.workouts.archive}>
+                      <FaArchive size={14} />
+                    </button>
+                  )}
+
+                  <button onClick={() => excluirProgramaCompleto(grupo.treinos)} className="text-[var(--danger)] bg-[var(--danger)]/10 p-3 rounded-xl hover:bg-[var(--danger)]/20 transition-colors" title="Excluir Definitivamente">
+                    <FaTrash size={14} />
+                  </button>
+                </div>
               </div>
 
-              <div className="grid grid-cols-1 gap-6">
-                {fichasAgrupadas.length > 0 ? (
-                  fichasAgrupadas.map((grupo, gIndex) => (
-                    <div key={gIndex} className={`bg-[var(--surface)] p-6 sm:p-8 rounded-[2.5rem] border border-[var(--border)] shadow-xl relative transition-all ${mostrarArquivados ? 'opacity-80 grayscale-[20%]' : ''}`}>
-                      
-                      {/* Cabeçalho do Programa Master */}
-                      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6 border-b border-[var(--border)] pb-4">
-                        <div>
-                          <span className={`text-[8px] font-black uppercase tracking-widest px-2.5 py-1 rounded-md border ${mostrarArquivados ? 'bg-[var(--text-secondary)]/10 text-[var(--text-secondary)] border-[var(--border)]' : 'bg-[var(--primary)]/10 text-[var(--primary)] border-[var(--primary)]/20'}`}>
-                            {mostrarArquivados ? t.workouts.archived : t.workouts.program}
-                          </span>
-                          <h2 className="text-xl sm:text-2xl font-black mt-3 text-[var(--text-primary)] tracking-tight">
-                            {grupo.nomeMaster}
-                          </h2>
-                        </div>
-                        
-                        <div className="flex flex-wrap gap-2">
-                          <button 
-                            onClick={() => { setProgramaParaAtribuir(grupo.treinos); setIsModalAtribuirOpen(true); }}
-                            className="bg-[var(--primary)]/10 text-[var(--primary)] p-3 rounded-xl hover:bg-[var(--primary)] hover:text-white transition-colors" 
-                            title={t.workouts.assign}
-                          >
-                            <FaUsers size={14} />
-                          </button>
-                          
-                          {mostrarArquivados ? (
-                            <button 
-                              onClick={() => toggleArquivarPrograma(grupo.treinos, false)} 
-                              className="bg-[var(--success)]/10 text-[var(--success)] p-3 rounded-xl hover:bg-[var(--success)] hover:text-white transition-colors" 
-                              title={t.workouts.restore}
-                            >
-                              <FaUndo size={14} />
-                            </button>
-                          ) : (
-                            <button 
-                              onClick={() => toggleArquivarPrograma(grupo.treinos, true)} 
-                              className="bg-[var(--text-secondary)]/10 text-[var(--text-secondary)] p-3 rounded-xl hover:bg-[var(--text-secondary)] hover:text-[var(--bg)] transition-colors" 
-                              title={t.workouts.archive}
-                            >
-                              <FaArchive size={14} />
-                            </button>
-                          )}
-
-                          <button 
-                            onClick={() => excluirProgramaCompleto(grupo.treinos)} 
-                            className="text-[var(--danger)] bg-[var(--danger)]/10 p-3 rounded-xl hover:bg-[var(--danger)]/20 transition-colors" 
-                            title="Excluir Definitivamente"
-                          >
-                            <FaTrash size={14} />
-                          </button>
-                        </div>
+              {/* Sub-Treinos (Exibição condicional baseada no estado do índice) */}
+              {estaAberto && (
+                <div className="grid gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                  {grupo.treinos.map((treino) => (
+                    <div key={treino.id} className="bg-[var(--surface-sec)] p-5 rounded-[1.5rem] border border-[var(--border)] hover:border-[var(--primary)]/30 transition-colors">
+                      <div className="w-full pr-4 overflow-hidden">
+                        <h3 className="text-md sm:text-lg font-black text-[var(--text-primary)]">{treino.nome_sub}</h3>
+                        <p className="text-[9px] font-black uppercase tracking-widest text-[var(--text-secondary)] mt-1">
+                          {treino.exercicios?.length || 0} exercícios
+                        </p>
                       </div>
-
-                      {/* Sub-Treinos (Ex: Treino A, Treino B) */}
-                      <div className="grid gap-3">
-                        {grupo.treinos.map((treino) => (
-                          <div key={treino.id} className="bg-[var(--surface-sec)] p-5 rounded-[1.5rem] border border-[var(--border)] hover:border-[var(--primary)]/30 transition-colors">
-                            <div className="w-full pr-4 overflow-hidden">
-                              <h3 className="text-md sm:text-lg font-black text-[var(--text-primary)]">{treino.nome_sub}</h3>
-                              <p className="text-[9px] font-black uppercase tracking-widest text-[var(--text-secondary)] mt-1">
-                                {treino.exercicios?.length || 0} exercícios
-                              </p>
-                              
-                              {treino.exercicios && treino.exercicios.length > 0 && (
-                                <div className="mt-3 flex flex-wrap gap-1.5">
-                                  {treino.exercicios.slice(0, 4).map((ex: any, i: number) => (
-                                    <span key={i} className="text-[8px] font-black uppercase tracking-widest text-[var(--text-secondary)] bg-[var(--surface)] px-2.5 py-1.5 rounded-md border border-[var(--border)] max-w-[120px] truncate shadow-sm">
-                                      {ex.nome || 'Exercício'}
-                                    </span>
-                                  ))}
-                                  {treino.exercicios.length > 4 && (
-                                    <span className="text-[8px] font-black uppercase tracking-widest text-[var(--primary)] bg-[var(--primary)]/10 px-2.5 py-1.5 rounded-md border border-[var(--primary)]/20 shadow-sm">
-                                      +{treino.exercicios.length - 4}
-                                    </span>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                            
-                            <div className="flex gap-2 mt-5">
-                              <button onClick={() => router.push(`/dashboard/aluno/${id}/treino/${treino.id}`)} className="flex-[2] text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-[var(--primary)] py-3 sm:py-4 bg-[var(--primary)]/5 hover:bg-[var(--primary)]/10 border border-[var(--primary)]/10 rounded-[1.2rem] transition-colors active:scale-[0.98]">
-                                {t.workouts.viewDetails}
-                              </button>
-                              <button onClick={() => router.push(`/dashboard/aluno/${id}/treino/${treino.id}/editar`)} className="flex-1 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-white py-3 sm:py-4 bg-[var(--primary)] hover:brightness-110 shadow-lg shadow-[var(--primary)]/20 rounded-[1.2rem] transition-all active:scale-[0.98] flex items-center justify-center gap-2">
-                                <FaEdit size={12} /> <span className="hidden sm:inline">{t.workouts.edit}</span>
-                              </button>
-                            </div>
-                          </div>
-                        ))}
+                      
+                      <div className="flex gap-2 mt-5">
+                        <button onClick={() => router.push(`/dashboard/aluno/${id}/treino/${treino.id}`)} className="flex-[2] text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-[var(--primary)] py-3 bg-[var(--primary)]/5 hover:bg-[var(--primary)]/10 border border-[var(--primary)]/10 rounded-[1.2rem] transition-colors">
+                          {t.workouts.viewDetails}
+                        </button>
+                        <button onClick={() => router.push(`/dashboard/aluno/${id}/editar-ficha/${treino.id}`)} className="flex-1 text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-white py-3 bg-[var(--primary)] hover:brightness-110 rounded-[1.2rem] transition-all flex items-center justify-center gap-2">
+                          <FaEdit size={12} /> <span className="hidden sm:inline">{t.workouts.edit}</span>
+                        </button>
                       </div>
                     </div>
-                  ))
-                ) : (
-                  <div className="py-12 text-center border-2 border-dashed border-[var(--border)] rounded-[2rem] bg-[var(--surface)]/50">
-                    <p className="text-[var(--text-secondary)] font-black uppercase text-[10px] tracking-widest">{t.workouts.empty}</p>
-                  </div>
-                )}
-              </div>
-
-              {!mostrarArquivados && (
-                <a href={`/dashboard/aluno/${id}/nova-ficha`} className="flex items-center justify-center gap-2 w-full bg-[var(--primary)] text-white p-5 rounded-[1.5rem] font-black text-[10px] sm:text-[11px] uppercase tracking-widest active:scale-[0.98] transition-transform shadow-lg shadow-[var(--primary)]/20 mt-6">
-                  <FaPlus size={12} /> {t.workouts.new}
-                </a>
+                  ))}
+                </div>
               )}
-            </section>
-          )}
+            </div>
+          );
+        })
+      ) : (
+        <div className="py-12 text-center border-2 border-dashed border-[var(--border)] rounded-[2rem] bg-[var(--surface)]/50">
+          <p className="text-[var(--text-secondary)] font-black uppercase text-[10px] tracking-widest">{t.workouts.empty}</p>
+        </div>
+      )}
+    </div>
 
+    {!mostrarArquivados && (
+      <a href={`/dashboard/aluno/${id}/nova-ficha`} className="flex items-center justify-center gap-2 w-full bg-[var(--primary)] text-white p-5 rounded-[1.5rem] font-black text-[10px] sm:text-[11px] uppercase tracking-widest active:scale-[0.98] transition-transform shadow-lg shadow-[var(--primary)]/20 mt-6">
+        <FaPlus size={12} /> {t.workouts.new}
+      </a>
+    )}
+  </section>
+)}
           {abaAtiva === 'evolucao' && (
             <section className="space-y-8 animate-in slide-in-from-right-4 fade-in duration-500">
               <div className="flex flex-col sm:flex-row gap-4 justify-between sm:items-end">

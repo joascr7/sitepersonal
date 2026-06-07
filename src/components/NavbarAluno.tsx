@@ -102,7 +102,7 @@ export default function NavbarAluno() {
             <span className="font-black text-[var(--primary)]">AF</span>
           </div>
           <span className="font-black tracking-tight text-2xl text-[var(--primary)]">
-            FANTASMA
+            AURAFIT
           </span>
         </div>
         
