@@ -7,6 +7,7 @@ import ToastSucesso from '@/components/ui/ToastSucesso';
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { format } from 'date-fns';
+import ParqForm from '@/components/ParqForm';
 import { 
   FaFilePdf, FaCheck, FaInfoCircle, FaChevronLeft, 
   FaMoon, FaSun, FaGlobe, FaCommentAlt, FaStopwatch, FaTimes, FaBell
