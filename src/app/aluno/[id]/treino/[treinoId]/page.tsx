@@ -128,6 +128,7 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
   const [loading, setLoading] = useState(true);
   const [sessoesContador, setSessoesContador] = useState(0);
   const [precisaParq, setPrecisaParq] = useState(false);
+  const [cronometroModalAberto, setCronometroModalAberto] = useState(false);
   
   // Controle de Carga e Unidade
   const [inputValues, setInputValues] = useState<Record<string, string>>({});
@@ -256,6 +257,7 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
     if (segundos > 0) {
       setTempoRestante(segundos);
       setTimerAtivo(true);
+      setCronometroModalAberto(true);
     }
   };
 
@@ -747,6 +749,31 @@ const finalizarSessao = async () => {
         
         <div className="h-40 w-full shrink-0" aria-hidden="true" />
       </div>
+
+{/* MODAL DE CRONÔMETRO EM TELA CHEIA */}
+{cronometroModalAberto && tempoRestante !== null && (
+  <div className="fixed inset-0 z-[500] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in duration-300">
+    <div className="bg-[var(--surface)] p-8 rounded-[2rem] w-full max-w-sm text-center border border-[var(--border)] shadow-2xl">
+      <h3 className="text-[var(--text-secondary)] font-black uppercase tracking-widest text-xs mb-2">Descanso</h3>
+      
+      <div className={`text-7xl font-mono font-black mb-8 ${tempoRestante <= 10 ? 'text-[var(--danger)] animate-pulse' : 'text-[var(--primary)]'}`}>
+        {formatarTempo(tempoRestante)}
+      </div>
+
+      <button 
+        onClick={() => {
+          setCronometroModalAberto(false);
+          setTimerAtivo(false);
+          setTempoRestante(null);
+        }}
+        className="w-full py-4 bg-[var(--surface-sec)] text-[var(--text-primary)] font-black uppercase tracking-widest text-xs rounded-2xl hover:bg-[var(--danger)]/10 hover:text-[var(--danger)] transition-all"
+      >
+        Encerrar Descanso
+      </button>
+    </div>
+  </div>
+)}
+
     </main>
   );
 }

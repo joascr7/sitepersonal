@@ -5,6 +5,13 @@ import { supabase } from '@/lib/supabaseClient';
 import { FaChevronLeft, FaPlay, FaChevronDown } from 'react-icons/fa';
 import ParqForm from '@/components/ParqForm'; // Importação do Formulário
 
+
+const BadgeInfo = ({ children }: { children: React.ReactNode }) => (
+  <span className="text-[8px] font-black bg-[var(--surface-sec)] text-[var(--text-secondary)] px-2 py-1 rounded-lg border border-[var(--border)] uppercase tracking-widest mr-2">
+    {children}
+  </span>
+);
+
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // DICIONÁRIO DE INTERNACIONALIZAÇÃO (i18n)
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -105,7 +112,7 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
 
       // 3. Se tudo estiver ok, carrega os treinos
       const [fichasRes, histRes] = await Promise.all([
-        supabase.from('fichas').select('*').eq('aluno_id', id),
+        supabase.from('fichas').select('*, tipo_treino, objetivo, dificuldade').eq('aluno_id', id),
         supabase.from('conclusoes_treino').select('treino_id, data_conclusao').eq('aluno_id', id)
       ]);
 
@@ -195,15 +202,41 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
 
             return (
               <div key={programaMaster} className="bg-[var(--surface)]/30 rounded-3xl p-2 border border-[var(--border)]">
-                <button onClick={() => toggleSection(programaMaster)} className="w-full flex items-center justify-between p-3 rounded-2xl hover:bg-[var(--surface-sec)] transition-colors">
-                  <div className="flex items-center gap-2.5">
-                    <span className={`h-5 w-1 bg-gradient-to-b from-[var(--primary-soft)] to-[var(--primary)] rounded-full transition-all duration-300 ${isExpanded ? 'opacity-100' : 'opacity-50'}`} />
-                    <h2 className="text-lg font-black uppercase tracking-wider text-[var(--text-primary)]">{programaMaster}</h2>
-                  </div>
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center bg-[var(--surface-sec)] transition-transform duration-300 ${isExpanded ? 'rotate-180 bg-[var(--primary)] text-white' : 'text-[var(--text-secondary)]'}`}>
-                    <FaChevronDown size={12} />
-                  </div>
-                </button>
+                <button 
+  onClick={() => toggleSection(programaMaster)} 
+  className="w-full flex flex-col items-start p-3 rounded-2xl hover:bg-[var(--surface-sec)] transition-colors"
+>
+  <div className="w-full flex items-center justify-between">
+    <div className="flex items-center gap-2.5">
+      <span className={`h-5 w-1 bg-gradient-to-b from-[var(--primary-soft)] to-[var(--primary)] rounded-full transition-all duration-300 ${isExpanded ? 'opacity-100' : 'opacity-50'}`} />
+      <h2 className="text-lg font-black uppercase tracking-wider text-[var(--text-primary)]">
+        {programaMaster}
+      </h2>
+    </div>
+    <div className={`w-8 h-8 rounded-full flex items-center justify-center bg-[var(--surface-sec)] transition-transform duration-300 ${isExpanded ? 'rotate-180 bg-[var(--primary)] text-white' : 'text-[var(--text-secondary)]'}`}>
+      <FaChevronDown size={12} />
+    </div>
+  </div>
+
+  {/* Badges de configuração que vêm do banco */}
+  <div className="flex flex-wrap gap-1.5 mt-3 ml-3.5">
+    {treinos[0].tipo_treino && (
+      <span className="text-[8px] font-black bg-[var(--surface-sec)] text-[var(--text-secondary)] px-2 py-1 rounded-lg border border-[var(--border)] uppercase tracking-widest">
+        {treinos[0].tipo_treino}
+      </span>
+    )}
+    {treinos[0].objetivo && (
+      <span className="text-[8px] font-black bg-[var(--surface-sec)] text-[var(--text-secondary)] px-2 py-1 rounded-lg border border-[var(--border)] uppercase tracking-widest">
+        {treinos[0].objetivo}
+      </span>
+    )}
+    {treinos[0].dificuldade && (
+      <span className="text-[8px] font-black bg-[var(--surface-sec)] text-[var(--text-secondary)] px-2 py-1 rounded-lg border border-[var(--border)] uppercase tracking-widest">
+        {treinos[0].dificuldade}
+      </span>
+    )}
+  </div>
+</button>
 
                 <div className={`grid transition-all duration-300 ease-in-out ${isExpanded ? 'grid-rows-[1fr] opacity-100 mt-3' : 'grid-rows-[0fr] opacity-0'}`}>
                   <div className="overflow-hidden space-y-4 px-1 pb-1">
