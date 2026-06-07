@@ -219,23 +219,23 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
   </div>
 
   {/* Badges de configuração que vêm do banco */}
-  <div className="flex flex-wrap gap-1.5 mt-3 ml-3.5">
-    {treinos[0].tipo_treino && (
-      <span className="text-[8px] font-black bg-[var(--surface-sec)] text-[var(--text-secondary)] px-2 py-1 rounded-lg border border-[var(--border)] uppercase tracking-widest">
-        {treinos[0].tipo_treino}
-      </span>
-    )}
-    {treinos[0].objetivo && (
-      <span className="text-[8px] font-black bg-[var(--surface-sec)] text-[var(--text-secondary)] px-2 py-1 rounded-lg border border-[var(--border)] uppercase tracking-widest">
-        {treinos[0].objetivo}
-      </span>
-    )}
-    {treinos[0].dificuldade && (
-      <span className="text-[8px] font-black bg-[var(--surface-sec)] text-[var(--text-secondary)] px-2 py-1 rounded-lg border border-[var(--border)] uppercase tracking-widest">
-        {treinos[0].dificuldade}
-      </span>
-    )}
-  </div>
+<div className="flex flex-wrap gap-1.5 mt-3 ml-3.5">
+  {(treinos as any[])[0]?.tipo_treino && (
+    <span className="text-[8px] font-black bg-[var(--surface-sec)] text-[var(--text-secondary)] px-2 py-1 rounded-lg border border-[var(--border)] uppercase tracking-widest">
+      {(treinos as any[])[0].tipo_treino}
+    </span>
+  )}
+  {(treinos as any[])[0]?.objetivo && (
+    <span className="text-[8px] font-black bg-[var(--surface-sec)] text-[var(--text-secondary)] px-2 py-1 rounded-lg border border-[var(--border)] uppercase tracking-widest">
+      {(treinos as any[])[0].objetivo}
+    </span>
+  )}
+  {(treinos as any[])[0]?.dificuldade && (
+    <span className="text-[8px] font-black bg-[var(--surface-sec)] text-[var(--text-secondary)] px-2 py-1 rounded-lg border border-[var(--border)] uppercase tracking-widest">
+      {(treinos as any[])[0].dificuldade}
+    </span>
+  )}
+</div>
 </button>
 
                 <div className={`grid transition-all duration-300 ease-in-out ${isExpanded ? 'grid-rows-[1fr] opacity-100 mt-3' : 'grid-rows-[0fr] opacity-0'}`}>
