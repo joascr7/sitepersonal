@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import AgendaGeral from '@/components/AgendaGeral';
 import SubscriptionGuard from '@/components/SubscriptionGuard';
 import { NotificationBell } from '@/components/NotificationBell';
-import RegistrationLink from '@/components/RegistrationLink';
 import BirthdaysWidget from '@/components/BirthdaysWidget';
 import NotificationManager from '@/components/NotificationManager';
 import ParqListPersonal from '@/components/ParqListPersonal';
@@ -51,17 +50,19 @@ const DashboardSkeleton = () => (
 const translations = {
   'pt-BR': {
     search: 'Buscar aluno...', statusBlocked: 'BLOQUEADO', statusActive: 'ATIVO', statusPending: 'PENDENTE', testPeriod: 'Você está no período de teste.', subscribe: 'Assinar Plano', renewal: 'Renovação próxima', confirmReativar: 'Confirmar reativação do acesso para ', confirmBloqueio: 'Confirmar bloqueio de acesso para ', errStatus: 'Erro ao alterar status.', successStatusReativado: 'Aluno reativado!', successStatusBloqueado: 'Acesso bloqueado!', errProcess: 'Falha ao processar: ', successPay: 'Pagamento registrado com sucesso!', confirmPagamento: 'Confirmar Pagamento', valorPlaceholder: 'Valor (R$)', registrarPagamento: 'Registrar Pagamento', report: 'Relatório por Mês',
-    addStudents: 'Adicionar alunos', registrationLink: 'Link de cadastro', students: 'Alunos', active: 'Ativos', inactive: 'Inativos', yourStudents: 'Seus alunos', manageStudents: 'Gerenciar Alunos', workouts: 'Treinos', libraryWorkouts: 'Biblioteca de treinos', libraryExercises: 'Biblioteca de exercícios'
+    addStudents: 'Adicionar alunos', students: 'Alunos', active: 'Ativos', inactive: 'Inativos', yourStudents: 'Seus alunos', manageStudents: 'Gerenciar Alunos', workouts: 'Treinos', libraryWorkouts: 'Biblioteca de treinos', libraryExercises: 'Biblioteca de exercícios'
   },
   'pt-PT': {
     search: 'Procurar aluno...', statusBlocked: 'BLOQUEADO', statusActive: 'ATIVO', statusPending: 'PENDENTE', testPeriod: 'Está no período de teste.', subscribe: 'Assinar Plano', renewal: 'Renovação próxima', confirmReativar: 'Confirmar reativação do acesso para ', confirmBloqueio: 'Confirmar bloqueio de acesso para ', errStatus: 'Erro ao alterar status.', successStatusReativado: 'Aluno reativado!', successStatusBloqueado: 'Acesso bloqueado!', errProcess: 'Falha ao processar: ', successPay: 'Pagamento registado com sucesso!', confirmPagamento: 'Confirmar Pagamento', valorPlaceholder: 'Valor', registrarPagamento: 'Registar Pagamento', report: 'Relatório por Mês',
-    addStudents: 'Adicionar alunos', registrationLink: 'Link de registo', students: 'Alunos', active: 'Ativos', inactive: 'Inativos', yourStudents: 'Seus alunos', manageStudents: 'Gerir Alunos', workouts: 'Treinos', libraryWorkouts: 'Biblioteca de treinos', libraryExercises: 'Biblioteca de exercícios'
+    addStudents: 'Adicionar alunos', students: 'Alunos', active: 'Ativos', inactive: 'Inativos', yourStudents: 'Seus alunos', manageStudents: 'Gerir Alunos', workouts: 'Treinos', libraryWorkouts: 'Biblioteca de treinos', libraryExercises: 'Biblioteca de exercícios'
   },
   'en': {
     search: 'Search student...', statusBlocked: 'BLOCKED', statusActive: 'ACTIVE', statusPending: 'PENDING', testPeriod: 'You are in the trial period.', subscribe: 'Subscribe', renewal: 'Upcoming renewal', confirmReativar: 'Confirm access reactivation for ', confirmBloqueio: 'Confirm access blocking for ', errStatus: 'Error changing status.', successStatusReativado: 'Student reactivated!', successStatusBloqueado: 'Access blocked!', errProcess: 'Failed to process: ', successPay: 'Payment registered successfully!', confirmPagamento: 'Confirm Payment', valorPlaceholder: 'Value', registrarPagamento: 'Register Payment', report: 'Monthly Report',
-    addStudents: 'Add students', registrationLink: 'Registration link', students: 'Students', active: 'Active', inactive: 'Inactive', yourStudents: 'Your students', manageStudents: 'Manage Students', workouts: 'Workouts', libraryWorkouts: 'Workout Library', libraryExercises: 'Exercise Library'
+    addStudents: 'Add students', students: 'Students', active: 'Active', inactive: 'Inactive', yourStudents: 'Your students', manageStudents: 'Manage Students', workouts: 'Workouts', libraryWorkouts: 'Workout Library', libraryExercises: 'Exercise Library'
   }
 };
+
+const ITEMS_PER_PAGE = 5;
 
 export default function Dashboard() {
   const [user, setUser] = useState<any>(null);
@@ -78,8 +79,11 @@ export default function Dashboard() {
   const [avatarError, setAvatarError] = useState(false);
   
   const [activeTab, setActiveTab] = useState<'inicio' | 'financas'>('inicio');
-  const [mostrarAlunos, setMostrarAlunos] = useState(false);
   const [isParqModalOpen, setIsParqModalOpen] = useState(false);
+
+  // Estados do Modal de Alunos e Paginação
+  const [isAlunosModalOpen, setIsAlunosModalOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const showStatus = (type: 'success' | 'error' | 'info', text: string) => {
     setStatusMsg({ type, text });
@@ -256,6 +260,10 @@ export default function Dashboard() {
   const alunosAtivosCount = alunos.filter(a => a.ativo).length;
   const alunosInativosCount = alunos.length - alunosAtivosCount;
 
+  // Lógica de Paginação dos Alunos
+  const totalPages = Math.ceil(alunosFiltrados.length / ITEMS_PER_PAGE);
+  const paginatedAlunos = alunosFiltrados.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+
   const avatarUrlRender = personalInfo?.avatar_url || user?.user_metadata?.avatar_url;
   const nomeDisplay = personalInfo?.nome || user?.user_metadata?.nome || 'Personal';
 
@@ -294,11 +302,105 @@ export default function Dashboard() {
             <div className="bg-[var(--surface)] p-6 rounded-[2.5rem] w-full max-w-2xl max-h-[80vh] overflow-y-auto border border-[var(--border)] shadow-2xl animate-in zoom-in-95 slide-in-from-bottom-4 relative">
               <div className="flex justify-between items-center mb-6">
                 <h3 className="font-black text-lg tracking-tighter">Avaliações PAR-Q dos Alunos</h3>
-                <button onClick={() => setIsParqModalOpen(false)} className="text-[var(--text-secondary)] hover:text-[var(--danger)] transition-colors p-2">
-                  <FaTimes size={18} />
+                <button onClick={() => setIsParqModalOpen(false)} className="text-[var(--text-secondary)] hover:text-[var(--danger)] transition-colors p-2 bg-[var(--surface-sec)] rounded-full">
+                  <FaTimes size={16} />
                 </button>
               </div>
               <ParqListPersonal personalId={user?.id} />
+            </div>
+          </div>
+        )}
+
+        {/* Modal Livro: Lista de Alunos Paginada */}
+        {isAlunosModalOpen && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-xl z-[400] flex items-center justify-center p-5 animate-in fade-in duration-300">
+            <div className="bg-[var(--surface)] p-6 rounded-[2.5rem] w-full max-w-2xl max-h-[85vh] flex flex-col border border-[var(--border)] shadow-2xl animate-in zoom-in-95 slide-in-from-bottom-4 relative">
+              
+              {/* Header do Modal */}
+              <div className="flex justify-between items-center mb-6 shrink-0">
+                <h3 className="font-black text-xl tracking-tighter">{t.manageStudents}</h3>
+                <button onClick={() => setIsAlunosModalOpen(false)} className="text-[var(--text-secondary)] hover:text-[var(--danger)] transition-colors p-2 bg-[var(--surface-sec)] rounded-full">
+                  <FaTimes size={16} />
+                </button>
+              </div>
+
+              {/* Busca */}
+              <div className="relative group mb-6 shrink-0">
+                <FaSearch className="absolute left-5 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] group-focus-within:text-[var(--primary)] transition-colors" size={16} />
+                <input 
+                  className="w-full bg-[var(--surface-sec)] p-4 pl-12 rounded-[1.2rem] border border-[var(--border)] shadow-sm outline-none text-sm font-bold text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] focus:border-[var(--primary)] transition-all" 
+                  placeholder={t.search} 
+                  value={busca} 
+                  onChange={(e) => {
+                    setBusca(e.target.value);
+                    setCurrentPage(1); // Retorna à primeira página ao buscar
+                  }} 
+                />
+              </div>
+
+              {/* Lista Paginada (Scroll independente) */}
+              <div className="space-y-4 overflow-y-auto flex-1 custom-scrollbar pr-2 pb-2">
+                {paginatedAlunos.map((a) => {
+                  const statusDisplay = getStatusDisplay(a);
+                  return (
+                    <div key={a.id} className="bg-[var(--surface-sec)] p-5 rounded-[1.5rem] border border-[var(--border)] flex flex-col sm:flex-row items-center justify-between shadow-sm hover:border-[#3B82F6]/50 transition-all gap-5">
+                      <div className="flex items-center gap-4 w-full sm:w-auto">
+                        <div className="shrink-0 w-12 h-12 rounded-full bg-[var(--surface)] flex items-center justify-center font-black text-lg text-[var(--text-secondary)] border border-[var(--border)] overflow-hidden">
+                          {a.avatar_url ? <img src={a.avatar_url} className="w-full h-full object-cover" alt={a.nome} /> : a.nome.charAt(0)}
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <h3 className="font-black text-[var(--text-primary)] text-sm tracking-tight">{a.nome}</h3>
+                          <span className={`self-start text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md ${statusDisplay.color}`}>
+                            {statusDisplay.text}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-4 sm:flex gap-2 w-full sm:w-auto">
+                        <button onClick={() => toggleStatus(a)} className={`flex items-center justify-center p-3.5 rounded-xl transition-all active:scale-95 border ${a.ativo ? 'bg-[var(--primary)]/10 text-[var(--primary)] border-[var(--primary)]/20' : 'bg-[var(--danger)]/10 text-[var(--danger)] border-[var(--danger)]/20'}`} title="Alterar Status">
+                          {a.ativo ? <FaTimes size={14} /> : <FaUser size={14} />} 
+                        </button>
+                        <button onClick={() => router.push(`/dashboard/editar-aluno/${a.id}`)} className="flex items-center justify-center bg-[var(--surface)] p-3.5 rounded-xl text-[var(--text-secondary)] hover:text-[#3B82F6] border border-[var(--border)] transition-all active:scale-95" title="Editar">
+                          <FaEdit size={14} />
+                        </button>
+                        <button onClick={() => router.push(`/dashboard/aluno/${a.id}`)} className="flex items-center justify-center bg-[var(--surface)] p-3.5 rounded-xl text-[var(--text-secondary)] hover:text-[#3B82F6] border border-[var(--border)] transition-all active:scale-95" title="Perfil">
+                          <FaUser size={14} />
+                        </button>
+                        <button onClick={() => router.push(`/dashboard/aluno/${a.id}/progresso`)} className="flex items-center justify-center bg-[#3B82F6] text-white p-3.5 rounded-xl shadow-md hover:brightness-110 active:scale-95 transition-all" title="Progresso">
+                          <FaChartLine size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {paginatedAlunos.length === 0 && (
+                  <p className="text-center text-sm font-bold text-[var(--text-secondary)] py-8">Nenhum aluno encontrado.</p>
+                )}
+              </div>
+
+              {/* Controles de Paginação ("Páginas de Livro") */}
+              {totalPages > 1 && (
+                <div className="flex justify-between items-center mt-6 shrink-0 pt-4 border-t border-[var(--border)]">
+                  <button 
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="px-5 py-2.5 bg-[var(--surface-sec)] text-[var(--text-primary)] rounded-xl font-bold text-xs disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[var(--border)] border border-transparent hover:border-[var(--border)] transition-all active:scale-95"
+                  >
+                    Anterior
+                  </button>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-secondary)]">
+                    Página {currentPage} de {totalPages}
+                  </span>
+                  <button 
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="px-5 py-2.5 bg-[var(--surface-sec)] text-[var(--text-primary)] rounded-xl font-bold text-xs disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[var(--border)] border border-transparent hover:border-[var(--border)] transition-all active:scale-95"
+                  >
+                    Próxima
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -388,7 +490,7 @@ export default function Dashboard() {
                   </div>
                 </div>
 
-                {/* ━━━━━━━━━━ NOVA SEÇÃO: TREINOS (PADRÃO MFIT) ━━━━━━━━━━ */}
+                {/* ━━━━━━━━━━ NOVA SEÇÃO: TREINOS ━━━━━━━━━━ */}
                 <section>
                   <h3 className="font-black text-sm text-[var(--text-primary)] mb-4">{t.workouts}</h3>
                   <div className="grid grid-cols-2 gap-3 mb-3">
@@ -420,17 +522,16 @@ export default function Dashboard() {
                   
                   <BirthdaysWidget alunos={alunos} />
 
-                  <div className="grid grid-cols-2 gap-3 mb-3">
-                    <button onClick={() => router.push('/dashboard/adicionar-aluno')} className="bg-[#3B82F6] text-white p-5 rounded-xl flex flex-col gap-3 shadow-md hover:brightness-110 active:scale-95 transition-all">
-                      <FaUserPlus size={22} />
+                  {/* Alterado para grid-cols-1 após remoção do Link de Cadastro */}
+                  <div className="grid grid-cols-1 gap-3 mb-3">
+                    <button onClick={() => router.push('/dashboard/adicionar-aluno')} className="bg-[#3B82F6] text-white p-5 rounded-xl flex items-center gap-4 shadow-md hover:brightness-110 active:scale-95 transition-all">
+                      <FaUserPlus size={22} className="shrink-0" />
                       <span className="font-bold text-sm text-left">{t.addStudents}</span>
                     </button>
-                    
-                    <RegistrationLink userId={user?.id} t={t} showStatus={showStatus} />
                   </div>
 
                   <button 
-                    onClick={() => setMostrarAlunos(!mostrarAlunos)} 
+                    onClick={() => { setIsAlunosModalOpen(true); setCurrentPage(1); }} 
                     className="w-full bg-gradient-to-r from-blue-700 to-slate-900 text-white p-5 rounded-xl flex justify-between items-center shadow-lg mb-6 hover:brightness-110 active:scale-95 transition-all"
                   >
                     <div className="flex items-center gap-4">
@@ -443,60 +544,11 @@ export default function Dashboard() {
                         </div>
                       </div>
                     </div>
-                    <FaChevronRight className={`transition-transform duration-300 opacity-50 ${mostrarAlunos ? 'rotate-90' : ''}`} />
+                    <FaChevronRight className="opacity-50" />
                   </button>
                   
                   <NotificationManager personalId={user?.id} alunos={alunos} showStatus={showStatus} />
                 </section>
-
-                {mostrarAlunos && (
-                  <section id="lista-alunos" className="pt-8 border-t border-[var(--border)] animate-in fade-in slide-in-from-top-4 duration-500">
-                     <h3 className="font-black text-sm text-[var(--text-primary)] mb-4">{t.manageStudents}</h3>
-                     <div className="relative group mb-4">
-                      <FaSearch className="absolute left-6 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] group-focus-within:text-[var(--primary)] transition-colors" size={16} />
-                      <input className="w-full bg-[var(--surface)] p-5 pl-14 rounded-[1.5rem] border border-[var(--border)] shadow-sm outline-none text-sm font-bold text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] placeholder:font-medium focus:border-[var(--primary)] transition-all" placeholder={t.search} value={busca} onChange={(e) => setBusca(e.target.value)} />
-                    </div>
-
-                    <div className="space-y-4">
-                      {alunosFiltrados.map((a) => {
-                        const statusDisplay = getStatusDisplay(a);
-                        return (
-                          <div key={a.id} className="bg-[var(--surface)] p-5 rounded-[1.5rem] border border-[var(--border)] flex flex-col sm:flex-row items-center justify-between shadow-sm hover:border-[#3B82F6]/50 transition-all gap-5">
-                            <div className="flex items-center gap-4 w-full sm:w-auto">
-                              <div className="shrink-0 w-12 h-12 rounded-full bg-[var(--surface-sec)] flex items-center justify-center font-black text-lg text-[var(--text-secondary)] border border-[var(--border)] overflow-hidden">
-                                {a.avatar_url ? <img src={a.avatar_url} className="w-full h-full object-cover" alt={a.nome} /> : a.nome.charAt(0)}
-                              </div>
-                              <div className="flex flex-col gap-1">
-                                <h3 className="font-black text-[var(--text-primary)] text-sm tracking-tight">{a.nome}</h3>
-                                <span className={`self-start text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md ${statusDisplay.color}`}>
-                                  {statusDisplay.text}
-                                </span>
-                              </div>
-                            </div>
-                            
-                            <div className="grid grid-cols-4 sm:flex gap-2 w-full sm:w-auto">
-                              <button onClick={() => toggleStatus(a)} className={`flex items-center justify-center p-3.5 rounded-xl transition-all active:scale-95 border ${a.ativo ? 'bg-[var(--primary)]/10 text-[var(--primary)] border-[var(--primary)]/20' : 'bg-[var(--danger)]/10 text-[var(--danger)] border-[var(--danger)]/20'}`} title="Alterar Status">
-                                {a.ativo ? <FaTimes size={14} /> : <FaUser size={14} />} 
-                              </button>
-                              <button onClick={() => router.push(`/dashboard/editar-aluno/${a.id}`)} className="flex items-center justify-center bg-[var(--surface-sec)] p-3.5 rounded-xl text-[var(--text-secondary)] hover:text-[#3B82F6] transition-all active:scale-95" title="Editar">
-                                <FaEdit size={14} />
-                              </button>
-                              <button onClick={() => router.push(`/dashboard/aluno/${a.id}`)} className="flex items-center justify-center bg-[var(--surface-sec)] p-3.5 rounded-xl text-[var(--text-secondary)] hover:text-[#3B82F6] transition-all active:scale-95" title="Perfil">
-                                <FaUser size={14} />
-                              </button>
-                              <button onClick={() => router.push(`/dashboard/aluno/${a.id}/progresso`)} className="flex items-center justify-center bg-[#3B82F6] text-white p-3.5 rounded-xl shadow-md hover:brightness-110 active:scale-95 transition-all" title="Progresso">
-                                <FaChartLine size={14} />
-                              </button>
-                            </div>
-                          </div>
-                        );
-                      })}
-                      {alunosFiltrados.length === 0 && (
-                        <p className="text-center text-sm text-[var(--text-secondary)] py-4">Nenhum aluno encontrado.</p>
-                      )}
-                    </div>
-                  </section>
-                )}
               </div>
             )}
 

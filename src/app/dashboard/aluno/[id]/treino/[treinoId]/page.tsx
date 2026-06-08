@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabaseClient';
 import ModalSelecaoAlunos from '@/components/ModalSelecaoAlunos';
 import { 
   FaChevronLeft, FaGlobe, FaMoon, FaSun, FaCopy, 
-  FaTrash, FaEdit, FaPlay, FaCheckCircle, FaExclamationCircle 
+  FaTrash, FaEdit, FaPlay, FaCheckCircle, FaExclamationCircle, FaTimes 
 } from 'react-icons/fa';
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -65,6 +65,13 @@ const translations = {
   }
 };
 
+const getYouTubeId = (url: string) => {
+  if (!url) return null;
+  const regExp = /^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|\/shorts\/)([^#\&\?]*).*/;
+  const match = url.match(regExp);
+  return (match && match[2].length === 11) ? match[2] : null;
+};
+
 export default function DetalheTreino({ params }: { params: Promise<{ id: string; treinoId: string }> }) {
   const resolvedParams = use(params);
   const { id, treinoId } = resolvedParams;
@@ -76,6 +83,7 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isPersonal, setIsPersonal] = useState(false);
   const [toast, setToast] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+  const [videoAberto, setVideoAberto] = useState<string | null>(null);
 
   // Estados UI Premium
   const [isDark, setIsDark] = useState(true);
@@ -172,15 +180,25 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
           <div className="p-6 sm:p-8 border-b border-[var(--border)] flex justify-between items-center bg-[var(--surface)]/50">
             <h3 className="font-black text-[var(--text-primary)] text-lg sm:text-xl tracking-tight">{ex.nome}</h3>
             {ex.video && (
-              <a href={ex.video} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest bg-[var(--primary)] text-white px-4 py-2 sm:py-2.5 rounded-xl hover:brightness-110 active:scale-95 transition-all shadow-md shadow-[var(--primary)]/20 shrink-0">
+              <button onClick={() => setVideoAberto(ex.video)} className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest bg-[var(--primary)] text-white px-4 py-2 sm:py-2.5 rounded-xl hover:brightness-110 active:scale-95 transition-all shadow-md shadow-[var(--primary)]/20 shrink-0">
                 <FaPlay size={10} /> <span className="hidden sm:inline">{t.video}</span>
-              </a>
+              </button>
             )}
           </div>
           
-          <div className="overflow-x-auto custom-scrollbar">
+          {/* Exibição da Observação Técnica */}
+          {ex.observacao && ex.observacao.trim() !== "" && (
+            <div className="px-6 sm:px-8 pt-4 pb-2">
+              <p className="text-xs text-[var(--text-secondary)] font-medium bg-[var(--surface-sec)] p-3 rounded-xl border border-[var(--border)] leading-relaxed">
+                <strong className="text-[var(--text-primary)] uppercase tracking-wider text-[9px] block mb-1">Atenção na execução:</strong>
+                {ex.observacao}
+              </p>
+            </div>
+          )}
+
+          <div className="overflow-x-auto custom-scrollbar mt-2">
             <div className="min-w-[400px]">
-              <div className="grid grid-cols-5 gap-2 px-6 sm:px-8 py-4 bg-[var(--surface-sec)] text-[8px] sm:text-[9px] uppercase font-black text-[var(--text-secondary)] tracking-widest border-b border-[var(--border)] text-center">
+              <div className="grid grid-cols-5 gap-2 px-6 sm:px-8 py-4 bg-[var(--surface-sec)] text-[8px] sm:text-[9px] uppercase font-black text-[var(--text-secondary)] tracking-widest border-b border-[var(--border)] border-t mt-2 text-center">
                 <span>{t.series}</span><span>{t.reps}</span><span>{t.load}</span><span>{t.planned}</span><span>{t.rest}</span>
               </div>
 
@@ -189,9 +207,9 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
                   <div key={sIndex} className="grid grid-cols-5 gap-2 px-6 sm:px-8 py-5 sm:py-6 text-xs sm:text-sm items-center text-[var(--text-primary)] font-bold text-center hover:bg-[var(--surface-sec)]/50 transition-colors">
                     <span className="text-[var(--primary)] bg-[var(--primary)]/10 px-2 py-1 rounded-lg w-fit mx-auto">{s.ordem && s.ordem.trim() !== "" ? s.ordem : sIndex + 1}</span>
                     <span>{s.reps || '-'}</span>
-                    <span>{s.carga || '0'}<span className="text-[10px] text-[var(--text-secondary)] ml-0.5">kg</span></span>
-                    <span className="text-[var(--text-secondary)]">{s.CargaPlanejada || '0'}<span className="text-[10px] ml-0.5">kg</span></span>
-                    <span className="text-[var(--primary-soft)]">{s.intervalo || '0'}<span className="text-[10px] ml-0.5">s</span></span>
+                    <span>{s.carga || '0'}<span className="text-[10px] text-[var(--text-secondary)] ml-0.5">{s.unidadeCarga || 'kg'}</span></span>
+                    <span className="text-[var(--text-secondary)]">{s.CargaPlanejada || '-'}<span className="text-[10px] ml-0.5">{s.unidadeCarga || 'kg'}</span></span>
+                    <span className="text-[var(--text-secondary)]">{s.intervalo || '-'}<span className="text-[10px] ml-0.5">s</span></span>
                   </div>
                 ))}
               </div>
@@ -217,6 +235,22 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
         <div className={`fixed top-[max(env(safe-area-inset-top,24px),24px)] left-1/2 -translate-x-1/2 px-6 py-4 rounded-[1.2rem] shadow-2xl z-[500] flex items-center gap-3 backdrop-blur-md border animate-in slide-in-from-top-4 fade-in ${toast.type === 'success' ? 'bg-[var(--success)]/10 text-[var(--success)] border-[var(--success)]/20' : 'bg-[var(--danger)]/10 text-[var(--danger)] border-[var(--danger)]/20'}`}>
           {toast.type === 'success' ? <FaCheckCircle size={16} /> : <FaExclamationCircle size={16} />}
           <span className="text-[10px] font-black uppercase tracking-widest">{toast.text}</span>
+        </div>
+      )}
+
+      {/* PLAYER DE VÍDEO NATIVO IN-APP */}
+      {videoAberto && (
+        <div className="fixed inset-0 bg-black/95 z-[9999] flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <button onClick={() => setVideoAberto(null)} className="absolute top-6 right-6 w-12 h-12 bg-white/10 rounded-full flex items-center justify-center text-white hover:bg-white/20 transition-colors"><FaTimes size={20}/></button>
+          <div className="w-full max-w-4xl aspect-video bg-black rounded-2xl overflow-hidden border border-white/10 shadow-2xl">
+            {getYouTubeId(videoAberto) ? (
+              <iframe className="w-full h-full" src={`https://www.youtube.com/embed/${getYouTubeId(videoAberto)}?autoplay=1`} allow="autoplay; fullscreen" />
+            ) : videoAberto.match(/\.(jpeg|jpg|png|webp|gif)$/i) ? (
+              <img src={videoAberto} className="w-full h-full object-contain" />
+            ) : (
+              <video src={videoAberto} controls autoPlay playsInline className="w-full h-full object-contain" />
+            )}
+          </div>
         </div>
       )}
 
