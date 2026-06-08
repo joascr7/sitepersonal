@@ -441,13 +441,12 @@ export default function FormularioTreinoUniversal({ alunoId, treinoIdEdicao, isB
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // LÓGICA UNIVERSAL DE SALVAMENTO DE DADOS NO SUPABASE
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  const executarSalvamento = async (salvarCopiaNaBiblioteca = false) => {
+const executarSalvamento = async (salvarCopiaNaBiblioteca = false) => {
     if (!nomeFicha) return showToast('error', t.errName);
     setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
 
-      // Limpeza de exercícios vazios antes de salvar
       const subLimpas = subdivisoes.map(sub => ({
         ...sub,
         exercicios: sub.exercicios.filter(ex => ex.nome && ex.nome.trim() !== '').map(ex => ({
@@ -458,20 +457,17 @@ export default function FormularioTreinoUniversal({ alunoId, treinoIdEdicao, isB
         }))
       }));
 
-      // Determina o Payload do JSON
       const jsonDescricao = tipoCriacao === 'pasta' || isBiblioteca ? subLimpas : subLimpas[0].exercicios;
 
       if (alunoId && !isBiblioteca) {
-        // MODO ALUNO: Salva na tabela FICHAS
+        // MODO ALUNO
         if (treinoIdEdicao) {
-          // UPDATE
           await supabase.from('fichas').update({
             nome_treino: nomeFicha, descricao: JSON.stringify(jsonDescricao),
             tipo_treino: tipoTreinoForm, objetivo: objetivoForm, dificuldade: dificuldadeForm,
             data_inicio: dataInicio || null, data_vencimento: dataVencimento || null
           }).eq('id', treinoIdEdicao);
         } else {
-          // INSERT 
           const { data: maxOrdemData } = await supabase.from('fichas').select('ordem').eq('aluno_id', alunoId).order('ordem', { ascending: false }).limit(1).maybeSingle();
           const startOrdem = (maxOrdemData?.ordem || 0) + 1;
           
@@ -485,22 +481,16 @@ export default function FormularioTreinoUniversal({ alunoId, treinoIdEdicao, isB
           }));
           await supabase.from('fichas').insert(inserts);
 
-          // Notificação de Novo Treino
-         try {
-  await supabase
-    .from('user_notifications')
-    .insert([{ 
-      user_id: alunoId, 
-      titulo: 'Novo Treino Disponível! 💪', 
-      corpo: `O seu personal adicionou o programa "${nomeFicha}".`, 
-      lida: false 
-    }]);
-} catch (e) {
-  console.error("Erro ao enviar notificação, mas o treino foi salvo:", e);
-}
-        
+          try {
+            await supabase.from('user_notifications').insert([{ 
+              user_id: alunoId, 
+              titulo: 'Novo Treino Disponível! 💪', 
+              corpo: `O seu personal adicionou o programa "${nomeFicha}".`, 
+              lida: false 
+            }]);
+          } catch (e) { console.warn("Notificação falhou", e); }
+        }
 
-        // Se marcou para salvar como modelo extra
         if (salvarCopiaNaBiblioteca) {
           await supabase.from('modelos_personal').insert({
             personal_id: user?.id, nome_modelo: nomeFicha,
@@ -508,7 +498,7 @@ export default function FormularioTreinoUniversal({ alunoId, treinoIdEdicao, isB
           });
         }
       } else {
-        // MODO BIBLIOTECA: Salva na tabela MODELOS_PERSONAL
+        // MODO BIBLIOTECA
         const payloadModelo = {
           personal_id: user?.id, nome_modelo: nomeFicha,
           descricao: JSON.stringify({ subdivisoes: subLimpas, tipo_treino: tipoTreinoForm, objetivo: objetivoForm, dificuldade: dificuldadeForm })
