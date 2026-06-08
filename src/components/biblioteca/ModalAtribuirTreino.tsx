@@ -13,7 +13,12 @@ export default function ModalAtribuirTreino({ isOpen, onClose, modelo, personalI
   useEffect(() => {
     if (!isOpen) return;
     const buscarAlunos = async () => {
-      const { data } = await supabase.from('alunos').select('id, nome').eq('personal_id', personalId).eq('ativo', true).order('nome');
+      const { data } = await supabase
+        .from('alunos')
+        .select('id, nome')
+        .eq('personal_id', personalId)
+        .eq('ativo', true)
+        .order('nome');
       if (data) setAlunos(data);
     };
     buscarAlunos();
@@ -22,32 +27,61 @@ export default function ModalAtribuirTreino({ isOpen, onClose, modelo, personalI
   const executarAtribuicao = async () => {
     if (!alunoId) return alert("Selecione um aluno da lista!");
     setEnviando(true);
+    
     try {
       const parsedDescricao = typeof modelo.descricao === 'string' ? JSON.parse(modelo.descricao) : modelo.descricao;
       const subdivisoes = parsedDescricao.subdivisoes || [];
 
-      const { data: maxOrdem } = await supabase.from('fichas').select('ordem').eq('aluno_id', alunoId).order('ordem', { ascending: false }).limit(1).maybeSingle();
+      // 1. Busca a última ordem para manter a sequência das fichas
+      const { data: maxOrdem } = await supabase
+        .from('fichas')
+        .select('ordem')
+        .eq('aluno_id', alunoId)
+        .order('ordem', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
       const baseOrdem = (maxOrdem?.ordem || 0) + 1;
 
+      // 2. Prepara os dados para inserção
       const inserts = subdivisoes.map((sub: any, idx: number) => ({
         aluno_id: alunoId,
         personal_id: personalId,
         nome_treino: subdivisoes.length > 1 ? `${modelo.nome_modelo} - ${sub.nome}` : modelo.nome_modelo,
         descricao: JSON.stringify(sub.exercicios || []),
         ordem: baseOrdem + idx,
-        data_inicio: dataInicio || null, // Novo campo de data
-        data_vencimento: dataVencimento || null, // Novo campo de vencimento
+        data_inicio: dataInicio || null, 
+        data_vencimento: dataVencimento || null,
         tipo_treino: 'Musculação',
         objetivo: 'Hipertrofia',
         dificuldade: 'Intermediário'
       }));
 
-      const { error } = await supabase.from('fichas').insert(inserts);
-      if (error) throw error;
+      // 3. Executa a inserção das fichas
+      const { error: insertError } = await supabase.from('fichas').insert(inserts);
+      if (insertError) throw insertError;
 
-      alert("Ficha atribuída com sucesso! Datas vinculadas.");
+      // 4. Dispara Notificação Automática para o Aluno
+      try {
+        await supabase.from('user_notifications').insert([
+          {
+            user_id: alunoId,
+            titulo: 'Novo Treino Disponível! 💪',
+            corpo: `O seu personal atribuiu o programa "${modelo.nome_modelo}" para você.`,
+            lida: false
+          }
+        ]);
+      } catch (notifErr) {
+        console.warn("Treino atribuído, mas a notificação falhou:", notifErr);
+      }
+
+      alert("Ficha atribuída com sucesso! O aluno foi notificado.");
       onClose();
-    } catch (err: any) { alert("Erro ao atribuir rotina: " + err.message); } finally { setEnviando(false); }
+    } catch (err: any) { 
+      alert("Erro ao atribuir rotina: " + err.message); 
+    } finally { 
+      setEnviando(false); 
+    }
   };
 
   if (!isOpen) return null;
@@ -62,7 +96,7 @@ export default function ModalAtribuirTreino({ isOpen, onClose, modelo, personalI
 
         <div className="space-y-5">
           <p className="text-xs text-[var(--text-secondary)] font-medium leading-relaxed bg-[var(--surface-sec)] p-4 rounded-xl border border-[var(--border)]">
-            Enviando <strong className="text-[var(--primary)] font-black uppercase">"{modelo.nome_modelo}"</strong> para o aplicativo do aluno.
+            Enviando <strong className="text-[var(--primary)] font-black uppercase">"{modelo.nome_modelo}"</strong> para o aluno.
           </p>
           
           <div>
