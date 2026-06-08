@@ -14,7 +14,7 @@ import {
   FaSearch, FaChartLine, FaEdit, FaUser, FaTimes, 
   FaCalendarAlt, FaCheckCircle, FaExclamationCircle, FaGlobe, 
   FaMoon, FaSun, FaUsers, FaCommentDots, FaUserPlus, 
-  FaChevronRight, FaInfoCircle, FaDumbbell
+  FaChevronRight, FaInfoCircle, FaDumbbell, FaBookOpen, FaListUl
 } from 'react-icons/fa';
 
 interface PersonalData {
@@ -51,15 +51,15 @@ const DashboardSkeleton = () => (
 const translations = {
   'pt-BR': {
     search: 'Buscar aluno...', statusBlocked: 'BLOQUEADO', statusActive: 'ATIVO', statusPending: 'PENDENTE', testPeriod: 'Você está no período de teste.', subscribe: 'Assinar Plano', renewal: 'Renovação próxima', confirmReativar: 'Confirmar reativação do acesso para ', confirmBloqueio: 'Confirmar bloqueio de acesso para ', errStatus: 'Erro ao alterar status.', successStatusReativado: 'Aluno reativado!', successStatusBloqueado: 'Acesso bloqueado!', errProcess: 'Falha ao processar: ', successPay: 'Pagamento registrado com sucesso!', confirmPagamento: 'Confirmar Pagamento', valorPlaceholder: 'Valor (R$)', registrarPagamento: 'Registrar Pagamento', report: 'Relatório por Mês',
-    addStudents: 'Adicionar alunos', registrationLink: 'Link de cadastro', students: 'Alunos', active: 'Ativos', inactive: 'Inativos', yourStudents: 'Seus alunos', manageStudents: 'Gerenciar Alunos'
+    addStudents: 'Adicionar alunos', registrationLink: 'Link de cadastro', students: 'Alunos', active: 'Ativos', inactive: 'Inativos', yourStudents: 'Seus alunos', manageStudents: 'Gerenciar Alunos', workouts: 'Treinos', libraryWorkouts: 'Biblioteca de treinos', libraryExercises: 'Biblioteca de exercícios'
   },
   'pt-PT': {
     search: 'Procurar aluno...', statusBlocked: 'BLOQUEADO', statusActive: 'ATIVO', statusPending: 'PENDENTE', testPeriod: 'Está no período de teste.', subscribe: 'Assinar Plano', renewal: 'Renovação próxima', confirmReativar: 'Confirmar reativação do acesso para ', confirmBloqueio: 'Confirmar bloqueio de acesso para ', errStatus: 'Erro ao alterar status.', successStatusReativado: 'Aluno reativado!', successStatusBloqueado: 'Acesso bloqueado!', errProcess: 'Falha ao processar: ', successPay: 'Pagamento registado com sucesso!', confirmPagamento: 'Confirmar Pagamento', valorPlaceholder: 'Valor', registrarPagamento: 'Registar Pagamento', report: 'Relatório por Mês',
-    addStudents: 'Adicionar alunos', registrationLink: 'Link de registo', students: 'Alunos', active: 'Ativos', inactive: 'Inativos', yourStudents: 'Seus alunos', manageStudents: 'Gerir Alunos'
+    addStudents: 'Adicionar alunos', registrationLink: 'Link de registo', students: 'Alunos', active: 'Ativos', inactive: 'Inativos', yourStudents: 'Seus alunos', manageStudents: 'Gerir Alunos', workouts: 'Treinos', libraryWorkouts: 'Biblioteca de treinos', libraryExercises: 'Biblioteca de exercícios'
   },
   'en': {
     search: 'Search student...', statusBlocked: 'BLOCKED', statusActive: 'ACTIVE', statusPending: 'PENDING', testPeriod: 'You are in the trial period.', subscribe: 'Subscribe', renewal: 'Upcoming renewal', confirmReativar: 'Confirm access reactivation for ', confirmBloqueio: 'Confirm access blocking for ', errStatus: 'Error changing status.', successStatusReativado: 'Student reactivated!', successStatusBloqueado: 'Access blocked!', errProcess: 'Failed to process: ', successPay: 'Payment registered successfully!', confirmPagamento: 'Confirm Payment', valorPlaceholder: 'Value', registrarPagamento: 'Register Payment', report: 'Monthly Report',
-    addStudents: 'Add students', registrationLink: 'Registration link', students: 'Students', active: 'Active', inactive: 'Inactive', yourStudents: 'Your students', manageStudents: 'Manage Students'
+    addStudents: 'Add students', registrationLink: 'Registration link', students: 'Students', active: 'Active', inactive: 'Inactive', yourStudents: 'Your students', manageStudents: 'Manage Students', workouts: 'Workouts', libraryWorkouts: 'Workout Library', libraryExercises: 'Exercise Library'
   }
 };
 
@@ -78,8 +78,8 @@ export default function Dashboard() {
   const [avatarError, setAvatarError] = useState(false);
   
   const [activeTab, setActiveTab] = useState<'inicio' | 'financas'>('inicio');
-  const [mostrarAlunos, setMostrarAlunos] = useState(false); // NOVO ESTADO: Controla a visibilidade da lista
- const [isParqModalOpen, setIsParqModalOpen] = useState(false);
+  const [mostrarAlunos, setMostrarAlunos] = useState(false);
+  const [isParqModalOpen, setIsParqModalOpen] = useState(false);
 
   const showStatus = (type: 'success' | 'error' | 'info', text: string) => {
     setStatusMsg({ type, text });
@@ -149,7 +149,6 @@ export default function Dashboard() {
       }
       const personalId = data.session.user.id;
       
-      // ATUALIZADO: Busca também o avatar_url e nome diretamente da tabela personais
       const { data: personal } = await supabase.from('personais').select('status_pagamento, data_expiracao_teste, avatar_url, nome').eq('id', personalId).single();
 
       if (personal) {
@@ -257,7 +256,6 @@ export default function Dashboard() {
   const alunosAtivosCount = alunos.filter(a => a.ativo).length;
   const alunosInativosCount = alunos.length - alunosAtivosCount;
 
-  // Lógica inteligente de Avatar
   const avatarUrlRender = personalInfo?.avatar_url || user?.user_metadata?.avatar_url;
   const nomeDisplay = personalInfo?.nome || user?.user_metadata?.nome || 'Personal';
 
@@ -267,7 +265,6 @@ export default function Dashboard() {
     <SubscriptionGuard>
       <div style={themeStyles} className="w-full min-h-screen bg-[var(--bg)] text-[var(--text-primary)] transition-colors duration-500 font-sans pb-12 relative">
         
-        {/* Toast Flutuante */}
         {statusMsg && (
           <div className={`fixed top-[max(env(safe-area-inset-top,24px),24px)] left-1/2 -translate-x-1/2 px-6 py-4 rounded-[1.2rem] shadow-2xl z-[500] flex items-center gap-3 backdrop-blur-md border animate-in slide-in-from-top-4 fade-in ${
             statusMsg.type === 'success' ? 'bg-[var(--success)]/10 text-[var(--success)] border-[var(--success)]/20' : 
@@ -279,7 +276,6 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Modal de Pagamento */}
         {isModalOpen && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-xl z-[300] flex items-center justify-center p-5 animate-in fade-in duration-300">
             <div className="bg-[var(--surface)] p-8 rounded-[2.5rem] w-full max-w-sm border border-[var(--border)] shadow-2xl animate-in zoom-in-95 slide-in-from-bottom-4">
@@ -293,23 +289,19 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Modal de Avaliações PAR-Q */}
-{isParqModalOpen && (
-  <div className="fixed inset-0 bg-black/60 backdrop-blur-xl z-[400] flex items-center justify-center p-5 animate-in fade-in duration-300">
-    <div className="bg-[var(--surface)] p-6 rounded-[2.5rem] w-full max-w-2xl max-h-[80vh] overflow-y-auto border border-[var(--border)] shadow-2xl animate-in zoom-in-95 slide-in-from-bottom-4 relative">
-      <div className="flex justify-between items-center mb-6">
-        <h3 className="font-black text-lg tracking-tighter">Avaliações PAR-Q dos Alunos</h3>
-        <button onClick={() => setIsParqModalOpen(false)} className="text-[var(--text-secondary)] hover:text-[var(--danger)] transition-colors p-2">
-          <FaTimes size={18} />
-        </button>
-      </div>
-      
-      {/* Aqui carregamos seu componente organizado */}
-      <ParqListPersonal personalId={user?.id} />
-      
-    </div>
-  </div>
-)}
+        {isParqModalOpen && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-xl z-[400] flex items-center justify-center p-5 animate-in fade-in duration-300">
+            <div className="bg-[var(--surface)] p-6 rounded-[2.5rem] w-full max-w-2xl max-h-[80vh] overflow-y-auto border border-[var(--border)] shadow-2xl animate-in zoom-in-95 slide-in-from-bottom-4 relative">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="font-black text-lg tracking-tighter">Avaliações PAR-Q dos Alunos</h3>
+                <button onClick={() => setIsParqModalOpen(false)} className="text-[var(--text-secondary)] hover:text-[var(--danger)] transition-colors p-2">
+                  <FaTimes size={18} />
+                </button>
+              </div>
+              <ParqListPersonal personalId={user?.id} />
+            </div>
+          </div>
+        )}
 
         {loading ? <DashboardSkeleton /> : (
           <div className="max-w-4xl mx-auto flex flex-col">
@@ -360,46 +352,68 @@ export default function Dashboard() {
               </div>
             </div>
 
-           {activeTab === 'inicio' && (
-  <div className="px-5 mt-8 space-y-8 animate-in fade-in duration-500">
-    
-    {/* Ações Rápidas Topo */}
-    <div className="flex justify-around items-end">
-      
-      {/* Botão Feedbacks */}
-      <div onClick={() => router.push('/dashboard/feedbacks')} className="flex flex-col items-center gap-2 group cursor-pointer">
-        <div className="relative">
-          <div className="w-14 h-14 bg-[var(--surface)] text-[#3B82F6] rounded-full shadow-md border border-blue-100 flex items-center justify-center text-xl group-hover:scale-105 transition-transform">
-            <FaCommentDots />
-          </div>
-        </div>
-        <span className="text-[11px] font-bold text-[var(--text-secondary)]">Feedbacks</span>
-      </div>
-      
-      {/* Botão PAR-Q (Atualizações) */}
-      <div onClick={() => setIsParqModalOpen(true)} className="flex flex-col items-center gap-2 group cursor-pointer">
-        <div className="relative">
-          <div className="w-14 h-14 bg-[var(--surface)] text-[#3B82F6] rounded-full shadow-md border border-blue-100 flex items-center justify-center text-xl group-hover:scale-105 transition-transform">
-            <FaCalendarAlt />
-          </div>
-          {/* Badge opcional de alerta de PAR-Q se necessário no futuro */}
-          {alunosVencendo.length > 0 && (
-            <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full border-2 border-[var(--bg)] shadow-sm">
-              {alunosVencendo.length}
-            </span>
-          )}
-        </div>
-        <span className="text-[11px] font-bold text-[var(--text-secondary)]">PAR-Q</span>
-      </div>
-      
-      {/* Botão Notificações */}
-      <div className="flex flex-col items-center gap-2 group cursor-pointer">
-        <div className="w-14 h-14 bg-[var(--surface)] text-[#3B82F6] rounded-full shadow-md border border-blue-100 flex items-center justify-center text-xl group-hover:scale-105 transition-transform">
-          <NotificationBell />
-        </div>
-        <span className="text-[11px] font-bold text-[var(--text-secondary)]">Notificações</span>
-      </div>
-    </div>
+            {activeTab === 'inicio' && (
+              <div className="px-5 mt-8 space-y-8 animate-in fade-in duration-500">
+                
+                {/* Ações Rápidas Topo */}
+                <div className="flex justify-around items-end">
+                  <div onClick={() => router.push('/dashboard/feedbacks')} className="flex flex-col items-center gap-2 group cursor-pointer">
+                    <div className="relative">
+                      <div className="w-14 h-14 bg-[var(--surface)] text-[#3B82F6] rounded-full shadow-md border border-blue-100 flex items-center justify-center text-xl group-hover:scale-105 transition-transform">
+                        <FaCommentDots />
+                      </div>
+                    </div>
+                    <span className="text-[11px] font-bold text-[var(--text-secondary)]">Feedbacks</span>
+                  </div>
+                  
+                  <div onClick={() => setIsParqModalOpen(true)} className="flex flex-col items-center gap-2 group cursor-pointer">
+                    <div className="relative">
+                      <div className="w-14 h-14 bg-[var(--surface)] text-[#3B82F6] rounded-full shadow-md border border-blue-100 flex items-center justify-center text-xl group-hover:scale-105 transition-transform">
+                        <FaCalendarAlt />
+                      </div>
+                      {alunosVencendo.length > 0 && (
+                        <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full border-2 border-[var(--bg)] shadow-sm">
+                          {alunosVencendo.length}
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-[11px] font-bold text-[var(--text-secondary)]">PAR-Q</span>
+                  </div>
+                  
+                  <div className="flex flex-col items-center gap-2 group cursor-pointer">
+                    <div className="w-14 h-14 bg-[var(--surface)] text-[#3B82F6] rounded-full shadow-md border border-blue-100 flex items-center justify-center text-xl group-hover:scale-105 transition-transform">
+                      <NotificationBell />
+                    </div>
+                    <span className="text-[11px] font-bold text-[var(--text-secondary)]">Notificações</span>
+                  </div>
+                </div>
+
+                {/* ━━━━━━━━━━ NOVA SEÇÃO: TREINOS (PADRÃO MFIT) ━━━━━━━━━━ */}
+                <section>
+                  <h3 className="font-black text-sm text-[var(--text-primary)] mb-4">{t.workouts}</h3>
+                  <div className="grid grid-cols-2 gap-3 mb-3">
+                    <button 
+                      onClick={() => router.push('/dashboard/BibliotecaTreinos')} 
+                      className="bg-[var(--surface)] border border-[var(--border)] p-5 rounded-2xl flex flex-col gap-3 shadow-sm hover:border-[var(--primary)] hover:shadow-md transition-all active:scale-95 group"
+                    >
+                      <div className="w-10 h-10 rounded-full bg-blue-500/10 text-[var(--primary)] flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <FaBookOpen size={18} />
+                      </div>
+                      <span className="font-bold text-xs text-left text-[var(--text-primary)] leading-tight">{t.libraryWorkouts}</span>
+                    </button>
+                    
+                    <button 
+                      onClick={() => router.push('/dashboard/BibliotecaTreinos?aba=exercicios')} 
+                      className="bg-[var(--surface)] border border-[var(--border)] p-5 rounded-2xl flex flex-col gap-3 shadow-sm hover:border-[var(--primary)] hover:shadow-md transition-all active:scale-95 group"
+                    >
+                      <div className="w-10 h-10 rounded-full bg-blue-500/10 text-[var(--primary)] flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <FaListUl size={18} />
+                      </div>
+                      <span className="font-bold text-xs text-left text-[var(--text-primary)] leading-tight">{t.libraryExercises}</span>
+                    </button>
+                  </div>
+                </section>
+                {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
 
                 <section>
                   <h3 className="font-black text-sm text-[var(--text-primary)] mb-4">{t.yourStudents}</h3>
@@ -415,7 +429,6 @@ export default function Dashboard() {
                     <RegistrationLink userId={user?.id} t={t} showStatus={showStatus} />
                   </div>
 
-                  {/* NOVO: Este botão agora funciona como um "Acordeão" para exibir ou ocultar a lista */}
                   <button 
                     onClick={() => setMostrarAlunos(!mostrarAlunos)} 
                     className="w-full bg-gradient-to-r from-blue-700 to-slate-900 text-white p-5 rounded-xl flex justify-between items-center shadow-lg mb-6 hover:brightness-110 active:scale-95 transition-all"
@@ -436,7 +449,6 @@ export default function Dashboard() {
                   <NotificationManager personalId={user?.id} alunos={alunos} showStatus={showStatus} />
                 </section>
 
-                {/* NOVO: A lista de alunos só aparece se "mostrarAlunos" for verdadeiro */}
                 {mostrarAlunos && (
                   <section id="lista-alunos" className="pt-8 border-t border-[var(--border)] animate-in fade-in slide-in-from-top-4 duration-500">
                      <h3 className="font-black text-sm text-[var(--text-primary)] mb-4">{t.manageStudents}</h3>
