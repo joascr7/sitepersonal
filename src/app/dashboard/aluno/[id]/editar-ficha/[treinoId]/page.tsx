@@ -1,13 +1,16 @@
 'use client';
-import { useState, useEffect, Suspense, useMemo } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useRouter, useParams } from 'next/navigation';
 import { 
   FaChevronLeft, FaMoon, FaSun, FaExclamationCircle, 
   FaCheckCircle, FaTrash, FaUpload, FaPlus, FaSave, FaVideo, FaSearch,
   FaArrowUp, FaArrowDown, FaPlay, FaTimes, FaListUl, FaVideoSlash, FaBars,
-  FaChevronDown, FaChevronUp, FaStar, FaCalendarAlt
+  FaChevronDown, FaChevronUp, FaCalendarAlt
 } from 'react-icons/fa';
+
+// Importação correta puxando do seu componente global
+import ModalCatalogo from '@/components/biblioteca/ModalCatalogo';
 
 interface Serie { ordem?: string; reps: string; carga: string; unidadeCarga?: string; intervalo: string; }
 interface Exercicio { nome: string; video: string; metodo: string; tipoSerie: string; series: Serie[]; observacao?: string; favorito?: boolean; }
@@ -67,83 +70,6 @@ const BuscadorExercicio = ({ valorNome, aoMudarNome, aoSelecionarExercicio, bibl
     </div>
   )
 };
-
-function ModalCatalogoExercicios({ isOpen, onClose, biblioteca, onSelectMultiple, setVideoAberto }: any) {
-  const [categoriaAtiva, setCategoriaAtiva] = useState<string>('Todos');
-  const [filtroOrigem, setFiltroOrigem] = useState<'todos' | 'favoritos' | 'app'>('todos');
-  const [busca, setBusca] = useState('');
-  const [selecionados, setSelecionados] = useState<any[]>([]);
-
-  const bibliotecaCategorizada = useMemo(() => {
-    const unicos = Array.from(new Map(biblioteca.map((item: any) => [item.exercicio_nome, item])).values());
-    return unicos.map((b: any) => ({ ...b, categoria: b.categoria || autoCategorize(b.exercicio_nome), favorito: b.favorito || false })).sort((a, b) => a.exercicio_nome.localeCompare(b.exercicio_nome));
-  }, [biblioteca]);
-
-  const categorias = useMemo(() => { const cats = new Set(bibliotecaCategorizada.map(b => b.categoria)); return ['Todos', ...Array.from(cats)].sort(); }, [bibliotecaCategorizada]);
-
-  const exerciciosFiltrados = useMemo(() => {
-    let filtrado = bibliotecaCategorizada.filter(b => {
-      const matchCat = categoriaAtiva === 'Todos' || b.categoria === categoriaAtiva;
-      const matchOrigem = filtroOrigem === 'todos' ? true : filtroOrigem === 'favoritos' ? b.favorito : !b.custom;
-      return matchCat && matchOrigem;
-    });
-    if (busca.trim() !== '') filtrado = filtrado.filter(b => b.exercicio_nome.toLowerCase().includes(busca.toLowerCase()));
-    return filtrado;
-  }, [bibliotecaCategorizada, categoriaAtiva, filtroOrigem, busca]);
-
-  const toggleSelect = (ex: any) => {
-    if (selecionados.some(s => s.exercicio_nome === ex.exercicio_nome)) setSelecionados(selecionados.filter(s => s.exercicio_nome !== ex.exercicio_nome));
-    else setSelecionados([...selecionados, ex]);
-  };
-
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[400] flex items-end sm:items-center justify-center p-0 sm:p-5 animate-in fade-in duration-300">
-      <div className="bg-[var(--surface)] w-full max-w-3xl rounded-t-[2.5rem] sm:rounded-[2.5rem] p-6 pt-8 sm:p-8 h-[90vh] sm:h-[85vh] flex flex-col shadow-2xl border border-[var(--border)] animate-in slide-in-from-bottom-full sm:zoom-in-95 relative overflow-hidden">
-        <div className="w-12 h-1.5 bg-[var(--border)] rounded-full absolute top-3 left-1/2 -translate-x-1/2 sm:hidden" />
-        <div className="flex justify-between items-center mb-4 shrink-0 mt-2 sm:mt-0">
-          <div><h2 className="text-xl font-black text-[var(--text-primary)] tracking-tight">Biblioteca</h2><p className="text-[10px] font-bold uppercase tracking-widest text-[var(--primary)] mt-0.5">{exerciciosFiltrados.length} disponíveis</p></div>
-          <button type="button" onClick={onClose} className="w-10 h-10 rounded-full bg-[var(--surface-sec)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--danger)] hover:bg-[var(--danger)]/10 transition-colors border border-[var(--border)]"><FaTimes size={14} /></button>
-        </div>
-        <div className="relative mb-4 shrink-0">
-          <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]" />
-          <input className="w-full bg-[var(--surface-sec)] border border-[var(--border)] py-3 pl-12 pr-4 rounded-[1.2rem] text-sm font-bold text-[var(--text-primary)] outline-none focus:border-[var(--primary)] transition-all" placeholder="Buscar exercício..." value={busca} onChange={(e) => setBusca(e.target.value)} />
-        </div>
-        <div className="flex bg-[var(--surface-sec)] p-1 rounded-xl mb-4 shrink-0 border border-[var(--border)]">
-          <button type="button" onClick={() => setFiltroOrigem('todos')} className={`flex-1 py-2 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all ${filtroOrigem === 'todos' ? 'bg-[var(--surface)] text-[var(--primary)] shadow-sm border border-[var(--border)]' : 'text-[var(--text-secondary)]'}`}>Todos</button>
-          <button type="button" onClick={() => setFiltroOrigem('favoritos')} className={`flex-1 py-2 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all flex items-center justify-center gap-1 ${filtroOrigem === 'favoritos' ? 'bg-[var(--surface)] text-[var(--primary)] shadow-sm border border-[var(--border)]' : 'text-[var(--text-secondary)]'}`}><FaStar size={10}/> Favoritos</button>
-          <button type="button" onClick={() => setFiltroOrigem('app')} className={`flex-1 py-2 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all ${filtroOrigem === 'app' ? 'bg-[var(--surface)] text-[var(--primary)] shadow-sm border border-[var(--border)]' : 'text-[var(--text-secondary)]'}`}>Do App</button>
-        </div>
-        <div className="flex flex-wrap gap-2 pb-3 mb-2 shrink-0">
-          {categorias.map(cat => (
-            <button key={cat} type="button" onClick={() => setCategoriaAtiva(cat)} className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${categoriaAtiva === cat ? 'bg-[var(--primary)] text-white shadow-md' : 'bg-[var(--surface-sec)] text-[var(--text-secondary)] border border-[var(--border)] hover:bg-[var(--border)]'}`}>{cat}</button>
-          ))}
-        </div>
-        <div className="overflow-y-auto flex-1 pr-1 space-y-2.5 custom-scrollbar pb-24">
-          {exerciciosFiltrados.map((ex: any, i: number) => {
-            const isSelected = selecionados.some(s => s.exercicio_nome === ex.exercicio_nome);
-            return (
-              <div key={i} onClick={() => toggleSelect(ex)} className={`border rounded-[1.2rem] p-3 flex items-center gap-4 transition-all cursor-pointer group ${isSelected ? 'bg-[var(--primary)]/5 border-[var(--primary)]' : 'bg-[var(--surface-sec)] border-[var(--border)] hover:border-[var(--primary)]/50'}`}>
-                <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 transition-all ${isSelected ? 'bg-[var(--primary)] border-[var(--primary)] text-white' : 'border-[var(--border)] bg-[var(--surface)] group-hover:border-[var(--primary)]/50'}`}>{isSelected && <FaCheckCircle size={12} />}</div>
-                <div className="w-14 h-14 shrink-0 bg-black rounded-[0.8rem] overflow-hidden relative border border-[var(--border)] flex items-center justify-center" onClick={(e) => { e.stopPropagation(); if (ex.url_video) setVideoAberto(ex.url_video); }}>
-                  <MediaPreview url={ex.url_video} />
-                </div>
-                <div className="flex flex-col flex-1 min-w-0"><span className="text-[8px] font-black text-[var(--primary)] uppercase tracking-widest mb-0.5">{ex.categoria}</span><span className="text-sm font-black text-[var(--text-primary)] truncate leading-tight">{ex.exercicio_nome}</span></div>
-              </div>
-            );
-          })}
-        </div>
-        {selecionados.length > 0 && (
-          <div className="absolute bottom-0 left-0 right-0 p-5 bg-[var(--surface)] border-t border-[var(--border)] backdrop-blur-md flex items-center justify-between animate-in slide-in-from-bottom-full duration-300 z-50 shadow-[0_-10px_30px_rgba(0,0,0,0.1)]">
-            <div className="text-xs font-bold text-[var(--text-secondary)]"><span className="text-[var(--primary)] font-black text-lg mr-1">{selecionados.length}</span> selecionados</div>
-            <button type="button" onClick={() => { onSelectMultiple(selecionados); setSelecionados([]); setBusca(''); onClose(); }} className="px-6 py-3 bg-[var(--primary)] text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-lg shadow-[var(--primary)]/20 active:scale-95 transition-all">Adicionar exercícios</button>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
 
 const DashboardSkeleton = () => (
   <div className="max-w-3xl mx-auto space-y-8 animate-pulse pt-8 px-5">
@@ -234,12 +160,18 @@ function EditarFichaContent() {
     carregarDados();
   }, [treinoId]);
 
-  const handleSelectMultipleExercises = (items: any[]) => {
-    const novosExercicios = items.map(item => ({ nome: item.exercicio_nome, video: item.url_video || '', metodo: 'Normal', tipoSerie: 'Repetições e carga', observacao: '', series: [{ ordem: '1ª', reps: '10', carga: '', unidadeCarga: 'kg', intervalo: '60s' }] }));
-    if (exercicios.length === 1 && !exercicios[0].nome) setExercicios(novosExercicios);
-    else setExercicios((prev) => [...prev, ...novosExercicios]);
+  const injetarDoCatalogo = (selecionados: any[]) => {
+    const novosEx = selecionados.map(s => ({
+      nome: s.nome || s.exercicio_nome || '',
+      video: s.video || s.url_video || '',
+      metodo: 'Normal',
+      tipoSerie: 'Repetições e carga',
+      observacao: '',
+      series: [{ ordem: '1ª', reps: '10', carga: '', unidadeCarga: 'kg', intervalo: '60s' }]
+    }));
+    setExercicios(prev => [...prev, ...novosEx]);
     setExpandedExIndex(exercicios.length);
-    showToast('success', `${items.length} exercícios adicionados!`);
+    showToast('success', `${selecionados.length} exercícios adicionados!`);
   };
 
   const adicionarExercicio = () => { setExercicios(prev => [...prev, { nome: '', video: '', metodo: 'Normal', tipoSerie: 'Repetições e carga', observacao: '', series: [{ ordem: '1ª', reps: '10', carga: '', unidadeCarga: 'kg', intervalo: '60s' }] }]); setExpandedExIndex(exercicios.length); };
@@ -346,7 +278,6 @@ function EditarFichaContent() {
         </div>
       )}
 
-      {/* PLAYER DE VÍDEO NATIVO */}
       {videoAberto && (
         <div className="fixed inset-0 bg-black/95 z-[9999] flex items-center justify-center p-4 animate-in fade-in duration-200">
           <button onClick={() => setVideoAberto(null)} className="absolute top-6 right-6 w-12 h-12 bg-white/10 rounded-full flex items-center justify-center text-white hover:bg-white/20 transition-colors"><FaTimes size={20}/></button>
@@ -362,7 +293,12 @@ function EditarFichaContent() {
         </div>
       )}
 
-      <ModalCatalogoExercicios isOpen={catalogoAberto} onClose={() => setCatalogoAberto(false)} biblioteca={biblioteca} onSelectMultiple={handleSelectMultipleExercises} setVideoAberto={setVideoAberto} />
+      {/* Uso correto do componente externo com a prop onSelect */}
+      <ModalCatalogo 
+        isOpen={catalogoAberto} 
+        onClose={() => setCatalogoAberto(false)} 
+        onSelect={injetarDoCatalogo} 
+      />
 
       {loading ? <DashboardSkeleton /> : (
         <div className="max-w-3xl mx-auto animate-in fade-in duration-700 relative z-10">
