@@ -486,8 +486,19 @@ export default function FormularioTreinoUniversal({ alunoId, treinoIdEdicao, isB
           await supabase.from('fichas').insert(inserts);
 
           // Notificação de Novo Treino
-          await supabase.from('user_notifications').insert([{ user_id: alunoId, titulo: 'Novo Treino Disponível! 💪', corpo: `O seu personal adicionou o programa "${nomeFicha}".`, lida: false }]).catch(()=>{});
-        }
+         try {
+  await supabase
+    .from('user_notifications')
+    .insert([{ 
+      user_id: alunoId, 
+      titulo: 'Novo Treino Disponível! 💪', 
+      corpo: `O seu personal adicionou o programa "${nomeFicha}".`, 
+      lida: false 
+    }]);
+} catch (e) {
+  console.error("Erro ao enviar notificação, mas o treino foi salvo:", e);
+}
+        
 
         // Se marcou para salvar como modelo extra
         if (salvarCopiaNaBiblioteca) {
