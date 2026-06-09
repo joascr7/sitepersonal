@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { 
   FaPlus, FaFolder, FaEllipsisV, FaShareSquare, FaEdit, FaTrash, 
   FaSearch, FaStar, FaPlay, FaVideoSlash, FaChevronDown, FaChevronUp, 
-  FaTimes, FaUpload, FaArchive, FaChevronLeft, FaChevronRight, FaHeart
+  FaTimes, FaUpload, FaArchive, FaChevronLeft, FaChevronRight, FaHeart, FaRegStar
 } from 'react-icons/fa';
 import ModalAtribuirTreino from '@/components/biblioteca/ModalAtribuirTreino';
 
@@ -416,7 +416,7 @@ export function BibliotecaHub() {
                         
                         {/* Botão de Favorito Overlay */}
                         <button onClick={(e) => { e.stopPropagation(); toggleFavorito(ex.id); }} className="absolute top-4 right-4 w-10 h-10 rounded-full bg-black/40 backdrop-blur-md border border-white/10 flex items-center justify-center text-white hover:scale-110 transition-all shadow-lg z-10">
-                          {ex.favorito ? <FaHeart className="text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]" size={16} /> : <FaHeart className="opacity-50 hover:opacity-100 transition-opacity" size={16} />}
+                          {ex.favorito ? <FaHeart className="text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]" size={16} /> : <FaRegStar className="opacity-80 hover:opacity-100 transition-opacity" size={16} />}
                         </button>
                       </div>
                       
