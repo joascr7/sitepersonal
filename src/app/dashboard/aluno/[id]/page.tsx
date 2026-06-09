@@ -617,7 +617,7 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
             </section>
           )}
 
-          {/* ABA 2: FREQUÊNCIA (NOVA TRAVA PREMIUM DE ASSIDUIDADE) */}
+          {/* ABA 2: FREQUÊNCIA (GRÁFICO DE BARRAS PREMIUM) */}
           {abaAtiva === 'frequencia' && (
             <section className="space-y-6 animate-in slide-in-from-right-4 fade-in duration-500">
               <div>
@@ -644,18 +644,24 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
                 
                 <ResponsiveContainer width="100%" height="80%">
                   <BarChart data={frequenciaMensal} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="colorBarGlow" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="var(--primary)" stopOpacity={1}/>
+                        <stop offset="100%" stopColor="var(--primary-soft)" stopOpacity={0.6}/>
+                      </linearGradient>
+                    </defs>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? '#333' : '#e5e7eb'} />
                     <XAxis dataKey="mes" tick={{ fontSize: 10, fill: 'var(--text-secondary)', fontWeight: 700 }} axisLine={false} tickLine={false} />
                     <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: 'var(--text-secondary)', fontWeight: 700 }} axisLine={false} tickLine={false} />
                     <Tooltip cursor={{ fill: 'var(--primary)', opacity: 0.05 }} contentStyle={{ backgroundColor: 'var(--surface)', borderRadius: '16px', border: '1px solid var(--border)', padding: '12px 16px', boxShadow: '0 10px 25px rgba(0,0,0,0.3)', color: 'var(--text-primary)', fontWeight: '900', textTransform: 'uppercase', fontSize: '11px' }} itemStyle={{ color: 'var(--primary)', fontSize: '14px' }}/>
-                    <Bar dataKey="treinos" fill="var(--primary)" radius={[8, 8, 8, 8]} barSize={28} animationDuration={1200} />
+                    <Bar dataKey="treinos" fill="url(#colorBarGlow)" radius={[8, 8, 8, 8]} barSize={28} animationDuration={1200} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
             </section>
           )}
 
-          {/* ABA 3: EVOLUÇÃO (UPGRADE PREMIUM DE GRÁFICOS TRIPLOS) */}
+          {/* ABA 3: EVOLUÇÃO (UPGRADE PREMIUM DE GRÁFICOS TRIPLOS COM EFEITO NEON/GLOW) */}
           {abaAtiva === 'evolucao' && (
             <section className="space-y-8 animate-in slide-in-from-right-4 fade-in duration-500">
               <div className="flex flex-col sm:flex-row gap-4 justify-between sm:items-end">
@@ -674,11 +680,16 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
                   <h3 className="font-black text-[var(--text-secondary)] text-[10px] uppercase tracking-widest mb-4 flex items-center gap-2"><FaChartLine /> {t.evolution.weight}</h3>
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={evolutionData.filter(a => a.peso)} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
+                      <defs>
+                        <filter id="glowLine" x="-20%" y="-20%" width="140%" height="140%">
+                          <feDropShadow dx="0" dy="4" stdDeviation="6" floodOpacity="0.4" floodColor="var(--primary)" />
+                        </filter>
+                      </defs>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? '#333' : '#e5e7eb'} />
                       <XAxis dataKey="data_avaliacao" tickFormatter={(v) => new Date(v).toLocaleDateString(lang, { day: '2-digit', month: '2-digit' })} tick={{fontSize: 9, fill: 'var(--text-secondary)', fontWeight: 700}} axisLine={false} tickLine={false} />
                       <YAxis domain={['auto', 'auto']} tick={{fontSize: 10, fill: 'var(--text-secondary)', fontWeight: 700}} axisLine={false} tickLine={false} />
                       <Tooltip labelFormatter={(l) => new Date(l).toLocaleDateString(lang)} contentStyle={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '12px', fontWeight: 'bold', color: 'var(--text-primary)' }} itemStyle={{ color: 'var(--primary)' }} />
-                      <Line type="monotone" name="Peso (kg)" dataKey="peso" stroke="#3B82F6" strokeWidth={4} dot={{ r: 4, fill: '#3B82F6', strokeWidth: 2, stroke: 'var(--surface)' }} activeDot={{ r: 6 }} animationDuration={1500} />
+                      <Line filter="url(#glowLine)" type="monotone" name="Peso (kg)" dataKey="peso" stroke="var(--primary)" strokeWidth={4} dot={false} activeDot={{ r: 6, fill: "var(--primary)", stroke: "var(--surface)", strokeWidth: 3 }} animationDuration={1500} />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
@@ -699,7 +710,7 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
                       <XAxis dataKey="data_avaliacao" tickFormatter={(v) => new Date(v).toLocaleDateString(lang, { day: '2-digit', month: '2-digit' })} tick={{fontSize: 9, fill: 'var(--text-secondary)', fontWeight: 700}} axisLine={false} tickLine={false} />
                       <YAxis domain={['auto', 'auto']} tick={{fontSize: 10, fill: 'var(--text-secondary)', fontWeight: 700}} axisLine={false} tickLine={false} />
                       <Tooltip labelFormatter={(l) => new Date(l).toLocaleDateString(lang)} contentStyle={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '12px', fontWeight: 'bold', color: 'var(--text-primary)' }} itemStyle={{ color: 'var(--danger)' }} />
-                      <Area type="monotone" name="Gordura (%)" dataKey="gordura" stroke="var(--danger)" strokeWidth={3} fillOpacity={1} fill="url(#colorGordura)" animationDuration={1500} />
+                      <Area type="monotone" name="Gordura (%)" dataKey="gordura" stroke="var(--danger)" strokeWidth={4} fillOpacity={1} fill="url(#colorGordura)" animationDuration={1500} dot={false} activeDot={{ r: 6, fill: "var(--danger)", stroke: "var(--surface)", strokeWidth: 3 }} />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
@@ -714,9 +725,9 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
                       <YAxis domain={['auto', 'auto']} tick={{fontSize: 10, fill: 'var(--text-secondary)', fontWeight: 700}} axisLine={false} tickLine={false} />
                       <Tooltip labelFormatter={(l) => new Date(l).toLocaleDateString(lang)} contentStyle={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '12px', fontWeight: 'bold', color: 'var(--text-primary)' }} />
                       <Legend wrapperStyle={{ fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase' }} />
-                      <Line type="monotone" name="Abdômen" dataKey="abdomen" stroke="#3B82F6" strokeWidth={3} dot={{ r: 3 }} activeDot={{ r: 5 }} animationDuration={1500} />
-                      <Line type="monotone" name="Cintura" dataKey="cintura" stroke="#F59E0B" strokeWidth={3} dot={{ r: 3 }} activeDot={{ r: 5 }} animationDuration={1500} />
-                      <Line type="monotone" name="Quadril" dataKey="quadril" stroke="#22C55E" strokeWidth={3} dot={{ r: 3 }} activeDot={{ r: 5 }} animationDuration={1500} />
+                      <Line type="monotone" name="Abdômen" dataKey="abdomen" stroke="#3B82F6" strokeWidth={3} dot={false} activeDot={{ r: 5, strokeWidth: 2, stroke: 'var(--surface)' }} animationDuration={1500} />
+                      <Line type="monotone" name="Cintura" dataKey="cintura" stroke="#F59E0B" strokeWidth={3} dot={false} activeDot={{ r: 5, strokeWidth: 2, stroke: 'var(--surface)' }} animationDuration={1500} />
+                      <Line type="monotone" name="Quadril" dataKey="quadril" stroke="#22C55E" strokeWidth={3} dot={false} activeDot={{ r: 5, strokeWidth: 2, stroke: 'var(--surface)' }} animationDuration={1500} />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
@@ -870,8 +881,8 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
                   />
                 </div>
 
-                {/* RODAPÉ FIXO (Ajustado com +5.5rem no mobile para flutuar perfeitamente acima da navbar inferior) */}
-                <div className="p-5 sm:p-8 border-t border-[var(--border)] bg-[var(--surface)] shrink-0 flex gap-4 pb-[calc(max(env(safe-area-inset-bottom,1.25rem)+5.5rem))] sm:pb-8">
+                {/* RODAPÉ FIXO (Ajustado com +6.5rem no mobile para flutuar perfeitamente acima da navbar inferior) */}
+                <div className="p-5 sm:p-8 border-t border-[var(--border)] bg-[var(--surface)] shrink-0 flex gap-4 pb-[calc(max(env(safe-area-inset-bottom),1.25rem)+6.5rem)] sm:pb-8">
                   <button onClick={() => setIsModalAvaliacaoOpen(false)} className="flex-1 py-4 sm:py-5 bg-[var(--surface-sec)] text-[var(--text-primary)] hover:bg-[var(--border)] rounded-[1.2rem] font-black text-[10px] uppercase tracking-widest transition-colors active:scale-95 border border-[var(--border)]">{t.modalEval.cancel}</button>
                   <button onClick={salvarAvaliacaoCompleta} className="flex-1 py-4 sm:py-5 bg-[var(--primary)] text-white rounded-[1.2rem] font-black text-[10px] uppercase tracking-widest hover:brightness-110 shadow-lg shadow-[var(--primary)]/20 transition-all active:scale-95">{t.modalEval.save}</button>
                 </div>
