@@ -121,7 +121,7 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
   const [isModalAvaliacaoOpen, setIsModalAvaliacaoOpen] = useState(false);
   const [toast, setToast] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   const [indexAberto, setIndexAberto] = useState<number | null>(null);
-  // Gestão de Treinos Otimizada
+  
   const [mostrarArquivados, setMostrarArquivados] = useState(false);
   const [isModalAtribuirOpen, setIsModalAtribuirOpen] = useState(false);
   const [alunosList, setAlunosList] = useState<any[]>([]);
@@ -133,7 +133,6 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
     cintura: '', quadril: '', braco_direito: '', braco_esquerdo: '', observacoes: ''
   });
 
-  // Estados UI Premium
   const [isDark, setIsDark] = useState(true);
   const [lang, setLang] = useState<'pt-BR' | 'pt-PT' | 'en'>('pt-BR');
   const [mounted, setMounted] = useState(false);
@@ -198,23 +197,22 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
   };
 
   const fetchFichas = async () => {
-  const { data } = await supabase.from('fichas').select('*').eq('aluno_id', id).order('ordem', { ascending: true });
-  if (data) {
-    const processadas = data.map(f => {
-      let parsedEx = [];
-      try { parsedEx = typeof f.descricao === 'string' ? JSON.parse(f.descricao || '[]') : (f.descricao || []); } catch(e) {}
-      return { 
-        ...f, 
-        exercicios: Array.isArray(parsedEx) ? parsedEx : [],
-        // Mapeia os campos caso estejam dentro do JSON ou na tabela
-        tipo_treino: f.tipo_treino || 'Musculação', 
-        objetivo: f.objetivo || 'Hipertrofia',
-        dificuldade: f.dificuldade || 'Intermediário'
-      };
-    });
-    setFichas(processadas);
-  }
-};
+    const { data } = await supabase.from('fichas').select('*').eq('aluno_id', id).order('ordem', { ascending: true });
+    if (data) {
+      const processadas = data.map(f => {
+        let parsedEx = [];
+        try { parsedEx = typeof f.descricao === 'string' ? JSON.parse(f.descricao || '[]') : (f.descricao || []); } catch(e) {}
+        return { 
+          ...f, 
+          exercicios: Array.isArray(parsedEx) ? parsedEx : [],
+          tipo_treino: f.tipo_treino || 'Musculação', 
+          objetivo: f.objetivo || 'Hipertrofia',
+          dificuldade: f.dificuldade || 'Intermediário'
+        };
+      });
+      setFichas(processadas);
+    }
+  };
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   // AGRUPAMENTO E FILTRAGEM (ATIVOS / ARQUIVADOS)
@@ -222,10 +220,9 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
   const fichasAgrupadas = useMemo(() => {
     const grupos: Record<string, any[]> = {};
     fichas.forEach(f => {
-      // Considera ativo se for true ou se não existir (undefined) em fichas antigas
+      // Considera ativo se for true ou se não existir (fichas antigas)
       const isAtivo = f.ativo !== false; 
       
-      // Filtra de acordo com a aba selecionada (Ativos ou Arquivados)
       if (mostrarArquivados && isAtivo) return;
       if (!mostrarArquivados && !isAtivo) return;
 
@@ -270,7 +267,6 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
     
     try {
       for (const alunoId of alunosSelecionados) {
-        // Encontra a ordem máxima para inserir no final da lista do aluno
         const { data: maxOrdemData } = await supabase.from('fichas')
           .select('ordem').eq('aluno_id', alunoId).order('ordem', { ascending: false }).limit(1).maybeSingle();
         const startOrdem = (maxOrdemData?.ordem || 0) + 1;
@@ -286,7 +282,6 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
 
         await supabase.from('fichas').insert(inserts);
 
-        // Dispara notificação silenciosa
         await supabase.from('user_notifications').insert([{
           user_id: alunoId, titulo: 'Novo Treino Disponível! 💪',
           corpo: `O personal adicionou o programa "${programaParaAtribuir[0]?.nome_treino.split('-')[0].trim()}" para você.`, lida: false
@@ -342,7 +337,7 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
         </div>
       )}
 
-      {/* Modal: Atribuir Treinos a Outros Alunos */}
+      {/* Modal: Atribuir Treinos */}
       {isModalAtribuirOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xl z-[600] flex items-end sm:items-center justify-center p-0 sm:p-5 animate-in fade-in duration-300">
           <div className="bg-[var(--surface)] w-full sm:max-w-md rounded-t-[2.5rem] sm:rounded-[2.5rem] p-6 sm:p-8 shadow-2xl border border-[var(--border)] overflow-y-auto max-h-[90vh] sm:max-h-[85vh] animate-in slide-in-from-bottom-8 sm:zoom-in-95 custom-scrollbar">
@@ -437,140 +432,140 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
           </div>
 
           {abaAtiva === 'treinos' && (
-  <section className="space-y-6 animate-in slide-in-from-right-4 fade-in duration-500">
-    
-    {/* Toggles Ativos / Arquivados */}
-    <div className="flex gap-2">
-      <button onClick={() => { setMostrarArquivados(false); setIndexAberto(null); }} className={`flex-1 py-3 rounded-[1rem] font-black text-[10px] uppercase tracking-widest transition-all ${!mostrarArquivados ? 'bg-[var(--primary)] text-white shadow-lg shadow-[var(--primary)]/20' : 'bg-[var(--surface-sec)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border)]'}`}>
-        {t.workouts.active}
-      </button>
-      <button onClick={() => { setMostrarArquivados(true); setIndexAberto(null); }} className={`flex-1 py-3 rounded-[1rem] font-black text-[10px] uppercase tracking-widest transition-all ${mostrarArquivados ? 'bg-[var(--primary)] text-white shadow-lg shadow-[var(--primary)]/20' : 'bg-[var(--surface-sec)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border)]'}`}>
-        {t.workouts.archived}
-      </button>
-    </div>
-
-    <div className="grid grid-cols-1 gap-6">
-  {fichasAgrupadas.length > 0 ? (
-    fichasAgrupadas.map((grupo, gIndex) => {
-      const estaAberto = indexAberto === gIndex;
-      
-      return (
-        <div key={gIndex} className={`bg-[var(--surface)] p-6 sm:p-8 rounded-[2.5rem] border border-[var(--border)] shadow-xl relative transition-all ${mostrarArquivados ? 'opacity-80 grayscale-[20%]' : ''}`}>
-          
-          {/* Cabeçalho do Programa */}
-          <div 
-  className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6 border-b border-[var(--border)] pb-4 cursor-pointer"
-  onClick={() => setIndexAberto(estaAberto ? null : gIndex)}
->
-  <div>
-    <span className={`text-[8px] font-black uppercase tracking-widest px-2.5 py-1 rounded-md border ${mostrarArquivados ? 'bg-[var(--text-secondary)]/10 text-[var(--text-secondary)] border-[var(--border)]' : 'bg-[var(--primary)]/10 text-[var(--primary)] border-[var(--primary)]/20'}`}>
-      {mostrarArquivados ? t.workouts.archived : t.workouts.program}
-    </span>
-    <h2 className="text-xl sm:text-2xl font-black mt-3 text-[var(--text-primary)] tracking-tight">
-      {grupo.nomeMaster}
-    </h2>
-    
-    {/* BADGES DE CONFIGURAÇÃO DO TREINO */}
-    <div className="flex flex-wrap gap-2 mt-3">
-      {grupo.treinos[0].tipo_treino && (
-        <span className="text-[9px] font-bold bg-[var(--surface-sec)] text-[var(--text-secondary)] px-2 py-1 rounded-lg border border-[var(--border)]">
-          {grupo.treinos[0].tipo_treino}
-        </span>
-      )}
-      {grupo.treinos[0].objetivo && (
-        <span className="text-[9px] font-bold bg-[var(--surface-sec)] text-[var(--text-secondary)] px-2 py-1 rounded-lg border border-[var(--border)]">
-          {grupo.treinos[0].objetivo}
-        </span>
-      )}
-      {grupo.treinos[0].dificuldade && (
-        <span className="text-[9px] font-bold bg-[var(--surface-sec)] text-[var(--text-secondary)] px-2 py-1 rounded-lg border border-[var(--border)]">
-          {grupo.treinos[0].dificuldade}
-        </span>
-      )}
-    </div>
-  </div>
-            
-            <div className="flex flex-wrap gap-2" onClick={(e) => e.stopPropagation()}>
-              <button onClick={() => { setProgramaParaAtribuir(grupo.treinos); setIsModalAtribuirOpen(true); }} className="bg-[var(--primary)]/10 text-[var(--primary)] p-3 rounded-xl hover:bg-[var(--primary)] hover:text-white transition-colors" title={t.workouts.assign}>
-                <FaUsers size={14} />
-              </button>
+            <section className="space-y-6 animate-in slide-in-from-right-4 fade-in duration-500">
               
-              {mostrarArquivados ? (
-                <button onClick={() => toggleArquivarPrograma(grupo.treinos, false)} className="bg-[var(--success)]/10 text-[var(--success)] p-3 rounded-xl hover:bg-[var(--success)] hover:text-white transition-colors" title={t.workouts.restore}>
-                  <FaUndo size={14} />
+              <div className="flex gap-2">
+                <button onClick={() => { setMostrarArquivados(false); setIndexAberto(null); }} className={`flex-1 py-3 rounded-[1rem] font-black text-[10px] uppercase tracking-widest transition-all ${!mostrarArquivados ? 'bg-[var(--primary)] text-white shadow-lg shadow-[var(--primary)]/20' : 'bg-[var(--surface-sec)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border)]'}`}>
+                  {t.workouts.active}
                 </button>
-              ) : (
-                <button onClick={() => toggleArquivarPrograma(grupo.treinos, true)} className="bg-[var(--text-secondary)]/10 text-[var(--text-secondary)] p-3 rounded-xl hover:bg-[var(--text-secondary)] hover:text-[var(--bg)] transition-colors" title={t.workouts.archive}>
-                  <FaArchive size={14} />
+                <button onClick={() => { setMostrarArquivados(true); setIndexAberto(null); }} className={`flex-1 py-3 rounded-[1rem] font-black text-[10px] uppercase tracking-widest transition-all ${mostrarArquivados ? 'bg-[var(--primary)] text-white shadow-lg shadow-[var(--primary)]/20' : 'bg-[var(--surface-sec)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border)]'}`}>
+                  {t.workouts.archived}
                 </button>
-              )}
+              </div>
 
-              <button onClick={() => excluirProgramaCompleto(grupo.treinos)} className="text-[var(--danger)] bg-[var(--danger)]/10 p-3 rounded-xl hover:bg-[var(--danger)]/20 transition-colors" title="Excluir Definitivamente">
-                <FaTrash size={14} />
-              </button>
-            </div>
-          </div>
-
-          {/* Sub-Treinos Detalhados */}
-          {estaAberto && (
-            <div className="grid gap-4 animate-in fade-in slide-in-from-top-2 duration-300">
-              {grupo.treinos.map((treino: any) => (
-                <div key={treino.id} className="bg-[var(--surface-sec)] p-6 rounded-[1.5rem] border border-[var(--border)] hover:border-[var(--primary)]/30 transition-all">
-                  <div className="mb-4">
-                    <h3 className="text-lg font-black text-[var(--text-primary)]">{treino.nome_sub}</h3>
-                  </div>
-                  
-                  {/* Lista de Exercícios Completa */}
-                  <div className="space-y-3 mb-6">
-                    {treino.exercicios?.map((ex: any, eIdx: number) => (
-                      <div key={eIdx} className="bg-[var(--surface)] p-4 rounded-xl border border-[var(--border)]">
-                        <p className="font-black text-xs text-[var(--text-primary)] mb-2">{eIdx + 1}. {ex.nome}</p>
-                        {ex.observacao && <p className="text-[9px] text-[var(--text-secondary)] italic mb-3">"{ex.observacao}"</p>}
-                        
-                        <div className="grid grid-cols-4 gap-1 text-[9px] font-black uppercase text-[var(--text-secondary)] mb-1 text-center">
-                          <span>Série</span><span>Reps</span><span>Carga</span><span>Desc.</span>
-                        </div>
-                        {ex.series?.map((s: any, sIdx: number) => (
-                          <div key={sIdx} className="grid grid-cols-4 gap-1 text-[11px] font-bold text-[var(--text-primary)] bg-[var(--bg)] py-1.5 rounded-lg text-center mb-1">
-                            <span>{s.ordem || sIdx + 1 + 'ª'}</span>
-                            <span>{s.reps}</span>
-                            <span>{s.carga}{s.unidadeCarga}</span>
-                            <span>{s.intervalo}</span>
+              <div className="grid grid-cols-1 gap-6">
+                {fichasAgrupadas.length > 0 ? (
+                  fichasAgrupadas.map((grupo, gIndex) => {
+                    const estaAberto = indexAberto === gIndex;
+                    
+                    return (
+                      <div 
+                        key={gIndex} 
+                        className={`p-6 sm:p-8 rounded-[2.5rem] shadow-xl relative transition-all duration-300 ${
+                          mostrarArquivados 
+                            ? 'bg-[var(--surface-sec)]/50 opacity-75 grayscale-[30%] border-2 border-dashed border-[var(--border)]' 
+                            : 'bg-[var(--surface)] border border-[var(--border)]'
+                        }`}
+                      >
+                        <div 
+                          className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6 border-b border-[var(--border)] pb-4 cursor-pointer"
+                          onClick={() => setIndexAberto(estaAberto ? null : gIndex)}
+                        >
+                          <div>
+                            <span className={`text-[8px] font-black uppercase tracking-widest px-2.5 py-1 rounded-md border ${mostrarArquivados ? 'bg-[var(--text-secondary)]/10 text-[var(--text-secondary)] border-[var(--border)]' : 'bg-[var(--primary)]/10 text-[var(--primary)] border-[var(--primary)]/20'}`}>
+                              {mostrarArquivados ? t.workouts.archived : t.workouts.program}
+                            </span>
+                            <h2 className="text-xl sm:text-2xl font-black mt-3 text-[var(--text-primary)] tracking-tight">
+                              {grupo.nomeMaster}
+                            </h2>
+                            <div className="flex flex-wrap gap-2 mt-3">
+                              {grupo.treinos[0].tipo_treino && (
+                                <span className="text-[9px] font-bold bg-[var(--surface-sec)] text-[var(--text-secondary)] px-2 py-1 rounded-lg border border-[var(--border)]">
+                                  {grupo.treinos[0].tipo_treino}
+                                </span>
+                              )}
+                              {grupo.treinos[0].objetivo && (
+                                <span className="text-[9px] font-bold bg-[var(--surface-sec)] text-[var(--text-secondary)] px-2 py-1 rounded-lg border border-[var(--border)]">
+                                  {grupo.treinos[0].objetivo}
+                                </span>
+                              )}
+                              {grupo.treinos[0].dificuldade && (
+                                <span className="text-[9px] font-bold bg-[var(--surface-sec)] text-[var(--text-secondary)] px-2 py-1 rounded-lg border border-[var(--border)]">
+                                  {grupo.treinos[0].dificuldade}
+                                </span>
+                              )}
+                            </div>
                           </div>
-                        ))}
+                                  
+                          <div className="flex flex-wrap gap-2" onClick={(e) => e.stopPropagation()}>
+                            <button onClick={() => { setProgramaParaAtribuir(grupo.treinos); setIsModalAtribuirOpen(true); }} className="bg-[var(--primary)]/10 text-[var(--primary)] p-3 rounded-xl hover:bg-[var(--primary)] hover:text-white transition-colors" title={t.workouts.assign}>
+                              <FaUsers size={14} />
+                            </button>
+                            
+                            {mostrarArquivados ? (
+                              <button onClick={() => toggleArquivarPrograma(grupo.treinos, false)} className="bg-[var(--success)]/10 text-[var(--success)] p-3 rounded-xl hover:bg-[var(--success)] hover:text-white transition-colors" title={t.workouts.restore}>
+                                <FaUndo size={14} />
+                              </button>
+                            ) : (
+                              <button onClick={() => toggleArquivarPrograma(grupo.treinos, true)} className="bg-[var(--text-secondary)]/10 text-[var(--text-secondary)] p-3 rounded-xl hover:bg-[var(--text-secondary)] hover:text-[var(--bg)] transition-colors" title={t.workouts.archive}>
+                                <FaArchive size={14} />
+                              </button>
+                            )}
+
+                            <button onClick={() => excluirProgramaCompleto(grupo.treinos)} className="text-[var(--danger)] bg-[var(--danger)]/10 p-3 rounded-xl hover:bg-[var(--danger)]/20 transition-colors" title="Excluir Definitivamente">
+                              <FaTrash size={14} />
+                            </button>
+                          </div>
+                        </div>
+
+                        {estaAberto && (
+                          <div className="grid gap-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                            {grupo.treinos.map((treino: any) => (
+                              <div key={treino.id} className="bg-[var(--surface-sec)] p-6 rounded-[1.5rem] border border-[var(--border)] hover:border-[var(--primary)]/30 transition-all">
+                                <div className="mb-4">
+                                  <h3 className="text-lg font-black text-[var(--text-primary)]">{treino.nome_sub}</h3>
+                                </div>
+                                <div className="space-y-3 mb-6">
+                                  {treino.exercicios?.map((ex: any, eIdx: number) => (
+                                    <div key={eIdx} className="bg-[var(--surface)] p-4 rounded-xl border border-[var(--border)]">
+                                      <p className="font-black text-xs text-[var(--text-primary)] mb-2">{eIdx + 1}. {ex.nome}</p>
+                                      {ex.observacao && <p className="text-[9px] text-[var(--text-secondary)] italic mb-3">"{ex.observacao}"</p>}
+                                      
+                                      <div className="grid grid-cols-4 gap-1 text-[9px] font-black uppercase text-[var(--text-secondary)] mb-1 text-center">
+                                        <span>Série</span><span>Reps</span><span>Carga</span><span>Desc.</span>
+                                      </div>
+                                      {ex.series?.map((s: any, sIdx: number) => (
+                                        <div key={sIdx} className="grid grid-cols-4 gap-1 text-[11px] font-bold text-[var(--text-primary)] bg-[var(--bg)] py-1.5 rounded-lg text-center mb-1">
+                                          <span>{s.ordem || sIdx + 1 + 'ª'}</span>
+                                          <span>{s.reps}</span>
+                                          <span>{s.carga}{s.unidadeCarga}</span>
+                                          <span>{s.intervalo}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  ))}
+                                </div>
+
+                                <div className="flex gap-2">
+                                  <button onClick={() => router.push(`/dashboard/aluno/${id}/treino/${treino.id}`)} className="flex-[2] text-[10px] font-black uppercase tracking-widest text-[var(--primary)] py-3 bg-[var(--primary)]/5 border border-[var(--primary)]/10 rounded-[1.2rem]">
+                                    {t.workouts.viewDetails}
+                                  </button>
+                                  <button onClick={() => router.push(`/dashboard/aluno/${id}/editar-ficha/${treino.id}`)} className="flex-1 text-[10px] font-black uppercase tracking-widest text-white py-3 bg-[var(--primary)] rounded-[1.2rem] flex items-center justify-center gap-2">
+                                    <FaEdit size={12} /> <span className="hidden sm:inline">{t.workouts.edit}</span>
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
-                    ))}
+                    );
+                  })
+                ) : (
+                  <div className="py-12 text-center border-2 border-dashed border-[var(--border)] rounded-[2rem] bg-[var(--surface)]/50">
+                    <p className="text-[var(--text-secondary)] font-black uppercase text-[10px] tracking-widest">{t.workouts.empty}</p>
                   </div>
+                )}
+              </div>
 
-                  <div className="flex gap-2">
-                    <button onClick={() => router.push(`/dashboard/aluno/${id}/treino/${treino.id}`)} className="flex-[2] text-[10px] font-black uppercase tracking-widest text-[var(--primary)] py-3 bg-[var(--primary)]/5 border border-[var(--primary)]/10 rounded-[1.2rem]">
-                      {t.workouts.viewDetails}
-                    </button>
-                    <button onClick={() => router.push(`/dashboard/aluno/${id}/editar-ficha/${treino.id}`)} className="flex-1 text-[10px] font-black uppercase tracking-widest text-white py-3 bg-[var(--primary)] rounded-[1.2rem] flex items-center justify-center gap-2">
-                      <FaEdit size={12} /> <span className="hidden sm:inline">{t.workouts.edit}</span>
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
+              {!mostrarArquivados && (
+                <a href={`/dashboard/aluno/${id}/nova-ficha`} className="flex items-center justify-center gap-2 w-full bg-[var(--primary)] text-white p-5 rounded-[1.5rem] font-black text-[10px] sm:text-[11px] uppercase tracking-widest active:scale-[0.98] transition-transform shadow-lg shadow-[var(--primary)]/20 mt-6">
+                  <FaPlus size={12} /> {t.workouts.new}
+                </a>
+              )}
+            </section>
           )}
-        </div>
-      );
-    })
-  ) : (
-    <div className="py-12 text-center border-2 border-dashed border-[var(--border)] rounded-[2rem] bg-[var(--surface)]/50">
-      <p className="text-[var(--text-secondary)] font-black uppercase text-[10px] tracking-widest">{t.workouts.empty}</p>
-    </div>
-  )}
-</div>
 
-    {!mostrarArquivados && (
-      <a href={`/dashboard/aluno/${id}/nova-ficha`} className="flex items-center justify-center gap-2 w-full bg-[var(--primary)] text-white p-5 rounded-[1.5rem] font-black text-[10px] sm:text-[11px] uppercase tracking-widest active:scale-[0.98] transition-transform shadow-lg shadow-[var(--primary)]/20 mt-6">
-        <FaPlus size={12} /> {t.workouts.new}
-      </a>
-    )}
-  </section>
-)}
           {abaAtiva === 'evolucao' && (
             <section className="space-y-8 animate-in slide-in-from-right-4 fade-in duration-500">
               <div className="flex flex-col sm:flex-row gap-4 justify-between sm:items-end">
