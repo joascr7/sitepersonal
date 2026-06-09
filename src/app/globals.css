@@ -109,3 +109,26 @@ html {
   -ms-overflow-style: none; /* IE e Edge */
   scrollbar-width: none;    /* Firefox */
 }
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   TRAVA DE ZOOM NATIVO (UX PREMIUM PARA IOS/ANDROID)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
+/* Impede o zoom automático do iOS Safari ao focar em campos de digitação */
+input, select, textarea {
+  font-size: 16px !important;
+}
+
+/* Impede o atraso de clique (300ms delay) e manipulações de toque indesejadas */
+body {
+  touch-action: manipulation;
+}
+
+/* Opcional: Se quiser esconder a barra de rolagem mas continuar rolando (estilo app nativo) */
+.custom-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.custom-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
