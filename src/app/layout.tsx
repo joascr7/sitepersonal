@@ -165,6 +165,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="AuraFit" />
         <meta name="theme-color" content={isDark ? '#0F1115' : '#F3F6FB'} />
         <link rel="apple-touch-icon" href="/icon-192.png" />
+        <link rel="manifest" href="/manifest.json" />
       </head>
       <body 
         className={`
