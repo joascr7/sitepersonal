@@ -98,7 +98,7 @@ export default function RootLayout({
     };
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    // 3. BLOQUEIO DEFINITIVO DE ZOOM (Pinça, Touch Duplo, Ctrl+Scroll)
+    // 3. BLOQUEIO DEFINITIVO DE ZOOM (Agora forçado no Window e Document)
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     const preventPinchZoom = (e) => {
       if (e.touches && e.touches.length > 1) {
@@ -118,8 +118,12 @@ export default function RootLayout({
       }
     };
 
+    // Agressividade máxima: Trava o window E o document ao mesmo tempo
+    window.addEventListener('touchstart', preventPinchZoom, { passive: false });
+    window.addEventListener('touchmove', preventPinchZoom, { passive: false });
     document.addEventListener('touchstart', preventPinchZoom, { passive: false });
     document.addEventListener('touchmove', preventPinchZoom, { passive: false });
+    
     document.addEventListener('wheel', preventWheelZoom, { passive: false });
     document.addEventListener('keydown', preventKeyZoom);
 
@@ -127,8 +131,12 @@ export default function RootLayout({
     return () => {
       window.removeEventListener('storage', handleStorageChange);
       localStorage.setItem = originalSetItem;
+      
+      window.removeEventListener('touchstart', preventPinchZoom);
+      window.removeEventListener('touchmove', preventPinchZoom);
       document.removeEventListener('touchstart', preventPinchZoom);
       document.removeEventListener('touchmove', preventPinchZoom);
+      
       document.removeEventListener('wheel', preventWheelZoom);
       document.removeEventListener('keydown', preventKeyZoom);
     };
@@ -146,8 +154,6 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="AuraFit" />
         <meta name="theme-color" content={isDark ? '#0F1115' : '#F3F6FB'} />
-        
-        {/* CORREÇÃO DO ÍCONE NO IOS (PWA) */}
         <link rel="apple-touch-icon" href="/icon-192.png" />
       </head>
       <body 
@@ -155,29 +161,17 @@ export default function RootLayout({
           min-h-screen flex flex-col bg-[var(--bg)] text-[var(--text-primary)] font-sans 
           selection:bg-[var(--primary)] selection:text-white overscroll-none
           ${mounted ? 'transition-colors duration-500' : ''}
-          /* Adicionado bloqueio no body nativo via Tailwind: touch-none ou pan-y dependendo da sua barra de rolagem. 
-             Caso precise de scroll global, remova a classe 'touch-none' */
         `}
       >
         <AlunoProvider>
           <LogoProvider>
             <ConditionalNavbar />
-            
-            {/* CORREÇÃO GLOBAL DEFINITIVA PARA A NAVBAR */}
             <main className="flex flex-col flex-grow w-full relative">
-              
-              {/* O conteúdo de todas as páginas carrega aqui */}
               <div className="flex-grow w-full">
                 {children}
               </div>
-              
-              {/* Bloco Físico Invisível: 
-                  Empurra a rolagem para cima, tirando o último item de trás da Navbar.
-              */}
               <div className="h-[130px] w-full shrink-0 pointer-events-none" aria-hidden="true" />
-              
             </main>
-            
           </LogoProvider>
         </AlunoProvider>
       </body>
