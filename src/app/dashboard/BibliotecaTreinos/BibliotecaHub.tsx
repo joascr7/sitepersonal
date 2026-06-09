@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { 
   FaPlus, FaFolder, FaEllipsisV, FaShareSquare, FaEdit, FaTrash, 
   FaSearch, FaStar, FaPlay, FaVideoSlash, FaChevronDown, FaChevronUp, 
-  FaTimes, FaUpload, FaArchive, FaChevronLeft, FaChevronRight, FaHeart, FaRegStar
+  FaTimes, FaUpload, FaArchive, FaHeart, FaRegStar
 } from 'react-icons/fa';
 import ModalAtribuirTreino from '@/components/biblioteca/ModalAtribuirTreino';
 
@@ -26,31 +26,33 @@ const MediaPreview = ({ url }: { url: string }) => {
   return <div className="w-full h-full flex flex-col items-center justify-center text-[var(--text-secondary)]/50"><FaVideoSlash size={24}/></div>;
 };
 
-// Categorias organizadas
-const CATEGORIAS_PADRAO = [
-  { id: 'peito', nome: 'Peito / Peitorais', icon: '💪' },
-  { id: 'costas', nome: 'Costas / Dorsais', icon: '🦅' },
-  { id: 'pernas', nome: 'Pernas / Inferiores', icon: '🦵' },
-  { id: 'ombros', nome: 'Ombros / Deltoides', icon: '🛡️' },
-  { id: 'braços', nome: 'Braços (Bíceps/Tríceps)', icon: '⚔️' },
-  { id: 'core', nome: 'Abdômen / Core', icon: '🍫' },
-  { id: 'cardio', nome: 'Cardio / Aeróbico', icon: '🏃' },
-  { id: 'geral', nome: 'Outros / Geral', icon: '🏋️' }
-];
+// Grupos Musculares para o Select de Criação (Profissional, sem emojis)
+const GRUPOS_MUSCULARES = ['Peito', 'Costas', 'Inferiores', 'Ombros', 'Braços', 'Abdômen', 'Cardio', 'Geral'];
 
-// 🧠 INTELIGÊNCIA DE CATEGORIZAÇÃO: Força todos os exercícios para os 8 botões acima
-const normalizeCategory = (nome: string, grupoOriginal?: string): string => {
-  const texto = `${nome} ${grupoOriginal || ''}`.toLowerCase();
+// Inteligência de Categorização de Grupos
+const autoCategorizeGrupo = (nome: string, grupoOriginal?: string): string => {
+  if (grupoOriginal && grupoOriginal !== 'Geral') return grupoOriginal;
+  const texto = nome.toLowerCase();
   
-  if (/(peito|supino|crucifixo|peck deck|chest|peitoral)/.test(texto)) return 'peito';
-  if (/(costas|puxada|remada|barra|dorsal|pulldown|back)/.test(texto)) return 'costas';
-  if (/(perna|inferior|agachamento|leg|extensora|flexora|panturrilha|glúteo|stiff|afundo|coxa)/.test(texto)) return 'pernas';
-  if (/(ombro|desenvolvimento|elevação|manguito|deltoide)/.test(texto)) return 'ombros';
-  if (/(braço|braco|rosca|tríceps|bíceps|francesa|testa)/.test(texto)) return 'braços';
-  if (/(abdômen|abdomen|core|prancha|isométrico|canivete)/.test(texto)) return 'core';
-  if (/(esteira|bike|corrida|cardio|aeróbico)/.test(texto)) return 'cardio';
+  if (/(peito|supino|crucifixo|peck deck|chest|peitoral)/.test(texto)) return 'Peito';
+  if (/(costas|puxada|remada|barra|dorsal|pulldown|back)/.test(texto)) return 'Costas';
+  if (/(perna|inferior|agachamento|leg|extensora|flexora|panturrilha|glúteo|stiff|afundo|coxa)/.test(texto)) return 'Inferiores';
+  if (/(ombro|desenvolvimento|elevação|manguito|deltoide)/.test(texto)) return 'Ombros';
+  if (/(braço|braco|rosca|tríceps|bíceps|francesa|testa)/.test(texto)) return 'Braços';
+  if (/(abdômen|abdomen|core|prancha|isométrico|canivete)/.test(texto)) return 'Abdômen';
+  if (/(esteira|bike|corrida|cardio|aeróbico)/.test(texto)) return 'Cardio';
   
-  return 'geral';
+  return 'Geral';
+};
+
+// Inteligência de Categorização de Modalidade
+const autoCategorizeModalidade = (nome: string, modOriginal?: string): string => {
+  if (modOriginal) return modOriginal;
+  const n = nome.toLowerCase();
+  if (/(isométrico|anti-rotação|afundo|funcional|prancha)/.test(n)) return 'Funcional';
+  if (/(esteira|bike|corrida)/.test(n)) return 'Cardio';
+  if (/(alongamento|mobilidade)/.test(n)) return 'Mobilidade';
+  return 'Musculação';
 };
 
 export function BibliotecaHub() {
@@ -73,12 +75,13 @@ export function BibliotecaHub() {
   const [exercicios, setExercicios] = useState<any[]>([]);
   const [buscaExercicio, setBuscaExercicio] = useState('');
   const [filtroExercicio, setFiltroExercicio] = useState<'favoritos' | 'app' | 'seus'>('app');
-  const [categoriaAtiva, setCategoriaAtiva] = useState<string | null>(null);
-  const [videoAberto, setVideoAberto] = useState<string | null>(null); // PLAYER NATIVO
+  const [filtroGrupo, setFiltroGrupo] = useState('Todos');
+  const [filtroCategoria, setFiltroCategoria] = useState('Todas');
+  const [videoAberto, setVideoAberto] = useState<string | null>(null);
 
   const [modalCriarExercicio, setModalCriarExercicio] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [novoExercicio, setNovoExercicio] = useState({ nome: '', video: '', grupo: 'peito' });
+  const [novoExercicio, setNovoExercicio] = useState({ nome: '', video: '', grupo: 'Peito', modalidade: 'Musculação' });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -115,7 +118,8 @@ export function BibliotecaHub() {
                     video: ex.video || '',
                     origem: 'app',
                     favorito: false,
-                    grupo: normalizeCategory(ex.nome, ex.musculo_alvo)
+                    grupo: autoCategorizeGrupo(ex.nome, ex.musculo_alvo),
+                    categoria: autoCategorizeModalidade(ex.nome, ex.tipo_treino)
                   });
                 }
               });
@@ -134,7 +138,8 @@ export function BibliotecaHub() {
             video: b.url_video || '',
             origem: 'seus',
             favorito: b.favorito || false,
-            grupo: normalizeCategory(b.exercicio_nome, b.musculo_alvo)
+            grupo: autoCategorizeGrupo(b.exercicio_nome, b.musculo_alvo),
+            categoria: autoCategorizeModalidade(b.exercicio_nome, b.tipo_treino)
           });
         });
       }
@@ -183,7 +188,7 @@ export function BibliotecaHub() {
     if (!novoExercicio.nome) return alert("Dê um nome ao exercício!");
     setUploading(true);
     try {
-      const payload = { personal_id: personalId, exercicio_nome: novoExercicio.nome, url_video: novoExercicio.video, musculo_alvo: novoExercicio.grupo, favorito: false };
+      const payload = { personal_id: personalId, exercicio_nome: novoExercicio.nome, url_video: novoExercicio.video, musculo_alvo: novoExercicio.grupo, tipo_treino: novoExercicio.modalidade, favorito: false };
       const { data, error } = await supabase.from('videos_biblioteca').insert([payload]).select().single();
       if (error) throw error;
       
@@ -193,28 +198,32 @@ export function BibliotecaHub() {
         video: data.url_video, 
         origem: 'seus', 
         favorito: false, 
-        grupo: normalizeCategory(data.exercicio_nome, data.musculo_alvo) 
+        grupo: autoCategorizeGrupo(data.exercicio_nome, data.musculo_alvo),
+        categoria: autoCategorizeModalidade(data.exercicio_nome, data.tipo_treino)
       }].sort((a, b) => a.nome.localeCompare(b.nome)));
       
       setModalCriarExercicio(false);
-      setNovoExercicio({ nome: '', video: '', grupo: 'peito' });
+      setNovoExercicio({ nome: '', video: '', grupo: 'Peito', modalidade: 'Musculação' });
     } catch (err: any) { alert("Erro ao criar exercício: " + err.message); } finally { setUploading(false); }
   };
 
-  // ━━━━━━━━━ FILTROS MEMOIZADOS ━━━━━━━━━
+  // ━━━━━━━━━ FILTROS MEMOIZADOS E LISTAS DROPDOWN ━━━━━━━━━
+  const listaGrupos = useMemo(() => ['Todos', ...Array.from(new Set(exercicios.map(e => e.grupo))).sort()], [exercicios]);
+  const listaCategorias = useMemo(() => ['Todas', ...Array.from(new Set(exercicios.map(e => e.categoria))).sort()], [exercicios]);
+
   const exerciciosFiltrados = useMemo(() => {
     return exercicios.filter(ex => {
       const bateBusca = ex.nome.toLowerCase().includes(buscaExercicio.toLowerCase());
-      const bateCategoria = !categoriaAtiva || ex.grupo === categoriaAtiva; // Match EXATO com a nossa normalização
+      const bateGrupo = filtroGrupo === 'Todos' || ex.grupo === filtroGrupo;
+      const bateCat = filtroCategoria === 'Todas' || ex.categoria === filtroCategoria;
       
       let bateOrigem = true;
       if (filtroExercicio === 'favoritos') bateOrigem = ex.favorito;
       if (filtroExercicio === 'seus') bateOrigem = ex.origem === 'seus';
-      // Se for 'app' (Global), ele exibe tudo para evitar confusão.
       
-      return bateBusca && bateCategoria && bateOrigem;
+      return bateBusca && bateGrupo && bateCat && bateOrigem;
     });
-  }, [exercicios, buscaExercicio, filtroExercicio, categoriaAtiva]);
+  }, [exercicios, buscaExercicio, filtroExercicio, filtroGrupo, filtroCategoria]);
 
   const rotinasFiltradas = useMemo(() => {
     return rotinas.filter(r => statusRotina === 'arquivados' ? r.arquivado : !r.arquivado);
@@ -261,8 +270,8 @@ export function BibliotecaHub() {
       <div className="bg-[var(--bg)]/90 backdrop-blur-xl pt-[max(env(safe-area-inset-top,2rem),2rem)] px-5 pb-4 sticky top-0 z-40 border-b border-[var(--border)] shadow-sm">
         <h1 className="text-2xl font-black mb-4 tracking-tight">{aba === 'rotinas' ? 'Biblioteca de Treinos' : 'Catálogo de Exercícios'}</h1>
         <div className="flex bg-[var(--surface-sec)] p-1.5 rounded-[1rem] border border-[var(--border)] shadow-inner">
-          <button onClick={() => { setAba('rotinas'); setCategoriaAtiva(null); setBuscaExercicio(''); }} className={`flex-1 py-3 text-[11px] font-black uppercase tracking-widest rounded-xl transition-all ${aba === 'rotinas' ? 'bg-[var(--primary)] text-white shadow-md' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}>Rotinas</button>
-          <button onClick={() => { setAba('exercicios'); setCategoriaAtiva(null); setBuscaExercicio(''); }} className={`flex-1 py-3 text-[11px] font-black uppercase tracking-widest rounded-xl transition-all ${aba === 'exercicios' ? 'bg-[var(--primary)] text-white shadow-md' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}>Exercícios</button>
+          <button onClick={() => { setAba('rotinas'); }} className={`flex-1 py-3 text-[11px] font-black uppercase tracking-widest rounded-xl transition-all ${aba === 'rotinas' ? 'bg-[var(--primary)] text-white shadow-md' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}>Rotinas</button>
+          <button onClick={() => { setAba('exercicios'); }} className={`flex-1 py-3 text-[11px] font-black uppercase tracking-widest rounded-xl transition-all ${aba === 'exercicios' ? 'bg-[var(--primary)] text-white shadow-md' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}>Exercícios</button>
         </div>
       </div>
 
@@ -331,11 +340,16 @@ export function BibliotecaHub() {
           </div>
         )}
 
-        {/* ABA EXERCÍCIOS (DRILL-DOWN PREMIUM / IMAGENS GRANDES) */}
+        {/* ABA EXERCÍCIOS (LISTAGEM DIRETA E PROFISSIONAL) */}
         {aba === 'exercicios' && (
-          <div className="space-y-6 animate-in slide-in-from-right-4 duration-400">
+          <div className="space-y-4 animate-in fade-in duration-300">
             
-            {/* BUSCA GLOBAL */}
+            {/* BOTÃO DE CRIAR EXERCÍCIO */}
+            <button onClick={() => setModalCriarExercicio(true)} className="w-full py-4 rounded-[1.2rem] border border-[var(--primary)] text-[var(--primary)] font-black text-xs uppercase tracking-widest bg-transparent flex justify-center items-center gap-2 hover:bg-[var(--primary)]/10 transition-all active:scale-[0.98]">
+              <FaPlus size={14}/> Criar exercício
+            </button>
+
+            {/* BARRA DE BUSCA GLOBAL */}
             <div className="relative">
               <FaSearch className="absolute left-5 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]" size={14} />
               <input 
@@ -347,100 +361,73 @@ export function BibliotecaHub() {
               />
             </div>
 
-            {/* NÍVEL 1: SELEÇÃO DE CATEGORIAS (Aparece se não houver busca e não houver categoria selecionada) */}
-            {!categoriaAtiva && buscaExercicio === '' ? (
-              <div className="animate-in fade-in duration-300">
-                <button onClick={() => setModalCriarExercicio(true)} className="w-full py-5 rounded-[1.5rem] border-2 border-dashed border-[var(--primary)]/50 text-[var(--primary)] font-black text-xs uppercase tracking-widest bg-transparent flex justify-center items-center gap-2 hover:bg-[var(--primary)]/5 transition-all mb-8 active:scale-[0.98]">
-                  <FaPlus size={14}/> Criar Novo Exercício
-                </button>
+            {/* CHIPS DE ORIGEM */}
+            <div className="flex gap-2 overflow-x-auto custom-scrollbar pb-2 -mx-5 px-5 sm:mx-0 sm:px-0">
+              <button onClick={() => setFiltroExercicio('app')} className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all border ${filtroExercicio === 'app' ? 'bg-[var(--primary)] text-white border-transparent shadow-md' : 'bg-[var(--surface)] text-[var(--text-secondary)] border-[var(--border)] hover:border-[var(--primary)]/30'}`}>Global</button>
+              <button onClick={() => setFiltroExercicio('seus')} className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all border ${filtroExercicio === 'seus' ? 'bg-[var(--primary)] text-white border-transparent shadow-md' : 'bg-[var(--surface)] text-[var(--text-secondary)] border-[var(--border)] hover:border-[var(--primary)]/30'}`}>Meus Vídeos</button>
+              <button onClick={() => setFiltroExercicio('favoritos')} className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all border flex items-center gap-1.5 ${filtroExercicio === 'favoritos' ? 'bg-[var(--primary)] text-white border-transparent shadow-md' : 'bg-[var(--surface)] text-[var(--text-secondary)] border-[var(--border)] hover:border-[var(--primary)]/30'}`}>Favoritos</button>
+            </div>
 
-                <h2 className="text-xs font-black uppercase tracking-widest text-[var(--text-secondary)] mb-4 pl-1">Categorias Musculares</h2>
-                
-                <div className="grid grid-cols-1 gap-3">
-                  {CATEGORIAS_PADRAO.map((cat) => {
-                    const count = exercicios.filter(e => e.grupo === cat.id).length;
-                    return (
-                      <button 
-                        key={cat.id} 
-                        onClick={() => setCategoriaAtiva(cat.id)} 
-                        className="w-full bg-[var(--surface)] border border-[var(--border)] p-4 rounded-[1.2rem] flex items-center justify-between text-left hover:border-[var(--primary)]/40 transition-all active:scale-[0.99] group shadow-sm"
-                      >
-                        <div className="flex items-center gap-4">
-                          <span className="text-2xl bg-[var(--surface-sec)] w-14 h-14 rounded-[1rem] flex items-center justify-center shadow-inner group-hover:scale-110 transition-transform">
-                            {cat.icon}
-                          </span>
-                          <div>
-                            <h3 className="font-black text-[var(--text-primary)] text-[15px] tracking-tight">{cat.nome}</h3>
-                            <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] mt-0.5">{count} Exercícios</p>
-                          </div>
-                        </div>
-                        <div className="w-8 h-8 rounded-full bg-[var(--surface-sec)] flex items-center justify-center text-[var(--text-secondary)] group-hover:bg-[var(--primary)] group-hover:text-white transition-colors">
-                          <FaChevronRight size={12}/>
-                        </div>
+            {/* DROPDOWNS DE FILTROS AVANÇADOS */}
+            <div className="flex items-center gap-3 pt-2 pb-2">
+              <div className="relative flex-1">
+                <select value={filtroGrupo} onChange={e => setFiltroGrupo(e.target.value)} className="w-full appearance-none bg-transparent text-[var(--primary)] font-bold text-xs outline-none cursor-pointer pr-6">
+                  {listaGrupos.map(g => <option key={g} value={g}>{g === 'Todos' ? 'Grupos musculares' : g}</option>)}
+                </select>
+                <FaChevronDown className="absolute right-1 top-1/2 -translate-y-1/2 text-[var(--primary)] pointer-events-none" size={10}/>
+              </div>
+
+              <div className="relative flex-1">
+                <select value={filtroCategoria} onChange={e => setFiltroCategoria(e.target.value)} className="w-full appearance-none bg-transparent text-[var(--primary)] font-bold text-xs outline-none cursor-pointer pr-6">
+                  {listaCategorias.map(c => <option key={c} value={c}>{c === 'Todas' ? 'Categorias' : c}</option>)}
+                </select>
+                <FaChevronDown className="absolute right-1 top-1/2 -translate-y-1/2 text-[var(--primary)] pointer-events-none" size={10}/>
+              </div>
+
+              <button onClick={() => { setBuscaExercicio(''); setFiltroGrupo('Todos'); setFiltroCategoria('Todas'); }} className="text-[var(--primary)] text-xs font-bold pr-2 active:scale-95">Limpar</button>
+            </div>
+
+            {/* LISTAGEM DE CARDS (CINEMATOGRÁFICOS) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-4">
+              {loading ? (
+                <div className="col-span-full flex justify-center py-10"><div className="w-8 h-8 border-4 border-[var(--primary)]/30 border-t-[var(--primary)] rounded-full animate-spin" /></div>
+              ) : exerciciosFiltrados.length > 0 ? (
+                exerciciosFiltrados.map((ex) => (
+                  <div key={ex.id} className="bg-[var(--surface)] border border-[var(--border)] rounded-[2rem] overflow-hidden shadow-md hover:shadow-xl hover:border-[var(--primary)]/40 transition-all flex flex-col group relative">
+                    
+                    {/* Container Aspect-Video Mídia */}
+                    <div className="w-full aspect-video bg-black relative shrink-0 cursor-pointer overflow-hidden border-b border-[var(--border)]" onClick={() => setVideoAberto(ex.video)}>
+                      <MediaPreview url={ex.video} />
+                      
+                      {/* Botão de Favorito Overlay */}
+                      <button onClick={(e) => { e.stopPropagation(); toggleFavorito(ex.id); }} className="absolute top-4 right-4 w-10 h-10 rounded-full bg-black/40 backdrop-blur-md border border-white/10 flex items-center justify-center text-white hover:scale-110 transition-all shadow-lg z-10">
+                        {ex.favorito ? <FaHeart className="text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]" size={16} /> : <FaRegStar className="opacity-80 hover:opacity-100 transition-opacity" size={16} />}
                       </button>
-                    );
-                  })}
-                </div>
-              </div>
-            ) : (
-              
-              // NÍVEL 2: LISTAGEM DE EXERCÍCIOS (CARDS GRANDES 16:9)
-              <div className="space-y-4 animate-in slide-in-from-right-4 duration-300">
-                
-                <div className="flex justify-between items-center mb-2">
-                  <button onClick={() => { setCategoriaAtiva(null); setBuscaExercicio(''); }} className="flex items-center gap-2 text-[10px] font-black uppercase text-[var(--text-secondary)] tracking-widest hover:text-[var(--primary)] transition-colors py-2 active:scale-95">
-                    <FaChevronLeft size={10} /> Voltar às categorias
-                  </button>
-                  {categoriaAtiva && (
-                    <span className="text-[10px] font-black uppercase tracking-widest bg-[var(--primary)]/10 text-[var(--primary)] px-3 py-1.5 rounded-lg border border-[var(--primary)]/20 shadow-sm">
-                      {CATEGORIAS_PADRAO.find(c => c.id === categoriaAtiva)?.nome.split(' ')[0]}
-                    </span>
-                  )}
-                </div>
-
-                {/* FILTROS DE ORIGEM (CHIPS) */}
-                <div className="flex gap-2 overflow-x-auto custom-scrollbar pb-2 -mx-5 px-5 sm:mx-0 sm:px-0">
-                  <button onClick={() => setFiltroExercicio('app')} className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all border ${filtroExercicio === 'app' ? 'bg-[var(--primary)] text-white border-transparent shadow-md' : 'bg-[var(--surface)] text-[var(--text-secondary)] border-[var(--border)] hover:border-[var(--primary)]/30'}`}>Global</button>
-                  <button onClick={() => setFiltroExercicio('seus')} className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all border ${filtroExercicio === 'seus' ? 'bg-[var(--primary)] text-white border-transparent shadow-md' : 'bg-[var(--surface)] text-[var(--text-secondary)] border-[var(--border)] hover:border-[var(--primary)]/30'}`}>Meus Vídeos</button>
-                  <button onClick={() => setFiltroExercicio('favoritos')} className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all border flex items-center gap-1.5 ${filtroExercicio === 'favoritos' ? 'bg-[var(--primary)] text-white border-transparent shadow-md' : 'bg-[var(--surface)] text-[var(--text-secondary)] border-[var(--border)] hover:border-[var(--primary)]/30'}`}>Favoritos</button>
-                </div>
-
-                {/* GRID DE CARDS CINEMATOGRÁFICOS */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-4">
-                  {exerciciosFiltrados.length > 0 ? exerciciosFiltrados.map((ex) => (
-                    <div key={ex.id} className="bg-[var(--surface)] border border-[var(--border)] rounded-[2rem] overflow-hidden shadow-md hover:shadow-xl hover:border-[var(--primary)]/40 transition-all flex flex-col group relative">
-                      
-                      {/* Container Aspect-Video Mídia */}
-                      <div className="w-full aspect-video bg-black relative shrink-0 cursor-pointer overflow-hidden border-b border-[var(--border)]" onClick={() => setVideoAberto(ex.video)}>
-                        <MediaPreview url={ex.video} />
-                        
-                        {/* Botão de Favorito Overlay */}
-                        <button onClick={(e) => { e.stopPropagation(); toggleFavorito(ex.id); }} className="absolute top-4 right-4 w-10 h-10 rounded-full bg-black/40 backdrop-blur-md border border-white/10 flex items-center justify-center text-white hover:scale-110 transition-all shadow-lg z-10">
-                          {ex.favorito ? <FaHeart className="text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]" size={16} /> : <FaRegStar className="opacity-80 hover:opacity-100 transition-opacity" size={16} />}
-                        </button>
-                      </div>
-                      
-                      {/* Dados do Exercício */}
-                      <div className="p-5 flex-1 flex flex-col justify-between">
-                        <div>
-                          <h3 className="font-black text-[var(--text-primary)] text-base tracking-tight leading-tight line-clamp-2">{ex.nome}</h3>
-                          <div className="mt-3">
-                            <span className="px-2.5 py-1 bg-[var(--surface-sec)] border border-[var(--border)] rounded-md text-[8px] font-black text-[var(--text-secondary)] uppercase tracking-widest inline-block shadow-inner">
-                              {CATEGORIAS_PADRAO.find(c => c.id === ex.grupo)?.nome.split('/')[0] || ex.grupo}
-                            </span>
-                          </div>
+                    </div>
+                    
+                    {/* Dados do Exercício */}
+                    <div className="p-5 flex-1 flex flex-col justify-between">
+                      <div>
+                        <h3 className="font-black text-[var(--text-primary)] text-base tracking-tight leading-tight line-clamp-2">{ex.nome}</h3>
+                        <div className="flex flex-wrap gap-1.5 mt-3">
+                          <span className="px-2.5 py-1 bg-[var(--surface-sec)] border border-[var(--border)] rounded-md text-[8px] font-black text-[var(--text-secondary)] uppercase tracking-widest shadow-inner">
+                            {ex.grupo}
+                          </span>
+                          <span className="px-2.5 py-1 bg-[var(--surface-sec)] border border-[var(--border)] rounded-md text-[8px] font-black text-[var(--text-secondary)] uppercase tracking-widest shadow-inner">
+                            {ex.categoria || 'Musculação'}
+                          </span>
                         </div>
                       </div>
                     </div>
-                  )) : (
-                    <div className="col-span-full py-16 text-center border-2 border-dashed border-[var(--border)] rounded-[2rem] bg-[var(--surface-sec)]/30">
-                      <p className="text-[var(--text-secondary)] font-black uppercase text-[10px] tracking-widest">Nenhum exercício encontrado nesta categoria.</p>
-                    </div>
-                  )}
+                  </div>
+                ))
+              ) : (
+                <div className="col-span-full py-16 text-center border-2 border-dashed border-[var(--border)] rounded-[2rem] bg-[var(--surface-sec)]/30">
+                  <p className="text-[var(--text-secondary)] font-black uppercase text-[10px] tracking-widest">Nenhum exercício encontrado com estes filtros.</p>
                 </div>
+              )}
+            </div>
 
-              </div>
-            )}
           </div>
         )}
       </div>
@@ -478,11 +465,19 @@ export function BibliotecaHub() {
                 <input required autoFocus value={novoExercicio.nome} onChange={e => setNovoExercicio({...novoExercicio, nome: e.target.value})} className="w-full bg-[var(--surface-sec)] border border-[var(--border)] p-4 rounded-xl text-sm font-bold text-[var(--text-primary)] outline-none focus:border-[var(--primary)] shadow-inner" placeholder="Ex: Supino Reto com Halteres" />
               </div>
               
-              <div>
-                <label className="text-[10px] font-black uppercase text-[var(--text-secondary)] tracking-widest mb-1.5 block">Grupo Muscular Principal</label>
-                <select value={novoExercicio.grupo} onChange={e => setNovoExercicio({...novoExercicio, grupo: e.target.value})} className="w-full bg-[var(--surface-sec)] border border-[var(--border)] p-4 rounded-xl text-sm font-bold text-[var(--text-primary)] outline-none focus:border-[var(--primary)] appearance-none shadow-inner cursor-pointer">
-                  {CATEGORIAS_PADRAO.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
-                </select>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] font-black uppercase text-[var(--text-secondary)] tracking-widest mb-1.5 block">Grupo Muscular</label>
+                  <select value={novoExercicio.grupo} onChange={e => setNovoExercicio({...novoExercicio, grupo: e.target.value})} className="w-full bg-[var(--surface-sec)] border border-[var(--border)] p-4 rounded-xl text-sm font-bold text-[var(--text-primary)] outline-none focus:border-[var(--primary)] appearance-none shadow-inner cursor-pointer">
+                    {GRUPOS_MUSCULARES.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[10px] font-black uppercase text-[var(--text-secondary)] tracking-widest mb-1.5 block">Categoria</label>
+                  <select value={novoExercicio.modalidade} onChange={e => setNovoExercicio({...novoExercicio, modalidade: e.target.value})} className="w-full bg-[var(--surface-sec)] border border-[var(--border)] p-4 rounded-xl text-sm font-bold text-[var(--text-primary)] outline-none focus:border-[var(--primary)] appearance-none shadow-inner cursor-pointer">
+                    <option>Musculação</option><option>Funcional</option><option>Cardio</option><option>Mobilidade</option>
+                  </select>
+                </div>
               </div>
               
               <div>
