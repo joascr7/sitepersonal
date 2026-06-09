@@ -1,669 +1,791 @@
 'use client';
-import { useEffect, useState, use, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState, use, Suspense, useMemo } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
-import { ptBR, pt, enUS } from 'date-fns/locale';
-import { NotificationService } from '@/lib/notificationService';
-import { NotificationBell } from '@/components/NotificationBell';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import ControleFinanceiro from '@/components/ControleFinanceiro';
 import { 
-  FaDumbbell, 
-  FaClipboardList, 
-  FaChartLine, 
-  FaFileInvoice, 
-  FaFolderOpen, 
-  FaUserCircle, 
-  FaCommentMedical, 
-  FaChevronLeft, 
-  FaChevronRight,
-  FaMoon,
-  FaSun,
-  FaGlobe
+  FaChevronLeft, FaGlobe, FaMoon, FaSun, FaExclamationCircle, FaCheckCircle, 
+  FaTrash, FaFilePdf, FaUpload, FaPlus, FaChartLine, FaDumbbell, FaCommentAlt, FaFolderOpen,
+  FaArchive, FaUndo, FaUsers, FaEdit
 } from 'react-icons/fa';
-import { LineChart, Line, Tooltip, ResponsiveContainer, YAxis, XAxis } from 'recharts';
-import { startOfWeek, endOfWeek, eachDayOfInterval, format, isSameDay, parseISO, startOfMonth, endOfMonth, addMonths, subMonths, isSameMonth } from 'date-fns';
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// SKELETON SCREEN PREMIUM
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const DetalheAlunoSkeleton = () => (
+  <div className="max-w-4xl mx-auto space-y-8 animate-pulse pt-8 px-5">
+    <div className="flex justify-between items-center mb-8">
+      <div className="w-16 h-4 bg-[var(--surface-sec)] rounded-full" />
+      <div className="w-24 h-10 bg-[var(--surface-sec)] rounded-[1.2rem]" />
+    </div>
+    <div className="bg-[var(--surface)] p-8 rounded-[2.5rem] flex flex-col items-center gap-4 border border-[var(--border)]">
+      <div className="w-24 h-24 rounded-[2rem] bg-[var(--surface-sec)]" />
+      <div className="w-48 h-8 bg-[var(--surface-sec)] rounded-xl" />
+      <div className="w-32 h-6 bg-[var(--surface-sec)] rounded-full" />
+      <div className="w-full h-16 bg-[var(--surface-sec)] rounded-2xl mt-4" />
+    </div>
+    <div className="flex gap-4 overflow-hidden border-b border-[var(--border)] pb-2">
+      {[1, 2, 3, 4].map(i => <div key={i} className="w-20 h-6 bg-[var(--surface-sec)] rounded-full shrink-0" />)}
+    </div>
+    <div className="space-y-4">
+      {[1, 2].map(i => <div key={i} className="w-full h-32 bg-[var(--surface)] rounded-[2.5rem] border border-[var(--border)]" />)}
+    </div>
+  </div>
+);
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // DICIONÁRIO DE INTERNACIONALIZAÇÃO (i18n)
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 const translations = {
   'pt-BR': {
-    status: 'Status',
-    active: 'Assinatura Ativa',
-    blocked: 'Bloqueado',
-    due: 'Vencimento',
-    today: 'Treino do dia',
-    start: 'Iniciar Agora',
-    none: 'Nenhum treino pendente para hoje.',
-    week: 'Sua semana de treinos',
-    historyBtn: 'Ver Histórico Completo',
-    trainings: 'Treinos',
-    evaluations: 'Avaliações',
-    progress: 'Progresso',
-    feedback: 'Feedback',
-    invoices: 'Faturas',
-    files: 'Arquivos',
-    historyTitle: 'Histórico de Treinos',
-    analysis: 'Análise Corporal',
-    evolution: 'Sua Evolução',
-    currentWeight: 'Peso Atual',
-    prevWeight: 'Peso Anterior',
-    sinceLast: 'desde a última',
-    lastMark: 'Última marca',
-    details: 'Medidas Detalhadas (cm)',
-    obs: 'Observações do Personal',
-    dateOfRecord: 'Data do registro'
+    back: 'Voltar', objective: 'Objetivo: ', notDefined: 'Não definido',
+    tabs: { workouts: 'Treinos', evolution: 'Evolução', feedback: 'Feedbacks', files: 'Documentos' },
+    workouts: { 
+      active: 'Ativos', archived: 'Arquivados', program: 'Programa', viewDetails: 'Ver Treino', edit: 'Editar',
+      empty: 'Nenhuma ficha encontrada.', new: '+ Criar Nova Ficha', 
+      assign: 'Atribuir a outros', archive: 'Arquivar', restore: 'Restaurar', selectStudents: 'Selecione os Alunos'
+    },
+    evolution: { title: 'Evolução', subtitle: 'Acompanhamento e métricas.', newEval: '+ Nova Avaliação', weight: 'Peso (kg)', delete: 'Excluir' },
+    feedback: { title: 'Feedbacks', subtitle: 'Histórico do aluno.', intensity: 'Intensidade', level: 'Nível', delete: 'Excluir', empty: 'Nenhum feedback.' },
+    files: { title: 'Documentos', subtitle: 'Gestão de exames e arquivos.', upload: 'Selecionar novo PDF', open: 'Abrir', empty: 'Nenhum arquivo enviado.' },
+    modalEval: { title: 'Nova Avaliação', subtitle: 'Preencha as métricas do aluno.', obs: 'Observações...', cancel: 'Cancelar', save: 'Salvar' },
+    alerts: { 
+      confirmFeedback: 'Tem certeza que deseja excluir este feedback?', 
+      confirmMasterFicha: 'Tem certeza que deseja excluir DE VEZ este programa e todos os treinos vinculados? Esta ação não tem volta.', 
+      confirmArchive: 'Arquivar este programa irá escondê-lo do aplicativo do aluno. Deseja continuar?',
+      confirmRestore: 'Este programa voltará a aparecer para o aluno. Deseja continuar?',
+      confirmAvaliacao: 'Tem certeza que deseja excluir este registro?', 
+      confirmArquivo: 'Tem certeza que deseja excluir este arquivo?', 
+      errDelete: 'Erro ao excluir: ', errSave: 'Erro ao salvar: ', errUpload: 'Erro ao subir arquivo.', successUpload: 'Arquivo enviado com sucesso!' 
+    }
   },
   'pt-PT': {
-    status: 'Estado',
-    active: 'Assinatura Ativa',
-    blocked: 'Bloqueado',
-    due: 'Vencimento',
-    today: 'Treino de hoje',
-    start: 'Iniciar Agora',
-    none: 'Nenhum treino pendente para hoje.',
-    week: 'A sua semana de treinos',
-    historyBtn: 'Ver Histórico Completo',
-    trainings: 'Treinos',
-    evaluations: 'Avaliações',
-    progress: 'Progresso',
-    feedback: 'Feedback',
-    invoices: 'Faturas',
-    files: 'Ficheiros',
-    historyTitle: 'Histórico de Treinos',
-    analysis: 'Análise Corporal',
-    evolution: 'A Sua Evolução',
-    currentWeight: 'Peso Atual',
-    prevWeight: 'Peso Anterior',
-    sinceLast: 'desde a última',
-    lastMark: 'Última marca',
-    details: 'Medidas Detalhadas (cm)',
-    obs: 'Observações do Personal',
-    dateOfRecord: 'Data do registo'
+    back: 'Voltar', objective: 'Objetivo: ', notDefined: 'Não definido',
+    tabs: { workouts: 'Treinos', evolution: 'Evolução', feedback: 'Feedbacks', files: 'Documentos' },
+    workouts: { 
+      active: 'Ativos', archived: 'Arquivados', program: 'Programa', viewDetails: 'Ver Treino', edit: 'Editar',
+      empty: 'Nenhuma ficha encontrada.', new: '+ Criar Nova Ficha', 
+      assign: 'Atribuir a outros', archive: 'Arquivar', restore: 'Restaurar', selectStudents: 'Selecione os Alunos'
+    },
+    evolution: { title: 'Evolução', subtitle: 'Acompanhamento e métricas.', newEval: '+ Nova Avaliação', weight: 'Peso (kg)', delete: 'Eliminar' },
+    feedback: { title: 'Feedbacks', subtitle: 'Histórico do aluno.', intensity: 'Intensidade', level: 'Nível', delete: 'Eliminar', empty: 'Nenhum feedback.' },
+    files: { title: 'Documentos', subtitle: 'Gestão de exames e ficheiros.', upload: 'Selecionar novo PDF', open: 'Abrir', empty: 'Nenhum ficheiro enviado.' },
+    modalEval: { title: 'Nova Avaliação', subtitle: 'Preencha as métricas do aluno.', obs: 'Observações...', cancel: 'Cancelar', save: 'Guardar' },
+    alerts: { 
+      confirmFeedback: 'Tem certeza que deseja eliminar este feedback?', 
+      confirmMasterFicha: 'Tem certeza que deseja eliminar DE VEZ este programa e todos os treinos vinculados? Esta ação não tem volta.', 
+      confirmArchive: 'Arquivar este programa irá escondê-lo da aplicação do aluno. Deseja continuar?',
+      confirmRestore: 'Este programa voltará a aparecer para o aluno. Deseja continuar?',
+      confirmAvaliacao: 'Tem certeza que deseja eliminar este registo?', 
+      confirmArquivo: 'Tem certeza que deseja eliminar este ficheiro?', 
+      errDelete: 'Erro ao eliminar: ', errSave: 'Erro ao guardar: ', errUpload: 'Erro ao subir ficheiro.', successUpload: 'Ficheiro enviado com sucesso!' 
+    }
   },
   'en': {
-    status: 'Status',
-    active: 'Active Subscription',
-    blocked: 'Blocked',
-    due: 'Due Date',
-    today: 'Workout of the day',
-    start: 'Start Now',
-    none: 'No pending workouts for today.',
-    week: 'Your training week',
-    historyBtn: 'View Full History',
-    trainings: 'Workouts',
-    evaluations: 'Assessments',
-    progress: 'Progress',
-    feedback: 'Feedback',
-    invoices: 'Invoices',
-    files: 'Files',
-    historyTitle: 'Workout History',
-    analysis: 'Body Analysis',
-    evolution: 'Your Evolution',
-    currentWeight: 'Current Wt.',
-    prevWeight: 'Previous Wt.',
-    sinceLast: 'since last',
-    lastMark: 'Last mark',
-    details: 'Detailed Measurements (cm)',
-    obs: 'Trainer Notes',
-    dateOfRecord: 'Record date'
+    back: 'Back', objective: 'Goal: ', notDefined: 'Not defined',
+    tabs: { workouts: 'Workouts', evolution: 'Evolution', feedback: 'Feedbacks', files: 'Documents' },
+    workouts: { 
+      active: 'Active', archived: 'Archived', program: 'Program', viewDetails: 'View Workout', edit: 'Edit',
+      empty: 'No workouts found.', new: '+ Create New Workout', 
+      assign: 'Assign to others', archive: 'Archive', restore: 'Restore', selectStudents: 'Select Students'
+    },
+    evolution: { title: 'Evolution', subtitle: 'Tracking and metrics.', newEval: '+ New Assessment', weight: 'Weight (kg)', delete: 'Delete' },
+    feedback: { title: 'Feedbacks', subtitle: 'Student history.', intensity: 'Intensity', level: 'Level', delete: 'Delete', empty: 'No feedbacks.' },
+    files: { title: 'Documents', subtitle: 'Exams and files management.', upload: 'Select new PDF', open: 'Open', empty: 'No files uploaded.' },
+    modalEval: { title: 'New Assessment', subtitle: 'Fill in the student metrics.', obs: 'Observations...', cancel: 'Cancel', save: 'Save' },
+    alerts: { 
+      confirmFeedback: 'Are you sure you want to delete this feedback?', 
+      confirmMasterFicha: 'Are you sure you want to PERMANENTLY delete this program and all its splits? This action cannot be undone.', 
+      confirmArchive: 'Archiving this program will hide it from the student app. Continue?',
+      confirmRestore: 'This program will reappear for the student. Continue?',
+      confirmAvaliacao: 'Are you sure you want to delete this record?', 
+      confirmArquivo: 'Are you sure you want to delete this file?', 
+      errDelete: 'Error deleting: ', errSave: 'Error saving: ', errUpload: 'Error uploading file.', successUpload: 'File uploaded successfully!' 
+    }
   }
 };
 
-
-
-export default function AreaDoAluno({ params }: { params: Promise<{ id: string }> }) {
+function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
+  const searchParams = useSearchParams();
+
   const [aluno, setAluno] = useState<any>(null);
-  const [personal, setPersonal] = useState<any>(null);
+  const [fichas, setFichas] = useState<any[]>([]);
+  const [historico, setHistorico] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [avaliacoes, setAvaliacoes] = useState<any[]>([]);
-  const [modalAberta, setModalAberta] = useState(false);
-  const [diasTreino, setDiasTreino] = useState<Date[]>([]);
-  const [calendarioAberto, setCalendarioAberto] = useState(false);
-  const [treinoDoDia, setTreinoDoDia] = useState<any>(null);
-  const [horaAtual, setHoraAtual] = useState(new Date());
+  const [abaAtiva, setAbaAtiva] = useState(searchParams.get('aba') || 'treinos');
+  const [feedbacks, setFeedbacks] = useState<any[]>([]);
+  const [arquivos, setArquivos] = useState<any[]>([]);
+  const [isModalAvaliacaoOpen, setIsModalAvaliacaoOpen] = useState(false);
+  const [toast, setToast] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+  const [indexAberto, setIndexAberto] = useState<number | null>(null);
   
-  // Estados de Tema e i18n
+  const [mostrarArquivados, setMostrarArquivados] = useState(false);
+  const [isModalAtribuirOpen, setIsModalAtribuirOpen] = useState(false);
+  const [alunosList, setAlunosList] = useState<any[]>([]);
+  const [alunosSelecionados, setAlunosSelecionados] = useState<string[]>([]);
+  const [programaParaAtribuir, setProgramaParaAtribuir] = useState<any[]>([]);
+
+  const [medidas, setMedidas] = useState({
+    peso: '', gordura: '', torax: '', ombros: '', abdomen: '', 
+    cintura: '', quadril: '', braco_direito: '', braco_esquerdo: '', observacoes: ''
+  });
+
   const [isDark, setIsDark] = useState(true);
   const [lang, setLang] = useState<'pt-BR' | 'pt-PT' | 'en'>('pt-BR');
+  const [mounted, setMounted] = useState(false);
 
-  useEffect(() => {
-    const timer = setInterval(() => setHoraAtual(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  const getSaudacao = () => {
-    const hora = horaAtual.getHours();
-    if (hora < 12) return 'Bom dia';
-    if (hora < 18) return 'Boa tarde';
-    return 'Boa noite';
-  };
-
-  // Inicialização de Tema e Idioma (Persistência)
   useEffect(() => {
     const savedTheme = localStorage.getItem('@premium_theme');
-    if (savedTheme) setIsDark(savedTheme === 'dark');
-    
     const savedLang = localStorage.getItem('@premium_lang') as 'pt-BR' | 'pt-PT' | 'en';
+    if (savedTheme) setIsDark(savedTheme === 'dark');
     if (savedLang) setLang(savedLang);
-    NotificationService.registrarDispositivo();
+    setMounted(true);
   }, []);
 
-  const toggleTheme = () => {
-    const newTheme = !isDark;
-    setIsDark(newTheme);
-    localStorage.setItem('@premium_theme', newTheme ? 'dark' : 'light');
-    window.dispatchEvent(new Event('storage'));
-  };
-
-  const toggleLang = () => {
-    const langs: ('pt-BR' | 'pt-PT' | 'en')[] = ['pt-BR', 'pt-PT', 'en'];
-    const nextLang = langs[(langs.indexOf(lang) + 1) % langs.length];
-    setLang(nextLang);
-    localStorage.setItem('@premium_lang', nextLang);
-  };
-
+  const toggleTheme = () => { const newTheme = !isDark; setIsDark(newTheme); localStorage.setItem('@premium_theme', newTheme ? 'dark' : 'light'); window.dispatchEvent(new Event('storage')); };
+  const toggleLang = () => { const langs: ('pt-BR' | 'pt-PT' | 'en')[] = ['pt-BR', 'pt-PT', 'en']; const nextLang = langs[(langs.indexOf(lang) + 1) % langs.length]; setLang(nextLang); localStorage.setItem('@premium_lang', nextLang); };
+  
   const t = translations[lang] || translations['pt-BR'];
+  const showToast = (type: 'success' | 'error', text: string) => { setToast({ type, text }); setTimeout(() => setToast(null), 4000); };
 
-  // Configuração das Variáveis CSS Globais (Design System)
   const themeStyles = isDark ? {
-    '--bg': '#0F1115',
-    '--surface': '#151A22',
-    '--surface-sec': '#1B2330',
-    '--primary': '#3B82F6',
-    '--primary-soft': '#60A5FA',
-    '--text-primary': '#F8FAFC',
-    '--text-secondary': '#94A3B8',
-    '--border': 'rgba(255,255,255,0.05)',
+    '--bg': '#0F1115', '--surface': '#151A22', '--surface-sec': '#1B2330', '--primary': '#3B82F6', '--danger': '#EF4444', '--success': '#22C55E', '--text-primary': '#F8FAFC', '--text-secondary': '#94A3B8', '--border': 'rgba(255,255,255,0.05)',
   } as React.CSSProperties : {
-    '--bg': '#F3F6FB',
-    '--surface': '#FFFFFF',
-    '--surface-sec': '#E8EEF9',
-    '--primary': '#2563EB',
-    '--primary-soft': '#60A5FA',
-    '--text-primary': '#111827',
-    '--text-secondary': '#6B7280',
-    '--border': 'rgba(15,23,42,0.06)',
+    '--bg': '#F3F6FB', '--surface': '#FFFFFF', '--surface-sec': '#E8EEF9', '--primary': '#2563EB', '--danger': '#DC2626', '--success': '#16A34A', '--text-primary': '#111827', '--text-secondary': '#6B7280', '--border': 'rgba(15,23,42,0.06)',
   } as React.CSSProperties;
-
-  // Memoiza processamento de dias para evitar lentidão
-  const diasSemana = useMemo(() => 
-    eachDayOfInterval({ start: startOfWeek(new Date(), { weekStartsOn: 1 }), end: endOfWeek(new Date(), { weekStartsOn: 1 }) }), 
-  []);
 
   useEffect(() => {
     if (!id) return;
-    
-    async function init() {
-      // 1. Busca dados do aluno
-      const { data: alunoData } = await supabase.from('alunos').select('*').eq('id', id).maybeSingle();
-      if (!alunoData) return;
-      setAluno(alunoData);
-
-      // 2. Busca dados do personal
-      if (alunoData.personal_id) {
-        const { data: pData } = await supabase.from('personais').select('*').eq('id', alunoData.personal_id).maybeSingle();
-        setPersonal(pData);
-      }
-
-      // 3. Busca todo o histórico para o calendário e para definir o último treino
-      const { data: conclusoes } = await supabase
-        .from('conclusoes_treino')
-        .select('data_conclusao, treino_id')
-        .eq('aluno_id', id);
-      
-      if (conclusoes) {
-        const inicioSemana = startOfWeek(new Date(), { weekStartsOn: 1 }).toISOString();
-        const treinosSemana = conclusoes.filter(c => c.data_conclusao >= inicioSemana);
-        setDiasTreino(treinosSemana.map(d => parseISO(d.data_conclusao)));
-      }
-
-      // 4. LÓGICA DE AVANÇO SEQUENCIAL ROBUSTA (A -> B -> C -> A)
-      const { data: todasFichas } = await supabase
-        .from('fichas')
-        .select('*')
-        .eq('aluno_id', id)
-        .order('ordem', { ascending: true }) // Ordena pela ordem configurada pelo personal
-        .order('nome_treino', { ascending: true }); // Fallback de segurança
-
-      if (todasFichas && todasFichas.length > 0) {
-        if (!conclusoes || conclusoes.length === 0) {
-          // Se o aluno nunca treinou, o primeiro treino da lista é o de hoje
-          setTreinoDoDia(todasFichas[0]);
-        } else {
-          // Pega o último treino feito ordenando o histórico por data
-          const ultimaConclusao = conclusoes.sort((a, b) => 
-            new Date(b.data_conclusao).getTime() - new Date(a.data_conclusao).getTime()
-          )[0];
-
-          // Descobre a posição (índice) do último treino na lista de fichas ativas
-          const indexUltimo = todasFichas.findIndex(f => f.id === ultimaConclusao.treino_id);
-
-          if (indexUltimo !== -1 && indexUltimo < todasFichas.length - 1) {
-            // Se não era o último da lista, passa para o próximo
-            setTreinoDoDia(todasFichas[indexUltimo + 1]);
-          } else {
-            // Se era o último da fila (ou não foi encontrado), reseta para o primeiro
-            setTreinoDoDia(todasFichas[0]);
-          }
-        }
-      } else {
-        setTreinoDoDia(null);
-      }
-
+    const carregarDados = async () => {
+      setLoading(true);
+      await Promise.all([fetchDadosAluno(), fetchHistorico(), fetchFichas(), fetchFeedbacks(), fetchArquivos(), fetchAlunos()]);
       setLoading(false);
-    }
-    
-    init();
+    };
+    carregarDados();
   }, [id]);
 
-  if (loading) return (
-    <main style={themeStyles} className="min-h-screen bg-[var(--bg)] p-6 space-y-8 animate-pulse pt-[max(env(safe-area-inset-top),1.5rem)]">
-      {/* Container de loading também corrigido para ter a mesma largura */}
-      <div className="w-full max-w-md md:max-w-2xl mx-auto flex flex-col space-y-6">
-        <div className="flex justify-between items-center mb-10">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 bg-[var(--surface-sec)] rounded-full" />
-            <div className="space-y-2">
-              <div className="w-24 h-4 bg-[var(--surface-sec)] rounded-full" />
-              <div className="w-16 h-3 bg-[var(--surface-sec)] rounded-full" />
-            </div>
-          </div>
-        </div>
-        <div className="space-y-4">
-          <div className="w-48 h-8 bg-[var(--surface-sec)] rounded-full" />
-          <div className="w-32 h-3 bg-[var(--surface-sec)] rounded-full" />
-          <div className="w-full h-32 bg-[var(--surface-sec)] rounded-3xl" />
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-28 bg-[var(--surface-sec)] rounded-3xl" />
-          ))}
-        </div>
-      </div>
-    </main>
-  );
+  const fetchAlunos = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { data } = await supabase.from('alunos').select('id, nome').eq('personal_id', user.id);
+    if (data) setAlunosList(data.filter(a => a.id !== id));
+  };
+
+  const fetchArquivos = async () => {
+    const { data, error } = await supabase.from('documentos').select('*').eq('aluno_id', id);
+    if (!error && data) setArquivos(data);
+  };
+
+  const fetchFeedbacks = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const { data, error } = await supabase.from('feedbacks_treino').select('*').eq('aluno_id', id).order('data_criacao', { ascending: false });
+    if (!error) setFeedbacks(data || []);
+  };
+
+  const fetchDadosAluno = async () => {
+    const { data } = await supabase.from('alunos').select('*').eq('id', id).maybeSingle();
+    if (data) setAluno(data);
+  };
+
+  const fetchHistorico = async () => {
+    const { data, error } = await supabase.from('avaliacoes_fisicas').select('*').eq('aluno_id', id).order('data_avaliacao', { ascending: false });
+    if (!error) setHistorico(data || []);
+  };
+
+  const fetchFichas = async () => {
+    const { data } = await supabase.from('fichas').select('*').eq('aluno_id', id).order('ordem', { ascending: true });
+    if (data) {
+      const processadas = data.map(f => {
+        let parsedEx = [];
+        try { parsedEx = typeof f.descricao === 'string' ? JSON.parse(f.descricao || '[]') : (f.descricao || []); } catch(e) {}
+        return { 
+          ...f, 
+          exercicios: Array.isArray(parsedEx) ? parsedEx : [],
+          tipo_treino: f.tipo_treino || 'Musculação', 
+          objetivo: f.objetivo || 'Hipertrofia',
+          dificuldade: f.dificuldade || 'Intermediário'
+        };
+      });
+      setFichas(processadas);
+    }
+  };
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // AGRUPAMENTO E FILTRAGEM (ATIVOS / ARQUIVADOS)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  const fichasAgrupadas = useMemo(() => {
+    const grupos: Record<string, any[]> = {};
+    fichas.forEach(f => {
+      // Considera ativo se for true ou se não existir (fichas antigas)
+      const isAtivo = f.ativo !== false; 
+      
+      if (mostrarArquivados && isAtivo) return;
+      if (!mostrarArquivados && !isAtivo) return;
+
+      const nomeCompleto = f.nome_treino || '';
+      const partes = nomeCompleto.split(' - ');
+      const nomeMaster = partes.length > 1 ? partes[0].trim() : nomeCompleto.trim() || 'Programa Padrão';
+      const nomeSub = partes.length > 1 ? partes.slice(1).join(' - ').trim() : 'Ficha Única';
+
+      if (!grupos[nomeMaster]) grupos[nomeMaster] = [];
+      grupos[nomeMaster].push({ ...f, nome_sub: nomeSub });
+    });
+
+    return Object.entries(grupos).map(([nomeMaster, treinos]) => ({ nomeMaster, treinos }));
+  }, [fichas, mostrarArquivados]);
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // GESTÃO DE TREINOS (ARQUIVAR, EXCLUIR, ATRIBUIR)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  const excluirProgramaCompleto = async (treinos: any[]) => {
+    if (!window.confirm(t.alerts.confirmMasterFicha)) return;
+    const idsParaExcluir = treinos.map(t => t.id);
+    const { error } = await supabase.from('fichas').delete().in('id', idsParaExcluir);
+    if (!error) fetchFichas(); else showToast('error', t.alerts.errDelete + error.message);
+  };
+
+  const toggleArquivarPrograma = async (treinos: any[], arquivar: boolean) => {
+    const confirmMsg = arquivar ? t.alerts.confirmArchive : t.alerts.confirmRestore;
+    if (!window.confirm(confirmMsg)) return;
+    
+    setLoading(true);
+    const ids = treinos.map(t => t.id);
+    const { error } = await supabase.from('fichas').update({ ativo: !arquivar }).in('id', ids);
+    
+    if (!error) await fetchFichas(); 
+    else showToast('error', t.alerts.errSave + error.message);
+    setLoading(false);
+  };
+
+  const atribuirProgramaEmLote = async () => {
+    if (alunosSelecionados.length === 0) return showToast('error', 'Selecione ao menos um aluno.');
+    setLoading(true);
+    
+    try {
+      for (const alunoId of alunosSelecionados) {
+        const { data: maxOrdemData } = await supabase.from('fichas')
+          .select('ordem').eq('aluno_id', alunoId).order('ordem', { ascending: false }).limit(1).maybeSingle();
+        const startOrdem = (maxOrdemData?.ordem || 0) + 1;
+
+        const inserts = programaParaAtribuir.map((treino, idx) => ({
+          aluno_id: alunoId,
+          nome_treino: treino.nome_treino,
+          descricao: JSON.stringify(treino.exercicios),
+          ordem: startOrdem + idx,
+          personal_id: treino.personal_id,
+          ativo: true
+        }));
+
+        await supabase.from('fichas').insert(inserts);
+
+        await supabase.from('user_notifications').insert([{
+          user_id: alunoId, titulo: 'Novo Treino Disponível! 💪',
+          corpo: `O personal adicionou o programa "${programaParaAtribuir[0]?.nome_treino.split('-')[0].trim()}" para você.`, lida: false
+        }]);
+      }
+      
+      showToast('success', 'Treinos copiados com sucesso!');
+      setIsModalAtribuirOpen(false);
+      setAlunosSelecionados([]);
+    } catch(e) {
+      showToast('error', 'Erro ao copiar treinos.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const excluirFeedback = async (idFeedback: string) => {
+    if (!window.confirm(t.alerts.confirmFeedback)) return;
+    const { error } = await supabase.from('feedbacks_treino').delete().eq('id', idFeedback);
+    if (!error) fetchFeedbacks(); else showToast('error', t.alerts.errDelete + error.message);
+  };
+
+  const excluirAvaliacao = async (avaliacaoId: string) => {
+    if (!window.confirm(t.alerts.confirmAvaliacao)) return;
+    const { error } = await supabase.from('avaliacoes_fisicas').delete().eq('id', avaliacaoId);
+    if (!error) fetchHistorico(); else showToast('error', t.alerts.errDelete + error.message);
+  };
+
+  const salvarAvaliacaoCompleta = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    const { error } = await supabase.from('avaliacoes_fisicas').insert({
+      aluno_id: id, personal_id: user?.id, data_avaliacao: new Date().toISOString(), ...medidas
+    });
+    if (!error) {
+      setIsModalAvaliacaoOpen(false);
+      setMedidas({ peso: '', gordura: '', torax: '', ombros: '', abdomen: '', cintura: '', quadril: '', braco_direito: '', braco_esquerdo: '', observacoes: '' });
+      fetchHistorico();
+      showToast('success', 'Avaliação salva!');
+    } else showToast('error', t.alerts.errSave + error.message);
+  };
+
+  if (!mounted) return <main className="min-h-screen bg-[#0F1115]" />;
 
   return (
-    <main 
-      style={themeStyles} 
-      className="min-h-screen bg-[var(--bg)] text-[var(--text-primary)] transition-colors duration-500 font-sans antialiased pb-[env(safe-area-inset-bottom)] flex flex-col"
-    >
-      {/* ⚠️ AQUI ESTÁ A CORREÇÃO DE LARGURA: w-full max-w-md md:max-w-2xl ⚠️ */}
-      <div className="w-full max-w-md md:max-w-2xl mx-auto flex flex-col pt-[max(env(safe-area-inset-top),1.5rem)] px-5 pb-32 space-y-6">
+    <main style={themeStyles} className="w-full min-h-[100dvh] bg-[var(--bg)] text-[var(--text-primary)] px-5 pt-[calc(env(safe-area-inset-top)+2rem)] pb-[calc(env(safe-area-inset-bottom)+8rem)] transition-colors duration-500 font-sans relative overflow-hidden">
+      
+      <div className="absolute top-[-10%] left-[-10%] w-[120vw] sm:w-[400px] h-[120vw] sm:h-[400px] bg-[var(--primary)]/10 rounded-full blur-[100px] pointer-events-none" />
 
-        {/* ━━━━━━━━━━ HEADER & PREFERENCES ━━━━━━━━━━ */}
-        <header className="flex justify-between items-center w-full mt-4">
-          <div className="flex items-center gap-4">
-            <div className="relative w-14 h-14 rounded-full p-[2px] bg-gradient-to-tr from-[var(--primary)] to-[var(--primary-soft)] shadow-lg shadow-[var(--primary)]/20 shrink-0">
-              <div className="w-full h-full rounded-full bg-[var(--surface)] p-[2px]">
-                {personal?.avatar_url ? (
-                  <img src={personal.avatar_url} alt="Personal Avatar" className="w-full h-full object-cover rounded-full" />
+      {toast && (
+        <div className={`fixed top-[max(env(safe-area-inset-top,24px),24px)] left-1/2 -translate-x-1/2 px-6 py-4 rounded-[1.2rem] shadow-2xl z-[500] flex items-center gap-3 backdrop-blur-md border animate-in slide-in-from-top-4 fade-in ${toast.type === 'success' ? 'bg-[var(--success)]/10 text-[var(--success)] border-[var(--success)]/20' : 'bg-[var(--danger)]/10 text-[var(--danger)] border-[var(--danger)]/20'}`}>
+          {toast.type === 'success' ? <FaCheckCircle size={16} /> : <FaExclamationCircle size={16} />}
+          <span className="text-[10px] font-black uppercase tracking-widest">{toast.text}</span>
+        </div>
+      )}
+
+      {/* Modal: Atribuir Treinos */}
+      {isModalAtribuirOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xl z-[600] flex items-end sm:items-center justify-center p-0 sm:p-5 animate-in fade-in duration-300">
+          <div className="bg-[var(--surface)] w-full sm:max-w-md rounded-t-[2.5rem] sm:rounded-[2.5rem] p-6 sm:p-8 shadow-2xl border border-[var(--border)] overflow-y-auto max-h-[90vh] sm:max-h-[85vh] animate-in slide-in-from-bottom-8 sm:zoom-in-95 custom-scrollbar">
+            <div className="mb-6 border-b border-[var(--border)] pb-4">
+              <h3 className="text-xl font-black tracking-tighter text-[var(--text-primary)]">{t.workouts.assign}</h3>
+              <p className="text-[var(--text-secondary)] text-[10px] uppercase tracking-widest font-black mt-1">
+                {programaParaAtribuir[0]?.nome_treino.split('-')[0].trim() || 'Programa'}
+              </p>
+            </div>
+            
+            <div className="space-y-2 mb-6">
+              {alunosList.length > 0 ? alunosList.map(a => (
+                <label key={a.id} className="flex items-center gap-3 p-4 bg-[var(--surface-sec)] hover:bg-[var(--primary)]/5 border border-[var(--border)] hover:border-[var(--primary)]/30 rounded-2xl cursor-pointer transition-colors">
+                  <input 
+                    type="checkbox" 
+                    className="w-5 h-5 accent-[var(--primary)]"
+                    checked={alunosSelecionados.includes(a.id)}
+                    onChange={(e) => {
+                      if(e.target.checked) setAlunosSelecionados([...alunosSelecionados, a.id]);
+                      else setAlunosSelecionados(alunosSelecionados.filter(id => id !== a.id));
+                    }}
+                  />
+                  <span className="font-bold text-[var(--text-primary)] text-sm">{a.nome}</span>
+                </label>
+              )) : (
+                <p className="text-[var(--text-secondary)] text-[10px] font-black uppercase text-center py-4">Nenhum outro aluno encontrado.</p>
+              )}
+            </div>
+
+            <div className="flex gap-4">
+              <button onClick={() => { setIsModalAtribuirOpen(false); setAlunosSelecionados([]); }} className="flex-1 py-4 bg-[var(--surface-sec)] text-[var(--text-primary)] hover:bg-[var(--border)] rounded-[1.2rem] font-black text-[10px] uppercase tracking-widest transition-colors active:scale-95">
+                {t.modalEval.cancel}
+              </button>
+              <button onClick={atribuirProgramaEmLote} disabled={alunosSelecionados.length === 0} className="flex-1 py-4 bg-[var(--primary)] text-white rounded-[1.2rem] font-black text-[10px] uppercase tracking-widest disabled:opacity-50 hover:brightness-110 shadow-lg shadow-[var(--primary)]/20 transition-all active:scale-95">
+                Confirmar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {loading && !isModalAtribuirOpen ? <DetalheAlunoSkeleton /> : (
+        <div className="max-w-4xl mx-auto space-y-8 relative z-10 animate-in fade-in duration-700">
+          
+          <div className="flex justify-between items-center mb-6">
+            <button onClick={() => router.back()} className="flex items-center gap-2 text-[10px] font-black text-[var(--text-secondary)] uppercase tracking-widest hover:text-[var(--primary)] transition-all active:scale-95">
+              <FaChevronLeft size={10} /> {t.back}
+            </button>
+            <div className="flex gap-2">
+              <button onClick={toggleLang} className="w-10 h-10 rounded-full bg-[var(--surface)] border border-[var(--border)] shadow-sm flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--primary)] transition-all active:scale-95 relative">
+                <FaGlobe size={14} />
+                <span className="absolute -top-1 -right-1 bg-[var(--primary)] text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full">{lang.split('-')[0].toUpperCase()}</span>
+              </button>
+              <button onClick={toggleTheme} className="w-10 h-10 rounded-full bg-[var(--surface)] border border-[var(--border)] shadow-sm flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--primary)] transition-all active:scale-95">
+                {isDark ? <FaSun size={14} /> : <FaMoon size={14} />}
+              </button>
+            </div>
+          </div>
+
+          <section className="bg-[var(--surface)] p-8 rounded-[2.5rem] border border-[var(--border)] shadow-xl mb-8 flex flex-col items-center text-center gap-5">
+            <div className="w-24 h-24 rounded-[2rem] overflow-hidden border border-[var(--border)] shadow-inner bg-[var(--surface-sec)]">
+              <img src={aluno?.avatar_url || 'https://via.placeholder.com/150'} className="w-full h-full object-cover" alt={aluno?.nome} />
+            </div>
+            <div>
+              <h1 className="text-3xl font-black tracking-tighter mb-2">{aluno?.nome}</h1>
+              <p className="text-[var(--primary)] font-black bg-[var(--primary)]/10 px-4 py-1.5 rounded-full inline-block text-[10px] uppercase tracking-widest border border-[var(--primary)]/20">
+                {t.objective} {aluno?.objetivo || t.notDefined}
+              </p>
+            </div>
+            <div className="w-full mt-2">
+               <ControleFinanceiro alunoId={id} initialStatus={aluno?.status_pagamento || 'pendente'} />
+            </div>
+          </section>
+
+          <div className="flex gap-6 mb-8 border-b border-[var(--border)] overflow-x-auto custom-scrollbar pb-1">
+            {[
+              { id: 'treinos', label: t.tabs.workouts, icon: FaDumbbell },
+              { id: 'evolucao', label: t.tabs.evolution, icon: FaChartLine },
+              { id: 'feedback', label: t.tabs.feedback, icon: FaCommentAlt },
+              { id: 'arquivos', label: t.tabs.files, icon: FaFolderOpen }
+            ].map((tab) => (
+              <button 
+                key={tab.id} 
+                onClick={() => { setAbaAtiva(tab.id); router.replace(`?aba=${tab.id}`) }} 
+                className={`pb-3 text-[10px] font-black uppercase tracking-widest transition-all border-b-2 whitespace-nowrap flex items-center gap-2 ${
+                  abaAtiva === tab.id ? 'border-[var(--primary)] text-[var(--primary)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                }`}
+              >
+                <tab.icon size={12} /> {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {abaAtiva === 'treinos' && (
+            <section className="space-y-6 animate-in slide-in-from-right-4 fade-in duration-500">
+              
+              <div className="flex gap-2">
+                <button onClick={() => { setMostrarArquivados(false); setIndexAberto(null); }} className={`flex-1 py-3 rounded-[1rem] font-black text-[10px] uppercase tracking-widest transition-all ${!mostrarArquivados ? 'bg-[var(--primary)] text-white shadow-lg shadow-[var(--primary)]/20' : 'bg-[var(--surface-sec)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border)]'}`}>
+                  {t.workouts.active}
+                </button>
+                <button onClick={() => { setMostrarArquivados(true); setIndexAberto(null); }} className={`flex-1 py-3 rounded-[1rem] font-black text-[10px] uppercase tracking-widest transition-all ${mostrarArquivados ? 'bg-[var(--primary)] text-white shadow-lg shadow-[var(--primary)]/20' : 'bg-[var(--surface-sec)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border)]'}`}>
+                  {t.workouts.archived}
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 gap-6">
+                {fichasAgrupadas.length > 0 ? (
+                  fichasAgrupadas.map((grupo, gIndex) => {
+                    const estaAberto = indexAberto === gIndex;
+                    
+                    return (
+                      <div 
+                        key={gIndex} 
+                        className={`p-6 sm:p-8 rounded-[2.5rem] shadow-xl relative transition-all duration-300 ${
+                          mostrarArquivados 
+                            ? 'bg-[var(--surface-sec)]/50 opacity-75 grayscale-[30%] border-2 border-dashed border-[var(--border)]' 
+                            : 'bg-[var(--surface)] border border-[var(--border)]'
+                        }`}
+                      >
+                        <div 
+                          className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6 border-b border-[var(--border)] pb-4 cursor-pointer"
+                          onClick={() => setIndexAberto(estaAberto ? null : gIndex)}
+                        >
+                          <div>
+                            <span className={`text-[8px] font-black uppercase tracking-widest px-2.5 py-1 rounded-md border ${mostrarArquivados ? 'bg-[var(--text-secondary)]/10 text-[var(--text-secondary)] border-[var(--border)]' : 'bg-[var(--primary)]/10 text-[var(--primary)] border-[var(--primary)]/20'}`}>
+                              {mostrarArquivados ? t.workouts.archived : t.workouts.program}
+                            </span>
+                            <h2 className="text-xl sm:text-2xl font-black mt-3 text-[var(--text-primary)] tracking-tight">
+                              {grupo.nomeMaster}
+                            </h2>
+                            <div className="flex flex-wrap gap-2 mt-3">
+                              {grupo.treinos[0].tipo_treino && (
+                                <span className="text-[9px] font-bold bg-[var(--surface-sec)] text-[var(--text-secondary)] px-2 py-1 rounded-lg border border-[var(--border)]">
+                                  {grupo.treinos[0].tipo_treino}
+                                </span>
+                              )}
+                              {grupo.treinos[0].objetivo && (
+                                <span className="text-[9px] font-bold bg-[var(--surface-sec)] text-[var(--text-secondary)] px-2 py-1 rounded-lg border border-[var(--border)]">
+                                  {grupo.treinos[0].objetivo}
+                                </span>
+                              )}
+                              {grupo.treinos[0].dificuldade && (
+                                <span className="text-[9px] font-bold bg-[var(--surface-sec)] text-[var(--text-secondary)] px-2 py-1 rounded-lg border border-[var(--border)]">
+                                  {grupo.treinos[0].dificuldade}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                                  
+                          <div className="flex flex-wrap gap-2" onClick={(e) => e.stopPropagation()}>
+                            <button onClick={() => { setProgramaParaAtribuir(grupo.treinos); setIsModalAtribuirOpen(true); }} className="bg-[var(--primary)]/10 text-[var(--primary)] p-3 rounded-xl hover:bg-[var(--primary)] hover:text-white transition-colors" title={t.workouts.assign}>
+                              <FaUsers size={14} />
+                            </button>
+                            
+                            {mostrarArquivados ? (
+                              <button onClick={() => toggleArquivarPrograma(grupo.treinos, false)} className="bg-[var(--success)]/10 text-[var(--success)] p-3 rounded-xl hover:bg-[var(--success)] hover:text-white transition-colors" title={t.workouts.restore}>
+                                <FaUndo size={14} />
+                              </button>
+                            ) : (
+                              <button onClick={() => toggleArquivarPrograma(grupo.treinos, true)} className="bg-[var(--text-secondary)]/10 text-[var(--text-secondary)] p-3 rounded-xl hover:bg-[var(--text-secondary)] hover:text-[var(--bg)] transition-colors" title={t.workouts.archive}>
+                                <FaArchive size={14} />
+                              </button>
+                            )}
+
+                            <button onClick={() => excluirProgramaCompleto(grupo.treinos)} className="text-[var(--danger)] bg-[var(--danger)]/10 p-3 rounded-xl hover:bg-[var(--danger)]/20 transition-colors" title="Excluir Definitivamente">
+                              <FaTrash size={14} />
+                            </button>
+                          </div>
+                        </div>
+
+                        {estaAberto && (
+                          <div className="grid gap-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                            {grupo.treinos.map((treino: any) => (
+                              <div key={treino.id} className="bg-[var(--surface-sec)] p-6 rounded-[1.5rem] border border-[var(--border)] hover:border-[var(--primary)]/30 transition-all">
+                                <div className="mb-4">
+                                  <h3 className="text-lg font-black text-[var(--text-primary)]">{treino.nome_sub}</h3>
+                                </div>
+                                <div className="space-y-3 mb-6">
+                                  {treino.exercicios?.map((ex: any, eIdx: number) => (
+                                    <div key={eIdx} className="bg-[var(--surface)] p-4 rounded-xl border border-[var(--border)]">
+                                      <p className="font-black text-xs text-[var(--text-primary)] mb-2">{eIdx + 1}. {ex.nome}</p>
+                                      {ex.observacao && <p className="text-[9px] text-[var(--text-secondary)] italic mb-3">"{ex.observacao}"</p>}
+                                      
+                                      <div className="grid grid-cols-4 gap-1 text-[9px] font-black uppercase text-[var(--text-secondary)] mb-1 text-center">
+                                        <span>Série</span><span>Reps</span><span>Carga</span><span>Desc.</span>
+                                      </div>
+                                      {ex.series?.map((s: any, sIdx: number) => (
+                                        <div key={sIdx} className="grid grid-cols-4 gap-1 text-[11px] font-bold text-[var(--text-primary)] bg-[var(--bg)] py-1.5 rounded-lg text-center mb-1">
+                                          <span>{s.ordem || sIdx + 1 + 'ª'}</span>
+                                          <span>{s.reps}</span>
+                                          <span>{s.carga}{s.unidadeCarga}</span>
+                                          <span>{s.intervalo}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  ))}
+                                </div>
+
+                                <div className="flex gap-2">
+                                  <button onClick={() => router.push(`/dashboard/aluno/${id}/treino/${treino.id}`)} className="flex-[2] text-[10px] font-black uppercase tracking-widest text-[var(--primary)] py-3 bg-[var(--primary)]/5 border border-[var(--primary)]/10 rounded-[1.2rem]">
+                                    {t.workouts.viewDetails}
+                                  </button>
+                                  <button onClick={() => router.push(`/dashboard/aluno/${id}/editar-ficha/${treino.id}`)} className="flex-1 text-[10px] font-black uppercase tracking-widest text-white py-3 bg-[var(--primary)] rounded-[1.2rem] flex items-center justify-center gap-2">
+                                    <FaEdit size={12} /> <span className="hidden sm:inline">{t.workouts.edit}</span>
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })
                 ) : (
-                  <FaUserCircle className="w-full h-full text-[var(--text-secondary)]" />
+                  <div className="py-12 text-center border-2 border-dashed border-[var(--border)] rounded-[2rem] bg-[var(--surface)]/50">
+                    <p className="text-[var(--text-secondary)] font-black uppercase text-[10px] tracking-widest">{t.workouts.empty}</p>
+                  </div>
                 )}
               </div>
-            </div>
-            <div className="flex flex-col truncate">
-              <span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-0.5">Personal Trainer</span>
-              <h1 className="font-black text-lg leading-none tracking-tight truncate">{personal?.nome || 'Personal'}</h1>
-              <p className="text-[var(--primary)] text-[9px] font-black uppercase tracking-[0.2em] mt-1">CREF: {personal?.cref || 'N/A'}</p>
-            </div>
-          </div>
-          
-          <div className="flex gap-2 shrink-0">
-            {/* Ícone de Idioma */}
-            <button onClick={toggleLang} className="w-10 h-10 rounded-full bg-[var(--surface)] border border-[var(--border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--primary)] transition-all active:scale-95 shadow-sm relative">
-              <FaGlobe size={16} />
-              <span className="absolute -top-1 -right-1 bg-[var(--primary)] text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full leading-none flex items-center">{lang.split('-')[0].toUpperCase()}</span>
-            </button>
 
-            {/* SININHO DE NOTIFICAÇÕES */}
-            <div className="flex items-center justify-center">
-              <NotificationBell />
-            </div>
+              {!mostrarArquivados && (
+                <a href={`/dashboard/aluno/${id}/nova-ficha`} className="flex items-center justify-center gap-2 w-full bg-[var(--primary)] text-white p-5 rounded-[1.5rem] font-black text-[10px] sm:text-[11px] uppercase tracking-widest active:scale-[0.98] transition-transform shadow-lg shadow-[var(--primary)]/20 mt-6">
+                  <FaPlus size={12} /> {t.workouts.new}
+                </a>
+              )}
+            </section>
+          )}
 
-            {/* Ícone de Tema */}
-            <button onClick={toggleTheme} className="w-10 h-10 rounded-full bg-[var(--surface)] border border-[var(--border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--primary)] transition-all active:scale-95 shadow-sm">
-              {isDark ? <FaSun size={16} /> : <FaMoon size={16} />}
-            </button>
-          </div>
-        </header>
-
-        {/* ━━━━━━━━━━ BANNER DE ATIVAÇÃO PUSH ━━━━━━━━━━ */}
-        {typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default' && (
-          <div className="bg-gradient-to-r from-blue-600 to-[var(--primary)] p-5 rounded-[1.5rem] border border-white/10 shadow-lg animate-in fade-in slide-in-from-top-4 duration-500">
-            <div className="flex flex-col gap-3">
-              <div>
-                <h3 className="font-black text-sm text-white tracking-tight">Não perca nenhum treino! </h3>
-                <p className="text-white/80 text-[11px] font-medium leading-relaxed mt-1">
-                  Ative as notificações para receber os novos treinos e avisos do seu Personal diretamente no telemóvel.
-                </p>
-              </div>
-              <button 
-                onClick={async () => {
-                  await NotificationService.registrarDispositivo();
-                  router.refresh();
-                }}
-                className="w-full py-2.5 bg-white text-[var(--primary)] rounded-xl font-black text-[11px] uppercase tracking-widest active:scale-[0.98] transition-all shadow-md"
-              >
-                Permitir Notificações
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ━━━━━━━━━━ STATUS ALUNO ━━━━━━━━━━ */}
-        {aluno && (
-          <div className="bg-[var(--surface)] p-4 rounded-[1.5rem] border border-[var(--border)] flex justify-between items-center shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="flex flex-col">
-              <span className="text-[9px] font-bold uppercase text-[var(--text-secondary)] tracking-widest mb-1">{t.status}</span>
-              <div className="flex items-center gap-2">
-                <div className={`w-2 h-2 rounded-full ${aluno.status_pagamento === 'bloqueado' ? 'bg-[var(--danger)] shadow-[0_0_8px_var(--danger)]' : 'bg-[var(--success)] shadow-[0_0_8px_var(--success)]'}`} />
-                <span className="font-black text-[12px]">{aluno.status_pagamento === 'bloqueado' ? t.blocked : t.active}</span>
-              </div>
-            </div>
-            <div className="text-right flex flex-col">
-              <span className="text-[9px] font-bold uppercase text-[var(--text-secondary)] tracking-widest mb-1">{t.due}</span>
-              <span className="font-black text-[12px]">{aluno.data_vencimento ? new Date(aluno.data_vencimento).toLocaleDateString(lang) : 'N/A'}</span>
-            </div>
-          </div>
-        )}
-
-        {/* ━━━━━━━━━━ SAUDAÇÃO E HORÁRIO ATUAL ━━━━━━━━━━ */}
-        <div className="px-2 animate-in fade-in duration-700 delay-300 flex justify-between items-end">
-           <div>
-             <h3 className="text-[14px] font-bold text-[var(--text-primary)]">
-               {getSaudacao()}, {aluno?.nome?.split(' ')[0] || 'Aluno'}! 👋
-             </h3>
-             <p className="text-[10px] font-medium text-[var(--text-secondary)] uppercase tracking-widest mt-1">
-               {format(horaAtual, "EEEE, d 'de' MMMM", { locale: lang === 'pt-BR' ? ptBR : lang === 'pt-PT' ? pt : enUS })}
-             </p>
-           </div>
-           
-           <div className="bg-[var(--surface-sec)] px-3 py-1.5 rounded-lg border border-[var(--border)]">
-              <p className="text-[14px] font-black text-[var(--primary)] tabular-nums tracking-widest">
-                {format(horaAtual, 'HH:mm:ss')}
-              </p>
-           </div>
-        </div>
-
-        {/* ━━━━━━━━━━ HERO: TREINO DO DIA ━━━━━━━━━━ */}
-        {treinoDoDia ? (
-          (() => {
-            let nomeLimpoHero = treinoDoDia.nome_treino || '';
-            const matchTreino = nomeLimpoHero.match(/(treino\s+[a-z0-9]+)/i);
-            
-            if (matchTreino) {
-              nomeLimpoHero = matchTreino[0].toUpperCase();
-            } else if (nomeLimpoHero.includes('-')) {
-              nomeLimpoHero = nomeLimpoHero.split('-').pop()?.trim() || nomeLimpoHero;
-            }
-
-            return (
-              <section className="relative overflow-hidden bg-gradient-to-br from-[var(--primary)] to-blue-800 p-8 rounded-[2rem] shadow-[0_10px_30px_-10px_var(--primary)] border border-white/10 group animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">
-                <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 blur-[50px] rounded-full transform translate-x-1/2 -translate-y-1/2" />
-                
-                <div className="relative z-10 flex justify-between items-start mb-8">
-                  <div className="flex flex-col flex-1 pr-4">
-                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/70 mb-1">{t.today}</span>
-                    <h2 className="text-3xl font-black tracking-tight text-white leading-tight break-words">
-                      {nomeLimpoHero}
-                    </h2>
-                  </div>
-                  <div className="bg-white/20 backdrop-blur-md p-3.5 rounded-2xl shadow-inner shrink-0">
-                    <FaDumbbell className="text-white text-xl" />
-                  </div>
+          {abaAtiva === 'evolucao' && (
+            <section className="space-y-8 animate-in slide-in-from-right-4 fade-in duration-500">
+              <div className="flex flex-col sm:flex-row gap-4 justify-between sm:items-end">
+                <div>
+                  <h2 className="text-2xl sm:text-3xl font-black tracking-tighter text-[var(--text-primary)]">{t.evolution.title}</h2>
+                  <p className="text-[var(--text-secondary)] font-black uppercase text-[9px] sm:text-[10px] tracking-widest mt-1">{t.evolution.subtitle}</p>
                 </div>
-                <button 
-                  onClick={() => router.push(`/aluno/${id}/treino/${treinoDoDia.id}`)}
-                  className="relative z-10 w-full py-4 bg-white text-[var(--primary)] rounded-2xl font-black text-[12px] uppercase tracking-widest transition-transform active:scale-[0.98] shadow-xl hover:shadow-2xl flex items-center justify-center gap-2"
-                >
-                  {t.start}
+                <button onClick={() => setIsModalAvaliacaoOpen(true)} className="w-full sm:w-auto bg-[var(--primary)] text-white px-6 py-4 rounded-[1.2rem] font-black text-[10px] uppercase tracking-widest active:scale-[0.98] transition-transform shadow-md shadow-[var(--primary)]/20 flex items-center justify-center gap-2">
+                  <FaPlus size={10} /> {t.evolution.newEval}
                 </button>
-              </section>
-            );
-          })()
-        ) : (
-          <div className="p-8 text-center bg-[var(--surface)] rounded-[2rem] border border-dashed border-[var(--border)] animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">
-            <p className="text-[var(--text-secondary)] text-sm font-bold">{t.none}</p>
-          </div>
-        )}
+              </div>
 
-        {/* ━━━━━━━━━━ WEEK CALENDAR ━━━━━━━━━━ */}
-        <section className="bg-[var(--surface)] p-6 rounded-[2rem] border border-[var(--border)] shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500 delay-150">
-          <div className="flex justify-between items-center mb-5">
-            <h2 className="text-[11px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.2em]">{t.week}</h2>
-          </div>
-          <div className="flex justify-between items-center">
-            {diasSemana.map((dia, i) => {
-              const treinou = diasTreino.some(d => isSameDay(d, dia));
-              const hoje = isSameDay(dia, new Date());
-              const localeObj = lang === 'pt-BR' ? ptBR : lang === 'pt-PT' ? pt : enUS;
-              
-              return (
-                <div key={i} className="flex flex-col items-center gap-2">
-                  <div className={`w-11 h-11 rounded-[14px] flex items-center justify-center font-black text-sm transition-all duration-300 ${
-                    treinou 
-                      ? 'bg-[var(--primary)] text-white shadow-[0_4px_15px_-3px_var(--primary)]' 
-                      : hoje 
-                        ? 'bg-[var(--surface-sec)] border-2 border-[var(--primary)] text-[var(--primary)]' 
-                        : 'bg-[var(--surface-sec)] text-[var(--text-secondary)]'
-                  }`}>
-                    {treinou ? '✓' : format(dia, 'd')}
-                  </div>
-                  <span className={`text-[9px] font-bold uppercase tracking-wider ${hoje ? 'text-[var(--primary)]' : 'text-[var(--text-secondary)]'}`}>
-                    {format(dia, 'EEEEE', { locale: localeObj })}
-                  </span>
+              <div className="bg-[var(--surface)] p-6 sm:p-8 rounded-[2.5rem] border border-[var(--border)] h-64 sm:h-80 shadow-xl">
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="font-black text-[var(--text-secondary)] text-[10px] uppercase tracking-widest flex items-center gap-2"><FaChartLine /> {t.evolution.weight}</h3>
                 </div>
-              );
-            })}
-          </div>
-        </section>
+                <ResponsiveContainer width="100%" height="80%">
+                  <LineChart data={[...historico].filter(a => a.peso).reverse()} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? '#333' : '#e5e7eb'} />
+                    <XAxis dataKey="data_avaliacao" hide />
+                    <YAxis domain={['auto', 'auto']} tick={{fontSize: 10, fill: 'var(--text-secondary)', fontWeight: 700}} axisLine={false} tickLine={false} />
+                    <Tooltip contentStyle={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '12px', fontWeight: 'bold', color: 'var(--text-primary)' }} itemStyle={{ color: 'var(--primary)' }} />
+                    <Line type="monotone" dataKey="peso" stroke="#3B82F6" strokeWidth={4} dot={{ r: 4, fill: '#3B82F6', strokeWidth: 2, stroke: 'var(--surface)' }} activeDot={{ r: 6 }} animationDuration={1500} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
 
-        <button 
-          onClick={() => setCalendarioAberto(true)}
-          className="w-full py-4 bg-[var(--surface)] border border-[var(--border)] rounded-[1.5rem] text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all active:scale-95 shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500 delay-200"
-        >
-          {t.historyBtn}
-        </button>
+              <div className="space-y-4">
+                {historico.filter(a => !a.tipo).map((av) => (
+                  <div key={av.id} className="bg-[var(--surface)] p-6 sm:p-8 rounded-[2.5rem] border border-[var(--border)] shadow-md hover:border-[var(--primary)]/30 transition-colors">
+                    <div className="flex justify-between items-center mb-6 border-b border-[var(--border)] pb-4">
+                      <p className="font-black text-lg text-[var(--text-primary)] bg-[var(--surface-sec)] px-4 py-1.5 rounded-xl">
+                        {new Date(av.data_avaliacao).toLocaleDateString(lang)}
+                      </p>
+                      <button onClick={() => excluirAvaliacao(av.id)} className="text-[var(--text-secondary)] hover:text-[var(--danger)] bg-[var(--surface-sec)] hover:bg-[var(--danger)]/10 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-colors flex items-center gap-2">
+                        <FaTrash size={10} /> <span className="hidden sm:inline">{t.evolution.delete}</span>
+                      </button>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      {Object.entries(av).map(([key, val]: any) => {
+                        const camposProibidos = ['id', 'aluno_id', 'data_avaliacao', 'observacoes', 'tipo', 'personal_id', 'created_at', 'updated_at'];
+                        if (camposProibidos.includes(key) || !val) return null;
+                        return (
+                          <div key={key} className="bg-[var(--surface-sec)] p-4 rounded-[1.2rem] border border-[var(--border)] shadow-inner">
+                            <p className="text-[8px] sm:text-[9px] font-black text-[var(--text-secondary)] uppercase tracking-widest truncate mb-1">{key.replace('_', ' ')}</p>
+                            <p className="font-black text-sm sm:text-base text-[var(--text-primary)]">
+                              {val}<span className="text-[9px] text-[var(--text-secondary)] ml-1">{['peso', 'gordura'].includes(key) ? (key === 'peso' ? 'kg' : '%') : 'cm'}</span>
+                            </p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
 
-        {/* ━━━━━━━━━━ GRID MENU ━━━━━━━━━━ */}
-        <div className="grid grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-300">
-          <BotaoMenu icon={<FaDumbbell />} label={t.trainings} onClick={() => router.push(`/aluno/${id}/treinos`)} />
-          <BotaoMenu icon={<FaClipboardList />} label={t.evaluations} onClick={async () => { 
-            const { data } = await supabase.from('avaliacoes_fisicas').select('*').eq('aluno_id', id); 
-            if(data) { setAvaliacoes(data); setModalAberta(true); } 
-          }} />
-          <BotaoMenu icon={<FaChartLine />} label={t.progress} onClick={() => router.push(`/aluno/${id}/progresso`)} />
-          <BotaoMenu icon={<FaCommentMedical />} label={t.feedback} onClick={() => router.push(`/aluno/${id}/feedback`)} />
-          <BotaoMenu icon={<FaFileInvoice />} label={t.invoices} onClick={() => router.push(`/aluno/${id}/faturas`)} />
-          <BotaoMenu icon={<FaFolderOpen />} label={t.files} onClick={() => router.push(`/aluno/${id}/arquivos`)} />
-        </div>
+          {abaAtiva === 'feedback' && (
+            <section className="space-y-6 animate-in slide-in-from-right-4 fade-in duration-500">
+              <div className="flex items-end justify-between mb-8">
+                <div>
+                  <h2 className="text-2xl sm:text-3xl font-black tracking-tighter text-[var(--text-primary)]">{t.feedback.title}</h2>
+                  <p className="text-[var(--text-secondary)] font-black uppercase text-[9px] sm:text-[10px] tracking-widest mt-1">{t.feedback.subtitle}</p>
+                </div>
+                <div className="text-[10px] font-black uppercase tracking-widest text-[var(--primary)] bg-[var(--primary)]/10 px-4 py-2 rounded-full border border-[var(--primary)]/20 shadow-sm">
+                  {feedbacks.length}
+                </div>
+              </div>
 
-        {/* Modais */}
-        {modalAberta && (
-          <ModalAvaliacao 
-            isOpen={modalAberta} 
-            onClose={() => setModalAberta(false)} 
-            avaliacao={avaliacoes[avaliacoes.length - 1]} 
-            historico={avaliacoes.map(a => ({ data: new Date(a.data_avaliacao).toLocaleDateString(), peso: a.peso }))}
-            themeStyles={themeStyles}
-            t={t}
-            lang={lang}
-          />
-        )}
+              <div className="grid gap-4">
+                {feedbacks.length > 0 ? (
+                  feedbacks.map((f) => (
+                    <div key={f.id} className="bg-[var(--surface)] p-6 sm:p-8 rounded-[2.5rem] border border-[var(--border)] shadow-md">
+                      <div className="flex justify-between items-start mb-6">
+                        <div className="flex items-center gap-4">
+                          <div className={`w-14 h-14 rounded-[1.2rem] flex items-center justify-center font-black text-lg shadow-inner ${f.intensidade > 7 ? 'bg-[var(--danger)]/10 text-[var(--danger)] border border-[var(--danger)]/20' : 'bg-[var(--primary)]/10 text-[var(--primary)] border border-[var(--primary)]/20'}`}>
+                            {f.intensidade}
+                          </div>
+                          <div>
+                            <p className="text-[9px] font-black uppercase tracking-widest text-[var(--text-secondary)]">{t.feedback.intensity}</p>
+                            <p className="font-black text-[var(--text-primary)] text-sm">{t.feedback.level} {f.intensidade} / 10</p>
+                          </div>
+                        </div>
+                        <button onClick={() => excluirFeedback(f.id)} className="text-[var(--text-secondary)] hover:text-[var(--danger)] bg-[var(--surface-sec)] hover:bg-[var(--danger)]/10 w-10 h-10 rounded-xl flex items-center justify-center transition-colors">
+                          <FaTrash size={12} />
+                        </button>
+                      </div>
 
-        {/* Espaçador inferior para não colar na Navbar */}
-        <div className="h-20 w-full shrink-0" aria-hidden="true" />
-      </div>
+                      <div className="text-sm italic font-medium leading-relaxed text-[var(--text-primary)] bg-[var(--surface-sec)] p-6 rounded-[1.5rem] border-l-4 border-[var(--primary)] shadow-inner">
+                        "{f.observacoes}"
+                      </div>
+                      
+                      <p className="text-[9px] font-black uppercase tracking-widest text-[var(--text-secondary)] mt-5 text-right">
+                        {new Date(f.data_criacao).toLocaleDateString(lang)}
+                      </p>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-12 border-2 border-dashed border-[var(--border)] rounded-[2.5rem] bg-[var(--surface)]/50">
+                    <p className="text-[var(--text-secondary)] font-black uppercase text-[10px] tracking-widest">{t.feedback.empty}</p>
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
 
-      {/* ━━━━━━━━━━ MODAL: CALENDÁRIO ━━━━━━━━━━ */}
-      {calendarioAberto && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xl z-[100] flex items-center justify-center p-4 transition-opacity">
-          <div style={themeStyles} className="bg-[var(--surface)] w-full max-w-sm p-6 sm:p-8 rounded-[2.5rem] border border-[var(--border)] shadow-2xl transform transition-transform animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex justify-between items-center mb-8">
-              <h2 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--primary)]">{t.historyTitle}</h2>
-              <button onClick={() => setCalendarioAberto(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-[var(--surface-sec)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all active:scale-95">
-                <span className="text-xl leading-none">&times;</span>
-              </button>
+          {abaAtiva === 'arquivos' && (
+            <section className="space-y-8 animate-in slide-in-from-right-4 fade-in duration-500">
+              <div>
+                <h2 className="text-2xl sm:text-3xl font-black tracking-tighter text-[var(--text-primary)]">{t.files.title}</h2>
+                <p className="text-[var(--text-secondary)] font-black uppercase text-[9px] sm:text-[10px] tracking-widest mt-1">{t.files.subtitle}</p>
+              </div>
+
+              <div className="bg-[var(--surface)] p-8 rounded-[2.5rem] border-2 border-dashed border-[var(--border)] text-center hover:border-[var(--primary)] hover:bg-[var(--surface-sec)] transition-all">
+                <label className="cursor-pointer flex flex-col items-center gap-4">
+                  <div className="p-4 bg-[var(--primary)]/10 text-[var(--primary)] rounded-2xl shadow-inner">
+                    <FaUpload size={24} />
+                  </div>
+                  <span className="font-black text-[11px] text-[var(--text-primary)] uppercase tracking-widest">{t.files.upload}</span>
+                  <input type="file" accept="application/pdf" className="hidden" onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      const filePath = `${id}/${Date.now()}-${file.name}`;
+                      const { error: uploadError } = await supabase.storage.from('documentos-alunos').upload(filePath, file);
+                      if (uploadError) return showToast('error', t.alerts.errUpload);
+                      await supabase.from('documentos').insert({ aluno_id: id, url: filePath, nome_arquivo: file.name });
+                      showToast('success', t.alerts.successUpload); 
+                      await fetchArquivos(); 
+                    }}
+                  />
+                </label>
+              </div>
+
+              <div className="space-y-4">
+                {arquivos && arquivos.length > 0 ? (
+                  arquivos.map((arq: any) => (
+                    <div key={arq.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-5 bg-[var(--surface)] border border-[var(--border)] rounded-[2rem] shadow-sm gap-4 hover:border-[var(--primary)]/30 transition-colors">
+                      <div className="flex items-center gap-4 overflow-hidden w-full sm:w-auto">
+                        <div className="p-3 bg-[var(--danger)]/10 text-[var(--danger)] rounded-xl shrink-0"><FaFilePdf size={16} /></div>
+                        <span className="font-black text-xs text-[var(--text-primary)] truncate">{arq.nome_arquivo}</span>
+                      </div>
+                      <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                        <button onClick={() => { const { data } = supabase.storage.from('documentos-alunos').getPublicUrl(arq.url); window.open(data.publicUrl, '_blank'); }} className="flex-1 sm:flex-none text-[9px] font-black uppercase tracking-widest bg-[var(--primary)]/10 text-[var(--primary)] px-4 py-3 rounded-xl hover:bg-[var(--primary)]/20 transition-colors text-center">
+                          {t.files.open}
+                        </button>
+                        <button onClick={async () => {
+                            if (!window.confirm(t.alerts.confirmArquivo)) return;
+                            await supabase.storage.from('documentos-alunos').remove([arq.url]);
+                            await supabase.from('documentos').delete().eq('id', arq.id);
+                            await fetchArquivos();
+                          }} className="p-3 bg-[var(--surface-sec)] text-[var(--text-secondary)] hover:text-[var(--danger)] hover:bg-[var(--danger)]/10 rounded-xl transition-colors shrink-0" title="Remover"
+                        >
+                          <FaTrash size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-12 border-2 border-dashed border-[var(--border)] rounded-[2.5rem] bg-[var(--surface)]/50">
+                    <p className="text-[var(--text-secondary)] font-black uppercase text-[10px] tracking-widest">{t.files.empty}</p>
+                  </div>
+                )}
+              </div>
+            </section>
+          )}
+
+          {/* MODAL DE AVALIAÇÃO OTIMIZADO MOBILE/PREMIUM */}
+          {isModalAvaliacaoOpen && (
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-xl z-[600] flex items-end sm:items-center justify-center p-0 sm:p-5 animate-in fade-in duration-300">
+              <div className="bg-[var(--surface)] w-full sm:max-w-xl rounded-t-[2.5rem] sm:rounded-[2.5rem] p-6 sm:p-8 shadow-2xl border border-[var(--border)] overflow-y-auto max-h-[90vh] sm:max-h-[85vh] animate-in slide-in-from-bottom-8 sm:zoom-in-95 custom-scrollbar">
+                
+                <div className="mb-8 border-b border-[var(--border)] pb-4">
+                  <h3 className="text-2xl font-black tracking-tighter text-[var(--text-primary)]">{t.modalEval.title}</h3>
+                  <p className="text-[var(--text-secondary)] text-[10px] uppercase tracking-widest font-black mt-1">{t.modalEval.subtitle}</p>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  {Object.keys(medidas).filter(k => k !== 'observacoes').map((key) => (
+                    <div key={key} className="space-y-2">
+                      <label className="text-[9px] font-black uppercase text-[var(--text-secondary)] tracking-widest pl-1">
+                        {key.replace('_', ' ')}
+                      </label>
+                      <input type="number" className="w-full p-4 bg-[var(--surface-sec)] border border-[var(--border)] rounded-[1.2rem] font-bold text-[var(--text-primary)] text-sm outline-none focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)] transition-all shadow-inner placeholder:text-[var(--text-secondary)]" placeholder="0.0" onChange={(e) => setMedidas({...medidas, [key]: e.target.value})} />
+                    </div>
+                  ))}
+                </div>
+
+                <textarea className="w-full p-5 bg-[var(--surface-sec)] border border-[var(--border)] rounded-[1.2rem] mt-6 outline-none font-medium text-sm h-32 focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)] transition-all text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] shadow-inner custom-scrollbar" placeholder={t.modalEval.obs} onChange={(e) => setMedidas({...medidas, observacoes: e.target.value})} />
+
+                <div className="flex gap-4 mt-8 pb-8 sm:pb-0">
+                  <button onClick={() => setIsModalAvaliacaoOpen(false)} className="flex-1 py-4 sm:py-5 bg-[var(--surface-sec)] text-[var(--text-primary)] hover:bg-[var(--border)] rounded-[1.2rem] font-black text-[10px] uppercase tracking-widest transition-colors active:scale-95">
+                    {t.modalEval.cancel}
+                  </button>
+                  <button onClick={salvarAvaliacaoCompleta} className="flex-1 py-4 sm:py-5 bg-[var(--primary)] text-white rounded-[1.2rem] font-black text-[10px] uppercase tracking-widest hover:brightness-110 shadow-lg shadow-[var(--primary)]/20 transition-all active:scale-95">
+                    {t.modalEval.save}
+                  </button>
+                </div>
+              </div>
             </div>
-            <CalendarioTreino diasTreinados={diasTreino} lang={lang} />
-          </div>
+          )}
         </div>
       )}
     </main>
   );
 }
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// COMPONENTES AUXILIARES
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-function BotaoMenu({ icon, label, onClick }: any) {
-  return (
-    <button onClick={onClick} className="bg-[var(--surface)] border border-[var(--border)] p-6 rounded-[2rem] flex flex-col items-center justify-center gap-4 active:scale-95 transition-all shadow-sm hover:shadow-[0_10px_30px_-15px_var(--primary)] hover:border-[var(--primary)]/50 group">
-      <div className="text-2xl text-[var(--text-secondary)] group-hover:text-[var(--primary)] transition-colors group-hover:scale-110 duration-300">{icon}</div>
-      <span className="font-bold text-[11px] uppercase tracking-widest text-[var(--text-primary)]">{label}</span>
-    </button>
-  );
-}
-
-function CalendarioTreino({ diasTreinados, lang }: { diasTreinados: Date[], lang: string }) {
-  const [dataAtual, setDataAtual] = useState(new Date());
-  const diasDoMes = useMemo(() => 
-    eachDayOfInterval({ start: startOfMonth(dataAtual), end: endOfMonth(dataAtual) }), 
-  [dataAtual]);
-
-  const localeObj = lang === 'pt-BR' ? ptBR : lang === 'pt-PT' ? pt : enUS;
+export default function DetalheAluno({ params }: { params: Promise<{ id: string }> }) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+  const bgTheme = mounted && localStorage.getItem('@premium_theme') === 'light' ? '#F3F6FB' : '#0F1115';
 
   return (
-    <div className="bg-[var(--surface-sec)] p-6 rounded-[1.5rem] border border-[var(--border)] shadow-inner">
-      <div className="flex justify-between items-center mb-6 bg-[var(--surface)] p-2 rounded-full border border-[var(--border)]">
-        <button onClick={() => setDataAtual(subMonths(dataAtual, 1))} className="p-2 w-10 h-10 flex items-center justify-center rounded-full bg-[var(--surface-sec)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-90 transition-all"><FaChevronLeft size={12}/></button>
-        <h3 className="font-black text-xs uppercase tracking-widest text-[var(--text-primary)]">{format(dataAtual, 'MMMM yyyy', { locale: localeObj })}</h3>
-        <button onClick={() => setDataAtual(addMonths(dataAtual, 1))} className="p-2 w-10 h-10 flex items-center justify-center rounded-full bg-[var(--surface-sec)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-90 transition-all"><FaChevronRight size={12}/></button>
-      </div>
-      <div className="grid grid-cols-7 gap-2 text-center mb-4 border-b border-[var(--border)] pb-4">
-        {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((d, i) => (
-          <div key={i} className="text-[10px] font-black text-[var(--text-secondary)] uppercase">
-            {d}
-          </div>
-        ))}
-      </div>
-      <div className="grid grid-cols-7 gap-2 text-center">
-        {diasDoMes.map((dia, i) => {
-          const treinou = diasTreinados.some(d => isSameDay(d, dia));
-          return (
-            <div key={i} className={`w-9 h-9 sm:w-10 sm:h-10 mx-auto rounded-[12px] flex items-center justify-center text-xs font-bold transition-all relative ${
-              treinou 
-                ? 'bg-[var(--primary)] text-white shadow-[0_0_12px_rgba(37,99,235,0.4)]' 
-                : 'text-[var(--text-primary)] bg-[var(--surface)] border border-[var(--border)]'
-            } ${!isSameMonth(dia, dataAtual) ? 'opacity-20' : ''}`}>
-              {format(dia, 'd')}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function ModalAvaliacao({ isOpen, onClose, avaliacao, historico, themeStyles, t, lang }: any) {
-  if (!isOpen || !avaliacao) return null;
-
-  const pesoAnterior = historico.length > 1 ? historico[historico.length - 2].peso : 0;
-  const diferenca = avaliacao.peso - pesoAnterior;
-
-  const medidasList = [
-    { label: 'Tórax', value: avaliacao.torax },
-    { label: 'Ombros', value: avaliacao.ombros },
-    { label: 'Abdômen', value: avaliacao.abdomen },
-    { label: 'Cintura', value: avaliacao.cintura },
-    { label: 'Quadril', value: avaliacao.quadril },
-    { label: 'Braço Dir.', value: avaliacao.braco_direito },
-  ];
-
-  const primaryColor = typeof window !== 'undefined' && document.documentElement.style.getPropertyValue('--primary') 
-                       ? document.documentElement.style.getPropertyValue('--primary') 
-                       : '#3B82F6';
-
-  return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-xl z-[500] flex items-end sm:items-center justify-center p-0 sm:p-4 transition-opacity">
-      <div style={themeStyles} className="bg-[var(--surface)] w-full max-w-md rounded-t-[2.5rem] sm:rounded-[2.5rem] p-6 pt-8 sm:p-8 max-h-[90vh] flex flex-col shadow-2xl border border-[var(--border)] overflow-hidden animate-in slide-in-from-bottom-full sm:zoom-in-95 duration-300 pb-[env(safe-area-inset-bottom)]">
-        
-        {/* Notch indicador (Mobile) */}
-        <div className="w-12 h-1.5 bg-[var(--border)] rounded-full absolute top-3 left-1/2 -translate-x-1/2 sm:hidden" />
-
-        {/* Header Fixo */}
-        <div className="flex justify-between items-center mb-6 shrink-0 mt-2 sm:mt-0">
-          <div>
-            <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--primary)]">{t.analysis}</h2>
-            <p className="text-2xl font-black text-[var(--text-primary)] tracking-tight">{t.evolution}</p>
-          </div>
-          <button onClick={onClose} className="w-10 h-10 rounded-full bg-[var(--surface-sec)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all active:scale-90 border border-[var(--border)]">
-            <span className="text-xl leading-none">&times;</span>
-          </button>
-        </div>
-
-        {/* Conteúdo com Scroll */}
-        <div className="overflow-y-auto flex-1 pr-2 -mr-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-          
-          <div className="mb-6 bg-[var(--surface-sec)] px-4 py-3 rounded-2xl border border-[var(--border)] inline-block shadow-inner">
-             <p className="text-[10px] font-bold uppercase text-[var(--text-secondary)] tracking-widest">
-               {t.dateOfRecord}: <span className="text-[var(--text-primary)]">{new Date(avaliacao.data_avaliacao).toLocaleDateString(lang)}</span>
-             </p>
-          </div>
-          
-          {/* Gráfico Premium */}
-          <div className="h-48 w-full mb-8 bg-[var(--surface-sec)] rounded-[2rem] p-4 sm:p-5 border border-[var(--border)] relative overflow-hidden group shadow-inner">
-            <div className="absolute inset-0 bg-gradient-to-t from-[var(--primary)]/5 to-transparent opacity-50" />
-            
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={historico} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="colorPeso" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor={primaryColor} stopOpacity={0.4}/>
-                    <stop offset="95%" stopColor={primaryColor} stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                
-                <XAxis dataKey="data" hide />
-                <YAxis domain={['auto', 'auto']} hide padding={{ top: 20, bottom: 20 }} />
-                
-                <Tooltip 
-                  cursor={{ stroke: 'var(--primary)', strokeWidth: 1, strokeDasharray: '4 4' }}
-                  contentStyle={{ 
-                    backgroundColor: 'var(--surface)', 
-                    borderRadius: '1rem', 
-                    border: '1px solid var(--border)',
-                    padding: '8px 12px',
-                    boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
-                    color: 'var(--text-primary)',
-                    fontSize: '12px',
-                    fontWeight: 'bold'
-                  }}
-                  itemStyle={{ color: 'var(--primary)' }}
-                  labelStyle={{ display: 'none' }} 
-                />
-                <Line type="monotone" dataKey="peso" stroke={primaryColor} strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-          
-          {/* Medidas */}
-          <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-secondary)] mb-4">{t.details}</h3>
-          <div className="grid grid-cols-2 gap-3 mb-6">
-            {medidasList.map((m, i) => (
-              <div key={i} className="bg-[var(--surface-sec)] p-3 rounded-xl border border-[var(--border)] flex justify-between items-center">
-                <span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase">{m.label}</span>
-                <span className="text-sm font-black text-[var(--text-primary)]">{m.value || '--'}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
+    <Suspense fallback={
+      <main style={{ backgroundColor: bgTheme }} className="min-h-screen transition-colors duration-500">
+        <DetalheAlunoSkeleton />
+      </main>
+    }>
+      <DetalheAlunoContent params={params} />
+    </Suspense>
   );
 }
