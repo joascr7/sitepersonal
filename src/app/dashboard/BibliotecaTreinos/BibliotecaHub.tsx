@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { 
   FaPlus, FaFolder, FaEllipsisV, FaShareSquare, FaEdit, FaTrash, 
   FaSearch, FaStar, FaPlay, FaVideoSlash, FaChevronDown, FaChevronUp, 
-  FaTimes, FaUpload, FaArchive, FaChevronLeft, FaChevronRight, FaHeart
+  FaTimes, FaUpload, FaArchive, FaChevronLeft, FaHeart
 } from 'react-icons/fa';
 import ModalAtribuirTreino from '@/components/biblioteca/ModalAtribuirTreino';
 
@@ -38,18 +38,19 @@ const CATEGORIAS_PADRAO = [
   { id: 'geral', nome: 'Outros / Geral', icon: '🏋️' }
 ];
 
-// Identificador rápido de categoria para os dados brutos
-const autoCategorize = (nome: string, grupoOriginal: string): string => {
-  if (grupoOriginal && grupoOriginal !== 'Geral') return grupoOriginal;
-  const n = nome.toLowerCase();
-  if (/(supino|crucifixo|peck deck|peito|chest)/.test(n)) return 'Peito';
-  if (/(puxada|remada|barra|costas|dorsal|pulldown)/.test(n)) return 'Costas';
-  if (/(agachamento|leg|extensora|flexora|panturrilha|perna|glúteo|stiff)/.test(n)) return 'Pernas';
-  if (/(desenvolvimento|elevação|ombro|manguito)/.test(n)) return 'Ombros';
-  if (/(rosca|tríceps|bíceps|francesa|testa)/.test(n)) return 'Braços';
-  if (/(abdominal|core|prancha)/.test(n)) return 'Core';
-  if (/(esteira|bike|corrida|pular corda)/.test(n)) return 'Cardio';
-  return 'Geral';
+// 🧠 INTELIGÊNCIA DE CATEGORIZAÇÃO: Força todos os exercícios para os 8 botões acima
+const normalizeCategory = (nome: string, grupoOriginal?: string): string => {
+  const texto = `${nome} ${grupoOriginal || ''}`.toLowerCase();
+  
+  if (/(peito|supino|crucifixo|peck deck|chest|peitoral)/.test(texto)) return 'peito';
+  if (/(costas|puxada|remada|barra|dorsal|pulldown|back)/.test(texto)) return 'costas';
+  if (/(perna|inferior|agachamento|leg|extensora|flexora|panturrilha|glúteo|stiff|afundo|coxa)/.test(texto)) return 'pernas';
+  if (/(ombro|desenvolvimento|elevação|manguito|deltoide)/.test(texto)) return 'ombros';
+  if (/(braço|braco|rosca|tríceps|bíceps|francesa|testa)/.test(texto)) return 'braços';
+  if (/(abdômen|abdomen|core|prancha|isométrico|canivete)/.test(texto)) return 'core';
+  if (/(esteira|bike|corrida|cardio|aeróbico)/.test(texto)) return 'cardio';
+  
+  return 'geral';
 };
 
 export function BibliotecaHub() {
@@ -77,7 +78,7 @@ export function BibliotecaHub() {
 
   const [modalCriarExercicio, setModalCriarExercicio] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [novoExercicio, setNovoExercicio] = useState({ nome: '', video: '', grupo: 'Peito' });
+  const [novoExercicio, setNovoExercicio] = useState({ nome: '', video: '', grupo: 'peito' });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -114,7 +115,7 @@ export function BibliotecaHub() {
                     video: ex.video || '',
                     origem: 'app',
                     favorito: false,
-                    grupo: autoCategorize(ex.nome, ex.musculo_alvo)
+                    grupo: normalizeCategory(ex.nome, ex.musculo_alvo)
                   });
                 }
               });
@@ -133,7 +134,7 @@ export function BibliotecaHub() {
             video: b.url_video || '',
             origem: 'seus',
             favorito: b.favorito || false,
-            grupo: autoCategorize(b.exercicio_nome, b.musculo_alvo)
+            grupo: normalizeCategory(b.exercicio_nome, b.musculo_alvo)
           });
         });
       }
@@ -161,7 +162,6 @@ export function BibliotecaHub() {
   };
 
   const toggleFavorito = async (id: string) => {
-    // Atualiza localmente
     setExercicios(prev => prev.map(e => e.id === id ? { ...e, favorito: !e.favorito } : e));
   };
 
@@ -186,9 +186,18 @@ export function BibliotecaHub() {
       const payload = { personal_id: personalId, exercicio_nome: novoExercicio.nome, url_video: novoExercicio.video, musculo_alvo: novoExercicio.grupo, favorito: false };
       const { data, error } = await supabase.from('videos_biblioteca').insert([payload]).select().single();
       if (error) throw error;
-      setExercicios(prev => [...prev, { id: data.id, nome: data.exercicio_nome, video: data.url_video, origem: 'seus', favorito: false, grupo: data.musculo_alvo }].sort((a, b) => a.nome.localeCompare(b.nome)));
+      
+      setExercicios(prev => [...prev, { 
+        id: data.id, 
+        nome: data.exercicio_nome, 
+        video: data.url_video, 
+        origem: 'seus', 
+        favorito: false, 
+        grupo: normalizeCategory(data.exercicio_nome, data.musculo_alvo) 
+      }].sort((a, b) => a.nome.localeCompare(b.nome)));
+      
       setModalCriarExercicio(false);
-      setNovoExercicio({ nome: '', video: '', grupo: 'Peito' });
+      setNovoExercicio({ nome: '', video: '', grupo: 'peito' });
     } catch (err: any) { alert("Erro ao criar exercício: " + err.message); } finally { setUploading(false); }
   };
 
@@ -196,11 +205,12 @@ export function BibliotecaHub() {
   const exerciciosFiltrados = useMemo(() => {
     return exercicios.filter(ex => {
       const bateBusca = ex.nome.toLowerCase().includes(buscaExercicio.toLowerCase());
-      const bateCategoria = !categoriaAtiva || ex.grupo?.toLowerCase() === categoriaAtiva.toLowerCase();
+      const bateCategoria = !categoriaAtiva || ex.grupo === categoriaAtiva; // Match EXATO com a nossa normalização
       
       let bateOrigem = true;
       if (filtroExercicio === 'favoritos') bateOrigem = ex.favorito;
       if (filtroExercicio === 'seus') bateOrigem = ex.origem === 'seus';
+      // Se for 'app' (Global), ele exibe tudo para evitar confusão.
       
       return bateBusca && bateCategoria && bateOrigem;
     });
@@ -348,7 +358,7 @@ export function BibliotecaHub() {
                 
                 <div className="grid grid-cols-1 gap-3">
                   {CATEGORIAS_PADRAO.map((cat) => {
-                    const count = exercicios.filter(e => e.grupo?.toLowerCase() === cat.id).length;
+                    const count = exercicios.filter(e => e.grupo === cat.id).length;
                     return (
                       <button 
                         key={cat.id} 
@@ -416,7 +426,7 @@ export function BibliotecaHub() {
                           <h3 className="font-black text-[var(--text-primary)] text-base tracking-tight leading-tight line-clamp-2">{ex.nome}</h3>
                           <div className="mt-3">
                             <span className="px-2.5 py-1 bg-[var(--surface-sec)] border border-[var(--border)] rounded-md text-[8px] font-black text-[var(--text-secondary)] uppercase tracking-widest inline-block shadow-inner">
-                              {ex.grupo}
+                              {CATEGORIAS_PADRAO.find(c => c.id === ex.grupo)?.nome.split('/')[0] || ex.grupo}
                             </span>
                           </div>
                         </div>
@@ -471,7 +481,7 @@ export function BibliotecaHub() {
               <div>
                 <label className="text-[10px] font-black uppercase text-[var(--text-secondary)] tracking-widest mb-1.5 block">Grupo Muscular Principal</label>
                 <select value={novoExercicio.grupo} onChange={e => setNovoExercicio({...novoExercicio, grupo: e.target.value})} className="w-full bg-[var(--surface-sec)] border border-[var(--border)] p-4 rounded-xl text-sm font-bold text-[var(--text-primary)] outline-none focus:border-[var(--primary)] appearance-none shadow-inner cursor-pointer">
-                  {CATEGORIAS_PADRAO.map(c => <option key={c.id} value={c.id.charAt(0).toUpperCase() + c.id.slice(1)}>{c.nome}</option>)}
+                  {CATEGORIAS_PADRAO.map(c => <option key={c.id} value={c.id}>{c.nome}</option>)}
                 </select>
               </div>
               
