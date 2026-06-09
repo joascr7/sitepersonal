@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { 
   FaPlus, FaFolder, FaEllipsisV, FaShareSquare, FaEdit, FaTrash, 
   FaSearch, FaStar, FaPlay, FaVideoSlash, FaChevronDown, FaChevronUp, 
-  FaTimes, FaUpload, FaArchive, FaChevronLeft, FaHeart
+  FaTimes, FaUpload, FaArchive, FaChevronLeft, FaChevronRight, FaHeart
 } from 'react-icons/fa';
 import ModalAtribuirTreino from '@/components/biblioteca/ModalAtribuirTreino';
 
