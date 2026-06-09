@@ -144,3 +144,12 @@ body {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* Coloque isso no final do seu globals.css */
+html, body {
+  touch-action: none !important;
+  overscroll-behavior-y: none !important;
+  overscroll-behavior-x: none !important;
+  /* Isso arranca a habilidade do navegador de dar zoom na raiz */
+  zoom: 1 !important; 
+}
