@@ -408,44 +408,50 @@ export default function Dashboard() {
         {loading ? <DashboardSkeleton /> : (
           <div className="max-w-4xl mx-auto flex flex-col">
             
-            <header className="bg-[#1C283F] text-white pt-[max(env(safe-area-inset-top),2rem)] pb-12 px-6 relative">
-              <div className="absolute top-[max(env(safe-area-inset-top),2rem)] right-6 flex gap-3">
-                <button onClick={toggleTheme} className="text-slate-300 hover:text-white transition-colors">
-                  {isDark ? <FaSun size={18} /> : <FaMoon size={18} />}
-                </button>
-                <button onClick={toggleLang} className="text-slate-300 hover:text-white transition-colors relative">
-                  <FaGlobe size={18} />
-                  <span className="absolute -top-1 -right-2 bg-blue-500 text-[8px] font-bold px-1 rounded-full">{lang.split('-')[0]}</span>
-                </button>
-              </div>
+           <header className="bg-[#1C283F] text-white pt-[max(env(safe-area-inset-top),2rem)] pb-12 px-6 relative">
+  {/* Botões superiores */}
+  <div className="absolute top-[max(env(safe-area-inset-top),2rem)] right-6 flex gap-3">
+    <button onClick={toggleTheme} className="text-slate-400 hover:text-white transition-colors">
+      {isDark ? <FaSun size={18} /> : <FaMoon size={18} />}
+    </button>
+    <button onClick={toggleLang} className="text-slate-400 hover:text-white transition-colors relative">
+      <FaGlobe size={18} />
+      <span className="absolute -top-1 -right-2 bg-blue-500 text-[8px] font-bold px-1 rounded-full">{lang.split('-')[0]}</span>
+    </button>
+  </div>
 
-              <div className="flex justify-center items-center w-full mt-2 mb-8">
-                <div className="flex items-center gap-2 text-2xl font-black tracking-widest">
-                  <FaDumbbell className="text-white" />
-                  AURAFIT<span className="font-light">PERSONAL</span>
-                </div>
-              </div>
+  {/* Logo */}
+  <div className="flex justify-center items-center w-full mt-2 mb-10">
+    <div className="flex items-center gap-2 text-2xl font-black tracking-widest opacity-90">
+      <FaDumbbell className="text-white" />
+      AURAFIT<span className="font-light">PERSONAL</span>
+    </div>
+  </div>
 
-              <div className="flex items-center gap-4">
-                <div className="w-14 h-14 rounded-full border-2 border-white/20 bg-slate-700 flex items-center justify-center font-black text-xl overflow-hidden shrink-0">
-                  {avatarUrlRender && !avatarError ? (
-                    <img 
-                      src={avatarUrlRender} 
-                      alt="Avatar do Usuário"
-                      className="w-full h-full object-cover"
-                      onError={() => setAvatarError(true)}
-                    />
-                  ) : (
-                    <span>{nomeDisplay.charAt(0).toUpperCase()}</span>
-                  )}
-                </div>
-                <div>
-                  <h2 className="text-[17px] font-light text-slate-100 leading-tight">
-                    {getSaudacao()} <span className="font-medium text-white">{nomeDisplay}</span>
-                  </h2>
-                </div>
-              </div>
-            </header>
+  {/* Saudação Corrigida e Elegante */}
+  <div className="flex items-center gap-4 max-w-4xl mx-auto">
+    <div className="w-14 h-14 rounded-full border-2 border-white/10 bg-slate-700 flex items-center justify-center font-black text-xl overflow-hidden shrink-0 shadow-lg">
+      {avatarUrlRender && !avatarError ? (
+        <img 
+          src={avatarUrlRender} 
+          alt="Avatar"
+          className="w-full h-full object-cover"
+          onError={() => setAvatarError(true)}
+        />
+      ) : (
+        <span>{nomeDisplay.charAt(0).toUpperCase()}</span>
+      )}
+    </div>
+    <div className="flex flex-col">
+      <span className="text-[12px] font-medium text-slate-300 uppercase tracking-widest opacity-80">
+        {getSaudacao()},
+      </span>
+      <span className="text-xl font-bold text-white tracking-tight">
+        {nomeDisplay}
+      </span>
+    </div>
+  </div>
+</header>
 
             <div className="px-6 -mt-6 relative z-10">
               <div className="flex bg-[var(--surface)] p-1.5 rounded-[1rem] shadow-xl border border-[var(--border)]">

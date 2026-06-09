@@ -12,7 +12,7 @@ const translations = {
     loading: 'CARREGANDO...',
     saving: 'Salvando...',
     nameLabel: 'Nome Completo',
-    crefLabel: 'CREF (Bloqueado)',
+    crefLabel: 'CREF',
     phoneLabel: 'Telefone',
     emailLabel: 'E-mail',
     btnSave: 'SALVAR DADOS',
@@ -33,7 +33,7 @@ const translations = {
     loading: 'A CARREGAR...',
     saving: 'A guardar...',
     nameLabel: 'Nome Completo',
-    crefLabel: 'Cédula (Bloqueada)',
+    crefLabel: 'Cédula',
     phoneLabel: 'Telefone',
     emailLabel: 'E-mail',
     btnSave: 'GUARDAR DADOS',
@@ -54,7 +54,7 @@ const translations = {
     loading: 'LOADING...',
     saving: 'Saving...',
     nameLabel: 'Full Name',
-    crefLabel: 'License (Locked)',
+    crefLabel: 'License',
     phoneLabel: 'Phone',
     emailLabel: 'E-mail',
     btnSave: 'SAVE DATA',
@@ -215,10 +215,22 @@ export default function Perfil() {
     const { data: { user } } = await supabase.auth.getUser();
     
     if (user) {
+      // Se o email foi alterado, também atualiza na autenticação do Supabase
+      if (formData.email.trim() !== user.email) {
+        const { error: authError } = await supabase.auth.updateUser({ email: formData.email.trim() });
+        if (authError) {
+          showToast(t.errGeneral + authError.message, 'error');
+          setLoading(false);
+          return;
+        }
+      }
+
       const { error } = await supabase.from('personais')
         .update({ 
           nome: formData.nome.trim(), 
-          telefone: formData.telefone.trim() 
+          telefone: formData.telefone.trim(),
+          cref: formData.cref.trim(),
+          email: formData.email.trim()
         })
         .eq('id', user.id);
         
@@ -254,7 +266,6 @@ export default function Perfil() {
   );
 
   return (
-    // Removido o pt-20 já que o Header superior não existe mais. pb-32 garante que a navbar flutuante não cubra o conteúdo final
     <main style={themeStyles} className="w-full min-h-screen bg-[var(--bg)] flex flex-col items-center px-4 py-8 pb-32 box-border text-[var(--text-primary)] transition-colors duration-500 font-sans antialiased">
       
       {/* ━━━━━━━━━━ NOTIFICAÇÃO PREMIUM FLOATING ━━━━━━━━━━ */}
@@ -302,11 +313,11 @@ export default function Perfil() {
           <Input label={t.nameLabel} value={formData.nome} onChange={handleChange('nome')} disabled={loading} />
           
           <div className="grid grid-cols-2 gap-4">
-            <Input label={t.crefLabel} value={formData.cref} disabled className="opacity-60 cursor-not-allowed" />
+            <Input label={t.crefLabel} value={formData.cref} onChange={handleChange('cref')} disabled={loading} />
             <Input label={t.phoneLabel} value={formData.telefone} onChange={handleChange('telefone')} disabled={loading} />
           </div>
           
-          <Input label={t.emailLabel} value={formData.email} disabled className="opacity-60 cursor-not-allowed" />
+          <Input label={t.emailLabel} value={formData.email} onChange={handleChange('email')} disabled={loading} />
           
           <button 
             disabled={loading} 
@@ -364,7 +375,7 @@ function Input({ label, value, onChange, disabled, type = "text", className = ""
         disabled={disabled}
         className={`w-full p-4 bg-[var(--surface-sec)] rounded-[1.2rem] border border-[var(--border)] focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)] outline-none transition-all duration-300 text-sm font-bold text-[var(--text-primary)] disabled:opacity-50 disabled:cursor-not-allowed placeholder:text-[var(--text-secondary)]/50 placeholder:font-normal shadow-inner ${className}`}
         value={value} 
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => onChange && onChange(e.target.value)}
         {...props}
       />
     </div>
