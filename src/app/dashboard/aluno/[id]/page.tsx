@@ -39,7 +39,7 @@ const DetalheAlunoSkeleton = () => (
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 const translations = {
   'pt-BR': {
-    back: 'Voltar', objective: 'Objetivo: ', notDefined: 'Não definido',
+    back: 'Voltar', modality: 'Modalidade: ', notDefined: 'Não definido',
     tabs: { workouts: 'Treinos', evolution: 'Evolução', feedback: 'Feedbacks', files: 'Documentos' },
     workouts: { 
       active: 'Ativos', archived: 'Arquivados', program: 'Programa', viewDetails: 'Ver Treino', edit: 'Editar',
@@ -61,7 +61,7 @@ const translations = {
     }
   },
   'pt-PT': {
-    back: 'Voltar', objective: 'Objetivo: ', notDefined: 'Não definido',
+    back: 'Voltar', modality: 'Modalidade: ', notDefined: 'Não definido',
     tabs: { workouts: 'Treinos', evolution: 'Evolução', feedback: 'Feedbacks', files: 'Documentos' },
     workouts: { 
       active: 'Ativos', archived: 'Arquivados', program: 'Programa', viewDetails: 'Ver Treino', edit: 'Editar',
@@ -83,7 +83,7 @@ const translations = {
     }
   },
   'en': {
-    back: 'Back', objective: 'Goal: ', notDefined: 'Not defined',
+    back: 'Back', modality: 'Modality: ', notDefined: 'Not defined',
     tabs: { workouts: 'Workouts', evolution: 'Evolution', feedback: 'Feedbacks', files: 'Documents' },
     workouts: { 
       active: 'Active', archived: 'Archived', program: 'Program', viewDetails: 'View Workout', edit: 'Edit',
@@ -404,7 +404,7 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
             <div>
               <h1 className="text-3xl font-black tracking-tighter mb-2">{aluno?.nome}</h1>
               <p className="text-[var(--primary)] font-black bg-[var(--primary)]/10 px-4 py-1.5 rounded-full inline-block text-[10px] uppercase tracking-widest border border-[var(--primary)]/20">
-                {t.objective} {aluno?.objetivo || t.notDefined}
+                {t.modality} {aluno?.modalidade || t.notDefined}
               </p>
             </div>
             <div className="w-full mt-2">
