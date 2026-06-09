@@ -511,7 +511,7 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
               <div key={exIndex} className={`bg-[var(--surface)] rounded-[2rem] border overflow-hidden transition-all duration-500 shadow-sm ${isConcluido ? 'border-[var(--primary)] shadow-[0_0_20px_rgba(37,99,235,0.15)] ring-1 ring-[var(--primary)]/50' : 'border-[var(--border)] hover:border-[var(--primary)]/30'}`}>
                 <div className="flex flex-col sm:flex-row">
                   {ex.video && (
-                    <div className="w-full sm:w-2/5 shrink-0 bg-black border-b sm:border-b-0 sm:border-r border-[var(--border)] cursor-pointer" onClick={() => setVideoAberto(ex.video)}>
+                    <div className="w-full sm:w-2/5 shrink-0 bg-black border-b sm:border-b-0 sm:border-r border-[var(--border)] cursor-pointer" onClick={() => setVideoAberto(ex.video || null)}>
                       {renderizarVideo(ex.video)}
                     </div>
                   )}
