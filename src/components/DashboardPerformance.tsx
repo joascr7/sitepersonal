@@ -65,19 +65,17 @@ export default function DashboardPerformance({ alunoId }: { alunoId: string }) {
 
   const t = translations[lang];
 
-  useEffect(() => {
+    useEffect(() => {
     if (!alunoId) { setLoading(false); return; }
 
     async function carregarDados() {
       setLoading(true);
       try {
-        // 1. Busca treinos trazendo a data para evitar contagem duplicada no mesmo dia
         const { data: treinos, error: treinosError } = await supabase
           .from('conclusoes_treino')
           .select('id, data_conclusao')
           .eq('aluno_id', alunoId.trim());
 
-        // 🎯 CORREÇÃO DE QUERY: Adicionada a busca da 'unidade_carga'
         const { data: registros, error: regError } = await supabase
           .from('registro_series')
           .select('exercicio_nome, carga, unidade_carga')
@@ -85,52 +83,43 @@ export default function DashboardPerformance({ alunoId }: { alunoId: string }) {
 
         if (treinosError || regError) throw new Error("Erro ao buscar dados");
 
-        // Contabilizar apenas dias únicos de treino
         const treinosUnicos = new Set(
           (treinos || []).map(t => {
-            if (!t.data_conclusao) return t.id; // Fallback se não houver data
+            if (!t.data_conclusao) return t.id;
             return new Date(t.data_conclusao).toISOString().split('T')[0];
           })
         ).size;
 
-        // Função blindada para extrair os números
         const extrairCarga = (valor: any) => {
           if (!valor) return 0;
           const num = parseFloat(String(valor).replace(',', '.').replace(/[^0-9.]/g, ''));
           return isNaN(num) ? 0 : num;
         };
 
-        // 🎯 CORREÇÃO MESTRE: Processamento dos PRs com Conversão Interna KG/LBS
-       
+        // 🎯 CORREÇÃO: Separando os Recordes por Unidade (KG e LBS ganham recordes próprios)
         const prMap = (registros || []).reduce((acc: any, curr) => {
-          const cargaStr = String(curr.carga || '').toLowerCase();
-          const cargaNum = extrairCarga(curr.carga);
-          
-          // 1. Tenta pegar a unidade da coluna específica. 
-          // 2. Se for nula, procura 'lbs' ou 'lb' no próprio texto da carga. 
-          // 3. Se não achar nada, assume 'kg'.
           let unidade = (curr.unidade_carga || '').toLowerCase();
           if (!unidade || unidade.trim() === '') {
-            unidade = (cargaStr.includes('lbs') || cargaStr.includes('lb')) ? 'lbs' : 'kg';
+            unidade = (String(curr.carga || '').toLowerCase().includes('lbs') || String(curr.carga || '').toLowerCase().includes('lb')) ? 'lbs' : 'kg';
           }
           
-          // Normaliza para KG APENAS para fazer uma comparação de força justa (1 lb = ~0.453592 kg)
-          const cargaEmKg = unidade === 'lbs' ? cargaNum * 0.453592 : cargaNum;
+          const cargaNum = extrairCarga(curr.carga);
           
           if (cargaNum > 0 && curr.exercicio_nome) {
-            // Compara o peso absoluto real convertido
-            if (!acc[curr.exercicio_nome] || cargaEmKg > acc[curr.exercicio_nome].cargaComparacao) {
-              acc[curr.exercicio_nome] = {
-                val: cargaNum,             // Mantém o valor numérico visual original (ex: 50)
-                unidade: unidade,          // Mantém a sigla correta detectada ('kg' ou 'lbs')
-                cargaComparacao: cargaEmKg // Usado apenas para o cálculo matemático do recorde
+            // Cria uma chave única que une o Nome do Exercício e a Unidade (Ex: "Supino-kg" e "Supino-lbs")
+            const chave = `${curr.exercicio_nome}-${unidade}`;
+            
+            if (!acc[chave] || cargaNum > acc[chave].val) {
+              acc[chave] = {
+                nome_real: curr.exercicio_nome, // Nome limpo para exibir
+                val: cargaNum,
+                unidade: unidade
               };
             }
           }
           return acc;
         }, {});
 
-        // Frequência de Exercícios (Quantidade de Séries)
         const frequenciaMap = (registros || []).reduce((acc: any, curr) => {
           if (curr.exercicio_nome) {
             acc[curr.exercicio_nome] = (acc[curr.exercicio_nome] || 0) + 1;
@@ -140,10 +129,10 @@ export default function DashboardPerformance({ alunoId }: { alunoId: string }) {
 
         setDados({
           frequencia: frequenciaMap,
-          // Transforma, ordena pelos mais pesados da academia e exibe os tops 4
-          prs: Object.entries(prMap)
-            .map(([name, data]: any) => ({ name, val: data.val, unidade: data.unidade, cargaComparacao: data.cargaComparacao }))
-            .sort((a: any, b: any) => b.cargaComparacao - a.cargaComparacao)
+          // Transforma o objeto de volta em array e pega os maiores valores brutos
+          prs: Object.values(prMap)
+            .map((data: any) => ({ name: data.nome_real, val: data.val, unidade: data.unidade }))
+            .sort((a: any, b: any) => b.val - a.val)
             .slice(0, 4),
           totalTreinos: treinosUnicos
         });
@@ -156,6 +145,7 @@ export default function DashboardPerformance({ alunoId }: { alunoId: string }) {
     }
     carregarDados();
   }, [alunoId]);
+
 
   if (!mounted) return null;
 
