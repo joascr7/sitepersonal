@@ -84,6 +84,16 @@ const translations = {
   }
 };
 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// FUNÇÃO ADICIONADA: EXTRAI O ID DO YOUTUBE
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const getYouTubeId = (url: string | null | undefined): string | null => {
+  if (!url) return null;
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+  const match = url.match(regExp);
+  return (match && match[2].length === 11) ? match[2] : null;
+};
+
 const CabecalhoRelogio = ({ nomeAluno }: { nomeAluno?: string }) => {
   const [horaAtual, setHoraAtual] = useState(new Date());
 
@@ -510,7 +520,6 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
                     <div className="flex justify-between items-start mb-4">
                       <h3 className="font-black text-[var(--text-primary)] text-lg leading-tight tracking-tight pr-4">{ex.nome}</h3>
                       
-                      {/* CORREÇÃO: CHECK AUTOMÁTICO INICIA O TREINO E SALVA OS DADOS */}
                       <button 
                         onClick={() => {
                           if (!treinoIniciado) {
