@@ -31,7 +31,7 @@ export default function RootLayout({
   const [isDark, setIsDark] = useState(true);
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  // INICIALIZAÇÃO DE REVENUE CAT E SISTEMA GLOBAL DE TEMA
+  // INICIALIZAÇÃO DE REVENUE CAT, TEMA E BLOQUEIO DE ZOOM
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   useEffect(() => {
     // 1. RevenueCat Original
@@ -97,9 +97,40 @@ export default function RootLayout({
       if(key === '@premium_theme') initTheme();
     };
 
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // 3. BLOQUEIO DEFINITIVO DE ZOOM (Pinça, Touch Duplo, Ctrl+Scroll)
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    const preventPinchZoom = (e) => {
+      if (e.touches && e.touches.length > 1) {
+        e.preventDefault();
+      }
+    };
+
+    const preventWheelZoom = (e) => {
+      if (e.ctrlKey) {
+        e.preventDefault();
+      }
+    };
+
+    const preventKeyZoom = (e) => {
+      if ((e.ctrlKey || e.metaKey) && (e.key === '+' || e.key === '-' || e.key === '=')) {
+        e.preventDefault();
+      }
+    };
+
+    document.addEventListener('touchstart', preventPinchZoom, { passive: false });
+    document.addEventListener('touchmove', preventPinchZoom, { passive: false });
+    document.addEventListener('wheel', preventWheelZoom, { passive: false });
+    document.addEventListener('keydown', preventKeyZoom);
+
+    // Cleanup: Remove os listeners quando o componente desmontar
     return () => {
       window.removeEventListener('storage', handleStorageChange);
       localStorage.setItem = originalSetItem;
+      document.removeEventListener('touchstart', preventPinchZoom);
+      document.removeEventListener('touchmove', preventPinchZoom);
+      document.removeEventListener('wheel', preventWheelZoom);
+      document.removeEventListener('keydown', preventKeyZoom);
     };
   }, []);
 
@@ -124,6 +155,8 @@ export default function RootLayout({
           min-h-screen flex flex-col bg-[var(--bg)] text-[var(--text-primary)] font-sans 
           selection:bg-[var(--primary)] selection:text-white overscroll-none
           ${mounted ? 'transition-colors duration-500' : ''}
+          /* Adicionado bloqueio no body nativo via Tailwind: touch-none ou pan-y dependendo da sua barra de rolagem. 
+             Caso precise de scroll global, remova a classe 'touch-none' */
         `}
       >
         <AlunoProvider>
