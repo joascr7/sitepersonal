@@ -109,8 +109,6 @@ const translations = {
   }
 };
 
-
-
 export default function AreaDoAluno({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
@@ -224,6 +222,7 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
         .from('fichas')
         .select('*')
         .eq('aluno_id', id)
+        .or('ativo.eq.true,ativo.is.null') // <--- CORREÇÃO AQUI
         .order('ordem', { ascending: true }) // Ordena pela ordem configurada pelo personal
         .order('nome_treino', { ascending: true }); // Fallback de segurança
 
@@ -260,7 +259,6 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
 
   if (loading) return (
     <main style={themeStyles} className="min-h-screen bg-[var(--bg)] p-6 space-y-8 animate-pulse pt-[max(env(safe-area-inset-top),1.5rem)]">
-      {/* Container de loading também corrigido para ter a mesma largura */}
       <div className="w-full max-w-md md:max-w-2xl mx-auto flex flex-col space-y-6">
         <div className="flex justify-between items-center mb-10">
           <div className="flex items-center gap-4">
@@ -290,7 +288,6 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
       style={themeStyles} 
       className="min-h-screen bg-[var(--bg)] text-[var(--text-primary)] transition-colors duration-500 font-sans antialiased pb-[env(safe-area-inset-bottom)] flex flex-col"
     >
-      {/* ⚠️ AQUI ESTÁ A CORREÇÃO DE LARGURA: w-full max-w-md md:max-w-2xl ⚠️ */}
       <div className="w-full max-w-md md:max-w-2xl mx-auto flex flex-col pt-[max(env(safe-area-inset-top),1.5rem)] px-5 pb-32 space-y-6">
 
         {/* ━━━━━━━━━━ HEADER & PREFERENCES ━━━━━━━━━━ */}
