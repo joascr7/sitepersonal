@@ -10,8 +10,8 @@ import { format } from 'date-fns';
 import ParqForm from '@/components/ParqForm';
 import { 
   FaFilePdf, FaCheck, FaInfoCircle, FaChevronLeft, 
-  FaMoon, FaSun, FaGlobe, FaCommentAlt, FaStopwatch, FaTimes, FaBell,
-  FaPlay, FaClock
+  FaMoon, FaSun, FaGlobe, FaStopwatch, FaTimes, FaBell,
+  FaPlay, FaClock, FaCalendarAlt
 } from "react-icons/fa";
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -36,7 +36,9 @@ interface Ficha {
   id: string;
   nome_treino: string;
   aluno_nome?: string;
-  descricao: Exercicio[] | string;
+  descricao: any;
+  data_inicio?: string;
+  data_vencimento?: string;
 }
 
 interface RegistroSerie {
@@ -57,10 +59,7 @@ const translations = {
     back: 'Voltar', download: 'Baixar Treino', totalSessions: 'Sessões Totais',
     set: 'Série', reps: 'Reps', load: 'Carga', rest: 'Descanso',
     finish: 'Finalizar Sessão', incomplete: 'Complete todos os exercícios',
-    workoutLogged: 'Treino e feedback registrados com sucesso!',
-    feedbackTitle: 'Como foi o treino hoje?', fbIntensity: 'Nível de Esforço',
-    fbObs: 'Escreva aqui se sentiu alguma dor, facilidade, ou observação geral...',
-    fbSelectEx: 'Sobre qual exercício?', fbGeneral: 'Treino em Geral',
+    workoutLogged: 'Treino registrado com sucesso!',
     timerReady: 'Pronto! Vamos lá.', timerRest: 'Descanso',
     errorLoading: 'Erro ao carregar o treino.', errorSaving: 'Erro ao salvar o treino.',
     startWorkout: 'Iniciar Treino', ready: 'Pronto para treinar?'
@@ -69,10 +68,7 @@ const translations = {
     back: 'Voltar', download: 'Descarregar Treino', totalSessions: 'Sessões Totais',
     set: 'Série', reps: 'Reps', load: 'Carga', rest: 'Desc.',
     finish: 'Finalizar Sessão', incomplete: 'Complete todos os exercícios',
-    workoutLogged: 'Treino e feedback registados com sucesso!',
-    feedbackTitle: 'Como foi o treino hoje?', fbIntensity: 'Nível de Esforço',
-    fbObs: 'Escreva aqui se sentiu alguma dor, facilidade, ou observação geral...',
-    fbSelectEx: 'Sobre qual exercício?', fbGeneral: 'Treino em Geral',
+    workoutLogged: 'Treino registado com sucesso!',
     timerReady: 'Pronto! Vamos lá.', timerRest: 'Descanso',
     errorLoading: 'Erro ao carregar o treino.', errorSaving: 'Erro ao guardar o treino.',
     startWorkout: 'Iniciar Treino', ready: 'Pronto para treinar?'
@@ -81,10 +77,7 @@ const translations = {
     back: 'Back', download: 'Download', totalSessions: 'Total Sessions',
     set: 'Set', reps: 'Reps', load: 'Load', rest: 'Rest',
     finish: 'Finish Session', incomplete: 'Complete all exercises',
-    workoutLogged: 'Workout and feedback logged successfully!',
-    feedbackTitle: 'How was the workout today?', fbIntensity: 'Effort Level',
-    fbObs: 'Write here if you felt any pain, ease, or general observation...',
-    fbSelectEx: 'About which exercise?', fbGeneral: 'General Workout',
+    workoutLogged: 'Workout logged successfully!',
     timerReady: 'Ready! Lets go.', timerRest: 'Resting',
     errorLoading: 'Error loading workout.', errorSaving: 'Error saving workout.',
     startWorkout: 'Start Workout', ready: 'Ready to train?'
@@ -92,8 +85,15 @@ const translations = {
 };
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// COMPONENTE ISOLADO DO RELÓGIO
+// FUNÇÃO ADICIONADA: EXTRAI O ID DO YOUTUBE
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const getYouTubeId = (url: string | null | undefined): string | null => {
+  if (!url) return null;
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+  const match = url.match(regExp);
+  return (match && match[2].length === 11) ? match[2] : null;
+};
+
 const CabecalhoRelogio = ({ nomeAluno }: { nomeAluno?: string }) => {
   const [horaAtual, setHoraAtual] = useState(new Date());
 
@@ -134,117 +134,62 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
   const [sessoesContador, setSessoesContador] = useState(0);
   const [precisaParq, setPrecisaParq] = useState(false);
   
-  // ━━━━━━━━━ ESTADOS DE CONTROLE GERAL DO TREINO ━━━━━━━━━
   const [treinoIniciado, setTreinoIniciado] = useState(false);
   const [dataInicio, setDataInicio] = useState<Date | null>(null);
   const [segundosTreino, setSegundosTreino] = useState(0);
   
-  // Controle de Descanso
   const [cronometroModalAberto, setCronometroModalAberto] = useState(false);
   const [tempoRestante, setTempoRestante] = useState<number | null>(null);
   const [timerAtivo, setTimerAtivo] = useState(false);
 
-  // Controle de Carga e Unidade
   const [inputValues, setInputValues] = useState<Record<string, string>>({});
   const [inputUnits, setInputUnits] = useState<Record<string, string>>({});
   
   const [showToast, setShowToast] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
+  const [videoAberto, setVideoAberto] = useState<string | null>(null);
   
-  // Estados de Tema e i18n
   const [isDark, setIsDark] = useState(true);
   const [lang, setLang] = useState<'pt-BR' | 'pt-PT' | 'en'>('pt-BR');
 
-  // Estados do Feedback
-  const [fbExercicio, setFbExercicio] = useState('');
-  const [fbIntensidade, setFbIntensidade] = useState(5);
-  const [fbTexto, setFbTexto] = useState('');
-
-  // INICIALIZAÇÃO
   useEffect(() => {
-  const init = async () => {
-    setLoading(true);
-    try {
-      const { data: aluno, error: alunoError } = await supabase
-        .from('alunos')
-        .select('status_pagamento, data_vencimento, parq_valido')
-        .eq('id', id)
-        .single();
-      
-      if (alunoError) throw alunoError;
+    const init = async () => {
+      setLoading(true);
+      try {
+        const { data: aluno, error: alunoError } = await supabase.from('alunos').select('status_pagamento, data_vencimento, parq_valido').eq('id', id).single();
+        if (alunoError) throw alunoError;
 
-      if (aluno) {
-        const hoje = new Date(); 
-        hoje.setHours(0, 0, 0, 0);
-        
-        const vencimento = aluno.data_vencimento ? new Date(aluno.data_vencimento) : new Date(0);
-        const dataLimite = new Date(vencimento); 
-        dataLimite.setDate(dataLimite.getDate() + 2);
-        
-        if (aluno.status_pagamento === 'bloqueado' || hoje > dataLimite) {
-          router.push('/aluno/pagamento-pendente'); 
-          return;
+        if (aluno) {
+          const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+          const vencimento = aluno.data_vencimento ? new Date(aluno.data_vencimento) : new Date(0);
+          const dataLimite = new Date(vencimento); dataLimite.setDate(dataLimite.getDate() + 2);
+          
+          if (aluno.status_pagamento === 'bloqueado' || hoje > dataLimite) {
+            router.push('/aluno/pagamento-pendente'); return;
+          }
+          if (aluno.parq_valido === false || aluno.parq_valido === null) {
+            setPrecisaParq(true); setLoading(false); return; 
+          }
         }
-
-        if (aluno.parq_valido === false || aluno.parq_valido === null) {
-          setPrecisaParq(true);
-          setLoading(false); 
-          return; 
-        }
+      } catch (err) {
+        console.error("Erro na inicialização do aluno:", err);
+      } finally {
+        setLoading(false);
       }
+    };
+    init();
+  }, [id, router]);
 
-      const [fichasRes, histRes] = await Promise.all([
-        supabase.from('fichas').select('*').eq('aluno_id', id),
-        supabase.from('conclusoes_treino').select('treino_id, data_conclusao').eq('aluno_id', id)
-      ]);
-
-      if (fichasRes.data) {
-        const historicoData = histRes.data || [];
-        const processadas = fichasRes.data.map(f => {
-          let exercicios = [];
-          try { 
-            exercicios = typeof f.descricao === 'string' ? JSON.parse(f.descricao || '[]') : (f.descricao || []); 
-          } catch { exercicios = []; }
-          const historicoDoTreino = historicoData.filter(h => h.treino_id === f.id);
-          return { 
-            ...f, 
-            exercicios, 
-            count: exercicios.length, 
-            sessõesCount: historicoDoTreino.length, 
-            ultimaSessao: historicoDoTreino.length > 0 ? historicoDoTreino[0].data_conclusao : null, 
-            ativo: f.ativo !== false 
-          };
-        });
-      }
-    } catch (err) {
-      console.error("Erro na inicialização:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-  init();
-}, [id, router]);
-
-  // Cronômetro GERAL de Execução de Treino
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    if (treinoIniciado) {
-      interval = setInterval(() => {
-        setSegundosTreino(p => p + 1);
-      }, 1000);
-    }
+    if (treinoIniciado) interval = setInterval(() => setSegundosTreino(p => p + 1), 1000);
     return () => clearInterval(interval);
   }, [treinoIniciado]);
 
-  // Cronômetro de DESCANSO
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    if (timerAtivo && tempoRestante !== null && tempoRestante > 0) {
-      interval = setInterval(() => setTempoRestante(prev => prev! - 1), 1000);
-    } else if (tempoRestante === 0) {
-      setTimerAtivo(false);
-      setTimeout(() => setTempoRestante(null), 4000); 
-    }
+    if (timerAtivo && tempoRestante !== null && tempoRestante > 0) interval = setInterval(() => setTempoRestante(prev => prev! - 1), 1000);
+    else if (tempoRestante === 0) { setTimerAtivo(false); setTimeout(() => setTempoRestante(null), 4000); }
     return () => clearInterval(interval);
   }, [timerAtivo, tempoRestante]);
 
@@ -260,11 +205,7 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
 
   const iniciarCronometroDescanso = (intervaloStr: string) => {
     const segundos = parseIntervalo(intervaloStr);
-    if (segundos > 0) {
-      setTempoRestante(segundos);
-      setTimerAtivo(true);
-      setCronometroModalAberto(true);
-    }
+    if (segundos > 0) { setTempoRestante(segundos); setTimerAtivo(true); setCronometroModalAberto(true); }
   };
 
   const formatarTempoGeral = (segundos: number) => {
@@ -298,10 +239,17 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
     '--bg': '#F3F6FB', '--surface': '#FFFFFF', '--surface-sec': '#E8EEF9', '--primary': '#2563EB', '--primary-soft': '#60A5FA', '--success': '#16A34A', '--danger': '#DC2626', '--text-primary': '#111827', '--text-secondary': '#6B7280', '--border': 'rgba(15,23,42,0.06)',
   } as React.CSSProperties;
 
-  const exercicios: Exercicio[] = ficha?.descricao 
-    ? (typeof ficha.descricao === 'string' ? JSON.parse(ficha.descricao) : ficha.descricao) 
-    : [];
-    
+  const getExercicios = (descricaoStr: any): Exercicio[] => {
+    if (!descricaoStr) return [];
+    try {
+      const parsed = typeof descricaoStr === 'string' ? JSON.parse(descricaoStr) : descricaoStr;
+      if (parsed.subdivisoes) return parsed.subdivisoes.flatMap((s: any) => s.exercicios || []);
+      if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].exercicios) return parsed.flatMap((s: any) => s.exercicios || []);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch { return []; }
+  };
+
+  const exercicios = getExercicios(ficha?.descricao);
   const progresso = exercicios.length > 0 ? Math.round((concluidos.length / exercicios.length) * 100) : 0;
   const todosFinalizados = exercicios.length > 0 && concluidos.length === exercicios.length;
 
@@ -341,7 +289,7 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
     setLoading(true);
     try {
       const [fichaRes, regRes, concRes] = await Promise.all([
-        supabase.from('fichas').select('*').eq('id', treinoId).maybeSingle(),
+        supabase.from('fichas').select('*, data_inicio, data_vencimento').eq('id', treinoId).maybeSingle(),
         supabase.from('registro_series').select('id, treino_id, exercicio_nome, serie_index, carga, repeticoes, unidade_carga').eq('treino_id', treinoId),
         supabase.from('conclusoes_treino').select('id', { count: 'exact' }).eq('treino_id', treinoId)
       ]);
@@ -373,19 +321,17 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
   useEffect(() => { fetchData(); }, [treinoId]);
 
   const registrarCarga = async (nomeExercicio: string, carga: number, unidade: string, reps: string, serieIndex: number) => {
-    if (!carga || carga <= 0) return;
-    
     const registroExistente = registros.find(r => r.exercicio_nome === nomeExercicio && r.serie_index === serieIndex);
     
-    // CORREÇÃO: O payload agora inclui 'unidade_carga'
+    // CORREÇÃO: Removido o bloqueio de "carga 0" para que os exercícios de peso corporal apareçam no Dashboard!
     const payload = { 
       aluno_id: id, 
       treino_id: treinoId, 
       exercicio_nome: nomeExercicio, 
-      carga: Number(carga), 
+      carga: Number(carga) || 0, 
       repeticoes: Number(reps) || 0, 
       serie_index: serieIndex,
-      unidade_carga: unidade // <--- LINHA ADICIONADA AQUI
+      unidade_carga: unidade || 'kg'
     };
 
     const dadosParaUpsert = registroExistente ? { ...payload, id: registroExistente.id } : payload;
@@ -403,51 +349,19 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
 
  const finalizarSessao = async () => {
   setSaving(true);
-  
   try {
-    const { data: alunoData, error: alunoErr } = await supabase
-      .from('alunos')
-      .select('personal_id')
-      .eq('id', id)
-      .single();
-
-    if (alunoErr || !alunoData) throw new Error("Erro ao identificar personal.");
-    const pId = alunoData.personal_id;
-
     const dataFim = new Date();
     const dataInicioIso = dataInicio ? dataInicio.toISOString() : dataFim.toISOString();
     const dataFimIso = dataFim.toISOString();
     const duracaoMinutos = Math.max(1, Math.ceil(segundosTreino / 60));
 
-    const { error: err1 } = await supabase.from('conclusoes_treino').insert({ 
-      aluno_id: id, 
-      treino_id: treinoId || null, 
-      data_inicio: dataInicioIso,
-      data_fim: dataFimIso,
-      duracao_minutos: duracaoMinutos,
-      data_conclusao: dataFimIso 
+    await supabase.from('conclusoes_treino').insert({ 
+      aluno_id: id, treino_id: treinoId || null, data_inicio: dataInicioIso, data_fim: dataFimIso, duracao_minutos: duracaoMinutos, data_conclusao: dataFimIso 
     });
-    if (err1) throw new Error(`Erro conclusões: ${err1.message}`);
 
-    const { error: err2 } = await supabase.from('historico_treinos').insert({ 
-      aluno_id: id, 
-      treino_id: treinoId || null, 
-      data_treino: dataFimIso 
+    await supabase.from('historico_treinos').insert({ 
+      aluno_id: id, treino_id: treinoId || null, data_treino: dataFimIso 
     });
-    if (err2) throw new Error(`Erro histórico: ${err2.message}`);
-
-    if (fbTexto.trim() || fbIntensidade !== 5 || fbExercicio) {
-      const observacaoFinal = fbExercicio ? `[${fbExercicio}] ${fbTexto}` : fbTexto;
-      const { error: err3 } = await supabase.from('feedbacks_treino').insert({
-        aluno_id: id,
-        treino_id: treinoId || null,
-        personal_id: pId,
-        intensidade: fbIntensidade,
-        observacoes: observacaoFinal.trim() || 'Treino concluído sem observações textuais.',
-        data_criacao: dataFimIso
-      });
-      if (err3) throw new Error(`Erro feedback: ${err3.message}`);
-    }
 
     setTreinoIniciado(false);
     setToastMsg(t.workoutLogged);
@@ -456,10 +370,9 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
     setTimeout(() => {
       setShowToast(false);
       router.push(`/aluno/${id}/treinos`);
-    }, 2500);
+    }, 2000);
 
   } catch (error: any) {
-    console.error("Erro no fluxo de finalização:", error);
     alert(`Erro ao salvar treino: ${error.message}`);
   } finally {
     setSaving(false);
@@ -484,12 +397,9 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
   return (
     <main style={themeStyles} className="min-h-screen w-full bg-[var(--bg)] text-[var(--text-primary)] transition-colors duration-500 font-sans antialiased pt-[max(env(safe-area-inset-top),1.5rem)] pb-[env(safe-area-inset-bottom)] px-4 relative">
       
-      {/* ━━━━━━━━━━ CRONÔMETRO FLUTUANTE DE DESCANSO ━━━━━━━━━━ */}
       {tempoRestante !== null && (
         <div className={`fixed top-[max(env(safe-area-inset-top,24px),24px)] left-1/2 -translate-x-1/2 z-[100] border shadow-2xl px-5 py-3 rounded-full flex items-center gap-4 transition-all duration-300 animate-in slide-in-from-top-4 fade-in ${
-          tempoRestante === 0 
-            ? 'bg-[var(--success)]/10 border-[var(--success)]/30 text-[var(--success)] backdrop-blur-md' 
-            : 'bg-[var(--surface)]/90 border-[var(--primary)]/30 text-[var(--text-primary)] backdrop-blur-xl'
+          tempoRestante === 0 ? 'bg-[var(--success)]/10 border-[var(--success)]/30 text-[var(--success)] backdrop-blur-md' : 'bg-[var(--surface)]/90 border-[var(--primary)]/30 text-[var(--text-primary)] backdrop-blur-xl'
         }`}>
           {tempoRestante === 0 ? <FaBell className="animate-bounce" size={16} /> : <div className="w-3 h-3 rounded-full bg-[var(--primary)] animate-pulse shadow-[0_0_10px_var(--primary)]" />}
           <div className="flex flex-col">
@@ -500,9 +410,23 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
         </div>
       )}
 
+      {/* PLAYER DE VÍDEO NATIVO IN-APP */}
+      {videoAberto && (
+        <div className="fixed inset-0 bg-black/95 z-[9999] flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <button onClick={() => setVideoAberto(null)} className="absolute top-6 right-6 w-12 h-12 bg-white/10 rounded-full flex items-center justify-center text-white hover:bg-white/20 transition-colors"><FaTimes size={20}/></button>
+          <div className="w-full max-w-4xl aspect-video bg-black rounded-2xl overflow-hidden border border-white/10 shadow-2xl">
+            {getYouTubeId(videoAberto) ? (
+              <iframe className="w-full h-full" src={`https://www.youtube.com/embed/${getYouTubeId(videoAberto)}?autoplay=1`} allow="autoplay; fullscreen" />
+            ) : videoAberto.match(/\.(jpeg|jpg|png|webp|gif)$/i) ? (
+              <img src={videoAberto} className="w-full h-full object-contain" />
+            ) : (
+              <video src={videoAberto} controls autoPlay playsInline className="w-full h-full object-contain" />
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="max-w-2xl mx-auto pb-32">
-        
-        {/* HEADER */}
         <header className="flex justify-between items-center mb-8 pt-4">
           <div className="flex items-center gap-4">
             <button onClick={() => router.back()} className="flex items-center justify-center w-10 h-10 rounded-full bg-[var(--surface)] border border-[var(--border)] active:scale-95 transition-all shadow-sm">
@@ -510,7 +434,6 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
             </button>
             <CabecalhoRelogio nomeAluno={ficha?.aluno_nome} />
           </div>
-          
           <div className="flex gap-2">
             <button onClick={gerarPDF} className="flex items-center gap-2 bg-[var(--primary)]/10 text-[var(--primary)] px-4 py-2.5 rounded-full text-[10px] font-bold uppercase tracking-widest border border-[var(--primary)]/20 active:scale-95 transition-all shadow-sm">
               <FaFilePdf /> <span className="hidden sm:inline">{t.download}</span>
@@ -522,9 +445,8 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
           </div>
         </header>
 
-        {/* TÍTULO E RELÓGIO DE TREINO */}
         <div className="mb-8">
-          <div className="flex justify-between items-start">
+          <div className="flex justify-between items-start mb-6">
             <div>
               <h1 className="text-3xl font-black tracking-tight leading-tight">{ficha?.nome_treino}</h1>
               <p className="text-[var(--primary)] font-bold text-[11px] uppercase tracking-[0.2em] mt-2 flex items-center gap-2">
@@ -532,8 +454,6 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
                 {t.totalSessions}: <span className="text-[var(--text-primary)]">{sessoesContador}</span>
               </p>
             </div>
-            
-            {/* Relógio do Treino Decorrido */}
             {treinoIniciado && (
               <div className="flex flex-col items-end bg-[var(--primary)]/10 px-4 py-2 rounded-2xl border border-[var(--primary)]/20">
                 <span className="text-[8px] font-black uppercase text-[var(--primary)] tracking-widest mb-1 flex items-center gap-1"><FaClock size={8}/> Tempo Decorrido</span>
@@ -541,15 +461,38 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
               </div>
             )}
           </div>
+
+          {/* DATAS DE INÍCIO E VENCIMENTO */}
+          {(ficha?.data_inicio || ficha?.data_vencimento) && (
+            <div className="flex gap-3 mb-6">
+              {ficha.data_inicio && (
+                <div className="flex-1 bg-[var(--surface)] p-4 rounded-2xl border border-[var(--border)] flex items-center gap-3 shadow-sm">
+                  <div className="text-[var(--primary)] bg-[var(--primary)]/10 p-2.5 rounded-lg"><FaCalendarAlt size={14} /></div>
+                  <div>
+                    <p className="text-[8px] font-black uppercase text-[var(--text-secondary)] tracking-widest">Início</p>
+                    <p className="text-xs font-bold text-[var(--text-primary)]">{new Date(ficha.data_inicio).toLocaleDateString(lang)}</p>
+                  </div>
+                </div>
+              )}
+              {ficha.data_vencimento && (
+                <div className="flex-1 bg-[var(--surface)] p-4 rounded-2xl border border-[var(--border)] flex items-center gap-3 shadow-sm">
+                  <div className="text-[var(--danger)] bg-[var(--danger)]/10 p-2.5 rounded-lg"><FaCalendarAlt size={14} /></div>
+                  <div>
+                    <p className="text-[8px] font-black uppercase text-[var(--text-secondary)] tracking-widest">Vencimento</p>
+                    <p className="text-xs font-bold text-[var(--danger)]">{new Date(ficha.data_vencimento).toLocaleDateString(lang)}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
           
-          <div className="w-full h-2 bg-[var(--surface-sec)] mt-6 rounded-full overflow-hidden border border-[var(--border)] shadow-inner">
+          <div className="w-full h-2 bg-[var(--surface-sec)] rounded-full overflow-hidden border border-[var(--border)] shadow-inner">
             <div className="h-full bg-gradient-to-r from-[var(--primary-soft)] to-[var(--primary)] transition-all duration-700 ease-out relative" style={{ width: `${progresso}%` }}>
               <div className="absolute top-0 right-0 bottom-0 w-10 bg-white/20 blur-sm" />
             </div>
           </div>
         </div>
 
-        {/* CARD DE INICIAR TREINO */}
         {!treinoIniciado && (
            <div className="bg-[var(--surface)] p-8 rounded-[2rem] text-center border border-[var(--border)] mb-8 shadow-xl animate-in zoom-in-95">
              <h2 className="text-2xl font-black mb-2">{t.ready}</h2>
@@ -560,7 +503,6 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
            </div>
         )}
         
-        {/* LISTA DE EXERCÍCIOS */}
         <div className={`space-y-6 transition-all duration-500 ${treinoIniciado ? 'opacity-100' : 'opacity-40 pointer-events-none'}`}>
           {exercicios.map((ex, exIndex) => {
             const isConcluido = concluidos.includes(exIndex);
@@ -569,19 +511,35 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
               <div key={exIndex} className={`bg-[var(--surface)] rounded-[2rem] border overflow-hidden transition-all duration-500 shadow-sm ${isConcluido ? 'border-[var(--primary)] shadow-[0_0_20px_rgba(37,99,235,0.15)] ring-1 ring-[var(--primary)]/50' : 'border-[var(--border)] hover:border-[var(--primary)]/30'}`}>
                 <div className="flex flex-col sm:flex-row">
                   {ex.video && (
-                    <div className="w-full sm:w-2/5 shrink-0 bg-black border-b sm:border-b-0 sm:border-r border-[var(--border)]">
+                    <div className="w-full sm:w-2/5 shrink-0 bg-black border-b sm:border-b-0 sm:border-r border-[var(--border)] cursor-pointer" onClick={() => setVideoAberto(ex.video || null)}>
                       {renderizarVideo(ex.video)}
                     </div>
                   )}
                   
                   <div className="p-5 sm:p-6 flex-1 flex flex-col justify-center">
-                    <div className="flex justify-between items-start mb-5">
+                    <div className="flex justify-between items-start mb-4">
                       <h3 className="font-black text-[var(--text-primary)] text-lg leading-tight tracking-tight pr-4">{ex.nome}</h3>
+                      
                       <button 
                         onClick={() => {
-                          if (!treinoIniciado) return;
-                          if (isConcluido) setConcluidos(concluidos.filter(c => c !== exIndex));
-                          else setConcluidos([...concluidos, exIndex]);
+                          if (!treinoIniciado) {
+                            setTreinoIniciado(true);
+                            setDataInicio(new Date());
+                          }
+                          if (isConcluido) {
+                            setConcluidos(concluidos.filter(c => c !== exIndex));
+                          } else {
+                            setConcluidos([...concluidos, exIndex]);
+                            // Ao checar o exercício, já salva tudo automaticamente no banco para contar no Dashboard
+                            if (ex.series && Array.isArray(ex.series)) {
+                              ex.series.forEach((s: any, sIndex: number) => {
+                                const key = `${ex.nome}-${sIndex}`;
+                                const cargaAtual = Number(inputValues[key]) || Number(s.carga) || 0;
+                                const unidadeAtual = inputUnits[key] || s.unidadeCarga || 'kg';
+                                registrarCarga(ex.nome, cargaAtual, unidadeAtual, s.reps || '0', sIndex);
+                              });
+                            }
+                          }
                         }} 
                         className={`w-12 h-12 shrink-0 rounded-full flex items-center justify-center transition-all duration-300 transform active:scale-90 ${isConcluido ? 'bg-[var(--primary)] text-white shadow-lg shadow-[var(--primary)]/40 scale-105' : 'bg-[var(--surface-sec)] text-[var(--text-secondary)] border border-[var(--border)] hover:text-[var(--primary)] hover:border-[var(--primary)]/30'}`}
                       >
@@ -590,8 +548,9 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
                     </div>
                     
                     {ex.observacao && (
-                      <div className="mb-6 p-3 bg-[var(--primary)]/10 text-[var(--primary)] text-[11px] font-bold rounded-xl border border-[var(--primary)]/20 flex items-start gap-2 leading-relaxed">
-                        <FaInfoCircle className="mt-0.5 shrink-0 text-sm"/> <span>{ex.observacao}</span>
+                      <div className="mb-5 p-4 bg-[var(--primary)]/5 border-l-4 border-[var(--primary)] rounded-r-2xl">
+                        <p className="text-[9px] font-black uppercase tracking-widest text-[var(--primary)] mb-1">Nota do Personal:</p>
+                        <p className="text-xs font-medium text-[var(--text-primary)] italic">"{ex.observacao}"</p>
                       </div>
                     )}
 
@@ -634,7 +593,6 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
                                 </select>
                               </div>
                               
-                              {/* Descanso */}
                               <div className="flex justify-center">
                                 <button 
                                   onClick={() => s.intervalo ? iniciarCronometroDescanso(s.intervalo) : null} 
@@ -656,7 +614,6 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
           })}
         </div>
 
-        {/* BOTÃO FINALIZAR SESSÃO */}
         {treinoIniciado && (
           <div className="mt-8 animate-in fade-in slide-in-from-bottom-4">
             <button 
@@ -668,24 +625,13 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
                   : 'bg-[var(--surface-sec)] text-[var(--text-secondary)] cursor-not-allowed opacity-70'
               }`}
             >
-              {saving ? (
-                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : (
-                <>
-                  <FaCheck size={16} /> {t.finish}
-                </>
-              )}
+              {saving ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><FaCheck size={16} /> {t.finish}</>}
             </button>
-            {!todosFinalizados && (
-              <p className="text-center text-[10px] text-[var(--text-secondary)] font-bold uppercase tracking-widest mt-4">
-                {t.incomplete}
-              </p>
-            )}
+            {!todosFinalizados && <p className="text-center text-[10px] text-[var(--text-secondary)] font-bold uppercase tracking-widest mt-4">{t.incomplete}</p>}
           </div>
         )}
 
       </div>
-      
       {showToast && <ToastSucesso mensagem={toastMsg} onClose={() => setShowToast(false)} />}
     </main>
   );

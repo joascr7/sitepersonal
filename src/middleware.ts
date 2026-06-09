@@ -4,15 +4,18 @@ import { NextResponse, type NextRequest } from 'next/server';
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // 1. ISENÇÃO TOTAL: Rotas públicas que não exigem login
+  // 1. ISENÇÃO TOTAL: Rotas públicas
   const publicRoutes = [
     '/login-personal', '/login-aluno', '/login-admin', '/', 
     '/acesso-personal', '/planos', '/pagamento', 
-    '/pagamento-pendente', '/aluno/antecipar', 
-    '/api/webhook-admin', '/api/webhook-mp', '/api/webhook-revenuecat'
+    '/pagamento-pendente', '/aluno/antecipar'
   ];
 
-  if (publicRoutes.includes(pathname) || pathname.startsWith('/_next') || pathname.startsWith('/api') || pathname.includes('.')) {
+  // Identifica se é rota pública ou arquivo estático/api
+  const isPublicRoute = publicRoutes.some(route => pathname === route);
+  const isStaticFile = pathname.startsWith('/_next') || pathname.startsWith('/api') || pathname.includes('.');
+
+  if (isPublicRoute || isStaticFile) {
     return NextResponse.next();
   }
 
@@ -35,39 +38,31 @@ export async function middleware(request: NextRequest) {
   );
 
   // 2. VERIFICAÇÃO DE SESSÃO
-  let user = null;
-  try {
-    const { data } = await supabase.auth.getUser();
-    user = data.user;
-  } catch { user = null; }
+  const { data: { user } } = await supabase.auth.getUser();
 
   const isProtected = pathname.startsWith('/dashboard') || pathname.startsWith('/aluno/') || pathname.startsWith('/admin/');
   
-  // Se não estiver logado e tentar acessar área protegida, redireciona para o login correspondente
+  // Se não estiver logado e tentar acessar área protegida
   if (!user && isProtected) {
-    const loginPath = pathname.startsWith('/aluno/') ? '/login-aluno' : pathname.startsWith('/admin/') ? '/login-admin' : '/login-personal';
+    let loginPath = '/login-personal';
+    if (pathname.startsWith('/aluno/')) loginPath = '/login-aluno';
+    else if (pathname.startsWith('/admin/')) loginPath = '/login-admin';
+    
     return NextResponse.redirect(new URL(loginPath, request.url));
   }
 
-  // 3. LOGICA DE ACESSO E ADMIN
+  // 3. LÓGICA DE ADMIN E ROTAS PROTEGIDAS
   if (user) {
     request.headers.set('x-user-id', user.id);
-    const ADMIN_EMAILS = [''];
 
-    // Se for admin, acesso total liberado
-   /* if (ADMIN_EMAILS.includes(user.email?.toLowerCase() || '')) {
-      return response;
-    }*/
-
-    // Se tentar acessar área administrativa e NÃO for admin, joga pro dashboard
-   // Substitua o seu if pelo código abaixo
-if (pathname === '/admin' || pathname === '/admin/') {
-  return NextResponse.redirect(new URL('/admin/financeiro?aba=gestao', request.url));
-}
+    // Redirecionamento direto para Admin
+    if (pathname === '/admin' || pathname === '/admin/') {
+      return NextResponse.redirect(new URL('/admin/financeiro?aba=gestao', request.url));
+    }
     
-    // NOTA: A validação de assinatura (is_pro) agora é feita pelo SubscriptionGuard 
-    // diretamente nas páginas. Isso remove a dependência de banco de dados no middleware, 
-    // tornando o site extremamente rápido e evitando conflitos com a lógica antiga.
+    // NOTA: Como você delegou a verificação do 'is_pro' para o SubscriptionGuard no front-end,
+    // o middleware agora foca exclusivamente em garantir que quem está logado 
+    // consiga transitar entre as rotas de forma rápida.
   }
 
   return response;

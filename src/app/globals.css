@@ -65,29 +65,25 @@ body {
   /* Remove aquele tap highlight azul padrão ao clicar em links/botões no mobile */
   -webkit-tap-highlight-color: transparent;
   
-  /* Previne o "elastic bounce" no topo/fundo da tela no Safari iOS, sensação de site comum */
-  overscroll-behavior-y: none;
-  
   /* Textos absurdamente nítidos no iOS e telas Retina */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Força o topo da tela a ignorar o espaço da navbar se necessário (Regra mantida) */
+/* Força o topo da tela a ignorar o espaço da navbar se necessário */
 body {
   padding-top: 0 !important;
   margin-top: 0 !important;
 }
 
-/* Garante que o container principal comece do pixel 0 (Regra mantida) */
+/* Garante que o container principal comece do pixel 0 */
 main {
   width: 100%;
   margin-top: 0 !important;
   
-  /* Isso adiciona automaticamente espaço se o celular tiver notch ou barra de home */
-  /* Além de respeitar as diretrizes da Apple (Human Interface Guidelines) */
+  /* Adiciona automaticamente espaço se o celular tiver notch ou barra de home (Apple HIG) */
   padding-bottom: env(safe-area-inset-bottom);
-  padding-top: env(safe-area-inset-top); /* Respeito ao Notch superior */
+  padding-top: env(safe-area-inset-top); 
 }
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -108,4 +104,46 @@ html {
 * {
   -ms-overflow-style: none; /* IE e Edge */
   scrollbar-width: none;    /* Firefox */
+}
+
+/* Opcional: Se quiser esconder a barra de rolagem mas continuar rolando (estilo app nativo) */
+.custom-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.custom-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   TRAVA DE ZOOM NATIVO E UX PREMIUM (Corrigido para manter rolagem)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
+/* Impede o zoom automático do iOS Safari ao focar em campos de digitação */
+input, select, textarea {
+  font-size: 16px !important;
+  
+  /* Garante que o aluno consiga digitar e selecionar o próprio texto dentro dos formulários */
+  -webkit-user-select: auto !important;
+  user-select: auto !important;
+}
+
+html, body {
+  /* pan-y: Devolve a rolagem vertical (scroll), mas BLOQUEIA gestos de zoom (pinça) e lateral */
+  touch-action: pan-y !important; 
+  
+  /* Previne o "elastic bounce" no topo/fundo da tela no iOS, mantendo a sensação de app nativo */
+  overscroll-behavior-y: none !important;
+  overscroll-behavior-x: none !important;
+  
+  /* Arranca a habilidade do navegador de dar zoom na raiz */
+  zoom: 1 !important; 
+}
+
+body {
+  /* Bloqueia a seleção de texto acidental na interface, evitando que abra a lupa do sistema */
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
 }

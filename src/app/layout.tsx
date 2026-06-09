@@ -31,7 +31,7 @@ export default function RootLayout({
   const [isDark, setIsDark] = useState(true);
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  // INICIALIZAÇÃO DE REVENUE CAT E SISTEMA GLOBAL DE TEMA
+  // INICIALIZAÇÃO DE REVENUE CAT, TEMA E BLOQUEIO DE ZOOM
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   useEffect(() => {
     // 1. RevenueCat Original
@@ -90,16 +90,65 @@ export default function RootLayout({
     const handleStorageChange = () => initTheme();
     window.addEventListener('storage', handleStorageChange);
     
-    // Sobrescrita segura do localStorage para atualizar o tema em tempo real
     const originalSetItem = localStorage.setItem;
     localStorage.setItem = function(key, value) {
       originalSetItem.apply(this, [key, value]);
       if(key === '@premium_theme') initTheme();
     };
 
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // 3. BLOQUEIO DEFINITIVO DE ZOOM (Com Tipagem TypeScript Corrigida)
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    const preventPinchZoom = (e: TouchEvent) => {
+      if (e.touches && e.touches.length > 1) {
+        e.preventDefault();
+      }
+    };
+
+    const preventAppleGestures = (e: Event) => {
+      e.preventDefault();
+    };
+
+    const preventWheelZoom = (e: WheelEvent) => {
+      if (e.ctrlKey) {
+        e.preventDefault();
+      }
+    };
+
+    const preventKeyZoom = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && (e.key === '+' || e.key === '-' || e.key === '=')) {
+        e.preventDefault();
+      }
+    };
+
+    // Castings (as any) adicionados porque TypeScript nativo não reconhece opções { passive: false } em todos os tipos de evento por padrão.
+    window.addEventListener('touchstart', preventPinchZoom as any, { passive: false });
+    window.addEventListener('touchmove', preventPinchZoom as any, { passive: false });
+    document.addEventListener('touchstart', preventPinchZoom as any, { passive: false });
+    document.addEventListener('touchmove', preventPinchZoom as any, { passive: false });
+    
+    document.addEventListener('gesturestart', preventAppleGestures as any, { passive: false });
+    document.addEventListener('gesturechange', preventAppleGestures as any, { passive: false });
+    document.addEventListener('gestureend', preventAppleGestures as any, { passive: false });
+
+    document.addEventListener('wheel', preventWheelZoom as any, { passive: false });
+    document.addEventListener('keydown', preventKeyZoom as any);
+
     return () => {
       window.removeEventListener('storage', handleStorageChange);
       localStorage.setItem = originalSetItem;
+      
+      window.removeEventListener('touchstart', preventPinchZoom as any);
+      window.removeEventListener('touchmove', preventPinchZoom as any);
+      document.removeEventListener('touchstart', preventPinchZoom as any);
+      document.removeEventListener('touchmove', preventPinchZoom as any);
+      
+      document.removeEventListener('gesturestart', preventAppleGestures as any);
+      document.removeEventListener('gesturechange', preventAppleGestures as any);
+      document.removeEventListener('gestureend', preventAppleGestures as any);
+      
+      document.removeEventListener('wheel', preventWheelZoom as any);
+      document.removeEventListener('keydown', preventKeyZoom as any);
     };
   }, []);
 
@@ -115,8 +164,6 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="AuraFit" />
         <meta name="theme-color" content={isDark ? '#0F1115' : '#F3F6FB'} />
-        
-        {/* CORREÇÃO DO ÍCONE NO IOS (PWA) */}
         <link rel="apple-touch-icon" href="/icon-192.png" />
       </head>
       <body 
@@ -129,22 +176,12 @@ export default function RootLayout({
         <AlunoProvider>
           <LogoProvider>
             <ConditionalNavbar />
-            
-            {/* CORREÇÃO GLOBAL DEFINITIVA PARA A NAVBAR */}
             <main className="flex flex-col flex-grow w-full relative">
-              
-              {/* O conteúdo de todas as páginas carrega aqui */}
               <div className="flex-grow w-full">
                 {children}
               </div>
-              
-              {/* Bloco Físico Invisível: 
-                  Empurra a rolagem para cima, tirando o último item de trás da Navbar.
-              */}
               <div className="h-[130px] w-full shrink-0 pointer-events-none" aria-hidden="true" />
-              
             </main>
-            
           </LogoProvider>
         </AlunoProvider>
       </body>
