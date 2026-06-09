@@ -2,90 +2,46 @@
 import { useEffect, useState, use, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
-import { FaChevronLeft, FaPlay, FaChevronDown, FaCheckCircle, FaClock } from 'react-icons/fa';
-import ParqForm from '@/components/ParqForm'; // Importação do Formulário
-
-const BadgeInfo = ({ children }: { children: React.ReactNode }) => (
-  <span className="text-[8px] font-black bg-[var(--surface-sec)] text-[var(--text-secondary)] px-2 py-1 rounded-lg border border-[var(--border)] uppercase tracking-widest mr-2">
-    {children}
-  </span>
-);
+import { FaChevronLeft, FaPlay, FaChevronDown, FaCheckCircle, FaClock, FaCalendarAlt } from 'react-icons/fa';
+import ParqForm from '@/components/ParqForm';
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // DICIONÁRIO DE INTERNACIONALIZAÇÃO (i18n)
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 const translations = {
   'pt-BR': {
-    title: 'Treinos',
-    subtitle: 'Sua jornada de alta performance',
-    exercises: 'Exercícios',
-    last: 'Última',
-    never: 'Inédito',
-    progress: 'Progresso',
-    start: 'Iniciar Treino',
-    back: 'Voltar para Perfil',
-    doneToday: 'Concluído Hoje',
-    lastExec: 'Última Execução',
-    date: 'Data:',
-    time: 'Horário:',
-    duration: 'Duração:'
+    title: 'Treinos', subtitle: 'Sua jornada de alta performance', exercises: 'Exercícios',
+    last: 'Última', never: 'Inédito', progress: 'Progresso', start: 'Iniciar Treino',
+    back: 'Voltar para Perfil', doneToday: 'Concluído Hoje', lastExec: 'Última Execução',
+    date: 'Data:', time: 'Horário:', duration: 'Duração:'
   },
   'pt-PT': {
-    title: 'Treinos',
-    subtitle: 'A sua jornada de alta performance',
-    exercises: 'Exercícios',
-    last: 'Última',
-    never: 'Inédito',
-    progress: 'Progresso',
-    start: 'Iniciar Treino',
-    back: 'Voltar ao Perfil',
-    doneToday: 'Concluído Hoje',
-    lastExec: 'Última Execução',
-    date: 'Data:',
-    time: 'Horário:',
-    duration: 'Duração:'
+    title: 'Treinos', subtitle: 'A sua jornada de alta performance', exercises: 'Exercícios',
+    last: 'Última', never: 'Inédito', progress: 'Progresso', start: 'Iniciar Treino',
+    back: 'Voltar ao Perfil', doneToday: 'Concluído Hoje', lastExec: 'Última Execução',
+    date: 'Data:', time: 'Horário:', duration: 'Duração:'
   },
   'en': {
-    title: 'Workouts',
-    subtitle: 'Your high performance journey',
-    exercises: 'Exercises',
-    last: 'Last',
-    never: 'Never',
-    progress: 'Progress',
-    start: 'Start Workout',
-    back: 'Back to Profile',
-    doneToday: 'Completed Today',
-    lastExec: 'Last Execution',
-    date: 'Date:',
-    time: 'Time:',
-    duration: 'Duration:'
+    title: 'Workouts', subtitle: 'Your high performance journey', exercises: 'Exercises',
+    last: 'Last', never: 'Never', progress: 'Progress', start: 'Start Workout',
+    back: 'Back to Profile', doneToday: 'Completed Today', lastExec: 'Last Execution',
+    date: 'Date:', time: 'Time:', duration: 'Duration:'
   }
 };
-
-interface Treino {
-  id: string;
-  sessõesCount: number;
-  [key: string]: any;
-}
 
 export default function ListaTreinosAluno({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
   const [fichas, setFichas] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [precisaParq, setPrecisaParq] = useState(false); // NOVO: Controle do PAR-Q
-  
-  // Controle de quais programas estão abertos (Accordion)
+  const [precisaParq, setPrecisaParq] = useState(false);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
-  
-  // Estados de Tema e i18n
   const [isDark, setIsDark] = useState(true);
   const [lang, setLang] = useState<'pt-BR' | 'pt-PT' | 'en'>('pt-BR');
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('@premium_theme');
     if (savedTheme) setIsDark(savedTheme === 'dark');
-    
     const savedLang = localStorage.getItem('@premium_lang') as 'pt-BR' | 'pt-PT' | 'en';
     if (savedLang) setLang(savedLang);
   }, []);
@@ -100,10 +56,20 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
 
   const META_SESSOES = 30;
 
+  // Função Robusta para ler o JSON independentemente da estrutura
+  const getExercicios = (descricaoStr: any) => {
+    if (!descricaoStr) return [];
+    try {
+      const parsed = typeof descricaoStr === 'string' ? JSON.parse(descricaoStr) : descricaoStr;
+      if (parsed.subdivisoes) return parsed.subdivisoes.flatMap((s: any) => s.exercicios || []);
+      if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].exercicios) return parsed.flatMap((s: any) => s.exercicios || []);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch { return []; }
+  };
+
   useEffect(() => {
     const init = async () => {
       setLoading(true);
-      // ADICIONADO: Puxando o parq_valido do banco
       const { data: aluno } = await supabase.from('alunos').select('status_pagamento, data_vencimento, parq_valido').eq('id', id).single();
       
       if (aluno) {
@@ -111,44 +77,33 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
         const vencimento = new Date(aluno.data_vencimento);
         const dataLimite = new Date(vencimento); dataLimite.setDate(dataLimite.getDate() + 2);
         
-        // 1. Checa Pagamento
         if (aluno.status_pagamento === 'bloqueado' || hoje > dataLimite) {
           router.push('/aluno/pagamento-pendente'); return;
         }
 
-        // 2. Checa PAR-Q (BLOQUEIO)
         if (aluno.parq_valido === false || aluno.parq_valido === null) {
           setPrecisaParq(true);
           setLoading(false);
-          return; // Para a execução aqui, não carrega os treinos ainda
+          return; 
         }
       }
 
-      // 3. Se tudo estiver ok, carrega os treinos + DADOS PRECISOS DE TEMPO DO HISTÓRICO
       const [fichasRes, histRes] = await Promise.all([
-        supabase.from('fichas').select('*, tipo_treino, objetivo, dificuldade').eq('aluno_id', id),
-        supabase.from('conclusoes_treino')
-                .select('treino_id, data_conclusao, data_inicio, data_fim, duracao_minutos')
-                .eq('aluno_id', id)
-                .order('data_conclusao', { ascending: false }) // Garante que o índice [0] seja sempre o mais recente
+        supabase.from('fichas').select('*, tipo_treino, objetivo, dificuldade, data_inicio, data_vencimento').eq('aluno_id', id).eq('ativo', true), // Traz apenas treinos ativos
+        supabase.from('conclusoes_treino').select('treino_id, data_conclusao, data_inicio, data_fim, duracao_minutos').eq('aluno_id', id).order('data_conclusao', { ascending: false })
       ]);
 
       if (fichasRes.data) {
         const historicoData = histRes.data || [];
         const processadas = fichasRes.data.map(f => {
-          let exercicios = [];
-          try { 
-            exercicios = typeof f.descricao === 'string' ? JSON.parse(f.descricao || '[]') : (f.descricao || []); 
-          } catch { 
-            exercicios = []; 
-          }
+          const exerciciosFlat = getExercicios(f.descricao);
           const historicoDoTreino = historicoData.filter(h => h.treino_id === f.id);
           const ultimaSessaoObj = historicoDoTreino.length > 0 ? historicoDoTreino[0] : null;
           
           return { 
             ...f, 
-            exercicios, 
-            count: exercicios.length, 
+            exercicios: exerciciosFlat, 
+            count: exerciciosFlat.length, 
             sessõesCount: historicoDoTreino.length, 
             ultimaSessaoObj,
             ultimaSessao: ultimaSessaoObj ? ultimaSessaoObj.data_conclusao : null,
@@ -163,8 +118,7 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
   }, [id, router]);
 
   const fichasAgrupadas = useMemo(() => {
-    const ativas = fichas.filter((f) => f.ativo);
-    return ativas.reduce((acc, f) => {
+    return fichas.reduce((acc, f) => {
       const partes = f.nome_treino ? f.nome_treino.split(' - ') : ['GERAL'];
       const programaMaster = partes[0].trim().toUpperCase();
       const nomeExibicaoCard = partes[1] ? partes[1].trim() : f.nome_treino;
@@ -186,19 +140,10 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
     setExpandedSections(prev => ({ ...prev, [programaMaster]: !prev[programaMaster] }));
   };
 
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  // RENDERIZAÇÃO CONDICIONAL DO PAR-Q (BLOQUEIO)
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   if (precisaParq) {
     return (
       <div style={themeStyles} className="min-h-screen bg-[var(--bg)] pt-10 px-4 pb-20">
-        <ParqForm 
-          alunoId={id} 
-          onComplete={() => {
-            // Quando ele preencher e assinar, a tela recarrega para liberar o acesso
-            window.location.reload();
-          }} 
-        />
+        <ParqForm alunoId={id} onComplete={() => window.location.reload()} />
       </div>
     );
   }
@@ -240,23 +185,10 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
                     </div>
                   </div>
 
-                  {/* Badges de configuração que vêm do banco */}
                   <div className="flex flex-wrap gap-1.5 mt-3 ml-3.5">
-                    {(treinos as any[])[0]?.tipo_treino && (
-                      <span className="text-[8px] font-black bg-[var(--surface-sec)] text-[var(--text-secondary)] px-2 py-1 rounded-lg border border-[var(--border)] uppercase tracking-widest">
-                        {(treinos as any[])[0].tipo_treino}
-                      </span>
-                    )}
-                    {(treinos as any[])[0]?.objetivo && (
-                      <span className="text-[8px] font-black bg-[var(--surface-sec)] text-[var(--text-secondary)] px-2 py-1 rounded-lg border border-[var(--border)] uppercase tracking-widest">
-                        {(treinos as any[])[0].objetivo}
-                      </span>
-                    )}
-                    {(treinos as any[])[0]?.dificuldade && (
-                      <span className="text-[8px] font-black bg-[var(--surface-sec)] text-[var(--text-secondary)] px-2 py-1 rounded-lg border border-[var(--border)] uppercase tracking-widest">
-                        {(treinos as any[])[0].dificuldade}
-                      </span>
-                    )}
+                    {(treinos as any[])[0]?.tipo_treino && <span className="text-[8px] font-black bg-[var(--surface-sec)] text-[var(--text-secondary)] px-2 py-1 rounded-lg border border-[var(--border)] uppercase tracking-widest">{(treinos as any[])[0].tipo_treino}</span>}
+                    {(treinos as any[])[0]?.objetivo && <span className="text-[8px] font-black bg-[var(--surface-sec)] text-[var(--text-secondary)] px-2 py-1 rounded-lg border border-[var(--border)] uppercase tracking-widest">{(treinos as any[])[0].objetivo}</span>}
+                    {(treinos as any[])[0]?.dificuldade && <span className="text-[8px] font-black bg-[var(--surface-sec)] text-[var(--text-secondary)] px-2 py-1 rounded-lg border border-[var(--border)] uppercase tracking-widest">{(treinos as any[])[0].dificuldade}</span>}
                   </div>
                 </button>
 
@@ -264,8 +196,6 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
                   <div className="overflow-hidden space-y-4 px-1 pb-1">
                     {(treinos as any[]).map((f) => {
                       const progressoPercent = Math.min(Math.round((f.sessõesCount / META_SESSOES) * 100), 100);
-                      
-                      // VERIFICAÇÃO SE O TREINO FOI FEITO HOJE
                       const ultima = f.ultimaSessaoObj;
                       const isHoje = ultima && new Date(ultima.data_fim || ultima.data_conclusao).toDateString() === new Date().toDateString();
 
@@ -273,7 +203,7 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
                         <div key={f.id} className="bg-[var(--surface)] p-6 rounded-[2rem] border border-[var(--border)] shadow-sm hover:shadow-md transition-all relative overflow-hidden group">
                           <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--primary)]/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none" />
 
-                          <div className="flex justify-between items-start mb-4 relative z-10">
+                          <div className="flex justify-between items-start mb-2 relative z-10">
                             <div>
                               <h3 className="font-black text-[var(--text-primary)] text-base leading-tight tracking-tight">{f.nomeLimpoCard}</h3>
                               <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] mt-1.5 flex items-center gap-1.5">
@@ -289,7 +219,23 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
                             </div>
                           </div>
 
-                          <div className="mb-5 space-y-1.5 relative z-10 max-h-48 overflow-y-auto pr-1 scrollbar-thin">
+                          {/* DATAS DE INÍCIO E VENCIMENTO */}
+                          {(f.data_inicio || f.data_vencimento) && (
+                             <div className="flex gap-2 mb-4 relative z-10">
+                               {f.data_inicio && (
+                                 <span className="text-[9px] font-bold text-[var(--text-secondary)] bg-[var(--surface-sec)] px-2 py-1 rounded-md flex items-center gap-1 border border-[var(--border)]">
+                                   <FaCalendarAlt className="text-[var(--primary)]" /> Início: {new Date(f.data_inicio).toLocaleDateString(lang)}
+                                 </span>
+                               )}
+                               {f.data_vencimento && (
+                                 <span className="text-[9px] font-bold text-[var(--danger)] bg-[var(--danger)]/10 px-2 py-1 rounded-md flex items-center gap-1 border border-[var(--danger)]/20">
+                                   <FaCalendarAlt /> Vence: {new Date(f.data_vencimento).toLocaleDateString(lang)}
+                                 </span>
+                               )}
+                             </div>
+                          )}
+
+                          <div className="mb-5 space-y-1.5 relative z-10 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
                             {f.exercicios && f.exercicios.length > 0 ? (
                               f.exercicios.map((ex: any, idx: number) => {
                                 const totalSeries = Array.isArray(ex.series) ? ex.series.length : (typeof ex.series === 'object' ? 1 : (ex.series || 3));
@@ -319,41 +265,20 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
                             </div>
                           </div>
 
-                          {/* ━━━━━━━━━━ BANNER DE INFORMAÇÃO DE TEMPO DA ÚLTIMA SESSÃO ━━━━━━━━━━ */}
                           {ultima && (
-                            <div className={`mb-5 p-3 rounded-xl border relative z-10 ${
-                              isHoje
-                                ? 'bg-[var(--success)]/10 border-[var(--success)]/20'
-                                : 'bg-[var(--surface-sec)] border-[var(--border)]'
-                            }`}>
+                            <div className={`mb-5 p-3 rounded-xl border relative z-10 ${isHoje ? 'bg-[var(--success)]/10 border-[var(--success)]/20' : 'bg-[var(--surface-sec)] border-[var(--border)]'}`}>
                               <div className="flex items-center gap-2 mb-1">
-                                {isHoje ? (
-                                  <FaCheckCircle className="text-[var(--success)] text-sm" />
-                                ) : (
-                                  <FaClock className="text-[var(--text-secondary)] text-sm" />
-                                )}
+                                {isHoje ? <FaCheckCircle className="text-[var(--success)] text-sm" /> : <FaClock className="text-[var(--text-secondary)] text-sm" />}
                                 <span className={`text-[10px] font-black uppercase tracking-widest ${isHoje ? 'text-[var(--success)]' : 'text-[var(--text-secondary)]'}`}>
                                   {isHoje ? t.doneToday : t.lastExec}
                                 </span>
                               </div>
                               <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs font-bold text-[var(--text-primary)] pl-6">
-                                 <span>
-                                   {t.date} <span className="font-medium text-[var(--text-secondary)]">
-                                     {new Date(ultima.data_fim || ultima.data_conclusao).toLocaleDateString(lang)}
-                                   </span>
-                                 </span>
+                                 <span>{t.date} <span className="font-medium text-[var(--text-secondary)]">{new Date(ultima.data_fim || ultima.data_conclusao).toLocaleDateString(lang)}</span></span>
                                  {ultima.data_inicio && ultima.data_fim && (
-                                   <span>
-                                     {t.time} <span className="font-medium text-[var(--text-secondary)]">
-                                       {new Date(ultima.data_inicio).toLocaleTimeString(lang, { hour: '2-digit', minute: '2-digit' })} às {new Date(ultima.data_fim).toLocaleTimeString(lang, { hour: '2-digit', minute: '2-digit' })}
-                                     </span>
-                                   </span>
+                                   <span>{t.time} <span className="font-medium text-[var(--text-secondary)]">{new Date(ultima.data_inicio).toLocaleTimeString(lang, { hour: '2-digit', minute: '2-digit' })} às {new Date(ultima.data_fim).toLocaleTimeString(lang, { hour: '2-digit', minute: '2-digit' })}</span></span>
                                  )}
-                                 {ultima.duracao_minutos && (
-                                   <span>
-                                     {t.duration} <span className="font-medium text-[var(--text-secondary)]">{ultima.duracao_minutos} min</span>
-                                   </span>
-                                 )}
+                                 {ultima.duracao_minutos && <span>{t.duration} <span className="font-medium text-[var(--text-secondary)]">{ultima.duracao_minutos} min</span></span>}
                               </div>
                             </div>
                           )}
@@ -366,7 +291,6 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
                     })}
                   </div>
                 </div>
-
               </div>
             );
           })}
