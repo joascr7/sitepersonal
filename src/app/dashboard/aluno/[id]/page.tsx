@@ -2,7 +2,7 @@
 import { useEffect, useState, use, Suspense, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import ControleFinanceiro from '@/components/ControleFinanceiro';
 import { 
   FaChevronLeft, FaGlobe, FaMoon, FaSun, FaExclamationCircle, FaCheckCircle, 
@@ -40,16 +40,16 @@ const DetalheAlunoSkeleton = () => (
 const translations = {
   'pt-BR': {
     back: 'Voltar', modality: 'Modalidade: ', notDefined: 'Não definido',
-    tabs: { workouts: 'Treinos', evolution: 'Evolução', feedback: 'Feedbacks', files: 'Documentos', frequency: 'Frequência' },
+    tabs: { workouts: 'Treinos', frequency: 'Frequência', evolution: 'Evolução', feedback: 'Feedbacks', files: 'Documentos' },
     workouts: { 
       active: 'Ativos', archived: 'Arquivados', program: 'Programa', viewDetails: 'Ver Treino', edit: 'Editar',
       empty: 'Nenhuma ficha encontrada.', new: '+ Criar Nova Ficha', 
       assign: 'Atribuir a outros', archive: 'Arquivar', restore: 'Restaurar', selectStudents: 'Selecione os Alunos'
     },
-    evolution: { title: 'Evolução', subtitle: 'Acompanhamento e métricas.', newEval: '+ Nova Avaliação', weight: 'Peso (kg)', delete: 'Excluir' },
+    frequency: { title: 'Frequência', subtitle: 'Assiduidade e consistência.', totalWorkouts: 'Treinos Totais', avgWeek: 'Média / Semana', workoutsMonth: 'Treinos por Mês' },
+    evolution: { title: 'Evolução', subtitle: 'Acompanhamento e métricas.', newEval: '+ Nova Avaliação', weight: 'Evolução de Peso (kg)', fat: '% de Gordura Corporal', measures: 'Circunferências Principais (cm)', delete: 'Excluir' },
     feedback: { title: 'Feedbacks', subtitle: 'Histórico do aluno.', intensity: 'Intensidade', level: 'Nível', delete: 'Excluir', empty: 'Nenhum feedback.' },
     files: { title: 'Documentos', subtitle: 'Gestão de exames e arquivos.', upload: 'Selecionar novo PDF', open: 'Abrir', empty: 'Nenhum arquivo enviado.' },
-    frequency: { title: 'Frequência', subtitle: 'Assiduidade e consistência de treinos.', totalWorkouts: 'Treinos Totais', avgWeek: 'Média / Semana', workoutsMonth: 'Treinos por Mês' },
     modalEval: { title: 'Nova Avaliação', subtitle: 'Preencha as métricas do aluno.', obs: 'Observações...', cancel: 'Cancelar', save: 'Salvar' },
     alerts: { 
       confirmFeedback: 'Tem certeza que deseja excluir este feedback?', 
@@ -63,16 +63,16 @@ const translations = {
   },
   'pt-PT': {
     back: 'Voltar', modality: 'Modalidade: ', notDefined: 'Não definido',
-    tabs: { workouts: 'Treinos', evolution: 'Evolução', feedback: 'Feedbacks', files: 'Documentos', frequency: 'Frequência' },
+    tabs: { workouts: 'Treinos', frequency: 'Frequência', evolution: 'Evolução', feedback: 'Feedbacks', files: 'Documentos' },
     workouts: { 
       active: 'Ativos', archived: 'Arquivados', program: 'Programa', viewDetails: 'Ver Treino', edit: 'Editar',
       empty: 'Nenhuma ficha encontrada.', new: '+ Criar Nova Ficha', 
       assign: 'Atribuir a outros', archive: 'Arquivar', restore: 'Restaurar', selectStudents: 'Selecione os Alunos'
     },
-    evolution: { title: 'Evolução', subtitle: 'Acompanhamento e métricas.', newEval: '+ Nova Avaliação', weight: 'Peso (kg)', delete: 'Eliminar' },
+    frequency: { title: 'Frequência', subtitle: 'Assiduidade e consistência.', totalWorkouts: 'Treinos Totais', avgWeek: 'Média / Semana', workoutsMonth: 'Treinos por Mês' },
+    evolution: { title: 'Evolução', subtitle: 'Acompanhamento e métricas.', newEval: '+ Nova Avaliação', weight: 'Evolução de Peso (kg)', fat: '% de Gordura Corporal', measures: 'Circunferências Principais (cm)', delete: 'Eliminar' },
     feedback: { title: 'Feedbacks', subtitle: 'Histórico do aluno.', intensity: 'Intensidade', level: 'Nível', delete: 'Eliminar', empty: 'Nenhum feedback.' },
     files: { title: 'Documentos', subtitle: 'Gestão de exames e ficheiros.', upload: 'Selecionar novo PDF', open: 'Abrir', empty: 'Nenhum ficheiro enviado.' },
-    frequency: { title: 'Frequência', subtitle: 'Assiduidade e consistência de treinos.', totalWorkouts: 'Treinos Totais', avgWeek: 'Média / Semana', workoutsMonth: 'Treinos por Mês' },
     modalEval: { title: 'Nova Avaliação', subtitle: 'Preencha as métricas do aluno.', obs: 'Observações...', cancel: 'Cancelar', save: 'Guardar' },
     alerts: { 
       confirmFeedback: 'Tem certeza que deseja eliminar este feedback?', 
@@ -86,16 +86,16 @@ const translations = {
   },
   'en': {
     back: 'Back', modality: 'Modality: ', notDefined: 'Not defined',
-    tabs: { workouts: 'Workouts', evolution: 'Evolution', feedback: 'Feedbacks', files: 'Documents', frequency: 'Frequency' },
+    tabs: { workouts: 'Workouts', frequency: 'Frequency', evolution: 'Evolution', feedback: 'Feedbacks', files: 'Documents' },
     workouts: { 
       active: 'Active', archived: 'Archived', program: 'Program', viewDetails: 'View Workout', edit: 'Edit',
       empty: 'No workouts found.', new: '+ Create New Workout', 
       assign: 'Assign to others', archive: 'Archive', restore: 'Restore', selectStudents: 'Select Students'
     },
-    evolution: { title: 'Evolution', subtitle: 'Tracking and metrics.', newEval: '+ New Assessment', weight: 'Weight (kg)', delete: 'Delete' },
+    frequency: { title: 'Frequency', subtitle: 'Attendance and consistency.', totalWorkouts: 'Total Workouts', avgWeek: 'Avg / Week', workoutsMonth: 'Workouts per Month' },
+    evolution: { title: 'Evolution', subtitle: 'Tracking and metrics.', newEval: '+ New Assessment', weight: 'Weight Evolution (kg)', fat: 'Body Fat (%)', measures: 'Main Circumferences (cm)', delete: 'Delete' },
     feedback: { title: 'Feedbacks', subtitle: 'Student history.', intensity: 'Intensity', level: 'Level', delete: 'Delete', empty: 'No feedbacks.' },
     files: { title: 'Documents', subtitle: 'Exams and files management.', upload: 'Select new PDF', open: 'Open', empty: 'No files uploaded.' },
-    frequency: { title: 'Frequency', subtitle: 'Attendance and training consistency.', totalWorkouts: 'Total Workouts', avgWeek: 'Avg / Week', workoutsMonth: 'Workouts per Month' },
     modalEval: { title: 'New Assessment', subtitle: 'Fill in the student metrics.', obs: 'Observations...', cancel: 'Cancel', save: 'Save' },
     alerts: { 
       confirmFeedback: 'Are you sure you want to delete this feedback?', 
@@ -131,7 +131,7 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
   const [alunosSelecionados, setAlunosSelecionados] = useState<string[]>([]);
   const [programaParaAtribuir, setProgramaParaAtribuir] = useState<any[]>([]);
 
-  // Estados da Frequência
+  // Estados Frequência
   const [frequenciaMensal, setFrequenciaMensal] = useState<any[]>([]);
   const [metricasFrequencia, setMetricasFrequencia] = useState({ total: 0, mediaSemana: 0 });
 
@@ -204,18 +204,13 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
   };
 
   const fetchFrequencia = async () => {
-    const { data, error } = await supabase
-      .from('conclusoes_treino')
-      .select('data_conclusao')
-      .eq('aluno_id', id)
-      .order('data_conclusao', { ascending: true });
-
+    const { data, error } = await supabase.from('conclusoes_treino').select('data_conclusao').eq('aluno_id', id).order('data_conclusao', { ascending: true });
+    
     if (!error && data) {
       const meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
       const agrupado: Record<string, number> = {};
       const hoje = new Date();
       
-      // Últimos 6 meses dinâmicos
       for (let i = 5; i >= 0; i--) {
         const d = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
         const label = `${meses[d.getMonth()]} ${d.getFullYear().toString().slice(2)}`;
@@ -280,6 +275,11 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
     return Object.entries(grupos).map(([nomeMaster, treinos]) => ({ nomeMaster, treinos }));
   }, [fichas, mostrarArquivados]);
 
+  // Preparar dados da evolução (crescente no gráfico)
+  const evolutionData = useMemo(() => {
+    return [...historico].reverse();
+  }, [historico]);
+
   const excluirProgramaCompleto = async (treinos: any[]) => {
     if (!window.confirm(t.alerts.confirmMasterFicha)) return;
     const idsParaExcluir = treinos.map(t => t.id);
@@ -323,12 +323,11 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
     if (!error) fetchFeedbacks(); else showToast('error', t.alerts.errDelete + error.message);
   };
 
-    const excluirAvaliacao = async (avaliacaoId: string) => {
+  const excluirAvaliacao = async (avaliacaoId: string) => {
     if (!window.confirm(t.alerts.confirmAvaliacao)) return;
-    const { error } = await supabase.from('avaliacoes_fisicas').delete().eq('id', avaliacaoId); // <--- AQUI ESTAVA 'avai'
+    const { error } = await supabase.from('avaliacoes_fisicas').delete().eq('id', avaliacaoId);
     if (!error) fetchHistorico(); else showToast('error', t.alerts.errDelete + error.message);
   };
-
 
   const salvarAvaliacaoCompleta = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -543,7 +542,7 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
             </section>
           )}
 
-          {/* ABA 3: EVOLUÇÃO */}
+          {/* ABA 3: EVOLUÇÃO (UPGRADE PREMIUM DE GRÁFICOS TRIPLOS) */}
           {abaAtiva === 'evolucao' && (
             <section className="space-y-8 animate-in slide-in-from-right-4 fade-in duration-500">
               <div className="flex flex-col sm:flex-row gap-4 justify-between sm:items-end">
@@ -554,26 +553,75 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
                 <button onClick={() => setIsModalAvaliacaoOpen(true)} className="w-full sm:w-auto bg-[var(--primary)] text-white px-6 py-4 rounded-[1.2rem] font-black text-[10px] uppercase tracking-widest active:scale-[0.98] transition-transform shadow-md shadow-[var(--primary)]/20 flex items-center justify-center gap-2"><FaPlus size={10} /> {t.evolution.newEval}</button>
               </div>
 
-              <div className="bg-[var(--surface)] p-6 sm:p-8 rounded-[2.5rem] border border-[var(--border)] h-64 sm:h-80 shadow-xl">
-                <div className="flex justify-between items-center mb-6"><h3 className="font-black text-[var(--text-secondary)] text-[10px] uppercase tracking-widest flex items-center gap-2"><FaChartLine /> {t.evolution.weight}</h3></div>
-                <ResponsiveContainer width="100%" height="80%">
-                  <LineChart data={[...historico].filter(a => a.peso).reverse()} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? '#333' : '#e5e7eb'} />
-                    <XAxis dataKey="data_avaliacao" hide />
-                    <YAxis domain={['auto', 'auto']} tick={{fontSize: 10, fill: 'var(--text-secondary)', fontWeight: 700}} axisLine={false} tickLine={false} />
-                    <Tooltip contentStyle={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '12px', fontWeight: 'bold', color: 'var(--text-primary)' }} itemStyle={{ color: 'var(--primary)' }} />
-                    <Line type="monotone" dataKey="peso" stroke="#3B82F6" strokeWidth={4} dot={{ r: 4, fill: '#3B82F6', strokeWidth: 2, stroke: 'var(--surface)' }} activeDot={{ r: 6 }} animationDuration={1500} />
-                  </LineChart>
-                </ResponsiveContainer>
+              {/* GRÁFICOS DETALHADOS DE EVOLUÇÃO */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                
+                {/* 1. Evolução de Peso */}
+                <div className="bg-[var(--surface)] p-6 rounded-[2.5rem] border border-[var(--border)] h-72 shadow-sm flex flex-col">
+                  <h3 className="font-black text-[var(--text-secondary)] text-[10px] uppercase tracking-widest mb-4 flex items-center gap-2"><FaChartLine /> {t.evolution.weight}</h3>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={evolutionData.filter(a => a.peso)} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? '#333' : '#e5e7eb'} />
+                      <XAxis dataKey="data_avaliacao" tickFormatter={(v) => new Date(v).toLocaleDateString(lang, { day: '2-digit', month: '2-digit' })} tick={{fontSize: 9, fill: 'var(--text-secondary)', fontWeight: 700}} axisLine={false} tickLine={false} />
+                      <YAxis domain={['auto', 'auto']} tick={{fontSize: 10, fill: 'var(--text-secondary)', fontWeight: 700}} axisLine={false} tickLine={false} />
+                      <Tooltip labelFormatter={(l) => new Date(l).toLocaleDateString(lang)} contentStyle={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '12px', fontWeight: 'bold', color: 'var(--text-primary)' }} itemStyle={{ color: 'var(--primary)' }} />
+                      <Line type="monotone" name="Peso (kg)" dataKey="peso" stroke="#3B82F6" strokeWidth={4} dot={{ r: 4, fill: '#3B82F6', strokeWidth: 2, stroke: 'var(--surface)' }} activeDot={{ r: 6 }} animationDuration={1500} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* 2. Evolução de Gordura Corporal */}
+                <div className="bg-[var(--surface)] p-6 rounded-[2.5rem] border border-[var(--border)] h-72 shadow-sm flex flex-col relative overflow-hidden group">
+                  <div className="absolute inset-0 bg-gradient-to-t from-[var(--danger)]/5 to-transparent pointer-events-none" />
+                  <h3 className="font-black text-[var(--text-secondary)] text-[10px] uppercase tracking-widest mb-4 flex items-center gap-2 relative z-10"><FaChartLine /> {t.evolution.fat}</h3>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={evolutionData.filter(a => a.gordura)} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="colorGordura" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="var(--danger)" stopOpacity={0.3}/>
+                          <stop offset="95%" stopColor="var(--danger)" stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? '#333' : '#e5e7eb'} />
+                      <XAxis dataKey="data_avaliacao" tickFormatter={(v) => new Date(v).toLocaleDateString(lang, { day: '2-digit', month: '2-digit' })} tick={{fontSize: 9, fill: 'var(--text-secondary)', fontWeight: 700}} axisLine={false} tickLine={false} />
+                      <YAxis domain={['auto', 'auto']} tick={{fontSize: 10, fill: 'var(--text-secondary)', fontWeight: 700}} axisLine={false} tickLine={false} />
+                      <Tooltip labelFormatter={(l) => new Date(l).toLocaleDateString(lang)} contentStyle={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '12px', fontWeight: 'bold', color: 'var(--text-primary)' }} itemStyle={{ color: 'var(--danger)' }} />
+                      <Area type="monotone" name="Gordura (%)" dataKey="gordura" stroke="var(--danger)" strokeWidth={3} fillOpacity={1} fill="url(#colorGordura)" animationDuration={1500} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* 3. Evolução de Circunferências (Largura Total) */}
+                <div className="bg-[var(--surface)] p-6 rounded-[2.5rem] border border-[var(--border)] h-72 shadow-sm flex flex-col md:col-span-2">
+                  <h3 className="font-black text-[var(--text-secondary)] text-[10px] uppercase tracking-widest mb-4 flex items-center gap-2"><FaChartLine /> {t.evolution.measures}</h3>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={evolutionData.filter(a => a.abdomen || a.cintura || a.quadril)} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? '#333' : '#e5e7eb'} />
+                      <XAxis dataKey="data_avaliacao" tickFormatter={(v) => new Date(v).toLocaleDateString(lang, { day: '2-digit', month: '2-digit' })} tick={{fontSize: 9, fill: 'var(--text-secondary)', fontWeight: 700}} axisLine={false} tickLine={false} />
+                      <YAxis domain={['auto', 'auto']} tick={{fontSize: 10, fill: 'var(--text-secondary)', fontWeight: 700}} axisLine={false} tickLine={false} />
+                      <Tooltip labelFormatter={(l) => new Date(l).toLocaleDateString(lang)} contentStyle={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '12px', fontWeight: 'bold', color: 'var(--text-primary)' }} />
+                      <Legend wrapperStyle={{ fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase' }} />
+                      <Line type="monotone" name="Abdômen" dataKey="abdomen" stroke="#3B82F6" strokeWidth={3} dot={{ r: 3 }} activeDot={{ r: 5 }} animationDuration={1500} />
+                      <Line type="monotone" name="Cintura" dataKey="cintura" stroke="#F59E0B" strokeWidth={3} dot={{ r: 3 }} activeDot={{ r: 5 }} animationDuration={1500} />
+                      <Line type="monotone" name="Quadril" dataKey="quadril" stroke="#22C55E" strokeWidth={3} dot={{ r: 3 }} activeDot={{ r: 5 }} animationDuration={1500} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+
               </div>
 
               <div className="space-y-4">
                 {historico.filter(a => !a.tipo).map((av) => (
                   <div key={av.id} className="bg-[var(--surface)] p-6 sm:p-8 rounded-[2.5rem] border border-[var(--border)] shadow-md hover:border-[var(--primary)]/30 transition-colors">
                     <div className="flex justify-between items-center mb-6 border-b border-[var(--border)] pb-4">
-                      <p className="font-black text-lg text-[var(--text-primary)] bg-[var(--surface-sec)] px-4 py-1.5 rounded-xl">{new Date(av.data_avaliacao).toLocaleDateString(lang)}</p>
-                      <button onClick={() => excluirAvaliacao(av.id)} className="text-[var(--text-secondary)] hover:text-[var(--danger)] bg-[var(--surface-sec)] hover:bg-[var(--danger)]/10 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-colors flex items-center gap-2"><FaTrash size={10} /> <span className="hidden sm:inline">{t.evolution.delete}</span></button>
+                      <p className="font-black text-lg text-[var(--text-primary)] bg-[var(--surface-sec)] px-4 py-1.5 rounded-xl">
+                        {new Date(av.data_avaliacao).toLocaleDateString(lang)}
+                      </p>
+                      <button onClick={() => excluirAvaliacao(av.id)} className="text-[var(--text-secondary)] hover:text-[var(--danger)] bg-[var(--surface-sec)] hover:bg-[var(--danger)]/10 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-colors flex items-center gap-2">
+                        <FaTrash size={10} /> <span className="hidden sm:inline">{t.evolution.delete}</span>
+                      </button>
                     </div>
+                    
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                       {Object.entries(av).map(([key, val]: any) => {
                         const camposProibidos = ['id', 'aluno_id', 'data_avaliacao', 'observacoes', 'tipo', 'personal_id', 'created_at', 'updated_at'];
@@ -581,7 +629,9 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
                         return (
                           <div key={key} className="bg-[var(--surface-sec)] p-4 rounded-[1.2rem] border border-[var(--border)] shadow-inner">
                             <p className="text-[8px] sm:text-[9px] font-black text-[var(--text-secondary)] uppercase tracking-widest truncate mb-1">{key.replace('_', ' ')}</p>
-                            <p className="font-black text-sm sm:text-base text-[var(--text-primary)]">{val}<span className="text-[9px] text-[var(--text-secondary)] ml-1">{['peso', 'gordura'].includes(key) ? (key === 'peso' ? 'kg' : '%') : 'cm'}</span></p>
+                            <p className="font-black text-sm sm:text-base text-[var(--text-primary)]">
+                              {val}<span className="text-[9px] text-[var(--text-secondary)] ml-1">{['peso', 'gordura'].includes(key) ? (key === 'peso' ? 'kg' : '%') : 'cm'}</span>
+                            </p>
                           </div>
                         );
                       })}
@@ -667,27 +717,52 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
             </section>
           )}
 
-          {/* MODAL DE AVALIAÇÃO FÍSICA */}
+          {/* NOVA MODAL DE AVALIAÇÃO FÍSICA (FULLSCREEN NO MOBILE / BLINDADA CONTRA TECLADO) */}
           {isModalAvaliacaoOpen && (
-            <div className="fixed inset-0 bg-black/60 backdrop-blur-xl z-[600] flex items-end sm:items-center justify-center p-0 sm:p-5 animate-in fade-in duration-300">
-              <div className="bg-[var(--surface)] w-full sm:max-w-xl rounded-t-[2.5rem] sm:rounded-[2.5rem] p-6 sm:p-8 shadow-2xl border border-[var(--border)] overflow-y-auto max-h-[90vh] sm:max-h-[85vh] animate-in slide-in-from-bottom-8 sm:zoom-in-95 custom-scrollbar">
-                <div className="mb-8 border-b border-[var(--border)] pb-4">
-                  <h3 className="text-2xl font-black tracking-tighter text-[var(--text-primary)]">{t.modalEval.title}</h3>
-                  <p className="text-[var(--text-secondary)] text-[10px] uppercase tracking-widest font-black mt-1">{t.modalEval.subtitle}</p>
+            <div className="fixed inset-0 z-[700] flex sm:items-center justify-center sm:p-5 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
+              
+              {/* O Container principal: Tela cheia no celular (h-full w-full), e modal normal no PC */}
+              <div className="bg-[var(--surface)] w-full h-full sm:h-auto sm:max-w-2xl sm:rounded-[2.5rem] flex flex-col shadow-2xl border border-[var(--border)] animate-in slide-in-from-bottom-full sm:zoom-in-95 duration-300">
+                
+                {/* CABEÇALHO FIXO */}
+                <div className="p-5 sm:p-8 border-b border-[var(--border)] flex justify-between items-center shrink-0 pt-[max(env(safe-area-inset-top,1.25rem),1.25rem)]">
+                  <div>
+                    <h3 className="text-xl sm:text-2xl font-black tracking-tighter text-[var(--text-primary)]">{t.modalEval.title}</h3>
+                    <p className="text-[10px] text-[var(--text-secondary)] uppercase tracking-widest font-black mt-1">{t.modalEval.subtitle}</p>
+                  </div>
+                  <button onClick={() => setIsModalAvaliacaoOpen(false)} className="w-10 h-10 bg-[var(--surface-sec)] border border-[var(--border)] rounded-full flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
+                    <span className="font-bold text-lg leading-none">&times;</span>
+                  </button>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  {Object.keys(medidas).filter(k => k !== 'observacoes').map((key) => (
-                    <div key={key} className="space-y-2">
-                      <label className="text-[9px] font-black uppercase text-[var(--text-secondary)] tracking-widest pl-1">{key.replace('_', ' ')}</label>
-                      <input type="number" className="w-full p-4 bg-[var(--surface-sec)] border border-[var(--border)] rounded-[1.2rem] font-bold text-[var(--text-primary)] text-sm outline-none focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)] transition-all shadow-inner placeholder:text-[var(--text-secondary)]" placeholder="0.0" onChange={(e) => setMedidas({...medidas, [key]: e.target.value})} />
-                    </div>
-                  ))}
+
+                {/* CONTEÚDO ROLÁVEL (Aqui o teclado não quebra a tela) */}
+                <div className="flex-1 overflow-y-auto p-5 sm:p-8 custom-scrollbar">
+                  <div className="grid grid-cols-2 gap-4 sm:gap-6">
+                    {Object.keys(medidas).filter(k => k !== 'observacoes').map((key) => (
+                      <div key={key} className="space-y-2">
+                        <label className="text-[9px] font-black uppercase text-[var(--text-secondary)] tracking-widest pl-1">{key.replace('_', ' ')}</label>
+                        <input 
+                          type="number" 
+                          className="w-full p-4 bg-[var(--surface-sec)] border border-[var(--border)] rounded-[1.2rem] font-bold text-[var(--text-primary)] text-sm outline-none focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)] transition-all shadow-inner placeholder:text-[var(--text-secondary)]" 
+                          placeholder="0.0" 
+                          onChange={(e) => setMedidas({...medidas, [key]: e.target.value})} 
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  <textarea 
+                    className="w-full p-5 bg-[var(--surface-sec)] border border-[var(--border)] rounded-[1.2rem] mt-6 outline-none font-medium text-sm h-32 focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)] transition-all text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] shadow-inner custom-scrollbar" 
+                    placeholder={t.modalEval.obs} 
+                    onChange={(e) => setMedidas({...medidas, observacoes: e.target.value})} 
+                  />
                 </div>
-                <textarea className="w-full p-5 bg-[var(--surface-sec)] border border-[var(--border)] rounded-[1.2rem] mt-6 outline-none font-medium text-sm h-32 focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)] transition-all text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] shadow-inner custom-scrollbar" placeholder={t.modalEval.obs} onChange={(e) => setMedidas({...medidas, observacoes: e.target.value})} />
-                <div className="flex gap-4 mt-8 pb-8 sm:pb-0">
-                  <button onClick={() => setIsModalAvaliacaoOpen(false)} className="flex-1 py-4 sm:py-5 bg-[var(--surface-sec)] text-[var(--text-primary)] hover:bg-[var(--border)] rounded-[1.2rem] font-black text-[10px] uppercase tracking-widest transition-colors active:scale-95">{t.modalEval.cancel}</button>
+
+                {/* RODAPÉ FIXO (Os botões de salvar nunca somem da tela) */}
+                <div className="p-5 sm:p-8 border-t border-[var(--border)] bg-[var(--surface)] shrink-0 flex gap-4 pb-[max(env(safe-area-inset-bottom,1.25rem),1.25rem)]">
+                  <button onClick={() => setIsModalAvaliacaoOpen(false)} className="flex-1 py-4 sm:py-5 bg-[var(--surface-sec)] text-[var(--text-primary)] hover:bg-[var(--border)] rounded-[1.2rem] font-black text-[10px] uppercase tracking-widest transition-colors active:scale-95 border border-[var(--border)]">{t.modalEval.cancel}</button>
                   <button onClick={salvarAvaliacaoCompleta} className="flex-1 py-4 sm:py-5 bg-[var(--primary)] text-white rounded-[1.2rem] font-black text-[10px] uppercase tracking-widest hover:brightness-110 shadow-lg shadow-[var(--primary)]/20 transition-all active:scale-95">{t.modalEval.save}</button>
                 </div>
+
               </div>
             </div>
           )}
