@@ -323,11 +323,12 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
     if (!error) fetchFeedbacks(); else showToast('error', t.alerts.errDelete + error.message);
   };
 
-  const excluirAvaliacao = async (avaliacaoId: string) => {
+    const excluirAvaliacao = async (avaliacaoId: string) => {
     if (!window.confirm(t.alerts.confirmAvaliacao)) return;
-    const { error } = await supabase.from('avaliacoes_fisicas').delete().eq('id', avai);
+    const { error } = await supabase.from('avaliacoes_fisicas').delete().eq('id', avaliacaoId); // <--- AQUI ESTAVA 'avai'
     if (!error) fetchHistorico(); else showToast('error', t.alerts.errDelete + error.message);
   };
+
 
   const salvarAvaliacaoCompleta = async () => {
     const { data: { user } } = await supabase.auth.getUser();
