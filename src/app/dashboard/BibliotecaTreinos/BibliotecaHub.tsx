@@ -4,7 +4,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { 
   FaPlus, FaFolder, FaEllipsisV, FaShareSquare, FaEdit, FaTrash, 
-  FaSearch, FaStar, FaPlay, FaVideoSlash, FaChevronDown, FaChevronUp, FaTimes, FaUpload, FaArchive, FaChevronLeft, FaHeart
+  FaSearch, FaStar, FaPlay, FaVideoSlash, FaChevronDown, FaChevronUp, 
+  FaTimes, FaUpload, FaArchive, FaChevronLeft, FaChevronRight, FaHeart
 } from 'react-icons/fa';
 import ModalAtribuirTreino from '@/components/biblioteca/ModalAtribuirTreino';
 
@@ -162,7 +163,6 @@ export function BibliotecaHub() {
   const toggleFavorito = async (id: string) => {
     // Atualiza localmente
     setExercicios(prev => prev.map(e => e.id === id ? { ...e, favorito: !e.favorito } : e));
-    // Dica: A implementação no banco exigiria criar uma tabela pivot ou atualizar a videos_biblioteca
   };
 
   const uploadVideoLocal = async (file: File) => {
