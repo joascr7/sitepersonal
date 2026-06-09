@@ -111,17 +111,29 @@ html {
 }
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   TRAVA DE ZOOM NATIVO (UX PREMIUM PARA IOS/ANDROID)
+   TRAVA DE ZOOM NATIVO E UX PREMIUM
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 
 /* Impede o zoom automático do iOS Safari ao focar em campos de digitação */
 input, select, textarea {
   font-size: 16px !important;
+  
+  /* Garante que o aluno consiga digitar e selecionar o próprio texto dentro dos formulários */
+  -webkit-user-select: auto !important;
+  user-select: auto !important;
 }
 
-/* Impede o atraso de clique (300ms delay) e manipulações de toque indesejadas */
+/* Impede atraso de clique, mata a pinça no CSS e bloqueia seleção de texto (Lupa) */
 body {
-  touch-action: manipulation;
+  /* Substitui o 'manipulation'. O 'pan-x pan-y' libera a rolagem da tela, 
+     mas bloqueia completamente qualquer gesto de zoom (pinça). */
+  touch-action: pan-x pan-y;
+  
+  /* Bloqueia a seleção de texto acidental na interface, evitando a lupa do sistema */
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
 }
 
 /* Opcional: Se quiser esconder a barra de rolagem mas continuar rolando (estilo app nativo) */
