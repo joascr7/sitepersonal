@@ -11,7 +11,7 @@ import ParqForm from '@/components/ParqForm';
 import { 
   FaFilePdf, FaCheck, FaInfoCircle, FaChevronLeft, 
   FaMoon, FaSun, FaGlobe, FaCommentAlt, FaStopwatch, FaTimes, FaBell,
-  FaPlay, FaClock
+  FaPlay, FaClock, FaCalendarAlt
 } from "react-icons/fa";
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -36,7 +36,9 @@ interface Ficha {
   id: string;
   nome_treino: string;
   aluno_nome?: string;
-  descricao: Exercicio[] | string;
+  descricao: any;
+  data_inicio?: string;
+  data_vencimento?: string;
 }
 
 interface RegistroSerie {
@@ -162,68 +164,44 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
 
   // INICIALIZAÇÃO
   useEffect(() => {
-  const init = async () => {
-    setLoading(true);
-    try {
-      const { data: aluno, error: alunoError } = await supabase
-        .from('alunos')
-        .select('status_pagamento, data_vencimento, parq_valido')
-        .eq('id', id)
-        .single();
-      
-      if (alunoError) throw alunoError;
-
-      if (aluno) {
-        const hoje = new Date(); 
-        hoje.setHours(0, 0, 0, 0);
+    const init = async () => {
+      setLoading(true);
+      try {
+        const { data: aluno, error: alunoError } = await supabase
+          .from('alunos')
+          .select('status_pagamento, data_vencimento, parq_valido')
+          .eq('id', id)
+          .single();
         
-        const vencimento = aluno.data_vencimento ? new Date(aluno.data_vencimento) : new Date(0);
-        const dataLimite = new Date(vencimento); 
-        dataLimite.setDate(dataLimite.getDate() + 2);
-        
-        if (aluno.status_pagamento === 'bloqueado' || hoje > dataLimite) {
-          router.push('/aluno/pagamento-pendente'); 
-          return;
+        if (alunoError) throw alunoError;
+
+        if (aluno) {
+          const hoje = new Date(); 
+          hoje.setHours(0, 0, 0, 0);
+          
+          const vencimento = aluno.data_vencimento ? new Date(aluno.data_vencimento) : new Date(0);
+          const dataLimite = new Date(vencimento); 
+          dataLimite.setDate(dataLimite.getDate() + 2);
+          
+          if (aluno.status_pagamento === 'bloqueado' || hoje > dataLimite) {
+            router.push('/aluno/pagamento-pendente'); 
+            return;
+          }
+
+          if (aluno.parq_valido === false || aluno.parq_valido === null) {
+            setPrecisaParq(true);
+            setLoading(false); 
+            return; 
+          }
         }
-
-        if (aluno.parq_valido === false || aluno.parq_valido === null) {
-          setPrecisaParq(true);
-          setLoading(false); 
-          return; 
-        }
+      } catch (err) {
+        console.error("Erro na inicialização do aluno:", err);
+      } finally {
+        setLoading(false);
       }
-
-      const [fichasRes, histRes] = await Promise.all([
-        supabase.from('fichas').select('*').eq('aluno_id', id),
-        supabase.from('conclusoes_treino').select('treino_id, data_conclusao').eq('aluno_id', id)
-      ]);
-
-      if (fichasRes.data) {
-        const historicoData = histRes.data || [];
-        const processadas = fichasRes.data.map(f => {
-          let exercicios = [];
-          try { 
-            exercicios = typeof f.descricao === 'string' ? JSON.parse(f.descricao || '[]') : (f.descricao || []); 
-          } catch { exercicios = []; }
-          const historicoDoTreino = historicoData.filter(h => h.treino_id === f.id);
-          return { 
-            ...f, 
-            exercicios, 
-            count: exercicios.length, 
-            sessõesCount: historicoDoTreino.length, 
-            ultimaSessao: historicoDoTreino.length > 0 ? historicoDoTreino[0].data_conclusao : null, 
-            ativo: f.ativo !== false 
-          };
-        });
-      }
-    } catch (err) {
-      console.error("Erro na inicialização:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-  init();
-}, [id, router]);
+    };
+    init();
+  }, [id, router]);
 
   // Cronômetro GERAL de Execução de Treino
   useEffect(() => {
@@ -298,10 +276,27 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
     '--bg': '#F3F6FB', '--surface': '#FFFFFF', '--surface-sec': '#E8EEF9', '--primary': '#2563EB', '--primary-soft': '#60A5FA', '--success': '#16A34A', '--danger': '#DC2626', '--text-primary': '#111827', '--text-secondary': '#6B7280', '--border': 'rgba(15,23,42,0.06)',
   } as React.CSSProperties;
 
-  const exercicios: Exercicio[] = ficha?.descricao 
-    ? (typeof ficha.descricao === 'string' ? JSON.parse(ficha.descricao) : ficha.descricao) 
-    : [];
-    
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // FUNÇÃO ROBUSTA DE EXTRAÇÃO DOS EXERCÍCIOS (FIX PROGRESSO)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  const getExercicios = (descricaoStr: any): Exercicio[] => {
+    if (!descricaoStr) return [];
+    try {
+      const parsed = typeof descricaoStr === 'string' ? JSON.parse(descricaoStr) : descricaoStr;
+      // Se for formato de pasta/subdivisoes
+      if (parsed.subdivisoes) return parsed.subdivisoes.flatMap((s: any) => s.exercicios || []);
+      // Se for array de subdivisoes
+      if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].exercicios) {
+        return parsed.flatMap((s: any) => s.exercicios || []);
+      }
+      // Se for apenas o array de exercícios direto
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  };
+
+  const exercicios = getExercicios(ficha?.descricao);
   const progresso = exercicios.length > 0 ? Math.round((concluidos.length / exercicios.length) * 100) : 0;
   const todosFinalizados = exercicios.length > 0 && concluidos.length === exercicios.length;
 
@@ -377,7 +372,6 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
     
     const registroExistente = registros.find(r => r.exercicio_nome === nomeExercicio && r.serie_index === serieIndex);
     
-    // CORREÇÃO: O payload agora inclui 'unidade_carga'
     const payload = { 
       aluno_id: id, 
       treino_id: treinoId, 
@@ -385,7 +379,7 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
       carga: Number(carga), 
       repeticoes: Number(reps) || 0, 
       serie_index: serieIndex,
-      unidade_carga: unidade // <--- LINHA ADICIONADA AQUI
+      unidade_carga: unidade
     };
 
     const dadosParaUpsert = registroExistente ? { ...payload, id: registroExistente.id } : payload;
@@ -524,7 +518,7 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
 
         {/* TÍTULO E RELÓGIO DE TREINO */}
         <div className="mb-8">
-          <div className="flex justify-between items-start">
+          <div className="flex justify-between items-start mb-6">
             <div>
               <h1 className="text-3xl font-black tracking-tight leading-tight">{ficha?.nome_treino}</h1>
               <p className="text-[var(--primary)] font-bold text-[11px] uppercase tracking-[0.2em] mt-2 flex items-center gap-2">
@@ -541,8 +535,33 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
               </div>
             )}
           </div>
+
+          {/* BLOCO DE DATAS DO TREINO */}
+          {(ficha?.data_inicio || ficha?.data_vencimento) && (
+            <div className="flex gap-3 mb-6">
+              {ficha.data_inicio && (
+                <div className="flex-1 bg-[var(--surface)] p-4 rounded-2xl border border-[var(--border)] flex items-center gap-3 shadow-sm">
+                  <div className="text-[var(--primary)] bg-[var(--primary)]/10 p-2.5 rounded-lg"><FaCalendarAlt size={14} /></div>
+                  <div>
+                    <p className="text-[8px] font-black uppercase text-[var(--text-secondary)] tracking-widest">Início</p>
+                    <p className="text-xs font-bold text-[var(--text-primary)]">{new Date(ficha.data_inicio).toLocaleDateString(lang)}</p>
+                  </div>
+                </div>
+              )}
+              {ficha.data_vencimento && (
+                <div className="flex-1 bg-[var(--surface)] p-4 rounded-2xl border border-[var(--border)] flex items-center gap-3 shadow-sm">
+                  <div className="text-[var(--danger)] bg-[var(--danger)]/10 p-2.5 rounded-lg"><FaCalendarAlt size={14} /></div>
+                  <div>
+                    <p className="text-[8px] font-black uppercase text-[var(--text-secondary)] tracking-widest">Vencimento</p>
+                    <p className="text-xs font-bold text-[var(--danger)]">{new Date(ficha.data_vencimento).toLocaleDateString(lang)}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
           
-          <div className="w-full h-2 bg-[var(--surface-sec)] mt-6 rounded-full overflow-hidden border border-[var(--border)] shadow-inner">
+          {/* BARRA DE PROGRESSO */}
+          <div className="w-full h-2 bg-[var(--surface-sec)] rounded-full overflow-hidden border border-[var(--border)] shadow-inner">
             <div className="h-full bg-gradient-to-r from-[var(--primary-soft)] to-[var(--primary)] transition-all duration-700 ease-out relative" style={{ width: `${progresso}%` }}>
               <div className="absolute top-0 right-0 bottom-0 w-10 bg-white/20 blur-sm" />
             </div>
@@ -575,7 +594,7 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
                   )}
                   
                   <div className="p-5 sm:p-6 flex-1 flex flex-col justify-center">
-                    <div className="flex justify-between items-start mb-5">
+                    <div className="flex justify-between items-start mb-4">
                       <h3 className="font-black text-[var(--text-primary)] text-lg leading-tight tracking-tight pr-4">{ex.nome}</h3>
                       <button 
                         onClick={() => {
@@ -589,9 +608,11 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
                       </button>
                     </div>
                     
+                    {/* OBSERVAÇÃO TÉCNICA DO PERSONAL */}
                     {ex.observacao && (
-                      <div className="mb-6 p-3 bg-[var(--primary)]/10 text-[var(--primary)] text-[11px] font-bold rounded-xl border border-[var(--primary)]/20 flex items-start gap-2 leading-relaxed">
-                        <FaInfoCircle className="mt-0.5 shrink-0 text-sm"/> <span>{ex.observacao}</span>
+                      <div className="mb-5 p-4 bg-[var(--primary)]/5 border-l-4 border-[var(--primary)] rounded-r-2xl">
+                        <p className="text-[9px] font-black uppercase tracking-widest text-[var(--primary)] mb-1">Nota do Personal:</p>
+                        <p className="text-xs font-medium text-[var(--text-primary)] italic">"{ex.observacao}"</p>
                       </div>
                     )}
 
