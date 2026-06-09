@@ -97,63 +97,58 @@ export default function RootLayout({
     };
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    // 3. BLOQUEIO DEFINITIVO DE ZOOM (Pinça, Touch Duplo e GESTOS DA APPLE)
+    // 3. BLOQUEIO DEFINITIVO DE ZOOM (Com Tipagem TypeScript Corrigida)
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    const preventPinchZoom = (e) => {
+    const preventPinchZoom = (e: TouchEvent) => {
       if (e.touches && e.touches.length > 1) {
         e.preventDefault();
       }
     };
 
-    // NOVA TRAVA: Bloqueia exclusivamente os gestos de lupa/pinça nativos do iOS
-    const preventAppleGestures = (e) => {
+    const preventAppleGestures = (e: Event) => {
       e.preventDefault();
     };
 
-    const preventWheelZoom = (e) => {
+    const preventWheelZoom = (e: WheelEvent) => {
       if (e.ctrlKey) {
         e.preventDefault();
       }
     };
 
-    const preventKeyZoom = (e) => {
+    const preventKeyZoom = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && (e.key === '+' || e.key === '-' || e.key === '=')) {
         e.preventDefault();
       }
     };
 
-    // Trava de toques múltiplos gerais
-    window.addEventListener('touchstart', preventPinchZoom, { passive: false });
-    window.addEventListener('touchmove', preventPinchZoom, { passive: false });
-    document.addEventListener('touchstart', preventPinchZoom, { passive: false });
-    document.addEventListener('touchmove', preventPinchZoom, { passive: false });
+    // Castings (as any) adicionados porque TypeScript nativo não reconhece opções { passive: false } em todos os tipos de evento por padrão.
+    window.addEventListener('touchstart', preventPinchZoom as any, { passive: false });
+    window.addEventListener('touchmove', preventPinchZoom as any, { passive: false });
+    document.addEventListener('touchstart', preventPinchZoom as any, { passive: false });
+    document.addEventListener('touchmove', preventPinchZoom as any, { passive: false });
     
-    // TRAVA DO IOS: Adicionado os listeners de 'gesture' para matar o zoom no Safari
-    document.addEventListener('gesturestart', preventAppleGestures, { passive: false });
-    document.addEventListener('gesturechange', preventAppleGestures, { passive: false });
-    document.addEventListener('gestureend', preventAppleGestures, { passive: false });
+    document.addEventListener('gesturestart', preventAppleGestures as any, { passive: false });
+    document.addEventListener('gesturechange', preventAppleGestures as any, { passive: false });
+    document.addEventListener('gestureend', preventAppleGestures as any, { passive: false });
 
-    // Trava de mouse e teclado
-    document.addEventListener('wheel', preventWheelZoom, { passive: false });
-    document.addEventListener('keydown', preventKeyZoom);
+    document.addEventListener('wheel', preventWheelZoom as any, { passive: false });
+    document.addEventListener('keydown', preventKeyZoom as any);
 
-    // Cleanup: Remove os listeners quando o componente desmontar
     return () => {
       window.removeEventListener('storage', handleStorageChange);
       localStorage.setItem = originalSetItem;
       
-      window.removeEventListener('touchstart', preventPinchZoom);
-      window.removeEventListener('touchmove', preventPinchZoom);
-      document.removeEventListener('touchstart', preventPinchZoom);
-      document.removeEventListener('touchmove', preventPinchZoom);
+      window.removeEventListener('touchstart', preventPinchZoom as any);
+      window.removeEventListener('touchmove', preventPinchZoom as any);
+      document.removeEventListener('touchstart', preventPinchZoom as any);
+      document.removeEventListener('touchmove', preventPinchZoom as any);
       
-      // Cleanup dos gestos da Apple
-      document.removeEventListener('gesturestart', preventAppleGestures);
-      document.removeEventListener('gesturechange', preventAppleGestures);
-      document.removeEventListener('gestureend', preventAppleGestures);
+      document.removeEventListener('gesturestart', preventAppleGestures as any);
+      document.removeEventListener('gesturechange', preventAppleGestures as any);
+      document.removeEventListener('gestureend', preventAppleGestures as any);
       
-      document.removeEventListener('wheel', preventWheelZoom);
-      document.removeEventListener('keydown', preventKeyZoom);
+      document.removeEventListener('wheel', preventWheelZoom as any);
+      document.removeEventListener('keydown', preventKeyZoom as any);
     };
   }, []);
 
