@@ -18,9 +18,9 @@ import {
 // TIPAGENS 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 interface Serie {
-  ordem?: number;
+  ordem?: number | string;
   reps?: string;
-  carga?: number;
+  carga?: number | string;
   unidadeCarga?: string;
   intervalo?: string;
 }
@@ -30,10 +30,10 @@ interface Exercicio {
   video?: string;
   observacao?: string;
   series: Serie[] | number | string; 
-  serie?: number | string; // Adicionado suporte ao singular vindo do banco
+  serie?: number | string; 
   reps?: string;
   repeticoes?: string;
-  carga?: number;
+  carga?: number | string;
   intervalo?: string;
 }
 
@@ -299,8 +299,11 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
     doc.text(ficha?.nome_treino || "Treino", 14, 20);
     const tabelaDados: any[] = [];
     exercicios.forEach((ex) => {
-      // CORREÇÃO: Suporte ao plural e singular na geração de PDFs
-      const totalS = Array.isArray(ex.series) ? ex.series.length : (Number(ex.series) || Number(ex.serie) || 1);
+      // INTELIGÊNCIA PDF: Lê o número digitado na ordem da primeira série
+      const totalS = Array.isArray(ex.series) 
+        ? Math.max(ex.series.length, parseInt(String(ex.series[0]?.ordem).replace(/\D/g, '')) || 0) 
+        : (Number(ex.series) || Number(ex.serie) || 1);
+      
       Array.from({ length: totalS }).forEach((_, idx) => {
         const key = `${ex.nome}-${idx}`;
         const sData = Array.isArray(ex.series) ? ex.series[idx] : null;
@@ -429,7 +432,6 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
         </div>
       )}
 
-      {/* MODAL NATIVO DE EXECUÇÃO DE EXERCÍCIO - REPLICANDO A IMAGE_8.PNG */}
       {activeMediaEx && (
         <div className="fixed inset-0 bg-[var(--bg)] z-[9999] flex flex-col animate-in fade-in duration-200 pt-[max(env(safe-area-inset-top),1rem)] px-4">
           <header className="flex items-center justify-between py-4 border-b border-[var(--border)] mb-6">
@@ -483,7 +485,6 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
           </div>
         </header>
 
-        {/* SELETOR DINÂMICO DE TREINOS DO TOPO */}
         <div className="relative w-full mb-6">
           <select
             value={treinoId}
@@ -538,8 +539,10 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
             const isConcluido = concluidos.includes(exIndex);
             const isExpanded = expandedId === exIndex;
             
-            // CORREÇÃO ESSENCIAL: Agora confere 'series' (plural) e 'serie' (singular) e transforma em número dinâmico do banco
-            const totalSeries = Array.isArray(ex.series) ? ex.series.length : (Number(ex.series) || Number(ex.serie) || 1);
+            // INTELIGÊNCIA SUPREMA AQUI: Avalia se o personal enviou um array, e então extrai o número escrito na "Série (Editável)"
+            const totalSeries = Array.isArray(ex.series) 
+              ? Math.max(ex.series.length, parseInt(String(ex.series[0]?.ordem).replace(/\D/g, '')) || 0) 
+              : (Number(ex.series) || Number(ex.serie) || 1);
             
             const currentSetIndex = activeSets[exIndex] || 0;
             const comboSerieData = Array.isArray(ex.series) ? ex.series[currentSetIndex] : null;
