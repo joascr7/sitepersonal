@@ -35,7 +35,7 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
   const [fichas, setFichas] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [precisaParq, setPrecisaParq] = useState(false);
-  const [isDark, setIsDark] = useState(false); // Default false to match Selfit light theme out-of-box
+  const [isDark, setIsDark] = useState(false);
   const [lang, setLang] = useState<'pt-BR' | 'pt-PT' | 'en'>('pt-BR');
 
   useEffect(() => {
@@ -87,8 +87,9 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
         }
       }
 
+      // CORREÇÃO AQUI: Removido o 'imagem_url' que não existia no banco e quebrava tudo
       const [fichasRes, histRes] = await Promise.all([
-        supabase.from('fichas').select('*, tipo_treino, objetivo, dificuldade, data_inicio, data_vencimento, imagem_url').eq('aluno_id', id).eq('ativo', true),
+        supabase.from('fichas').select('*, tipo_treino, objetivo, dificuldade, data_inicio, data_vencimento').eq('aluno_id', id).eq('ativo', true),
         supabase.from('conclusoes_treino').select('treino_id, data_conclusao, data_inicio, data_fim, duracao_minutos').eq('aluno_id', id).order('data_conclusao', { ascending: false })
       ]);
 
@@ -156,14 +157,10 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
         <div className="space-y-6">
           {Object.entries(fichasAgrupadas).map(([programaMaster, treinos]) => {
             
-            // 1. Avisamos ao TypeScript que 'treinos' é um Array para resolver o erro
             const treinosList = treinos as any[]; 
-            
-            // 2. Usamos 'treinosList' para os cálculos
             const totalSessoesPrograma = treinosList.reduce((acc: number, f: any) => acc + f.sessõesCount, 0);
             const progressoPercent = Math.min(Math.round((totalSessoesPrograma / META_SESSOES) * 100), 100);
             
-            // Pega a data de vencimento mais longa
             const datasVencimento = treinosList.map((f: any) => f.data_vencimento).filter(Boolean);
             const dataValidade = datasVencimento.length > 0 ? new Date(Math.max(...datasVencimento.map((d: any) => new Date(d).getTime()))) : null;
 
@@ -171,15 +168,14 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
               <div key={programaMaster} className="bg-[var(--surface-sec)] rounded-2xl p-4 border border-[var(--border)] relative">
                 
                 {/* NOME DO PROGRAMA */}
-                <h2 className="text-lg font-normal text-[var(--text-primary)] mb-4 ml-1">
+                <h2 className="text-lg font-bold text-[var(--text-primary)] mb-4 ml-1">
                   {programaMaster}
                 </h2>
 
                 {/* CARDS DE TREINOS */}
                 <div className="space-y-3">
-                  {/* 3. Iterando sobre treinosList */}
                   {treinosList.map((f: any, index: number) => {
-                    const isFirst = index === 0; // Exibe o selo "Próximo" no primeiro card
+                    const isFirst = index === 0; 
                     
                     return (
                       <div key={f.id} className="bg-[var(--surface)] p-3 rounded-[1.2rem] flex items-center gap-4 relative shadow-sm border border-[var(--border)]">
@@ -192,11 +188,11 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
                         )}
 
                         {/* IMAGEM DO TREINO */}
-                        <div className="w-[4.5rem] h-[4.5rem] rounded-xl overflow-hidden bg-gray-200 shrink-0 relative">
+                        <div className="w-[4.5rem] h-[4.5rem] rounded-xl overflow-hidden shrink-0 relative">
                           {f.imagem_url ? (
                             <img src={f.imagem_url} alt={f.nomeLimpoCard} className="w-full h-full object-cover" />
                           ) : (
-                            <div className="w-full h-full bg-gradient-to-br from-[var(--primary-soft)] to-[var(--primary)] flex items-center justify-center text-white font-black text-2xl opacity-80">
+                            <div className="w-full h-full bg-gradient-to-br from-[var(--primary-soft)] to-[var(--primary)] flex items-center justify-center text-white font-black text-3xl opacity-90 shadow-inner">
                               {f.nomeLimpoCard.charAt(0).toUpperCase()}
                             </div>
                           )}
@@ -204,7 +200,7 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
                         
                         {/* INFORMAÇÕES DO TREINO */}
                         <div className="flex-grow py-1">
-                          <h3 className="font-normal text-[17px] leading-tight text-[var(--text-primary)]">
+                          <h3 className="font-bold text-[17px] leading-tight text-[var(--text-primary)]">
                             {f.nomeLimpoCard}
                           </h3>
                           <p className="text-[13px] text-[var(--text-secondary)] mt-1">
@@ -225,20 +221,20 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
                 </div>
 
                 {/* RODAPÉ: PROGRESSO E VALIDADE */}
-                <div className="mt-5 pt-3 flex justify-between items-end border-t border-gray-300 dark:border-gray-700 mx-1">
+                <div className="mt-5 pt-3 flex justify-between items-end border-t border-[var(--border)] mx-1">
                   <div className="w-[45%]">
-                    <div className="h-1 bg-gray-300 dark:bg-gray-700 rounded-full mb-2 overflow-hidden flex">
+                    <div className="h-1 bg-[var(--border)] rounded-full mb-2 overflow-hidden flex">
                       <div className="h-full bg-[var(--selfit-red-light)] rounded-l-full" style={{ width: '40%' }}>
                         <div className="h-full bg-[var(--selfit-red)] rounded-full" style={{ width: `${(progressoPercent / 40) * 100}%` }}></div>
                       </div>
                     </div>
-                    <p className="text-[13px] text-[var(--text-primary)]">
+                    <p className="text-[13px] font-medium text-[var(--text-primary)]">
                       {totalSessoesPrograma}/{META_SESSOES} {t.sessions}
                     </p>
                   </div>
 
                   {dataValidade && (
-                    <p className="text-[13px] text-[var(--text-primary)]">
+                    <p className="text-[13px] font-medium text-[var(--text-primary)]">
                       {t.validity} {dataValidade.toLocaleDateString('pt-BR')}
                     </p>
                   )}
