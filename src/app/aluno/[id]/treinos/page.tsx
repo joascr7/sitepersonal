@@ -156,13 +156,16 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
         <div className="space-y-6">
           {Object.entries(fichasAgrupadas).map(([programaMaster, treinos]) => {
             
-            // Cálculos para o rodapé do programa
-            const totalSessoesPrograma = treinos.reduce((acc, f) => acc + f.sessõesCount, 0);
+            // 1. Avisamos ao TypeScript que 'treinos' é um Array para resolver o erro
+            const treinosList = treinos as any[]; 
+            
+            // 2. Usamos 'treinosList' para os cálculos
+            const totalSessoesPrograma = treinosList.reduce((acc: number, f: any) => acc + f.sessõesCount, 0);
             const progressoPercent = Math.min(Math.round((totalSessoesPrograma / META_SESSOES) * 100), 100);
             
-            // Pega a data de vencimento mais longa entre os treinos deste programa
-            const datasVencimento = treinos.map(f => f.data_vencimento).filter(Boolean);
-            const dataValidade = datasVencimento.length > 0 ? new Date(Math.max(...datasVencimento.map(d => new Date(d).getTime()))) : null;
+            // Pega a data de vencimento mais longa
+            const datasVencimento = treinosList.map((f: any) => f.data_vencimento).filter(Boolean);
+            const dataValidade = datasVencimento.length > 0 ? new Date(Math.max(...datasVencimento.map((d: any) => new Date(d).getTime()))) : null;
 
             return (
               <div key={programaMaster} className="bg-[var(--surface-sec)] rounded-2xl p-4 border border-[var(--border)] relative">
@@ -174,7 +177,8 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
 
                 {/* CARDS DE TREINOS */}
                 <div className="space-y-3">
-                  {(treinos as any[]).map((f, index) => {
+                  {/* 3. Iterando sobre treinosList */}
+                  {treinosList.map((f: any, index: number) => {
                     const isFirst = index === 0; // Exibe o selo "Próximo" no primeiro card
                     
                     return (
