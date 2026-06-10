@@ -23,16 +23,14 @@ export default function FormularioModelo({ modeloIdEdit }: { modeloIdEdit?: stri
   const [loading, setLoading] = useState(false);
   const [uploadingIndex, setUploadingIndex] = useState<number | null>(null);
   const [catalogoAberto, setCatalogoAberto] = useState(false);
-  const [videoAberto, setVideoAberto] = useState<string | null>(null); // Player Nativo
+  const [videoAberto, setVideoAberto] = useState<string | null>(null);
   
-  // Sistema de Notificações Premium
   const [toast, setToast] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   const showToast = (type: 'success' | 'error', text: string) => { 
     setToast({ type, text }); 
     setTimeout(() => setToast(null), 4000); 
   };
 
-  // Estados Principais do Treino
   const [nomeFicha, setNomeFicha] = useState('');
   const [tipoTreinoForm, setTipoTreinoForm] = useState('Musculação');
   const [objetivoForm, setObjetivoForm] = useState('Hipertrofia');
@@ -42,7 +40,6 @@ export default function FormularioModelo({ modeloIdEdit }: { modeloIdEdit?: stri
   const [activeSubId, setActiveSubId] = useState(subdivisoes[0].id);
   const [expandedExIndex, setExpandedExIndex] = useState<number | null>(0);
 
-  // Carregar dados para edição
   useEffect(() => {
     if (modeloIdEdit) {
       const carregarEdicao = async () => {
@@ -97,7 +94,6 @@ export default function FormularioModelo({ modeloIdEdit }: { modeloIdEdit?: stri
     setExpandedExIndex(exerciciosAtivos.length);
   };
 
-  // Upload de Vídeo/GIF direto na criação do treino
   const uploadVideoNativo = async (exIndex: number, file: File) => {
     if (file.size > 15 * 1024 * 1024) return showToast('error', "Limite máximo de 15MB por arquivo!");
     try {
@@ -152,7 +148,6 @@ export default function FormularioModelo({ modeloIdEdit }: { modeloIdEdit?: stri
   return (
     <div className="w-full min-h-screen bg-[var(--bg)] text-[var(--text-primary)] pb-[calc(max(env(safe-area-inset-bottom),1.25rem)+6.5rem)] font-sans antialiased">
       
-      {/* TOAST DE NOTIFICAÇÕES */}
       {toast && (
         <div className={`fixed top-[max(env(safe-area-inset-top,24px),24px)] left-1/2 -translate-x-1/2 px-6 py-4 rounded-[1.2rem] shadow-2xl z-[99999] flex items-center gap-3 backdrop-blur-md border animate-in slide-in-from-top-4 fade-in ${toast.type === 'success' ? 'bg-[var(--success)]/10 text-[var(--success)] border-[var(--success)]/20' : 'bg-[var(--danger)]/10 text-[var(--danger)] border-[var(--danger)]/20'}`}>
           {toast.type === 'success' ? <FaCheckCircle size={16} /> : <FaExclamationCircle size={16} />}
@@ -160,7 +155,6 @@ export default function FormularioModelo({ modeloIdEdit }: { modeloIdEdit?: stri
         </div>
       )}
 
-      {/* HEADER FIXO BLUR PREMIUM */}
       <header className="sticky top-0 z-[900] bg-[var(--bg)]/80 backdrop-blur-xl border-b border-[var(--border)] px-5 py-4 flex items-center justify-between shadow-sm pt-[max(env(safe-area-inset-top,1rem),1rem)]">
         <div className="flex items-center gap-4">
           <button onClick={() => router.back()} className="w-10 h-10 bg-[var(--surface)] rounded-full flex items-center justify-center border border-[var(--border)] active:scale-95 transition-transform text-[var(--text-secondary)] hover:text-[var(--primary)]">
@@ -175,7 +169,6 @@ export default function FormularioModelo({ modeloIdEdit }: { modeloIdEdit?: stri
 
       <div className="max-w-3xl mx-auto p-5 space-y-6 mt-4">
         
-        {/* CONFIGURAÇÕES DO TREINO */}
         <div className="bg-[var(--surface)] p-6 rounded-[2rem] border border-[var(--border)] shadow-sm space-y-4">
           <div>
             <label className="text-[10px] font-black uppercase text-[var(--text-secondary)] tracking-wider block mb-1.5">Nome do Modelo de Treino *</label>
@@ -204,7 +197,6 @@ export default function FormularioModelo({ modeloIdEdit }: { modeloIdEdit?: stri
           </div>
         </div>
 
-        {/* NAVEGAÇÃO DE DIAS */}
         <div className="flex overflow-x-auto gap-2 pb-2 custom-scrollbar">
           {subdivisoes.map(s => (
             <button key={s.id} onClick={() => { setActiveSubId(s.id); setExpandedExIndex(0); }} className={`px-6 py-3.5 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeSubId === s.id ? 'bg-[var(--primary)] text-white shadow-md shadow-[var(--primary)]/20 border-transparent' : 'bg-[var(--surface)] text-[var(--text-secondary)] border border-[var(--border)] hover:border-[var(--primary)]/40 hover:text-[var(--text-primary)]'}`}>{s.nome}</button>
@@ -214,7 +206,6 @@ export default function FormularioModelo({ modeloIdEdit }: { modeloIdEdit?: stri
           </button>
         </div>
 
-        {/* HEADER DO DIA ATUAL */}
         <div className="bg-[var(--surface)] border border-[var(--border)] p-5 rounded-[1.5rem] flex justify-between items-center shadow-sm">
           <input type="text" value={subdivisoes[subAtivaIndex]?.nome || ''} onChange={e => setSubdivisoes(prev => prev.map(s => s.id === activeSubId ? { ...s, nome: e.target.value } : s))} className="font-black text-xl bg-transparent border-b border-dashed border-[var(--text-secondary)]/50 focus:border-[var(--primary)] outline-none pb-0.5 text-[var(--text-primary)] max-w-[150px] sm:max-w-[300px] transition-colors" />
           <div className="flex gap-2">
@@ -229,21 +220,23 @@ export default function FormularioModelo({ modeloIdEdit }: { modeloIdEdit?: stri
           </div>
         </div>
 
-        {/* LISTA DE EXERCÍCIOS DAQUELE DIA */}
         <div className="space-y-4">
           {exerciciosAtivos.map((ex, exIndex) => {
             const isExpanded = expandedExIndex === exIndex;
             const ytId = getYouTubeId(ex.video);
             
+            // INTELIGÊNCIA ADICIONADA AQUI: Lê o número digitado e substitui o "1"
+            const valorOrdem = String(ex.series?.[0]?.ordem || '');
+            const numerosOrdem = valorOrdem.replace(/\D/g, ''); // Extrai apenas números do campo
+            const qtdSeriesExibicao = Math.max(parseInt(numerosOrdem) || 0, ex.series?.length || 0);
+
             return (
               <div key={exIndex} className="bg-[var(--surface)] rounded-[1.5rem] border border-[var(--border)] overflow-hidden shadow-sm transition-all group">
                 
-                {/* CABEÇALHO DO EXERCÍCIO */}
                 <div className="p-4 flex items-center justify-between cursor-pointer hover:bg-[var(--surface-sec)]/50 transition-colors" onClick={() => setExpandedExIndex(isExpanded ? null : exIndex)}>
                   <div className="flex items-center gap-4 flex-1 min-w-0">
                     <FaBars className="text-[var(--text-secondary)] opacity-40 shrink-0 cursor-grab hover:text-[var(--primary)] hover:opacity-100 transition-colors" size={14} />
                     
-                    {/* Thumbnail que abre o Player Nativo ao clicar */}
                     <div className="w-14 h-14 bg-[var(--surface-sec)] rounded-xl overflow-hidden shrink-0 border border-[var(--border)] flex items-center justify-center relative cursor-pointer group/thumb" onClick={(e) => { e.stopPropagation(); if (ex.video) setVideoAberto(ex.video); }}>
                       {ytId ? (
                         <><img src={`https://img.youtube.com/vi/${ytId}/default.jpg`} className="w-full h-full object-cover opacity-80 group-hover/thumb:scale-110 transition-transform"/><FaPlay className="absolute text-white drop-shadow-md" size={12}/></>
@@ -258,7 +251,8 @@ export default function FormularioModelo({ modeloIdEdit }: { modeloIdEdit?: stri
 
                     <div className="flex flex-col min-w-0">
                       <span className="text-sm font-black text-[var(--text-primary)] truncate">{ex.nome || "Novo Exercício"}</span>
-                      <span className="text-[9px] font-bold text-[var(--primary)] uppercase tracking-widest mt-0.5">{ex.series?.length || 0} séries configuradas</span>
+                      {/* TEXTO AZUL CORRIGIDO AQUI */}
+                      <span className="text-[9px] font-bold text-[var(--primary)] uppercase tracking-widest mt-0.5">{qtdSeriesExibicao} {qtdSeriesExibicao === 1 ? 'série configurada' : 'séries configuradas'}</span>
                     </div>
                   </div>
                   
@@ -270,12 +264,10 @@ export default function FormularioModelo({ modeloIdEdit }: { modeloIdEdit?: stri
                   </div>
                 </div>
 
-                {/* CORPO EXPANDIDO (DETALHES DO EXERCÍCIO) */}
                 {isExpanded && (
                   <div className="p-5 border-t border-[var(--border)] bg-[var(--surface-sec)]/30 space-y-5 animate-in fade-in slide-in-from-top-2 duration-300">
                     
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {/* Envio de Vídeo / URL */}
                       <div>
                         <label className="text-[9px] font-black uppercase text-[var(--text-secondary)] tracking-wider block mb-1.5">Mídia (Link ou Arquivo)</label>
                         <div className="relative flex items-center">
@@ -288,14 +280,12 @@ export default function FormularioModelo({ modeloIdEdit }: { modeloIdEdit?: stri
                         </div>
                       </div>
 
-                      {/* Observações */}
                       <div>
                         <label className="text-[9px] font-black uppercase text-[var(--text-secondary)] tracking-wider block mb-1.5">Instruções / Observações</label>
                         <input className="w-full bg-[var(--surface)] px-4 py-3.5 rounded-xl text-xs font-bold border border-[var(--border)] text-[var(--text-primary)] outline-none focus:border-[var(--primary)] shadow-sm placeholder:text-[var(--text-secondary)]/50" placeholder="Ex: Focar na fase excêntrica (3 segundos descendo)" value={ex.observacao || ''} onChange={e => { const copy = [...exerciciosAtivos]; copy[exIndex].observacao = e.target.value; setExercicios(copy); }} />
                       </div>
                     </div>
 
-                    {/* TABELA DE SÉRIES COM SCROLL HORIZONTAL PROTEGIDO */}
                     <div className="border border-[var(--border)] rounded-[1.2rem] overflow-hidden bg-[var(--surface)] shadow-inner">
                       <div className="overflow-x-auto custom-scrollbar">
                         <div className="min-w-[400px]">
@@ -347,7 +337,6 @@ export default function FormularioModelo({ modeloIdEdit }: { modeloIdEdit?: stri
 
       <ModalCatalogo isOpen={catalogoAberto} onClose={() => setCatalogoAberto(false)} onSelect={injetarDoCatalogo} />
 
-      {/* PLAYER DE VÍDEO NATIVO DURANTE A CRIAÇÃO DO TREINO */}
       {videoAberto && (
         <div className="fixed inset-0 bg-black/95 z-[99999] flex items-center justify-center p-4 animate-in fade-in duration-300 backdrop-blur-md">
           <button onClick={() => setVideoAberto(null)} className="absolute top-6 right-6 w-12 h-12 bg-white/10 border border-white/20 rounded-full flex items-center justify-center text-white hover:bg-white/30 transition-all shadow-xl backdrop-blur-md">
