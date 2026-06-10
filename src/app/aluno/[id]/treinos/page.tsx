@@ -2,7 +2,7 @@
 import { useEffect, useState, use, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
-import { FaChevronLeft, FaPlay } from 'react-icons/fa';
+import { FaChevronLeft, FaPlay, FaDumbbell, FaRunning, FaHeartbeat } from 'react-icons/fa';
 import ParqForm from '@/components/ParqForm';
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -56,30 +56,39 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
   const META_SESSOES = 30;
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  // FUNÇÃO INTELIGENTE DE GIFS POR TREINO
+  // MAPEAMENTO LOCAL DE GIFS + ICONES DE CLASSE PREMIUM (FALLBACK)
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  const getTreinoGif = (nomeTreino: string) => {
+  const getTreinoMediaConfig = (nomeTreino: string) => {
     const nome = nomeTreino.toLowerCase();
     
-    // Se no nome do treino tiver a palavra 'peito' ou 'superior'
     if (nome.includes('peito') || nome.includes('superior') || nome.includes('braço') || nome.includes('triceps')) {
-      return "https://media.giphy.com/media/3o7TKo7MsZAZbZARkQ/giphy.gif"; // GIF de superiores
+      return {
+        localGif: '/gifs/peito.gif',
+        gradient: 'from-blue-500 to-indigo-600',
+        icon: <FaDumbbell className="text-white text-2xl animate-pulse" />
+      };
     }
-    // Se tiver a palavra 'perna', 'inferior' ou 'glúteo'
-    if (nome.includes('perna') || nome.includes('inferior') || nome.includes('glúteo') || nome.includes('coxa')) {
-      return "https://media.giphy.com/media/l41YwXpNTfCLmXzZC/giphy.gif"; // GIF de agachamento/pernas
+    if (nome.includes('perna') || nome.includes('inferior') || nome.includes('glúteo') || nome.includes('coxa') || nome.includes('pernas')) {
+      return {
+        localGif: '/gifs/pernas.gif',
+        gradient: 'from-emerald-500 to-teal-600',
+        icon: <FaRunning className="text-white text-2xl animate-pulse" />
+      };
     }
-    // Se tiver a palavra 'costas', 'dorsal'
-    if (nome.includes('costas') || nome.includes('dorsal') || nome.includes('ombro')) {
-      return "https://media.giphy.com/media/3oEduV4SOS9mmmZcpG/giphy.gif"; // GIF de costas/remada
+    if (nome.includes('costas') || nome.includes('dorsal') || nome.includes('ombro') || nome.includes('biceps')) {
+      return {
+        localGif: '/gifs/costas.gif',
+        gradient: 'from-purple-500 to-pink-600',
+        icon: <FaDumbbell className="text-white text-2xl rotate-45 animate-pulse" />
+      };
     }
-    // Se tiver a palavra 'abdômen', 'core'
-    if (nome.includes('abdômen') || nome.includes('core') || nome.includes('abs')) {
-      return "https://media.giphy.com/media/5t9Y41A5UvJGE/giphy.gif"; // GIF de abdômen
-    }
-
-    // GIF Padrão caso o nome não se encaixe em nenhum acima
-    return "https://media.giphy.com/media/xT1XGLm7CAqJjllgZO/giphy.gif"; 
+    
+    // Default (Cardio / Geral)
+    return {
+      localGif: '/gifs/geral.gif',
+      gradient: 'from-blue-600 to-cyan-500',
+      icon: <FaHeartbeat className="text-white text-2xl animate-pulse" />
+    };
   };
 
   const getExercicios = (descricaoStr: any) => {
@@ -202,7 +211,7 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
                   )}
                   {treinosList[0]?.objetivo && (
                     <span className="text-[9px] font-bold bg-[var(--surface)] text-[var(--text-secondary)] px-2.5 py-1 rounded-md border border-[var(--border)] uppercase tracking-widest shadow-sm">
-                      {treinosList[0].objetivo}
+                      {treinosList[0].objective || treinosList[0].objetivo}
                     </span>
                   )}
                   {treinosList[0]?.dificuldade && (
@@ -215,6 +224,7 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
                 <div className="space-y-3">
                   {treinosList.map((f: any, index: number) => {
                     const isFirst = index === 0; 
+                    const mediaConfig = getTreinoMediaConfig(f.nomeLimpoCard);
                     
                     return (
                       <div key={f.id} className="bg-[var(--surface)] p-3 rounded-[1.2rem] flex items-center gap-4 relative shadow-sm border border-[var(--border)] group hover:shadow-md transition-all">
@@ -225,22 +235,27 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
                           </span>
                         )}
 
-                        <div className="w-[4.5rem] h-[4.5rem] rounded-xl overflow-hidden shrink-0 relative bg-gray-100 dark:bg-gray-800 border border-[var(--border)]">
+                        {/* CONTAINER DA MIDIA - CARREGA O GIF LOCAL OU O ICONE PREMIUM */}
+                        <div className="w-[4.5rem] h-[4.5rem] rounded-xl overflow-hidden shrink-0 relative border border-[var(--border)]">
+                          
+                          {/* Imagem/GIF dinâmico (Carrega do banco ou da sua pasta local /gifs) */}
                           <img 
-                            // AQUI a mágica acontece: chamamos a função passando o nome do treino
-                            src={f.imagem_url || getTreinoGif(f.nomeLimpoCard)} 
+                            src={f.imagem_url || mediaConfig.localGif} 
                             alt={f.nomeLimpoCard} 
-                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" 
+                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 z-10 relative" 
                             onError={(e) => {
-                              // Se qualquer GIF falhar, cai com segurança para a letra
+                              // Se você ainda não salvou o arquivo .gif na pasta, ele esconde a imagem quebrada
                               e.currentTarget.style.display = 'none';
                               const fallbackDiv = e.currentTarget.nextElementSibling;
                               if (fallbackDiv) fallbackDiv.classList.remove('hidden');
                             }}
                           />
-                          <div className="hidden w-full h-full bg-gradient-to-br from-[var(--primary-soft)] to-[var(--primary)] flex items-center justify-center text-white font-black text-3xl opacity-90 shadow-inner">
-                            {f.nomeLimpoCard.charAt(0).toUpperCase()}
+                          
+                          {/* FALLBACK PREMIUM: Gradiente com ícone temático pulsando */}
+                          <div className={`w-full h-full bg-gradient-to-br ${mediaConfig.gradient} flex flex-col items-center justify-center shadow-inner`}>
+                            {mediaConfig.icon}
                           </div>
+
                         </div>
                         
                         <div className="flex-grow py-1">
