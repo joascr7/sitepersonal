@@ -29,7 +29,8 @@ interface Exercicio {
   nome: string;
   video?: string;
   observacao?: string;
-  series: Serie[] | number | string; // Ajustado para aceitar número direto do banco
+  series: Serie[] | number | string; 
+  serie?: number | string; // Adicionado suporte ao singular vindo do banco
   reps?: string;
   repeticoes?: string;
   carga?: number;
@@ -298,20 +299,20 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
     doc.text(ficha?.nome_treino || "Treino", 14, 20);
     const tabelaDados: any[] = [];
     exercicios.forEach((ex) => {
-      const totalS = Array.isArray(ex.series) ? ex.series.length : (Number(ex.series) || 1);
+      // CORREÇÃO: Suporte ao plural e singular na geração de PDFs
+      const totalS = Array.isArray(ex.series) ? ex.series.length : (Number(ex.series) || Number(ex.serie) || 1);
       Array.from({ length: totalS }).forEach((_, idx) => {
         const key = `${ex.nome}-${idx}`;
         const sData = Array.isArray(ex.series) ? ex.series[idx] : null;
         tabelaDados.push([ 
           ex.nome, 
           idx + 1, 
-          sData?.reps || ex.reps || '-', 
+          sData?.reps || ex.reps || ex.repeticoes || '-', 
           inputValues[key] ? `${inputValues[key]}${inputUnits[key] || 'kg'}` : (sData?.carga || ex.carga ? `${sData?.carga || ex.carga}${sData?.unidadeCarga || 'kg'}` : '-'), 
           sData?.intervalo || ex.intervalo || '-' 
         ]);
       });
     });
-    // CORREÇÃO DA LINHA ABAIXO: De tableDados para tabelaDados
     autoTable(doc, { startY: 35, head: [['Exercício', 'Série', 'Reps', 'Carga Registrada', 'Desc.']], body: tabelaDados });
     doc.save(`${ficha?.nome_treino || 'Treino'}.pdf`);
   };
@@ -537,7 +538,8 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
             const isConcluido = concluidos.includes(exIndex);
             const isExpanded = expandedId === exIndex;
             
-            const totalSeries = Array.isArray(ex.series) ? ex.series.length : (Number(ex.series) || 1);
+            // CORREÇÃO ESSENCIAL: Agora confere 'series' (plural) e 'serie' (singular) e transforma em número dinâmico do banco
+            const totalSeries = Array.isArray(ex.series) ? ex.series.length : (Number(ex.series) || Number(ex.serie) || 1);
             
             const currentSetIndex = activeSets[exIndex] || 0;
             const comboSerieData = Array.isArray(ex.series) ? ex.series[currentSetIndex] : null;
