@@ -47,14 +47,18 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
 
   const t = translations[lang];
 
-  // Cores adaptadas para suportar o estilo Selfit mas respeitar o Dark Mode do seu app
+  // Restaurei as cores globais originais (removido o vermelho)
   const themeStyles = isDark ? {
-    '--bg': '#0F1115', '--surface': '#1A1D24', '--surface-sec': '#222731', '--primary': '#3B82F6', '--primary-soft': '#60A5FA', '--text-primary': '#F8FAFC', '--text-secondary': '#94A3B8', '--border': 'rgba(255,255,255,0.05)', '--selfit-red': '#B3322A', '--selfit-red-light': '#FADBD8'
+    '--bg': '#0F1115', '--surface': '#1A1D24', '--surface-sec': '#222731', '--primary': '#3B82F6', '--primary-soft': '#60A5FA', '--text-primary': '#F8FAFC', '--text-secondary': '#94A3B8', '--border': 'rgba(255,255,255,0.05)'
   } as React.CSSProperties : {
-    '--bg': '#F9FAFB', '--surface': '#FFFFFF', '--surface-sec': '#F3F4F6', '--primary': '#2563EB', '--primary-soft': '#60A5FA', '--text-primary': '#111827', '--text-secondary': '#6B7280', '--border': 'rgba(15,23,42,0.06)', '--selfit-red': '#B3322A', '--selfit-red-light': '#FADBD8'
+    '--bg': '#F9FAFB', '--surface': '#FFFFFF', '--surface-sec': '#F3F4F6', '--primary': '#2563EB', '--primary-soft': '#60A5FA', '--text-primary': '#111827', '--text-secondary': '#6B7280', '--border': 'rgba(15,23,42,0.06)'
   } as React.CSSProperties;
 
   const META_SESSOES = 30;
+
+  // URL do GIF padrão que ficará rodando caso você não tenha enviado foto
+  // (Você pode baixar o seu próprio GIF depois, salvar na pasta public como 'treino.gif' e alterar o link abaixo para '/treino.gif')
+  const DEFAULT_GIF_URL = "https://i.pinimg.com/originals/a4/df/e7/a4dfe7084e1b8b8ea92f1eb8bb9a3bb0.gif";
 
   const getExercicios = (descricaoStr: any) => {
     if (!descricaoStr) return [];
@@ -87,7 +91,6 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
         }
       }
 
-      // CORREÇÃO AQUI: Removido o 'imagem_url' que não existia no banco e quebrava tudo
       const [fichasRes, histRes] = await Promise.all([
         supabase.from('fichas').select('*, tipo_treino, objetivo, dificuldade, data_inicio, data_vencimento').eq('aluno_id', id).eq('ativo', true),
         supabase.from('conclusoes_treino').select('treino_id, data_conclusao, data_inicio, data_fim, duracao_minutos').eq('aluno_id', id).order('data_conclusao', { ascending: false })
@@ -150,10 +153,10 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
         
         {/* CABEÇALHO */}
         <header className="py-2 mb-4">
-          <h1 className="text-3xl font-normal tracking-tight text-[var(--text-primary)]">{t.title}</h1>
+          <h1 className="text-3xl font-black tracking-tight text-[var(--text-primary)]">{t.title}</h1>
         </header>
 
-        {/* LISTA DE PROGRAMAS (Estilo Selfit) */}
+        {/* LISTA DE PROGRAMAS */}
         <div className="space-y-6">
           {Object.entries(fichasAgrupadas).map(([programaMaster, treinos]) => {
             
@@ -165,12 +168,31 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
             const dataValidade = datasVencimento.length > 0 ? new Date(Math.max(...datasVencimento.map((d: any) => new Date(d).getTime()))) : null;
 
             return (
-              <div key={programaMaster} className="bg-[var(--surface-sec)] rounded-2xl p-4 border border-[var(--border)] relative">
+              <div key={programaMaster} className="bg-[var(--surface-sec)] rounded-3xl p-4 border border-[var(--border)] relative shadow-sm">
                 
                 {/* NOME DO PROGRAMA */}
-                <h2 className="text-lg font-bold text-[var(--text-primary)] mb-4 ml-1">
+                <h2 className="text-xl font-black uppercase tracking-wider text-[var(--text-primary)] mb-2 ml-1">
                   {programaMaster}
                 </h2>
+
+                {/* TAGS ANTIGAS (DIFICULDADE, OBJETIVO, TIPO) */}
+                <div className="flex flex-wrap gap-2 mb-5 ml-1">
+                  {treinosList[0]?.tipo_treino && (
+                    <span className="text-[9px] font-bold bg-[var(--surface)] text-[var(--text-secondary)] px-2.5 py-1 rounded-md border border-[var(--border)] uppercase tracking-widest shadow-sm">
+                      {treinosList[0].tipo_treino}
+                    </span>
+                  )}
+                  {treinosList[0]?.objetivo && (
+                    <span className="text-[9px] font-bold bg-[var(--surface)] text-[var(--text-secondary)] px-2.5 py-1 rounded-md border border-[var(--border)] uppercase tracking-widest shadow-sm">
+                      {treinosList[0].objetivo}
+                    </span>
+                  )}
+                  {treinosList[0]?.dificuldade && (
+                    <span className="text-[9px] font-bold bg-[var(--surface)] text-[var(--text-secondary)] px-2.5 py-1 rounded-md border border-[var(--border)] uppercase tracking-widest shadow-sm">
+                      {treinosList[0].dificuldade}
+                    </span>
+                  )}
+                </div>
 
                 {/* CARDS DE TREINOS */}
                 <div className="space-y-3">
@@ -178,42 +200,41 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
                     const isFirst = index === 0; 
                     
                     return (
-                      <div key={f.id} className="bg-[var(--surface)] p-3 rounded-[1.2rem] flex items-center gap-4 relative shadow-sm border border-[var(--border)]">
+                      <div key={f.id} className="bg-[var(--surface)] p-3 rounded-[1.2rem] flex items-center gap-4 relative shadow-sm border border-[var(--border)] group hover:shadow-md transition-all">
                         
                         {/* SELO "PRÓXIMO" */}
                         {isFirst && (
-                          <span className="absolute -top-3 right-4 bg-[var(--selfit-red-light)] text-[var(--selfit-red)] text-[10px] font-bold px-2.5 py-1 rounded-lg z-10">
+                          <span className="absolute -top-3 right-4 bg-[var(--primary)] text-white shadow-md shadow-[var(--primary)]/30 text-[10px] font-black px-3 py-1 rounded-lg z-10 uppercase tracking-wider">
                             {t.next}
                           </span>
                         )}
 
-                        {/* IMAGEM DO TREINO */}
-                        <div className="w-[4.5rem] h-[4.5rem] rounded-xl overflow-hidden shrink-0 relative">
-                          {f.imagem_url ? (
-                            <img src={f.imagem_url} alt={f.nomeLimpoCard} className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full bg-gradient-to-br from-[var(--primary-soft)] to-[var(--primary)] flex items-center justify-center text-white font-black text-3xl opacity-90 shadow-inner">
-                              {f.nomeLimpoCard.charAt(0).toUpperCase()}
-                            </div>
-                          )}
+                        {/* IMAGEM DO TREINO / GIF */}
+                        <div className="w-[4.5rem] h-[4.5rem] rounded-xl overflow-hidden shrink-0 relative bg-gray-100 dark:bg-gray-800 border border-[var(--border)]">
+                          <img 
+                            src={f.imagem_url || DEFAULT_GIF_URL} 
+                            alt={f.nomeLimpoCard} 
+                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" 
+                          />
                         </div>
                         
                         {/* INFORMAÇÕES DO TREINO */}
                         <div className="flex-grow py-1">
-                          <h3 className="font-bold text-[17px] leading-tight text-[var(--text-primary)]">
+                          <h3 className="font-black text-[16px] uppercase tracking-tight leading-tight text-[var(--text-primary)]">
                             {f.nomeLimpoCard}
                           </h3>
-                          <p className="text-[13px] text-[var(--text-secondary)] mt-1">
+                          <p className="text-[12px] font-bold text-[var(--text-secondary)] mt-1 flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[var(--primary)] opacity-70"></span>
                             {f.count} {t.exercises}
                           </p>
                         </div>
 
-                        {/* BOTÃO PLAY */}
+                        {/* BOTÃO PLAY (AZUL DO TEMA) */}
                         <button 
                           onClick={() => router.push(`/aluno/${id}/treino/${f.id}`)} 
-                          className="w-12 h-12 rounded-full bg-[var(--selfit-red)] flex items-center justify-center shrink-0 active:scale-90 transition-transform shadow-md mr-1"
+                          className="w-12 h-12 rounded-full bg-[var(--primary)] text-white flex items-center justify-center shrink-0 active:scale-90 transition-all shadow-lg shadow-[var(--primary)]/30 hover:bg-blue-600 mr-1"
                         >
-                          <FaPlay className="text-white ml-1 text-lg" />
+                          <FaPlay className="ml-1 text-lg" />
                         </button>
                       </div>
                     );
@@ -221,21 +242,21 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
                 </div>
 
                 {/* RODAPÉ: PROGRESSO E VALIDADE */}
-                <div className="mt-5 pt-3 flex justify-between items-end border-t border-[var(--border)] mx-1">
+                <div className="mt-6 pt-4 flex justify-between items-end border-t border-[var(--border)] mx-1">
                   <div className="w-[45%]">
-                    <div className="h-1 bg-[var(--border)] rounded-full mb-2 overflow-hidden flex">
-                      <div className="h-full bg-[var(--selfit-red-light)] rounded-l-full" style={{ width: '40%' }}>
-                        <div className="h-full bg-[var(--selfit-red)] rounded-full" style={{ width: `${(progressoPercent / 40) * 100}%` }}></div>
+                    <div className="h-1.5 bg-[var(--border)] rounded-full mb-2 overflow-hidden flex shadow-inner">
+                      <div className="h-full bg-[var(--primary-soft)]/30 rounded-l-full" style={{ width: '40%' }}>
+                        <div className="h-full bg-[var(--primary)] rounded-full" style={{ width: `${(progressoPercent / 40) * 100}%` }}></div>
                       </div>
                     </div>
-                    <p className="text-[13px] font-medium text-[var(--text-primary)]">
-                      {totalSessoesPrograma}/{META_SESSOES} {t.sessions}
+                    <p className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-secondary)]">
+                      <span className="text-[var(--text-primary)]">{totalSessoesPrograma}</span>/{META_SESSOES} {t.sessions}
                     </p>
                   </div>
 
                   {dataValidade && (
-                    <p className="text-[13px] font-medium text-[var(--text-primary)]">
-                      {t.validity} {dataValidade.toLocaleDateString('pt-BR')}
+                    <p className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-secondary)]">
+                      {t.validity} <span className="text-[var(--text-primary)]">{dataValidade.toLocaleDateString('pt-BR')}</span>
                     </p>
                   )}
                 </div>
