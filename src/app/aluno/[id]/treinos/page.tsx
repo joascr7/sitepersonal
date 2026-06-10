@@ -47,7 +47,6 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
 
   const t = translations[lang];
 
-  // Restaurei as cores globais originais (removido o vermelho)
   const themeStyles = isDark ? {
     '--bg': '#0F1115', '--surface': '#1A1D24', '--surface-sec': '#222731', '--primary': '#3B82F6', '--primary-soft': '#60A5FA', '--text-primary': '#F8FAFC', '--text-secondary': '#94A3B8', '--border': 'rgba(255,255,255,0.05)'
   } as React.CSSProperties : {
@@ -56,9 +55,32 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
 
   const META_SESSOES = 30;
 
-  // URL do GIF padrão que ficará rodando caso você não tenha enviado foto
-  // (Você pode baixar o seu próprio GIF depois, salvar na pasta public como 'treino.gif' e alterar o link abaixo para '/treino.gif')
-  const DEFAULT_GIF_URL = "https://i.pinimg.com/originals/a4/df/e7/a4dfe7084e1b8b8ea92f1eb8bb9a3bb0.gif";
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // FUNÇÃO INTELIGENTE DE GIFS POR TREINO
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  const getTreinoGif = (nomeTreino: string) => {
+    const nome = nomeTreino.toLowerCase();
+    
+    // Se no nome do treino tiver a palavra 'peito' ou 'superior'
+    if (nome.includes('peito') || nome.includes('superior') || nome.includes('braço') || nome.includes('triceps')) {
+      return "https://media.giphy.com/media/3o7TKo7MsZAZbZARkQ/giphy.gif"; // GIF de superiores
+    }
+    // Se tiver a palavra 'perna', 'inferior' ou 'glúteo'
+    if (nome.includes('perna') || nome.includes('inferior') || nome.includes('glúteo') || nome.includes('coxa')) {
+      return "https://media.giphy.com/media/l41YwXpNTfCLmXzZC/giphy.gif"; // GIF de agachamento/pernas
+    }
+    // Se tiver a palavra 'costas', 'dorsal'
+    if (nome.includes('costas') || nome.includes('dorsal') || nome.includes('ombro')) {
+      return "https://media.giphy.com/media/3oEduV4SOS9mmmZcpG/giphy.gif"; // GIF de costas/remada
+    }
+    // Se tiver a palavra 'abdômen', 'core'
+    if (nome.includes('abdômen') || nome.includes('core') || nome.includes('abs')) {
+      return "https://media.giphy.com/media/5t9Y41A5UvJGE/giphy.gif"; // GIF de abdômen
+    }
+
+    // GIF Padrão caso o nome não se encaixe em nenhum acima
+    return "https://media.giphy.com/media/xT1XGLm7CAqJjllgZO/giphy.gif"; 
+  };
 
   const getExercicios = (descricaoStr: any) => {
     if (!descricaoStr) return [];
@@ -151,12 +173,10 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
     <main style={themeStyles} className="min-h-screen w-full bg-[var(--bg)] text-[var(--text-primary)] transition-colors duration-500 font-sans antialiased pt-[max(env(safe-area-inset-top),2rem)] pb-[env(safe-area-inset-bottom)] px-4">
       <div className="max-w-md mx-auto space-y-6 pb-32">
         
-        {/* CABEÇALHO */}
         <header className="py-2 mb-4">
           <h1 className="text-3xl font-black tracking-tight text-[var(--text-primary)]">{t.title}</h1>
         </header>
 
-        {/* LISTA DE PROGRAMAS */}
         <div className="space-y-6">
           {Object.entries(fichasAgrupadas).map(([programaMaster, treinos]) => {
             
@@ -170,12 +190,10 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
             return (
               <div key={programaMaster} className="bg-[var(--surface-sec)] rounded-3xl p-4 border border-[var(--border)] relative shadow-sm">
                 
-                {/* NOME DO PROGRAMA */}
                 <h2 className="text-xl font-black uppercase tracking-wider text-[var(--text-primary)] mb-2 ml-1">
                   {programaMaster}
                 </h2>
 
-                {/* TAGS ANTIGAS (DIFICULDADE, OBJETIVO, TIPO) */}
                 <div className="flex flex-wrap gap-2 mb-5 ml-1">
                   {treinosList[0]?.tipo_treino && (
                     <span className="text-[9px] font-bold bg-[var(--surface)] text-[var(--text-secondary)] px-2.5 py-1 rounded-md border border-[var(--border)] uppercase tracking-widest shadow-sm">
@@ -194,7 +212,6 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
                   )}
                 </div>
 
-                {/* CARDS DE TREINOS */}
                 <div className="space-y-3">
                   {treinosList.map((f: any, index: number) => {
                     const isFirst = index === 0; 
@@ -202,23 +219,30 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
                     return (
                       <div key={f.id} className="bg-[var(--surface)] p-3 rounded-[1.2rem] flex items-center gap-4 relative shadow-sm border border-[var(--border)] group hover:shadow-md transition-all">
                         
-                        {/* SELO "PRÓXIMO" */}
                         {isFirst && (
                           <span className="absolute -top-3 right-4 bg-[var(--primary)] text-white shadow-md shadow-[var(--primary)]/30 text-[10px] font-black px-3 py-1 rounded-lg z-10 uppercase tracking-wider">
                             {t.next}
                           </span>
                         )}
 
-                        {/* IMAGEM DO TREINO / GIF */}
                         <div className="w-[4.5rem] h-[4.5rem] rounded-xl overflow-hidden shrink-0 relative bg-gray-100 dark:bg-gray-800 border border-[var(--border)]">
                           <img 
-                            src={f.imagem_url || DEFAULT_GIF_URL} 
+                            // AQUI a mágica acontece: chamamos a função passando o nome do treino
+                            src={f.imagem_url || getTreinoGif(f.nomeLimpoCard)} 
                             alt={f.nomeLimpoCard} 
                             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" 
+                            onError={(e) => {
+                              // Se qualquer GIF falhar, cai com segurança para a letra
+                              e.currentTarget.style.display = 'none';
+                              const fallbackDiv = e.currentTarget.nextElementSibling;
+                              if (fallbackDiv) fallbackDiv.classList.remove('hidden');
+                            }}
                           />
+                          <div className="hidden w-full h-full bg-gradient-to-br from-[var(--primary-soft)] to-[var(--primary)] flex items-center justify-center text-white font-black text-3xl opacity-90 shadow-inner">
+                            {f.nomeLimpoCard.charAt(0).toUpperCase()}
+                          </div>
                         </div>
                         
-                        {/* INFORMAÇÕES DO TREINO */}
                         <div className="flex-grow py-1">
                           <h3 className="font-black text-[16px] uppercase tracking-tight leading-tight text-[var(--text-primary)]">
                             {f.nomeLimpoCard}
@@ -229,7 +253,6 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
                           </p>
                         </div>
 
-                        {/* BOTÃO PLAY (AZUL DO TEMA) */}
                         <button 
                           onClick={() => router.push(`/aluno/${id}/treino/${f.id}`)} 
                           className="w-12 h-12 rounded-full bg-[var(--primary)] text-white flex items-center justify-center shrink-0 active:scale-90 transition-all shadow-lg shadow-[var(--primary)]/30 hover:bg-blue-600 mr-1"
@@ -241,7 +264,6 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
                   })}
                 </div>
 
-                {/* RODAPÉ: PROGRESSO E VALIDADE */}
                 <div className="mt-6 pt-4 flex justify-between items-end border-t border-[var(--border)] mx-1">
                   <div className="w-[45%]">
                     <div className="h-1.5 bg-[var(--border)] rounded-full mb-2 overflow-hidden flex shadow-inner">
@@ -266,7 +288,6 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
           })}
         </div>
         
-        {/* BOTÃO VOLTAR */}
         <button onClick={() => router.back()} className="w-full flex items-center justify-center gap-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all text-xs uppercase tracking-widest mt-10 py-4 active:scale-95">
           <FaChevronLeft className="text-[10px]" /> {t.back}
         </button>
