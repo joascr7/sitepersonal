@@ -9,9 +9,9 @@ import autoTable from "jspdf-autotable";
 import { format } from 'date-fns';
 import ParqForm from '@/components/ParqForm';
 import { 
-  FaFilePdf, FaCheck, FaInfoCircle, FaChevronLeft, 
-  FaMoon, FaSun, FaGlobe, FaStopwatch, FaTimes, FaBell,
-  FaPlay, FaClock, FaCalendarAlt, FaChevronDown, FaSyncAlt, FaUndo, FaDumbbell
+  FaFilePdf, FaCheck, FaChevronLeft, FaMoon, FaSun, 
+  FaGlobe, FaStopwatch, FaTimes, FaBell, FaPlay, 
+  FaClock, FaCalendarAlt, FaChevronDown, FaUndo, FaDumbbell, FaSyncAlt
 } from "react-icons/fa";
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -124,6 +124,7 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
   const router = useRouter();
 
   const [ficha, setFicha] = useState<Ficha | null>(null);
+  const [todasFichas, setTodasFichas] = useState<any[]>([]); // Estado adicionado para o seletor do topo
   const [registros, setRegistros] = useState<RegistroSerie[]>([]);
   const [concluidos, setConcluidos] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
@@ -135,7 +136,6 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
   const [dataInicio, setDataInicio] = useState<Date | null>(null);
   const [segundosTreino, setSegundosTreino] = useState(0);
   
-  const [cronometroModalAberto, setCronometroModalAberto] = useState(false);
   const [tempoRestante, setTempoRestante] = useState<number | null>(null);
   const [timerAtivo, setTimerAtivo] = useState(false);
 
@@ -146,8 +146,9 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
   const [toastMsg, setToastMsg] = useState('');
   const [videoAberto, setVideoAberto] = useState<string | null>(null);
   
-  // ESTADO DO ACCORDION: Qual exercício está aberto no momento
+  // ESTADOS DO ACCORDION E ABAS DE SÉRIES INTERNAS
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [activeSets, setActiveSets] = useState<Record<number, number>>({}); // Controla a aba ativa de cada exercício separadamente
 
   const [isDark, setIsDark] = useState(true);
   const [lang, setLang] = useState<'pt-BR' | 'pt-PT' | 'en'>('pt-BR');
@@ -205,7 +206,7 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
 
   const iniciarCronometroDescanso = (intervaloStr: string) => {
     const segundos = parseIntervalo(intervaloStr);
-    if (segundos > 0) { setTempoRestante(segundos); setTimerAtivo(true); setCronometroModalAberto(true); }
+    if (segundos > 0) { setTempoRestante(segundos); setTimerAtivo(true); }
   };
 
   const formatarTempoGeral = (segundos: number) => {
@@ -234,9 +235,9 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
   const t = translations[lang];
 
   const themeStyles = isDark ? {
-    '--bg': '#0F1115', '--surface': '#151A22', '--surface-sec': '#1B2330', '--primary': '#3B82F6', '--primary-soft': '#60A5FA', '--success': '#22C55E', '--danger': '#EF4444', '--text-primary': '#F8FAFC', '--text-secondary': '#94A3B8', '--border': 'rgba(255,255,255,0.05)',
+    '--bg': '#0F1115', '--surface': '#1A1D24', '--surface-sec': '#222731', '--primary': '#3B82F6', '--primary-soft': '#60A5FA', '--success': '#22C55E', '--danger': '#EF4444', '--text-primary': '#F8FAFC', '--text-secondary': '#94A3B8', '--border': 'rgba(255,255,255,0.05)',
   } as React.CSSProperties : {
-    '--bg': '#F3F6FB', '--surface': '#FFFFFF', '--surface-sec': '#E8EEF9', '--primary': '#2563EB', '--primary-soft': '#60A5FA', '--success': '#16A34A', '--danger': '#DC2626', '--text-primary': '#111827', '--text-secondary': '#6B7280', '--border': 'rgba(15,23,42,0.06)',
+    '--bg': '#F9FAFB', '--surface': '#FFFFFF', '--surface-sec': '#F3F4F6', '--primary': '#2563EB', '--primary-soft': '#60A5FA', '--success': '#16A34A', '--danger': '#DC2626', '--text-primary': '#111827', '--text-secondary': '#6B7280', '--border': 'rgba(15,23,42,0.06)',
   } as React.CSSProperties;
 
   const getExercicios = (descricaoStr: any): Exercicio[] => {
@@ -273,14 +274,16 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
     if (!treinoId) return;
     setLoading(true);
     try {
-      const [fichaRes, regRes, concRes] = await Promise.all([
+      const [fichaRes, regRes, concRes, todasFichasRes] = await Promise.all([
         supabase.from('fichas').select('*, data_inicio, data_vencimento').eq('id', treinoId).maybeSingle(),
         supabase.from('registro_series').select('id, treino_id, exercicio_nome, serie_index, carga, repeticoes, unidade_carga').eq('treino_id', treinoId),
-        supabase.from('conclusoes_treino').select('id', { count: 'exact' }).eq('treino_id', treinoId)
+        supabase.from('conclusoes_treino').select('id', { count: 'exact' }).eq('treino_id', treinoId),
+        supabase.from('fichas').select('id, nome_treino').eq('aluno_id', id).eq('ativo', true) // Carrega os outros treinos ativos do topo
       ]);
       
       if (fichaRes.error) throw fichaRes.error;
       setFicha(fichaRes.data as Ficha);
+      if (todasFichasRes.data) setTodasFichas(todasFichasRes.data);
       
       if (regRes.data) {
         const vals: Record<string, string> = {};
@@ -411,7 +414,7 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
       )}
 
       <div className="max-w-2xl mx-auto pb-32">
-        <header className="flex justify-between items-center mb-8 pt-4">
+        <header className="flex justify-between items-center mb-6 pt-4">
           <div className="flex items-center gap-4">
             <button onClick={() => router.back()} className="flex items-center justify-center w-10 h-10 rounded-full bg-[var(--surface)] border border-[var(--border)] active:scale-95 transition-all shadow-sm">
               <FaChevronLeft size={12} />
@@ -429,28 +432,46 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
           </div>
         </header>
 
+        {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+        {/* NOVO: SELETOR DO TOPO PARA TROCAR O TREINO DO DIA (ESTILO SELFIT)      */}
+        {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+        <div className="relative w-full mb-6">
+          <select
+            value={treinoId}
+            onChange={(e) => router.push(`/aluno/${id}/treino/${e.target.value}`)}
+            className="w-full bg-[var(--primary)]/10 text-[var(--primary)] text-sm font-black py-4 px-5 rounded-2xl appearance-none border border-[var(--primary)]/20 outline-none text-center tracking-wide uppercase cursor-pointer shadow-sm transition-all focus:border-[var(--primary)]"
+          >
+            {todasFichas.map((f) => (
+              <option key={f.id} value={f.id} className="bg-[var(--surface)] text-[var(--text-primary)] font-bold">
+                {f.nome_treino}
+              </option>
+            ))}
+          </select>
+          <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--primary)] text-xs font-black">
+            ▼
+          </div>
+        </div>
+
         <div className="mb-8">
-          <div className="flex justify-between items-start mb-6">
-            <div>
-              <h1 className="text-3xl font-black tracking-tight leading-tight">{ficha?.nome_treino}</h1>
-              <p className="text-[var(--primary)] font-bold text-[11px] uppercase tracking-[0.2em] mt-2 flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-[var(--primary)] animate-pulse"></span>
-                {t.totalSessions}: <span className="text-[var(--text-primary)]">{sessoesContador}</span>
-              </p>
-            </div>
+          <div className="flex justify-between items-center mb-4">
+            <p className="text-[var(--primary)] font-bold text-[11px] uppercase tracking-[0.2em] flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-[var(--primary)] animate-pulse"></span>
+              {t.totalSessions}: <span className="text-[var(--text-primary)]">{sessoesContador}</span>
+            </p>
             {treinoIniciado && (
-              <div className="flex flex-col items-end bg-[var(--primary)]/10 px-4 py-2 rounded-2xl border border-[var(--primary)]/20">
-                <span className="text-[8px] font-black uppercase text-[var(--primary)] tracking-widest mb-1 flex items-center gap-1"><FaClock size={8}/> Tempo Decorrido</span>
-                <span className="font-mono text-xl font-black text-[var(--primary)] leading-none">{formatarTempoGeral(segundosTreino)}</span>
+              <div className="flex items-center gap-2 bg-[var(--primary)]/10 px-4 py-2 rounded-xl border border-[var(--primary)]/20">
+                <span className="text-[9px] font-black uppercase text-[var(--primary)] tracking-widest"><FaClock className="inline mr-1" size={10}/> Tempo:</span>
+                <span className="font-mono text-base font-black text-[var(--primary)] leading-none">{formatarTempoGeral(segundosTreino)}</span>
               </div>
             )}
           </div>
 
+          {/* DATAS DE INÍCIO E VENCIMENTO */}
           {(ficha?.data_inicio || ficha?.data_vencimento) && (
             <div className="flex gap-3 mb-6">
               {ficha.data_inicio && (
-                <div className="flex-1 bg-[var(--surface)] p-4 rounded-2xl border border-[var(--border)] flex items-center gap-3 shadow-sm">
-                  <div className="text-[var(--primary)] bg-[var(--primary)]/10 p-2.5 rounded-lg"><FaCalendarAlt size={14} /></div>
+                <div className="flex-1 bg-[var(--surface)] p-3 rounded-xl border border-[var(--border)] flex items-center gap-3 shadow-sm">
+                  <div className="text-[var(--primary)] bg-[var(--primary)]/10 p-2 rounded-lg"><FaCalendarAlt size={12} /></div>
                   <div>
                     <p className="text-[8px] font-black uppercase text-[var(--text-secondary)] tracking-widest">Início</p>
                     <p className="text-xs font-bold text-[var(--text-primary)]">{new Date(ficha.data_inicio).toLocaleDateString(lang)}</p>
@@ -458,8 +479,8 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
                 </div>
               )}
               {ficha.data_vencimento && (
-                <div className="flex-1 bg-[var(--surface)] p-4 rounded-2xl border border-[var(--border)] flex items-center gap-3 shadow-sm">
-                  <div className="text-[var(--danger)] bg-[var(--danger)]/10 p-2.5 rounded-lg"><FaCalendarAlt size={14} /></div>
+                <div className="flex-1 bg-[var(--surface)] p-3 rounded-xl border border-[var(--border)] flex items-center gap-3 shadow-sm">
+                  <div className="text-[var(--danger)] bg-[var(--danger)]/10 p-2 rounded-lg"><FaCalendarAlt size={12} /></div>
                   <div>
                     <p className="text-[8px] font-black uppercase text-[var(--text-secondary)] tracking-widest">Vencimento</p>
                     <p className="text-xs font-bold text-[var(--danger)]">{new Date(ficha.data_vencimento).toLocaleDateString(lang)}</p>
@@ -486,16 +507,18 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
            </div>
         )}
         
-        {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-        {/* NOVA LISTA DE EXERCÍCIOS ESTILO "SELFIT" / ACCORDION COMPACTO          */}
-        {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+        {/* LISTA DE EXERCÍCIOS ACCORDION COMPACTO */}
         <div className={`space-y-3 transition-all duration-500 ${treinoIniciado ? 'opacity-100' : 'opacity-40 pointer-events-none'}`}>
           {exercicios.map((ex, exIndex) => {
             const isConcluido = concluidos.includes(exIndex);
             const isExpanded = expandedId === exIndex;
             const totalSeries = Array.isArray(ex.series) ? ex.series.length : (ex.series || 3);
             
-            // Logica para criar um Thumbnail seguro do vídeo/imagem
+            // Índice da aba de série ativa para este exercício específico (padrão: 0 = 1ª série)
+            const currentSetIndex = activeSets[exIndex] || 0;
+            const serieData = Array.isArray(ex.series) ? ex.series[currentSetIndex] : null;
+            const currentKey = `${ex.nome}-${currentSetIndex}`;
+
             const isImageOrGif = ex.video?.toLowerCase().match(/\.(jpeg|jpg|png|webp|gif)$/i);
             const ytId = getYouTubeId(ex.video);
             const thumbnailUrl = isImageOrGif ? ex.video : (ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : null);
@@ -509,7 +532,6 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
                   className={`w-full p-4 flex items-center justify-between transition-colors ${isConcluido ? 'bg-[var(--success)]/5 hover:bg-[var(--success)]/10' : 'hover:bg-[var(--surface-sec)]/50'}`}
                 >
                   <div className="flex items-center gap-4 overflow-hidden">
-                    {/* THUMBNAIL DO VÍDEO (Clicável para abrir modal cheio) */}
                     <div 
                       className="w-14 h-14 rounded-xl overflow-hidden bg-[var(--surface-sec)] shrink-0 border border-[var(--border)] flex items-center justify-center relative cursor-pointer hover:opacity-80 transition-opacity group" 
                       onClick={(e) => { e.stopPropagation(); if (ex.video) setVideoAberto(ex.video); }}
@@ -538,74 +560,108 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
                   </div>
                 </button>
 
-                {/* CORPO DO ACCORDION - TABELA DE SÉRIES E AÇÕES */}
+                {/* CORPO DO ACCORDION (EXPANDIDO) */}
                 <div className={`grid transition-all duration-300 ease-in-out ${isExpanded ? 'grid-rows-[1fr] opacity-100 border-t border-[var(--border)]' : 'grid-rows-[0fr] opacity-0'}`}>
-                  <div className="overflow-hidden bg-[var(--surface-sec)]/20">
+                  <div className="overflow-hidden bg-[var(--surface-sec)]/10">
                     <div className="p-4 space-y-4">
                       
                       {ex.observacao && (
-                        <div className="p-4 bg-[var(--primary)]/5 border-l-4 border-[var(--primary)] rounded-r-2xl mb-2">
-                          <p className="text-[9px] font-black uppercase tracking-widest text-[var(--primary)] mb-1">Nota do Personal:</p>
-                          <p className="text-xs font-medium text-[var(--text-primary)] italic">"{ex.observacao}"</p>
+                        <div className="p-3 bg-[var(--primary)]/5 border-l-4 border-[var(--primary)] rounded-r-xl text-xs">
+                          <p className="text-[9px] font-black uppercase tracking-widest text-[var(--primary)] mb-0.5">Nota:</p>
+                          <p className="font-medium text-[var(--text-primary)] italic">"{ex.observacao}"</p>
                         </div>
                       )}
 
-                      {/* BLOCO DE SÉRIES IGUAL AO SEU ORIGINAL, PARA NÃO PERDER NENHUMA LÓGICA DE INPUT */}
-                      <div className="bg-[var(--surface-sec)] rounded-[1.2rem] p-3 border border-[var(--border)]">
-                        <div className="grid grid-cols-[2.5rem_1fr_1.5fr_1.5fr] sm:grid-cols-[3.5rem_1fr_1.5fr_1fr] gap-2 mb-2 px-1">
-                          <span className="text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-widest text-center">{t.set}</span>
-                          <span className="text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-widest text-center">{t.reps}</span>
-                          <span className="text-[9px] font-bold text-[var(--primary)] uppercase tracking-widest text-center">{t.load}</span>
-                          <span className="text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-widest text-center">{t.rest}</span>
+                      {/* INDICADOR COMPACTO DE SÉRIES DE LINHA INTEIRA */}
+                      <div className="bg-[var(--surface-sec)]/40 border border-[var(--border)] p-3.5 rounded-xl flex justify-between items-center">
+                        <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-[var(--text-secondary)]">
+                          <FaSyncAlt className="text-[var(--primary)]" />
+                          <span>Séries do Exercício</span>
                         </div>
-
-                        <div className="space-y-2">
-                          {Array.isArray(ex.series) && ex.series.map((s, sIndex) => {
-                            const key = `${ex.nome}-${sIndex}`;
-                            return (
-                              <div key={sIndex} className="grid grid-cols-[2.5rem_1fr_1.5fr_1.5fr] sm:grid-cols-[3.5rem_1fr_1.5fr_1fr] items-center gap-1 sm:gap-2 bg-[var(--bg)] p-2 rounded-xl border border-[var(--border)] shadow-inner">
-                                <span className="text-[11px] font-black text-[var(--text-secondary)] text-center">{s.ordem || sIndex + 1}ª</span>
-                                <span className="text-[11px] sm:text-[12px] font-bold text-[var(--text-primary)] text-center truncate">{s.reps || '-'}</span>
-                                
-                                <div className="relative flex items-center justify-center w-full bg-[var(--surface)] border border-[var(--border)] rounded-lg overflow-hidden focus-within:border-[var(--primary)] transition-all">
-                                  <input 
-                                    type="number" 
-                                    placeholder={s.carga ? `${s.carga}` : '0'} 
-                                    value={inputValues[key] || ''} 
-                                    onChange={(e) => setInputValues(prev => ({ ...prev, [key]: e.target.value }))}
-                                    onBlur={(e) => registrarCarga(ex.nome, Number(e.target.value), inputUnits[key] || s.unidadeCarga || 'kg', s.reps || '0', sIndex)}
-                                    className="w-full bg-transparent text-[var(--text-primary)] py-2 sm:py-2.5 pl-2 text-center text-sm font-black outline-none placeholder:text-[var(--text-secondary)] placeholder:font-normal"
-                                    style={{ WebkitAppearance: 'none', margin: 0 }}
-                                  />
-                                  <select 
-                                    value={inputUnits[key] || s.unidadeCarga || 'kg'}
-                                    onChange={(e) => {
-                                      setInputUnits(prev => ({ ...prev, [key]: e.target.value }));
-                                      if (inputValues[key]) registrarCarga(ex.nome, Number(inputValues[key]), e.target.value, s.reps || '0', sIndex);
-                                    }}
-                                    className="bg-transparent text-[9px] font-black text-[var(--text-secondary)] uppercase outline-none pr-1 cursor-pointer appearance-none"
-                                  >
-                                    <option value="kg" className="bg-[var(--surface)] text-[var(--text-primary)]">KG</option>
-                                    <option value="lbs" className="bg-[var(--surface)] text-[var(--text-primary)]">LBS</option>
-                                  </select>
-                                </div>
-                                
-                                <div className="flex justify-center">
-                                  <button 
-                                    onClick={() => s.intervalo ? iniciarCronometroDescanso(s.intervalo) : null} 
-                                    className="w-8 h-8 flex items-center justify-center rounded-full bg-[var(--surface)] border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--primary)] transition-colors active:scale-95"
-                                  >
-                                    <FaStopwatch size={12} />
-                                  </button>
-                                </div>
-
-                              </div>
-                            );
-                          })}
-                        </div>
+                        <span className="font-black text-sm text-[var(--text-primary)]">{totalSeries}</span>
                       </div>
 
-                      {/* BOTÃO DE AÇÃO DO EXERCÍCIO (Concluir e Ir Para Próximo) */}
+                      {/* NOVO: ABAS DE SÉRIES SEPARADAS (DÁ APOIO À LOGICA DO SUPABASE) */}
+                      <div className="flex gap-1.5 overflow-x-auto pb-1 custom-scrollbar">
+                        {Array.from({ length: totalSeries }).map((_, sIdx) => {
+                          const isSetAtivo = currentSetIndex === sIdx;
+                          return (
+                            <button
+                              key={sIdx}
+                              onClick={() => setActiveSets(prev => ({ ...prev, [exIndex]: sIdx }))}
+                              className={`px-3.5 py-2 rounded-xl text-xs font-black shrink-0 transition-all ${
+                                isSetAtivo 
+                                  ? 'bg-[var(--primary)] text-white shadow-md shadow-[var(--primary)]/20' 
+                                  : 'bg-[var(--surface)] text-[var(--text-secondary)] border border-[var(--border)] hover:text-[var(--text-primary)]'
+                              }`}
+                            >
+                              {sIdx + 1}ª Série
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+                      {/* NOVOS: CARDS TRIDIMENSIONAIS DE EXECUÇÃO (ESTILO SELFIT + SEU TEMA)    */}
+                      {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+                      <div className="grid grid-cols-3 gap-3">
+                        
+                        {/* REPETIÇÕES */}
+                        <div className="bg-[var(--surface)] border border-[var(--border)] p-3.5 rounded-2xl flex flex-col items-center justify-center text-center shadow-sm">
+                          <FaUndo className="text-[var(--primary)] text-xs mb-1.5" />
+                          <span className="text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-widest">Repetições</span>
+                          <span className="text-base font-black text-[var(--text-primary)] mt-1">
+                            {serieData?.reps || ex.series[0]?.reps || '-'}
+                          </span>
+                        </div>
+
+                        {/* CARGA EMBUTIDA DIRETAMENTE PARA EDIÇÃO */}
+                        <div className="bg-[var(--surface)] border border-[var(--border)] p-3.5 rounded-2xl flex flex-col items-center justify-center text-center shadow-sm focus-within:border-[var(--primary)] focus-within:ring-1 focus-within:ring-[var(--primary)]/30 transition-all">
+                          <FaDumbbell className="text-[var(--primary)] text-xs mb-1.5" />
+                          <span className="text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-widest">Carga</span>
+                          
+                          <div className="flex items-center justify-center mt-1 w-full">
+                            <input 
+                              type="number" 
+                              placeholder={serieData?.carga ? `${serieData.carga}` : '0'} 
+                              value={inputValues[currentKey] || ''} 
+                              onChange={(e) => setInputValues(prev => ({ ...prev, [currentKey]: e.target.value }))}
+                              onBlur={(e) => registrarCarga(ex.nome, Number(e.target.value), inputUnits[currentKey] || serieData?.unidadeCarga || 'kg', serieData?.reps || '0', currentSetIndex)}
+                              className="w-10 bg-transparent text-center text-base font-black text-[var(--text-primary)] outline-none"
+                              style={{ WebkitAppearance: 'none', margin: 0 }}
+                            />
+                            <select 
+                              value={inputUnits[currentKey] || serieData?.unidadeCarga || 'kg'}
+                              onChange={(e) => {
+                                setInputUnits(prev => ({ ...prev, [currentKey]: e.target.value }));
+                                if (inputValues[currentKey]) registrarCarga(ex.nome, Number(inputValues[currentKey]), e.target.value, serieData?.reps || '0', currentSetIndex);
+                              }}
+                              className="bg-transparent text-[9px] font-black text-[var(--text-secondary)] uppercase outline-none pl-0.5 cursor-pointer appearance-none"
+                            >
+                              <option value="kg" className="bg-[var(--surface)] text-[var(--text-primary)]">KG</option>
+                              <option value="lbs" className="bg-[var(--surface)] text-[var(--text-primary)]">LBS</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        {/* INTERVALO COM STOPWATCH INTEGRADO */}
+                        <button 
+                          onClick={() => {
+                            const timeStr = serieData?.intervalo || ex.series[0]?.intervalo || '45"';
+                            iniciarCronometroDescanso(timeStr);
+                          }}
+                          className="bg-[var(--surface)] border border-[var(--border)] p-3.5 rounded-2xl flex flex-col items-center justify-center text-center shadow-sm active:scale-95 transition-transform hover:border-[var(--primary)]/30"
+                        >
+                          <FaStopwatch className="text-[var(--primary)] text-xs mb-1.5 animate-pulse" />
+                          <span className="text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-widest">Intervalo</span>
+                          <span className="text-base font-black text-[var(--text-primary)] mt-1">
+                            {serieData?.intervalo || ex.series[0]?.intervalo || '45"'}
+                          </span>
+                        </button>
+
+                      </div>
+
+                      {/* BOTÃO PRINCIPAL DE CONCLUIR EXERCÍCIO */}
                       <button 
                         onClick={() => {
                           if (!treinoIniciado) { setTreinoIniciado(true); setDataInicio(new Date()); }
@@ -613,23 +669,25 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
                             setConcluidos(concluidos.filter(c => c !== exIndex));
                           } else {
                             setConcluidos([...concluidos, exIndex]);
-                            // Salva todas as cargas automaticamente
+                            
+                            // Salva de forma robusta os estados de carga de todas as sub-séries deste exercício no Supabase
                             if (ex.series && Array.isArray(ex.series)) {
                               ex.series.forEach((s: any, sIndex: number) => {
-                                const key = `${ex.nome}-${sIndex}`;
-                                const cargaAtual = Number(inputValues[key]) || Number(s.carga) || 0;
-                                const unidadeAtual = inputUnits[key] || s.unidadeCarga || 'kg';
+                                const k = `${ex.nome}-${sIndex}`;
+                                const cargaAtual = Number(inputValues[k]) || Number(s.carga) || 0;
+                                const unidadeAtual = inputUnits[k] || s.unidadeCarga || 'kg';
                                 registrarCarga(ex.nome, cargaAtual, unidadeAtual, s.reps || '0', sIndex);
                               });
                             }
-                            // Auto avança para o próximo exercício
+                            
+                            // Auto-avanço inteligente para o próximo bloco do Accordion igual ao fluxo de caixa de treino
                             if (exIndex + 1 < exercicios.length) setExpandedId(exIndex + 1);
                             else setExpandedId(null);
                           }
                         }} 
                         className={`w-full py-4 rounded-xl font-black text-xs uppercase tracking-widest transition-all active:scale-[0.98] ${
                           isConcluido 
-                            ? 'bg-[var(--surface)] text-[var(--text-secondary)] border border-[var(--border)]' 
+                            ? 'bg-[var(--surface-sec)] text-[var(--text-secondary)] border border-[var(--border)] shadow-inner' 
                             : 'bg-[var(--primary)] text-white shadow-lg shadow-[var(--primary)]/20 hover:bg-blue-600'
                         }`}
                       >
