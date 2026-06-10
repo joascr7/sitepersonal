@@ -311,7 +311,8 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
         ]);
       });
     });
-    autoTable(doc, { startY: 35, head: [['Exercício', 'Série', 'Reps', 'Carga Registrada', 'Desc.']], body: tableDados });
+    // CORREÇÃO DA LINHA ABAIXO: De tableDados para tabelaDados
+    autoTable(doc, { startY: 35, head: [['Exercício', 'Série', 'Reps', 'Carga Registrada', 'Desc.']], body: tabelaDados });
     doc.save(`${ficha?.nome_treino || 'Treino'}.pdf`);
   };
 
@@ -536,7 +537,6 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
             const isConcluido = concluidos.includes(exIndex);
             const isExpanded = expandedId === exIndex;
             
-            // CORREÇÃO: Lê dinamicamente se o personal enviou um Array de séries ou um número plano direto (como o 3)
             const totalSeries = Array.isArray(ex.series) ? ex.series.length : (Number(ex.series) || 1);
             
             const currentSetIndex = activeSets[exIndex] || 0;
@@ -547,7 +547,6 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
             const ytId = getYouTubeId(ex.video);
             const thumbnailUrl = isImageOrGif ? ex.video : (ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : null);
 
-            // Resgata os fallbacks corretos caso o personal preencha a estrutura de forma plana
             const repsExibicao = comboSerieData?.reps || ex.reps || ex.repeticoes || '-';
             const cargaPlaceholder = comboSerieData?.carga || ex.carga || '0';
             const intervaloExibicao = comboSerieData?.intervalo || ex.intervalo || '45"';
@@ -662,7 +661,6 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
                               style={{ WebkitAppearance: 'none', margin: 0 }}
                             />
                             
-                            {/* CANETA VISUAL ADICIONADA AQUI PRÓXIMO AO NÚMERO */}
                             <FaPencilAlt size={9} className="text-[var(--text-secondary)] opacity-40 group-hover:opacity-100 transition-opacity mr-1.5 shrink-0" />
 
                             <select 
@@ -702,7 +700,6 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
                           } else {
                             setConcluidos([...concluidos, exIndex]);
                             
-                            // Varre e registra todas as sub-séries criadas para esse exercício com segurança
                             Array.from({ length: totalSeries }).forEach((_, sIndex) => {
                               const k = `${ex.nome}-${sIndex}`;
                               const sData = Array.isArray(ex.series) ? ex.series[sIndex] : null;
