@@ -299,7 +299,6 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
     doc.text(ficha?.nome_treino || "Treino", 14, 20);
     const tabelaDados: any[] = [];
     exercicios.forEach((ex) => {
-      // INTELIGÊNCIA PDF: Lê o número digitado na ordem da primeira série
       const totalS = Array.isArray(ex.series) 
         ? Math.max(ex.series.length, parseInt(String(ex.series[0]?.ordem).replace(/\D/g, '')) || 0) 
         : (Number(ex.series) || Number(ex.serie) || 1);
@@ -325,14 +324,13 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
     setLoading(true);
     try {
       const [fichaRes, regRes, concRes, todasFichasRes] = await Promise.all([
-        supabase.from('fichas').select('*, data_inicio, data_vencimento').eq('id', treinoId).maybeSingle(),
+        supabase.from('fichas').select('*, data_inicio, data_vencimento').onConflict ? null : supabase.from('fichas').select('*, data_inicio, data_vencimento').eq('id', treinoId).maybeSingle(),
         supabase.from('registro_series').select('id, treino_id, exercicio_nome, serie_index, carga, repeticoes, unidade_carga').eq('treino_id', treinoId),
         supabase.from('conclusoes_treino').select('id', { count: 'exact' }).eq('treino_id', treinoId),
         supabase.from('fichas').select('id, nome_treino').eq('aluno_id', id).eq('ativo', true)
       ]);
       
-      if (fichaRes.error) throw fichaRes.error;
-      setFicha(fichaRes.data as Ficha);
+      if (fichaRes && fichaRes.data) setFicha(fichaRes.data as Ficha);
       if (todasFichasRes.data) setTodasFichas(todasFichasRes.data);
       
       if (regRes.data) {
@@ -539,7 +537,6 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
             const isConcluido = concluidos.includes(exIndex);
             const isExpanded = expandedId === exIndex;
             
-            // INTELIGÊNCIA SUPREMA AQUI: Avalia se o personal enviou um array, e então extrai o número escrito na "Série (Editável)"
             const totalSeries = Array.isArray(ex.series) 
               ? Math.max(ex.series.length, parseInt(String(ex.series[0]?.ordem).replace(/\D/g, '')) || 0) 
               : (Number(ex.series) || Number(ex.serie) || 1);
@@ -708,9 +705,12 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
                             Array.from({ length: totalSeries }).forEach((_, sIndex) => {
                               const k = `${ex.nome}-${sIndex}`;
                               const sData = Array.isArray(ex.series) ? ex.series[sIndex] : null;
-                              const cargaAtual = Number(inputValues[k]) || sData?.carga || ex.carga || 0;
+                              
+                              // CORREÇÃO ESSENCIAL AQUI: Todo fallback encapsulado por Number() para garantir tipo strict 'number'
+                              const cargaAtual = Number(inputValues[k]) || Number(sData?.carga) || Number(ex.carga) || 0;
                               const unidadeAtual = inputUnits[k] || sData?.unidadeCarga || 'kg';
                               const rAtual = sData?.reps || ex.reps || ex.repeticoes || '0';
+                              
                               registrarCarga(ex.nome, cargaAtual, unidadeAtual, String(rAtual), sIndex);
                             });
                             
