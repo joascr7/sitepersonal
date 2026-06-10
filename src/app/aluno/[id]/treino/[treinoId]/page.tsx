@@ -323,8 +323,9 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
     if (!treinoId) return;
     setLoading(true);
     try {
+      // Correção aplicada na linha abaixo removendo o .onConflict
       const [fichaRes, regRes, concRes, todasFichasRes] = await Promise.all([
-        supabase.from('fichas').select('*, data_inicio, data_vencimento').onConflict ? null : supabase.from('fichas').select('*, data_inicio, data_vencimento').eq('id', treinoId).maybeSingle(),
+        supabase.from('fichas').select('*, data_inicio, data_vencimento').eq('id', treinoId).maybeSingle(),
         supabase.from('registro_series').select('id, treino_id, exercicio_nome, serie_index, carga, repeticoes, unidade_carga').eq('treino_id', treinoId),
         supabase.from('conclusoes_treino').select('id', { count: 'exact' }).eq('treino_id', treinoId),
         supabase.from('fichas').select('id, nome_treino').eq('aluno_id', id).eq('ativo', true)
@@ -537,6 +538,7 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
             const isConcluido = concluidos.includes(exIndex);
             const isExpanded = expandedId === exIndex;
             
+            // INTELIGÊNCIA SUPREMA AQUI: Avalia se o personal enviou um array, e então extrai o número escrito na "Série (Editável)"
             const totalSeries = Array.isArray(ex.series) 
               ? Math.max(ex.series.length, parseInt(String(ex.series[0]?.ordem).replace(/\D/g, '')) || 0) 
               : (Number(ex.series) || Number(ex.serie) || 1);
