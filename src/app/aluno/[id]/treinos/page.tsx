@@ -37,6 +37,7 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
   const [precisaParq, setPrecisaParq] = useState(false);
   const [isDark, setIsDark] = useState(false);
   const [lang, setLang] = useState<'pt-BR' | 'pt-PT' | 'en'>('pt-BR');
+  const [ultimoTreinoConcluidoId, setUltimoTreinoConcluidoId] = useState<string | null>(null);
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('@premium_theme');
@@ -55,40 +56,18 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
 
   const META_SESSOES = 30;
 
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  // MAPEAMENTO LOCAL DE GIFS + ICONES DE CLASSE PREMIUM (FALLBACK)
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   const getTreinoMediaConfig = (nomeTreino: string) => {
     const nome = nomeTreino.toLowerCase();
-    
     if (nome.includes('peito') || nome.includes('superior') || nome.includes('braço') || nome.includes('triceps')) {
-      return {
-        localGif: '/gifs/peito.gif',
-        gradient: 'from-blue-500 to-indigo-600',
-        icon: <FaDumbbell className="text-white text-2xl animate-pulse" />
-      };
+      return { localGif: '/gifs/peito.gif', gradient: 'from-blue-500 to-indigo-600', icon: <FaDumbbell className="text-white text-2xl animate-pulse" /> };
     }
     if (nome.includes('perna') || nome.includes('inferior') || nome.includes('glúteo') || nome.includes('coxa') || nome.includes('pernas')) {
-      return {
-        localGif: '/gifs/pernas.gif',
-        gradient: 'from-emerald-500 to-teal-600',
-        icon: <FaRunning className="text-white text-2xl animate-pulse" />
-      };
+      return { localGif: '/gifs/pernas.gif', gradient: 'from-emerald-500 to-teal-600', icon: <FaRunning className="text-white text-2xl animate-pulse" /> };
     }
     if (nome.includes('costas') || nome.includes('dorsal') || nome.includes('ombro') || nome.includes('biceps')) {
-      return {
-        localGif: '/gifs/costas.gif',
-        gradient: 'from-purple-500 to-pink-600',
-        icon: <FaDumbbell className="text-white text-2xl rotate-45 animate-pulse" />
-      };
+      return { localGif: '/gifs/costas.gif', gradient: 'from-purple-500 to-pink-600', icon: <FaDumbbell className="text-white text-2xl rotate-45 animate-pulse" /> };
     }
-    
-    // Default (Cardio / Geral)
-    return {
-      localGif: '/gifs/geral.gif',
-      gradient: 'from-blue-600 to-cyan-500',
-      icon: <FaHeartbeat className="text-white text-2xl animate-pulse" />
-    };
+    return { localGif: '/gifs/geral.gif', gradient: 'from-blue-600 to-cyan-500', icon: <FaHeartbeat className="text-white text-2xl animate-pulse" /> };
   };
 
   const getExercicios = (descricaoStr: any) => {
@@ -126,6 +105,11 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
         supabase.from('fichas').select('*, tipo_treino, objetivo, dificuldade, data_inicio, data_vencimento').eq('aluno_id', id).eq('ativo', true),
         supabase.from('conclusoes_treino').select('treino_id, data_conclusao, data_inicio, data_fim, duracao_minutos').eq('aluno_id', id).order('data_conclusao', { ascending: false })
       ]);
+
+      if (histRes.data && histRes.data.length > 0) {
+        // Guarda o ID do primeiríssimo registro do histórico (último treino que o aluno de fato completou)
+        setUltimoTreinoConcluidoId(histRes.data[0].treino_id);
+      }
 
       if (fichasRes.data) {
         const historicoData = histRes.data || [];
@@ -196,6 +180,20 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
             const datasVencimento = treinosList.map((f: any) => f.data_vencimento).filter(Boolean);
             const dataValidade = datasVencimento.length > 0 ? new Date(Math.max(...datasVencimento.map((d: any) => new Date(d).getTime()))) : null;
 
+            // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+            // LÓGICA DO PRÓXIMO TREINO DINÂMICO
+            // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+            let indexDoProximo = 0; // Fallback: se for inédito, começa pelo primeiro card
+            
+            if (ultimoTreinoConcluidoId) {
+              const indexUltimo = treinosList.findIndex(t => t.id === ultimoTreinoConcluidoId);
+              // Se o último treino pertence a este bloco e não é o último da lista, o próximo é o seguinte. 
+              // Se for o último da lista, reseta a rodada e volta a ser o índice 0.
+              if (indexUltimo !== -1) {
+                indexDoProximo = (indexUltimo + 1) % treinosList.length;
+              }
+            }
+
             return (
               <div key={programaMaster} className="bg-[var(--surface-sec)] rounded-3xl p-4 border border-[var(--border)] relative shadow-sm">
                 
@@ -204,58 +202,41 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
                 </h2>
 
                 <div className="flex flex-wrap gap-2 mb-5 ml-1">
-                  {treinosList[0]?.tipo_treino && (
-                    <span className="text-[9px] font-bold bg-[var(--surface)] text-[var(--text-secondary)] px-2.5 py-1 rounded-md border border-[var(--border)] uppercase tracking-widest shadow-sm">
-                      {treinosList[0].tipo_treino}
-                    </span>
-                  )}
-                  {treinosList[0]?.objetivo && (
-                    <span className="text-[9px] font-bold bg-[var(--surface)] text-[var(--text-secondary)] px-2.5 py-1 rounded-md border border-[var(--border)] uppercase tracking-widest shadow-sm">
-                      {treinosList[0].objective || treinosList[0].objetivo}
-                    </span>
-                  )}
-                  {treinosList[0]?.dificuldade && (
-                    <span className="text-[9px] font-bold bg-[var(--surface)] text-[var(--text-secondary)] px-2.5 py-1 rounded-md border border-[var(--border)] uppercase tracking-widest shadow-sm">
-                      {treinosList[0].dificuldade}
-                    </span>
-                  )}
+                  {treinosList[0]?.tipo_treino && <span className="text-[9px] font-bold bg-[var(--surface)] text-[var(--text-secondary)] px-2.5 py-1 rounded-md border border-[var(--border)] uppercase tracking-widest shadow-sm">{treinosList[0].tipo_treino}</span>}
+                  {treinosList[0]?.objetivo && <span className="text-[9px] font-bold bg-[var(--surface)] text-[var(--text-secondary)] px-2.5 py-1 rounded-md border border-[var(--border)] uppercase tracking-widest shadow-sm">{treinosList[0].objective || treinosList[0].objetivo}</span>}
+                  {treinosList[0]?.dificuldade && <span className="text-[9px] font-bold bg-[var(--surface)] text-[var(--text-secondary)] px-2.5 py-1 rounded-md border border-[var(--border)] uppercase tracking-widest shadow-sm">{treinosList[0].dificuldade}</span>}
                 </div>
 
                 <div className="space-y-3">
                   {treinosList.map((f: any, index: number) => {
-                    const isFirst = index === 0; 
+                    // A tag 'Próximo' só ativa se o índice bater com o cálculo dinâmico da sequência
+                    const exibirProximo = index === indexDoProximo; 
                     const mediaConfig = getTreinoMediaConfig(f.nomeLimpoCard);
                     
                     return (
                       <div key={f.id} className="bg-[var(--surface)] p-3 rounded-[1.2rem] flex items-center gap-4 relative shadow-sm border border-[var(--border)] group hover:shadow-md transition-all">
                         
-                        {isFirst && (
+                        {/* TAG PRÓXIMO 100% FUNCIONAL */}
+                        {exibirProximo && (
                           <span className="absolute -top-3 right-4 bg-[var(--primary)] text-white shadow-md shadow-[var(--primary)]/30 text-[10px] font-black px-3 py-1 rounded-lg z-10 uppercase tracking-wider">
                             {t.next}
                           </span>
                         )}
 
-                        {/* CONTAINER DA MIDIA - CARREGA O GIF LOCAL OU O ICONE PREMIUM */}
                         <div className="w-[4.5rem] h-[4.5rem] rounded-xl overflow-hidden shrink-0 relative border border-[var(--border)]">
-                          
-                          {/* Imagem/GIF dinâmico (Carrega do banco ou da sua pasta local /gifs) */}
                           <img 
                             src={f.imagem_url || mediaConfig.localGif} 
                             alt={f.nomeLimpoCard} 
                             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 z-10 relative" 
                             onError={(e) => {
-                              // Se você ainda não salvou o arquivo .gif na pasta, ele esconde a imagem quebrada
                               e.currentTarget.style.display = 'none';
                               const fallbackDiv = e.currentTarget.nextElementSibling;
                               if (fallbackDiv) fallbackDiv.classList.remove('hidden');
                             }}
                           />
-                          
-                          {/* FALLBACK PREMIUM: Gradiente com ícone temático pulsando */}
                           <div className={`w-full h-full bg-gradient-to-br ${mediaConfig.gradient} flex flex-col items-center justify-center shadow-inner`}>
                             {mediaConfig.icon}
                           </div>
-
                         </div>
                         
                         <div className="flex-grow py-1">
