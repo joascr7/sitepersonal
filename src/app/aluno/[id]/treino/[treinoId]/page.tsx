@@ -91,6 +91,28 @@ const getYouTubeId = (url: string | null | undefined): string | null => {
   return (match && match[2].length === 11) ? match[2] : null;
 };
 
+const playBeepSound = () => {
+  try {
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContextClass) return;
+    const audioCtx = new AudioContextClass();
+    const oscillator = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+    
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); // Tom limpo e nítido (Nota A5)
+    gainNode.gain.setValueAtTime(0.4, audioCtx.currentTime);
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+    
+    oscillator.start();
+    oscillator.stop(audioCtx.currentTime + 0.35); // Duração ideal de aviso
+  } catch (e) {
+    console.error("Falha ao reproduzir áudio nativo:", e);
+  }
+};
+
 const CabecalhoRelogio = ({ nomeAluno }: { nomeAluno?: string }) => {
   const [horaAtual, setHoraAtual] = useState(new Date());
 
@@ -124,7 +146,7 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
   const router = useRouter();
 
   const [ficha, setFicha] = useState<Ficha | null>(null);
-  const [todasFichas, setTodasFichas] = useState<any[]>([]); // Estado adicionado para o seletor do topo
+  const [todasFichas, setTodasFichas] = useState<any[]>([]); 
   const [registros, setRegistros] = useState<RegistroSerie[]>([]);
   const [concluidos, setConcluidos] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
@@ -144,11 +166,12 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
   
   const [showToast, setShowToast] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
-  const [videoAberto, setVideoAberto] = useState<string | null>(null);
   
-  // ESTADOS DO ACCORDION E ABAS DE SÉRIES INTERNAS
+  // ESTADO DA MÍDIA MULTI-DADOS PARA CASAR COM A ESTRUTURA DA IMAGE_8.PNG
+  const [activeMediaEx, setActiveMediaEx] = useState<{ video: string; nome: string } | null>(null);
+  
   const [expandedId, setExpandedId] = useState<number | null>(null);
-  const [activeSets, setActiveSets] = useState<Record<number, number>>({}); // Controla a aba ativa de cada exercício separadamente
+  const [activeSets, setActiveSets] = useState<Record<number, number>>({}); 
 
   const [isDark, setIsDark] = useState(true);
   const [lang, setLang] = useState<'pt-BR' | 'pt-PT' | 'en'>('pt-BR');
@@ -189,8 +212,19 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    if (timerAtivo && tempoRestante !== null && tempoRestante > 0) interval = setInterval(() => setTempoRestante(prev => prev! - 1), 1000);
-    else if (tempoRestante === 0) { setTimerAtivo(false); setTimeout(() => setTempoRestante(null), 4000); }
+    if (timerAtivo && tempoRestante !== null && tempoRestante > 0) {
+      interval = setInterval(() => {
+        setTempoRestante(prev => {
+          if (prev !== null && prev === 1) {
+            playBeepSound(); // Som acionado exatamente ao cruzar o limiar do zero
+          }
+          return prev! - 1;
+        });
+      }, 1000);
+    } else if (tempoRestante === 0) {
+      setTimerAtivo(false);
+      setTimeout(() => setTempoRestante(null), 4000);
+    }
     return () => clearInterval(interval);
   }, [timerAtivo, tempoRestante]);
 
@@ -278,7 +312,7 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
         supabase.from('fichas').select('*, data_inicio, data_vencimento').eq('id', treinoId).maybeSingle(),
         supabase.from('registro_series').select('id, treino_id, exercicio_nome, serie_index, carga, repeticoes, unidade_carga').eq('treino_id', treinoId),
         supabase.from('conclusoes_treino').select('id', { count: 'exact' }).eq('treino_id', treinoId),
-        supabase.from('fichas').select('id, nome_treino').eq('aluno_id', id).eq('ativo', true) // Carrega os outros treinos ativos do topo
+        supabase.from('fichas').select('id, nome_treino').eq('aluno_id', id).eq('ativo', true)
       ]);
       
       if (fichaRes.error) throw fichaRes.error;
@@ -366,26 +400,11 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
   }
 };
 
-  if (precisaParq) {
-    return (
-      <div style={themeStyles} className="min-h-screen bg-[var(--bg)] pt-10 px-4 pb-20">
-        <ParqForm alunoId={id} onComplete={() => window.location.reload()} />
-      </div>
-    );
-  }
-
-  if (loading) return (
-    <main style={themeStyles} className="min-h-screen bg-[var(--bg)] p-6 space-y-6 animate-pulse pt-[max(env(safe-area-inset-top),2rem)]">
-      <div className="flex justify-between items-center mb-10"><div className="w-20 h-10 bg-[var(--surface-sec)] rounded-full" /><div className="w-32 h-10 bg-[var(--surface-sec)] rounded-full" /></div>
-      <div className="space-y-4"><div className="w-3/4 h-10 bg-[var(--surface-sec)] rounded-full" /><div className="w-1/3 h-4 bg-[var(--surface-sec)] rounded-full" /><div className="w-full h-2 bg-[var(--surface-sec)] rounded-full mt-6" /></div>
-    </main>
-  );
-  
   return (
     <main style={themeStyles} className="min-h-screen w-full bg-[var(--bg)] text-[var(--text-primary)] transition-colors duration-500 font-sans antialiased pt-[max(env(safe-area-inset-top),1.5rem)] pb-[env(safe-area-inset-bottom)] px-4 relative">
       
       {tempoRestante !== null && (
-        <div className={`fixed top-[max(env(safe-area-inset-top,24px),24px)] left-1/2 -translate-x-1/2 z-[100] border shadow-2xl px-5 py-3 rounded-full flex items-center gap-4 transition-all duration-300 animate-in slide-in-from-top-4 fade-in ${
+        <div className={`fixed top-[max(env(safe-area-inset-top,24px),24px)] left-1/2 -translate-x-1/2 z-[100] border shadow-2xl px-5 py-3 rounded-full flex items-center gap-4 transition-all duration-300 ${
           tempoRestante === 0 ? 'bg-[var(--success)]/10 border-[var(--success)]/30 text-[var(--success)] backdrop-blur-md' : 'bg-[var(--surface)]/90 border-[var(--primary)]/30 text-[var(--text-primary)] backdrop-blur-xl'
         }`}>
           {tempoRestante === 0 ? <FaBell className="animate-bounce" size={16} /> : <div className="w-3 h-3 rounded-full bg-[var(--primary)] animate-pulse shadow-[0_0_10px_var(--primary)]" />}
@@ -397,19 +416,42 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
         </div>
       )}
 
-      {/* PLAYER DE VÍDEO NATIVO IN-APP */}
-      {videoAberto && (
-        <div className="fixed inset-0 bg-black/95 z-[9999] flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <button onClick={() => setVideoAberto(null)} className="absolute top-6 right-6 w-12 h-12 bg-white/10 rounded-full flex items-center justify-center text-white hover:bg-white/20 transition-colors"><FaTimes size={20}/></button>
-          <div className="w-full max-w-4xl aspect-video bg-black rounded-2xl overflow-hidden border border-white/10 shadow-2xl">
-            {getYouTubeId(videoAberto) ? (
-              <iframe className="w-full h-full" src={`https://www.youtube.com/embed/${getYouTubeId(videoAberto)}?autoplay=1`} allow="autoplay; fullscreen" />
-            ) : videoAberto.match(/\.(jpeg|jpg|png|webp|gif)$/i) ? (
-              <img src={videoAberto} className="w-full h-full object-contain" />
+      {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+      {/* NOVO MODAL NATIVO DE EXECUÇÃO DE EXERCÍCIO - REPLICANDO A IMAGE_8.PNG  */}
+      {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+      {activeMediaEx && (
+        <div className="fixed inset-0 bg-[var(--bg)] z-[9999] flex flex-col animate-in fade-in duration-200 pt-[max(env(safe-area-inset-top),1rem)] px-4">
+          <header className="flex items-center justify-between py-4 border-b border-[var(--border)] mb-6">
+            <button onClick={() => setActiveMediaEx(null)} className="text-[var(--text-primary)] hover:text-[var(--primary)] transition-colors p-2 active:scale-90">
+              <FaChevronLeft size={18} />
+            </button>
+            <h2 className="text-lg font-black tracking-widest text-[var(--text-primary)] uppercase text-center flex-grow -ml-8">
+              {lang === 'en' ? 'WORKOUT' : 'TREINO'}
+            </h2>
+            <div className="w-4" /> 
+          </header>
+
+          {/* Bloco de mídia centralizado e arredondado idêntico à imagem_8.png */}
+          <div className="w-full rounded-2xl overflow-hidden bg-[var(--surface)] border border-[var(--border)] shadow-md">
+            {getYouTubeId(activeMediaEx.video) ? (
+              <div className="w-full aspect-video">
+                <iframe className="w-full h-full" src={`https://www.youtube.com/embed/${getYouTubeId(activeMediaEx.video)}?autoplay=1`} allow="autoplay; fullscreen" frameBorder="0" />
+              </div>
+            ) : activeMediaEx.video.match(/\.(jpeg|jpg|png|webp|gif)$/i) ? (
+              <div className="w-full aspect-video">
+                <img src={activeMediaEx.video} className="w-full h-full object-cover" alt="Demonstração" />
+              </div>
             ) : (
-              <video src={videoAberto} controls autoPlay playsInline className="w-full h-full object-contain" />
+              <div className="w-full aspect-video">
+                <video src={activeMediaEx.video} controls autoPlay playsInline className="w-full h-full object-cover" />
+              </div>
             )}
           </div>
+
+          {/* Nome do exercício posicionado logo abaixo da mídia, igual à imagem_8.png */}
+          <h3 className="text-xl font-normal tracking-tight text-[var(--text-primary)] mt-5 pl-1">
+            {activeMediaEx.nome}
+          </h3>
         </div>
       )}
 
@@ -432,9 +474,7 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
           </div>
         </header>
 
-        {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-        {/* NOVO: SELETOR DO TOPO PARA TROCAR O TREINO DO DIA (ESTILO SELFIT)      */}
-        {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+        {/* SELETOR DINÂMICO DE TREINOS DO TOPO */}
         <div className="relative w-full mb-6">
           <select
             value={treinoId}
@@ -465,30 +505,6 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
               </div>
             )}
           </div>
-
-          {/* DATAS DE INÍCIO E VENCIMENTO */}
-          {(ficha?.data_inicio || ficha?.data_vencimento) && (
-            <div className="flex gap-3 mb-6">
-              {ficha.data_inicio && (
-                <div className="flex-1 bg-[var(--surface)] p-3 rounded-xl border border-[var(--border)] flex items-center gap-3 shadow-sm">
-                  <div className="text-[var(--primary)] bg-[var(--primary)]/10 p-2 rounded-lg"><FaCalendarAlt size={12} /></div>
-                  <div>
-                    <p className="text-[8px] font-black uppercase text-[var(--text-secondary)] tracking-widest">Início</p>
-                    <p className="text-xs font-bold text-[var(--text-primary)]">{new Date(ficha.data_inicio).toLocaleDateString(lang)}</p>
-                  </div>
-                </div>
-              )}
-              {ficha.data_vencimento && (
-                <div className="flex-1 bg-[var(--surface)] p-3 rounded-xl border border-[var(--border)] flex items-center gap-3 shadow-sm">
-                  <div className="text-[var(--danger)] bg-[var(--danger)]/10 p-2 rounded-lg"><FaCalendarAlt size={12} /></div>
-                  <div>
-                    <p className="text-[8px] font-black uppercase text-[var(--text-secondary)] tracking-widest">Vencimento</p>
-                    <p className="text-xs font-bold text-[var(--danger)]">{new Date(ficha.data_vencimento).toLocaleDateString(lang)}</p>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
           
           <div className="w-full h-2 bg-[var(--surface-sec)] rounded-full overflow-hidden border border-[var(--border)] shadow-inner">
             <div className="h-full bg-gradient-to-r from-[var(--primary-soft)] to-[var(--primary)] transition-all duration-700 ease-out relative" style={{ width: `${progresso}%` }}>
@@ -512,11 +528,12 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
           {exercicios.map((ex, exIndex) => {
             const isConcluido = concluidos.includes(exIndex);
             const isExpanded = expandedId === exIndex;
-            const totalSeries = Array.isArray(ex.series) ? ex.series.length : (ex.series || 3);
             
-            // Índice da aba de série ativa para este exercício específico (padrão: 0 = 1ª série)
+            // CORREÇÃO: O número de séries passa a ler estritAMENTE e dinamicamente o valor do Array configurado pelo personal
+            const totalSeries = Array.isArray(ex.series) ? ex.series.length : 0;
+            
             const currentSetIndex = activeSets[exIndex] || 0;
-            const serieData = Array.isArray(ex.series) ? ex.series[currentSetIndex] : null;
+            const comboSerieData = Array.isArray(ex.series) ? ex.series[currentSetIndex] : null;
             const currentKey = `${ex.nome}-${currentSetIndex}`;
 
             const isImageOrGif = ex.video?.toLowerCase().match(/\.(jpeg|jpg|png|webp|gif)$/i);
@@ -532,9 +549,13 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
                   className={`w-full p-4 flex items-center justify-between transition-colors ${isConcluido ? 'bg-[var(--success)]/5 hover:bg-[var(--success)]/10' : 'hover:bg-[var(--surface-sec)]/50'}`}
                 >
                   <div className="flex items-center gap-4 overflow-hidden">
+                    {/* THUMBNAIL MODIFICADO: Dispara o novo modal estruturado igual à image_8.png */}
                     <div 
                       className="w-14 h-14 rounded-xl overflow-hidden bg-[var(--surface-sec)] shrink-0 border border-[var(--border)] flex items-center justify-center relative cursor-pointer hover:opacity-80 transition-opacity group" 
-                      onClick={(e) => { e.stopPropagation(); if (ex.video) setVideoAberto(ex.video); }}
+                      onClick={(e) => { 
+                        e.stopPropagation(); 
+                        if (ex.video) setActiveMediaEx({ video: ex.video, nome: ex.nome }); 
+                      }}
                     >
                       {thumbnailUrl ? (
                          <>
@@ -572,7 +593,7 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
                         </div>
                       )}
 
-                      {/* INDICADOR COMPACTO DE SÉRIES DE LINHA INTEIRA */}
+                      {/* TEXTO DE SÉRIES COM VALOR DINÂMICO DO PERSONAL */}
                       <div className="bg-[var(--surface-sec)]/40 border border-[var(--border)] p-3.5 rounded-xl flex justify-between items-center">
                         <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-[var(--text-secondary)]">
                           <FaSyncAlt className="text-[var(--primary)]" />
@@ -581,29 +602,29 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
                         <span className="font-black text-sm text-[var(--text-primary)]">{totalSeries}</span>
                       </div>
 
-                      {/* NOVO: ABAS DE SÉRIES SEPARADAS (DÁ APOIO À LOGICA DO SUPABASE) */}
-                      <div className="flex gap-1.5 overflow-x-auto pb-1 custom-scrollbar">
-                        {Array.from({ length: totalSeries }).map((_, sIdx) => {
-                          const isSetAtivo = currentSetIndex === sIdx;
-                          return (
-                            <button
-                              key={sIdx}
-                              onClick={() => setActiveSets(prev => ({ ...prev, [exIndex]: sIdx }))}
-                              className={`px-3.5 py-2 rounded-xl text-xs font-black shrink-0 transition-all ${
-                                isSetAtivo 
-                                  ? 'bg-[var(--primary)] text-white shadow-md shadow-[var(--primary)]/20' 
-                                  : 'bg-[var(--surface)] text-[var(--text-secondary)] border border-[var(--border)] hover:text-[var(--text-primary)]'
-                              }`}
-                            >
-                              {sIdx + 1}ª Série
-                            </button>
-                          );
-                        })}
-                      </div>
+                      {/* ABAS DINÂMICAS BASEADAS NAS SÉRIES DO PERSONAL */}
+                      {totalSeries > 0 && (
+                        <div className="flex gap-1.5 overflow-x-auto pb-1 custom-scrollbar">
+                          {Array.from({ length: totalSeries }).map((_, sIdx) => {
+                            const isSetAtivo = currentSetIndex === sIdx;
+                            return (
+                              <button
+                                key={sIdx}
+                                onClick={() => setActiveSets(prev => ({ ...prev, [exIndex]: sIdx }))}
+                                className={`px-3.5 py-2 rounded-xl text-xs font-black shrink-0 transition-all ${
+                                  isSetAtivo 
+                                    ? 'bg-[var(--primary)] text-white shadow-md shadow-[var(--primary)]/20' 
+                                    : 'bg-[var(--surface)] text-[var(--text-secondary)] border border-[var(--border)] hover:text-[var(--text-primary)]'
+                                }`}
+                              >
+                                {sIdx + 1}ª Série
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
 
-                      {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-                      {/* NOVOS: CARDS TRIDIMENSIONAIS DE EXECUÇÃO (ESTILO SELFIT + SEU TEMA)    */}
-                      {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+                      {/* CARDS TRIDIMENSIONAIS DE METRICAS ESTILO SELFIT */}
                       <div className="grid grid-cols-3 gap-3">
                         
                         {/* REPETIÇÕES */}
@@ -611,11 +632,11 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
                           <FaUndo className="text-[var(--primary)] text-xs mb-1.5" />
                           <span className="text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-widest">Repetições</span>
                           <span className="text-base font-black text-[var(--text-primary)] mt-1">
-                            {serieData?.reps || ex.series[0]?.reps || '-'}
+                            {comboSerieData?.reps || '-'}
                           </span>
                         </div>
 
-                        {/* CARGA EMBUTIDA DIRETAMENTE PARA EDIÇÃO */}
+                        {/* CARGA DIRETA DENTRO DO CARD */}
                         <div className="bg-[var(--surface)] border border-[var(--border)] p-3.5 rounded-2xl flex flex-col items-center justify-center text-center shadow-sm focus-within:border-[var(--primary)] focus-within:ring-1 focus-within:ring-[var(--primary)]/30 transition-all">
                           <FaDumbbell className="text-[var(--primary)] text-xs mb-1.5" />
                           <span className="text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-widest">Carga</span>
@@ -623,18 +644,18 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
                           <div className="flex items-center justify-center mt-1 w-full">
                             <input 
                               type="number" 
-                              placeholder={serieData?.carga ? `${serieData.carga}` : '0'} 
+                              placeholder={comboSerieData?.carga ? `${comboSerieData.carga}` : '0'} 
                               value={inputValues[currentKey] || ''} 
                               onChange={(e) => setInputValues(prev => ({ ...prev, [currentKey]: e.target.value }))}
-                              onBlur={(e) => registrarCarga(ex.nome, Number(e.target.value), inputUnits[currentKey] || serieData?.unidadeCarga || 'kg', serieData?.reps || '0', currentSetIndex)}
+                              onBlur={(e) => registrarCarga(ex.nome, Number(e.target.value), inputUnits[currentKey] || comboSerieData?.unidadeCarga || 'kg', comboSerieData?.reps || '0', currentSetIndex)}
                               className="w-10 bg-transparent text-center text-base font-black text-[var(--text-primary)] outline-none"
                               style={{ WebkitAppearance: 'none', margin: 0 }}
                             />
                             <select 
-                              value={inputUnits[currentKey] || serieData?.unidadeCarga || 'kg'}
+                              value={inputUnits[currentKey] || comboSerieData?.unidadeCarga || 'kg'}
                               onChange={(e) => {
                                 setInputUnits(prev => ({ ...prev, [currentKey]: e.target.value }));
-                                if (inputValues[currentKey]) registrarCarga(ex.nome, Number(inputValues[currentKey]), e.target.value, serieData?.reps || '0', currentSetIndex);
+                                if (inputValues[currentKey]) registrarCarga(ex.nome, Number(inputValues[currentKey]), e.target.value, comboSerieData?.reps || '0', currentSetIndex);
                               }}
                               className="bg-transparent text-[9px] font-black text-[var(--text-secondary)] uppercase outline-none pl-0.5 cursor-pointer appearance-none"
                             >
@@ -644,10 +665,10 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
                           </div>
                         </div>
 
-                        {/* INTERVALO COM STOPWATCH INTEGRADO */}
+                        {/* INTERVALO */}
                         <button 
                           onClick={() => {
-                            const timeStr = serieData?.intervalo || ex.series[0]?.intervalo || '45"';
+                            const timeStr = comboSerieData?.intervalo || '45"';
                             iniciarCronometroDescanso(timeStr);
                           }}
                           className="bg-[var(--surface)] border border-[var(--border)] p-3.5 rounded-2xl flex flex-col items-center justify-center text-center shadow-sm active:scale-95 transition-transform hover:border-[var(--primary)]/30"
@@ -655,7 +676,7 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
                           <FaStopwatch className="text-[var(--primary)] text-xs mb-1.5 animate-pulse" />
                           <span className="text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-widest">Intervalo</span>
                           <span className="text-base font-black text-[var(--text-primary)] mt-1">
-                            {serieData?.intervalo || ex.series[0]?.intervalo || '45"'}
+                            {comboSerieData?.intervalo || '45"'}
                           </span>
                         </button>
 
@@ -670,7 +691,6 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
                           } else {
                             setConcluidos([...concluidos, exIndex]);
                             
-                            // Salva de forma robusta os estados de carga de todas as sub-séries deste exercício no Supabase
                             if (ex.series && Array.isArray(ex.series)) {
                               ex.series.forEach((s: any, sIndex: number) => {
                                 const k = `${ex.nome}-${sIndex}`;
@@ -680,7 +700,6 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
                               });
                             }
                             
-                            // Auto-avanço inteligente para o próximo bloco do Accordion igual ao fluxo de caixa de treino
                             if (exIndex + 1 < exercicios.length) setExpandedId(exIndex + 1);
                             else setExpandedId(null);
                           }
