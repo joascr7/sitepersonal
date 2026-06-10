@@ -11,7 +11,7 @@ import ParqForm from '@/components/ParqForm';
 import { 
   FaFilePdf, FaCheck, FaChevronLeft, FaMoon, FaSun, 
   FaGlobe, FaStopwatch, FaTimes, FaBell, FaPlay, 
-  FaClock, FaCalendarAlt, FaChevronDown, FaUndo, FaDumbbell, FaSyncAlt
+  FaClock, FaCalendarAlt, FaChevronDown, FaUndo, FaDumbbell, FaSyncAlt, FaPencilAlt
 } from "react-icons/fa";
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -29,7 +29,11 @@ interface Exercicio {
   nome: string;
   video?: string;
   observacao?: string;
-  series: Serie[];
+  series: Serie[] | number | string; // Ajustado para aceitar número direto do banco
+  reps?: string;
+  repeticoes?: string;
+  carga?: number;
+  intervalo?: string;
 }
 
 interface Ficha {
@@ -100,14 +104,14 @@ const playBeepSound = () => {
     const gainNode = audioCtx.createGain();
     
     oscillator.type = 'sine';
-    oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); // Tom limpo e nítido (Nota A5)
+    oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); 
     gainNode.gain.setValueAtTime(0.4, audioCtx.currentTime);
     
     oscillator.connect(gainNode);
     gainNode.connect(audioCtx.destination);
     
     oscillator.start();
-    oscillator.stop(audioCtx.currentTime + 0.35); // Duração ideal de aviso
+    oscillator.stop(audioCtx.currentTime + 0.35); 
   } catch (e) {
     console.error("Falha ao reproduzir áudio nativo:", e);
   }
@@ -167,7 +171,6 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
   const [showToast, setShowToast] = useState(false);
   const [toastMsg, setToastMsg] = useState('');
   
-  // ESTADO DA MÍDIA MULTI-DADOS PARA CASAR COM A ESTRUTURA DA IMAGE_8.PNG
   const [activeMediaEx, setActiveMediaEx] = useState<{ video: string; nome: string } | null>(null);
   
   const [expandedId, setExpandedId] = useState<number | null>(null);
@@ -216,7 +219,7 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
       interval = setInterval(() => {
         setTempoRestante(prev => {
           if (prev !== null && prev === 1) {
-            playBeepSound(); // Som acionado exatamente ao cruzar o limiar do zero
+            playBeepSound(); 
           }
           return prev! - 1;
         });
@@ -295,12 +298,20 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
     doc.text(ficha?.nome_treino || "Treino", 14, 20);
     const tabelaDados: any[] = [];
     exercicios.forEach((ex) => {
-      (Array.isArray(ex.series) ? ex.series : []).forEach((s, idx) => {
+      const totalS = Array.isArray(ex.series) ? ex.series.length : (Number(ex.series) || 1);
+      Array.from({ length: totalS }).forEach((_, idx) => {
         const key = `${ex.nome}-${idx}`;
-        tabelaDados.push([ ex.nome, s.ordem || idx + 1, s.reps || '-', inputValues[key] ? `${inputValues[key]}${inputUnits[key] || 'kg'}` : (s.carga ? `${s.carga}${s.unidadeCarga || 'kg'}` : '-'), s.intervalo ? `${s.intervalo}` : '-' ]);
+        const sData = Array.isArray(ex.series) ? ex.series[idx] : null;
+        tabelaDados.push([ 
+          ex.nome, 
+          idx + 1, 
+          sData?.reps || ex.reps || '-', 
+          inputValues[key] ? `${inputValues[key]}${inputUnits[key] || 'kg'}` : (sData?.carga || ex.carga ? `${sData?.carga || ex.carga}${sData?.unidadeCarga || 'kg'}` : '-'), 
+          sData?.intervalo || ex.intervalo || '-' 
+        ]);
       });
     });
-    autoTable(doc, { startY: 35, head: [['Exercício', 'Série', 'Reps', 'Carga Registrada', 'Desc.']], body: tabelaDados });
+    autoTable(doc, { startY: 35, head: [['Exercício', 'Série', 'Reps', 'Carga Registrada', 'Desc.']], body: tableDados });
     doc.save(`${ficha?.nome_treino || 'Treino'}.pdf`);
   };
 
@@ -416,9 +427,7 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
         </div>
       )}
 
-      {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-      {/* NOVO MODAL NATIVO DE EXECUÇÃO DE EXERCÍCIO - REPLICANDO A IMAGE_8.PNG  */}
-      {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+      {/* MODAL NATIVO DE EXECUÇÃO DE EXERCÍCIO - REPLICANDO A IMAGE_8.PNG */}
       {activeMediaEx && (
         <div className="fixed inset-0 bg-[var(--bg)] z-[9999] flex flex-col animate-in fade-in duration-200 pt-[max(env(safe-area-inset-top),1rem)] px-4">
           <header className="flex items-center justify-between py-4 border-b border-[var(--border)] mb-6">
@@ -426,12 +435,11 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
               <FaChevronLeft size={18} />
             </button>
             <h2 className="text-lg font-black tracking-widest text-[var(--text-primary)] uppercase text-center flex-grow -ml-8">
-              {lang === 'en' ? 'WORKOUT' : 'TREINO'}
+              TREINO
             </h2>
             <div className="w-4" /> 
           </header>
 
-          {/* Bloco de mídia centralizado e arredondado idêntico à imagem_8.png */}
           <div className="w-full rounded-2xl overflow-hidden bg-[var(--surface)] border border-[var(--border)] shadow-md">
             {getYouTubeId(activeMediaEx.video) ? (
               <div className="w-full aspect-video">
@@ -448,7 +456,6 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
             )}
           </div>
 
-          {/* Nome do exercício posicionado logo abaixo da mídia, igual à imagem_8.png */}
           <h3 className="text-xl font-normal tracking-tight text-[var(--text-primary)] mt-5 pl-1">
             {activeMediaEx.nome}
           </h3>
@@ -529,8 +536,8 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
             const isConcluido = concluidos.includes(exIndex);
             const isExpanded = expandedId === exIndex;
             
-            // CORREÇÃO: O número de séries passa a ler estritAMENTE e dinamicamente o valor do Array configurado pelo personal
-            const totalSeries = Array.isArray(ex.series) ? ex.series.length : 0;
+            // CORREÇÃO: Lê dinamicamente se o personal enviou um Array de séries ou um número plano direto (como o 3)
+            const totalSeries = Array.isArray(ex.series) ? ex.series.length : (Number(ex.series) || 1);
             
             const currentSetIndex = activeSets[exIndex] || 0;
             const comboSerieData = Array.isArray(ex.series) ? ex.series[currentSetIndex] : null;
@@ -539,6 +546,11 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
             const isImageOrGif = ex.video?.toLowerCase().match(/\.(jpeg|jpg|png|webp|gif)$/i);
             const ytId = getYouTubeId(ex.video);
             const thumbnailUrl = isImageOrGif ? ex.video : (ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : null);
+
+            // Resgata os fallbacks corretos caso o personal preencha a estrutura de forma plana
+            const repsExibicao = comboSerieData?.reps || ex.reps || ex.repeticoes || '-';
+            const cargaPlaceholder = comboSerieData?.carga || ex.carga || '0';
+            const intervaloExibicao = comboSerieData?.intervalo || ex.intervalo || '45"';
 
             return (
               <div key={exIndex} className={`bg-[var(--surface)] rounded-2xl overflow-hidden transition-all duration-300 shadow-sm border ${isConcluido ? 'border-[var(--success)]/50' : 'border-[var(--border)]'}`}>
@@ -549,7 +561,6 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
                   className={`w-full p-4 flex items-center justify-between transition-colors ${isConcluido ? 'bg-[var(--success)]/5 hover:bg-[var(--success)]/10' : 'hover:bg-[var(--surface-sec)]/50'}`}
                 >
                   <div className="flex items-center gap-4 overflow-hidden">
-                    {/* THUMBNAIL MODIFICADO: Dispara o novo modal estruturado igual à image_8.png */}
                     <div 
                       className="w-14 h-14 rounded-xl overflow-hidden bg-[var(--surface-sec)] shrink-0 border border-[var(--border)] flex items-center justify-center relative cursor-pointer hover:opacity-80 transition-opacity group" 
                       onClick={(e) => { 
@@ -593,7 +604,6 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
                         </div>
                       )}
 
-                      {/* TEXTO DE SÉRIES COM VALOR DINÂMICO DO PERSONAL */}
                       <div className="bg-[var(--surface-sec)]/40 border border-[var(--border)] p-3.5 rounded-xl flex justify-between items-center">
                         <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-[var(--text-secondary)]">
                           <FaSyncAlt className="text-[var(--primary)]" />
@@ -602,7 +612,7 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
                         <span className="font-black text-sm text-[var(--text-primary)]">{totalSeries}</span>
                       </div>
 
-                      {/* ABAS DINÂMICAS BASEADAS NAS SÉRIES DO PERSONAL */}
+                      {/* ABAS DINÂMICAS QUE COBREM O NÚMERO EXATO DO PERSONAL */}
                       {totalSeries > 0 && (
                         <div className="flex gap-1.5 overflow-x-auto pb-1 custom-scrollbar">
                           {Array.from({ length: totalSeries }).map((_, sIdx) => {
@@ -624,7 +634,7 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
                         </div>
                       )}
 
-                      {/* CARDS TRIDIMENSIONAIS DE METRICAS ESTILO SELFIT */}
+                      {/* CARDS DE EXECUÇÃO */}
                       <div className="grid grid-cols-3 gap-3">
                         
                         {/* REPETIÇÕES */}
@@ -632,32 +642,36 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
                           <FaUndo className="text-[var(--primary)] text-xs mb-1.5" />
                           <span className="text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-widest">Repetições</span>
                           <span className="text-base font-black text-[var(--text-primary)] mt-1">
-                            {comboSerieData?.reps || '-'}
+                            {repsExibicao}
                           </span>
                         </div>
 
-                        {/* CARGA DIRETA DENTRO DO CARD */}
-                        <div className="bg-[var(--surface)] border border-[var(--border)] p-3.5 rounded-2xl flex flex-col items-center justify-center text-center shadow-sm focus-within:border-[var(--primary)] focus-within:ring-1 focus-within:ring-[var(--primary)]/30 transition-all">
+                        {/* CARGA COM SELETOR / CAMPO DIRETO E ÍCONE DE EDICAO (CANETA) */}
+                        <div className="bg-[var(--surface)] border border-[var(--border)] p-3.5 rounded-2xl flex flex-col items-center justify-center text-center shadow-sm focus-within:border-[var(--primary)] focus-within:ring-1 focus-within:ring-[var(--primary)]/30 transition-all relative group">
                           <FaDumbbell className="text-[var(--primary)] text-xs mb-1.5" />
                           <span className="text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-widest">Carga</span>
                           
-                          <div className="flex items-center justify-center mt-1 w-full">
+                          <div className="flex items-center justify-center mt-1 w-full relative pl-3">
                             <input 
                               type="number" 
-                              placeholder={comboSerieData?.carga ? `${comboSerieData.carga}` : '0'} 
+                              placeholder={String(cargaPlaceholder)} 
                               value={inputValues[currentKey] || ''} 
                               onChange={(e) => setInputValues(prev => ({ ...prev, [currentKey]: e.target.value }))}
-                              onBlur={(e) => registrarCarga(ex.nome, Number(e.target.value), inputUnits[currentKey] || comboSerieData?.unidadeCarga || 'kg', comboSerieData?.reps || '0', currentSetIndex)}
-                              className="w-10 bg-transparent text-center text-base font-black text-[var(--text-primary)] outline-none"
+                              onBlur={(e) => registrarCarga(ex.nome, Number(e.target.value), inputUnits[currentKey] || comboSerieData?.unidadeCarga || 'kg', String(repsExibicao), currentSetIndex)}
+                              className="w-10 bg-transparent text-center text-base font-black text-[var(--text-primary)] outline-none pr-1"
                               style={{ WebkitAppearance: 'none', margin: 0 }}
                             />
+                            
+                            {/* CANETA VISUAL ADICIONADA AQUI PRÓXIMO AO NÚMERO */}
+                            <FaPencilAlt size={9} className="text-[var(--text-secondary)] opacity-40 group-hover:opacity-100 transition-opacity mr-1.5 shrink-0" />
+
                             <select 
                               value={inputUnits[currentKey] || comboSerieData?.unidadeCarga || 'kg'}
                               onChange={(e) => {
                                 setInputUnits(prev => ({ ...prev, [currentKey]: e.target.value }));
-                                if (inputValues[currentKey]) registrarCarga(ex.nome, Number(inputValues[currentKey]), e.target.value, comboSerieData?.reps || '0', currentSetIndex);
+                                if (inputValues[currentKey]) registrarCarga(ex.nome, Number(inputValues[currentKey]), e.target.value, String(repsExibicao), currentSetIndex);
                               }}
-                              className="bg-transparent text-[9px] font-black text-[var(--text-secondary)] uppercase outline-none pl-0.5 cursor-pointer appearance-none"
+                              className="bg-transparent text-[9px] font-black text-[var(--text-secondary)] uppercase outline-none cursor-pointer appearance-none shrink-0"
                             >
                               <option value="kg" className="bg-[var(--surface)] text-[var(--text-primary)]">KG</option>
                               <option value="lbs" className="bg-[var(--surface)] text-[var(--text-primary)]">LBS</option>
@@ -667,16 +681,13 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
 
                         {/* INTERVALO */}
                         <button 
-                          onClick={() => {
-                            const timeStr = comboSerieData?.intervalo || '45"';
-                            iniciarCronometroDescanso(timeStr);
-                          }}
+                          onClick={() => iniciarCronometroDescanso(String(intervaloExibicao))}
                           className="bg-[var(--surface)] border border-[var(--border)] p-3.5 rounded-2xl flex flex-col items-center justify-center text-center shadow-sm active:scale-95 transition-transform hover:border-[var(--primary)]/30"
                         >
                           <FaStopwatch className="text-[var(--primary)] text-xs mb-1.5 animate-pulse" />
                           <span className="text-[9px] font-bold text-[var(--text-secondary)] uppercase tracking-widest">Intervalo</span>
                           <span className="text-base font-black text-[var(--text-primary)] mt-1">
-                            {comboSerieData?.intervalo || '45"'}
+                            {intervaloExibicao}
                           </span>
                         </button>
 
@@ -691,14 +702,15 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
                           } else {
                             setConcluidos([...concluidos, exIndex]);
                             
-                            if (ex.series && Array.isArray(ex.series)) {
-                              ex.series.forEach((s: any, sIndex: number) => {
-                                const k = `${ex.nome}-${sIndex}`;
-                                const cargaAtual = Number(inputValues[k]) || Number(s.carga) || 0;
-                                const unidadeAtual = inputUnits[k] || s.unidadeCarga || 'kg';
-                                registrarCarga(ex.nome, cargaAtual, unidadeAtual, s.reps || '0', sIndex);
-                              });
-                            }
+                            // Varre e registra todas as sub-séries criadas para esse exercício com segurança
+                            Array.from({ length: totalSeries }).forEach((_, sIndex) => {
+                              const k = `${ex.nome}-${sIndex}`;
+                              const sData = Array.isArray(ex.series) ? ex.series[sIndex] : null;
+                              const cargaAtual = Number(inputValues[k]) || sData?.carga || ex.carga || 0;
+                              const unidadeAtual = inputUnits[k] || sData?.unidadeCarga || 'kg';
+                              const rAtual = sData?.reps || ex.reps || ex.repeticoes || '0';
+                              registrarCarga(ex.nome, cargaAtual, unidadeAtual, String(rAtual), sIndex);
+                            });
                             
                             if (exIndex + 1 < exercicios.length) setExpandedId(exIndex + 1);
                             else setExpandedId(null);
