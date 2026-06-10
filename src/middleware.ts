@@ -29,8 +29,19 @@ export async function middleware(request: NextRequest) {
         getAll() { return request.cookies.getAll(); },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value, options }) => {
+            // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+            // A MÁGICA DO PWA AQUI: Injetamos validade de 1 ano à força
+            // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+            const persistentOptions = {
+              ...options,
+              maxAge: 31536000, // 1 Ano de vida forçado (impede o iOS de limpar)
+              sameSite: 'lax' as const, // Protege contra as regras estritas da Apple (ITP)
+            };
+
+            // Atualiza o request atual para que a sessão seja lida na hora
             request.cookies.set(name, value);
-            response.cookies.set(name, value, options);
+            // Salva no navegador do usuário com as regras blindadas
+            response.cookies.set({ name, value, ...persistentOptions });
           });
         },
       },
@@ -38,6 +49,7 @@ export async function middleware(request: NextRequest) {
   );
 
   // 2. VERIFICAÇÃO DE SESSÃO
+  // O .getUser() é obrigatório aqui pois ele quem dispara o refresh token chamando o setAll acima
   const { data: { user } } = await supabase.auth.getUser();
 
   const isProtected = pathname.startsWith('/dashboard') || pathname.startsWith('/aluno/') || pathname.startsWith('/admin/');
@@ -59,10 +71,6 @@ export async function middleware(request: NextRequest) {
     if (pathname === '/admin' || pathname === '/admin/') {
       return NextResponse.redirect(new URL('/admin/financeiro?aba=gestao', request.url));
     }
-    
-    // NOTA: Como você delegou a verificação do 'is_pro' para o SubscriptionGuard no front-end,
-    // o middleware agora foca exclusivamente em garantir que quem está logado 
-    // consiga transitar entre as rotas de forma rápida.
   }
 
   return response;
