@@ -239,6 +239,10 @@ export function BibliotecaHub() {
           <div className="space-y-2">
             {sub.exercicios?.map((ex: any, i: number) => {
               const ytId = getYouTubeId(ex.video);
+              
+              // CORREÇÃO ESSENCIAL AQUI: Faz a leitura flexível de séries no plural ou singular (assim como no app do aluno)
+              const totalSeriesCount = Array.isArray(ex.series) ? ex.series.length : (Number(ex.series) || Number(ex.serie) || 1);
+
               return (
                 <div key={i} className="flex items-center gap-3 bg-[var(--surface)] p-2.5 rounded-2xl border border-[var(--border)] shadow-sm">
                   <div className="w-14 h-12 bg-black rounded-xl overflow-hidden relative shrink-0 border border-[var(--border)] flex items-center justify-center cursor-pointer" onClick={() => setVideoAberto(ex.video)}>
@@ -252,7 +256,7 @@ export function BibliotecaHub() {
                   </div>
                   <div className="flex flex-col min-w-0 flex-1">
                     <span className="text-xs font-bold text-[var(--text-primary)] truncate">{ex.nome}</span>
-                    <span className="text-[9px] uppercase font-black text-[var(--text-secondary)] mt-0.5">{ex.series?.length || 0} Séries</span>
+                    <span className="text-[9px] uppercase font-black text-[var(--text-secondary)] mt-0.5">{totalSeriesCount} Séries</span>
                   </div>
                 </div>
               )
@@ -340,16 +344,14 @@ export function BibliotecaHub() {
           </div>
         )}
 
-        {/* ABA EXERCÍCIOS (LISTAGEM DIRETA E PROFISSIONAL) */}
+        {/* ABA EXERCÍCIOS */}
         {aba === 'exercicios' && (
           <div className="space-y-4 animate-in fade-in duration-300">
             
-            {/* BOTÃO DE CRIAR EXERCÍCIO */}
             <button onClick={() => setModalCriarExercicio(true)} className="w-full py-4 rounded-[1.2rem] border border-[var(--primary)] text-[var(--primary)] font-black text-xs uppercase tracking-widest bg-transparent flex justify-center items-center gap-2 hover:bg-[var(--primary)]/10 transition-all active:scale-[0.98]">
               <FaPlus size={14}/> Criar exercício
             </button>
 
-            {/* BARRA DE BUSCA GLOBAL */}
             <div className="relative">
               <FaSearch className="absolute left-5 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]" size={14} />
               <input 
@@ -361,14 +363,12 @@ export function BibliotecaHub() {
               />
             </div>
 
-            {/* CHIPS DE ORIGEM */}
             <div className="flex gap-2 overflow-x-auto custom-scrollbar pb-2 -mx-5 px-5 sm:mx-0 sm:px-0">
               <button onClick={() => setFiltroExercicio('app')} className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all border ${filtroExercicio === 'app' ? 'bg-[var(--primary)] text-white border-transparent shadow-md' : 'bg-[var(--surface)] text-[var(--text-secondary)] border-[var(--border)] hover:border-[var(--primary)]/30'}`}>Global</button>
               <button onClick={() => setFiltroExercicio('seus')} className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all border ${filtroExercicio === 'seus' ? 'bg-[var(--primary)] text-white border-transparent shadow-md' : 'bg-[var(--surface)] text-[var(--text-secondary)] border-[var(--border)] hover:border-[var(--primary)]/30'}`}>Meus Vídeos</button>
               <button onClick={() => setFiltroExercicio('favoritos')} className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all border flex items-center gap-1.5 ${filtroExercicio === 'favoritos' ? 'bg-[var(--primary)] text-white border-transparent shadow-md' : 'bg-[var(--surface)] text-[var(--text-secondary)] border-[var(--border)] hover:border-[var(--primary)]/30'}`}>Favoritos</button>
             </div>
 
-            {/* DROPDOWNS DE FILTROS AVANÇADOS */}
             <div className="flex items-center gap-3 pt-2 pb-2">
               <div className="relative flex-1">
                 <select value={filtroGrupo} onChange={e => setFiltroGrupo(e.target.value)} className="w-full appearance-none bg-transparent text-[var(--primary)] font-bold text-xs outline-none cursor-pointer pr-6">
@@ -387,7 +387,6 @@ export function BibliotecaHub() {
               <button onClick={() => { setBuscaExercicio(''); setFiltroGrupo('Todos'); setFiltroCategoria('Todas'); }} className="text-[var(--primary)] text-xs font-bold pr-2 active:scale-95">Limpar</button>
             </div>
 
-            {/* LISTAGEM DE CARDS (CINEMATOGRÁFICOS) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-4">
               {loading ? (
                 <div className="col-span-full flex justify-center py-10"><div className="w-8 h-8 border-4 border-[var(--primary)]/30 border-t-[var(--primary)] rounded-full animate-spin" /></div>
@@ -395,17 +394,14 @@ export function BibliotecaHub() {
                 exerciciosFiltrados.map((ex) => (
                   <div key={ex.id} className="bg-[var(--surface)] border border-[var(--border)] rounded-[2rem] overflow-hidden shadow-md hover:shadow-xl hover:border-[var(--primary)]/40 transition-all flex flex-col group relative">
                     
-                    {/* Container Aspect-Video Mídia */}
                     <div className="w-full aspect-video bg-black relative shrink-0 cursor-pointer overflow-hidden border-b border-[var(--border)]" onClick={() => setVideoAberto(ex.video)}>
                       <MediaPreview url={ex.video} />
                       
-                      {/* Botão de Favorito Overlay */}
                       <button onClick={(e) => { e.stopPropagation(); toggleFavorito(ex.id); }} className="absolute top-4 right-4 w-10 h-10 rounded-full bg-black/40 backdrop-blur-md border border-white/10 flex items-center justify-center text-white hover:scale-110 transition-all shadow-lg z-10">
                         {ex.favorito ? <FaHeart className="text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]" size={16} /> : <FaRegStar className="opacity-80 hover:opacity-100 transition-opacity" size={16} />}
                       </button>
                     </div>
                     
-                    {/* Dados do Exercício */}
                     <div className="p-5 flex-1 flex flex-col justify-between">
                       <div>
                         <h3 className="font-black text-[var(--text-primary)] text-base tracking-tight leading-tight line-clamp-2">{ex.nome}</h3>

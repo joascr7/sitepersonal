@@ -2,7 +2,7 @@
 import { useEffect, useState, use, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
-import { FaChevronLeft, FaPlay, FaChevronDown, FaCheckCircle, FaClock, FaCalendarAlt } from 'react-icons/fa';
+import { FaChevronLeft, FaPlay, FaDumbbell, FaRunning, FaHeartbeat } from 'react-icons/fa';
 import ParqForm from '@/components/ParqForm';
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -10,22 +10,22 @@ import ParqForm from '@/components/ParqForm';
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 const translations = {
   'pt-BR': {
-    title: 'Treinos', subtitle: 'Sua jornada de alta performance', exercises: 'Exercícios',
+    title: 'Treinos', subtitle: 'Sua jornada de alta performance', exercises: 'exercícios',
     last: 'Última', never: 'Inédito', progress: 'Progresso', start: 'Iniciar Treino',
     back: 'Voltar para Perfil', doneToday: 'Concluído Hoje', lastExec: 'Última Execução',
-    date: 'Data:', time: 'Horário:', duration: 'Duração:'
+    date: 'Data:', time: 'Horário:', duration: 'Duração:', next: 'Próximo', validity: 'Validade:', sessions: 'sessões'
   },
   'pt-PT': {
-    title: 'Treinos', subtitle: 'A sua jornada de alta performance', exercises: 'Exercícios',
+    title: 'Treinos', subtitle: 'A sua jornada de alta performance', exercises: 'exercícios',
     last: 'Última', never: 'Inédito', progress: 'Progresso', start: 'Iniciar Treino',
     back: 'Voltar ao Perfil', doneToday: 'Concluído Hoje', lastExec: 'Última Execução',
-    date: 'Data:', time: 'Horário:', duration: 'Duração:'
+    date: 'Data:', time: 'Horário:', duration: 'Duração:', next: 'Próximo', validity: 'Validade:', sessions: 'sessões'
   },
   'en': {
-    title: 'Workouts', subtitle: 'Your high performance journey', exercises: 'Exercises',
+    title: 'Workouts', subtitle: 'Your high performance journey', exercises: 'exercises',
     last: 'Last', never: 'Never', progress: 'Progress', start: 'Start Workout',
     back: 'Back to Profile', doneToday: 'Completed Today', lastExec: 'Last Execution',
-    date: 'Date:', time: 'Time:', duration: 'Duration:'
+    date: 'Date:', time: 'Time:', duration: 'Duration:', next: 'Next', validity: 'Expires:', sessions: 'sessions'
   }
 };
 
@@ -35,9 +35,9 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
   const [fichas, setFichas] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [precisaParq, setPrecisaParq] = useState(false);
-  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
-  const [isDark, setIsDark] = useState(true);
+  const [isDark, setIsDark] = useState(false);
   const [lang, setLang] = useState<'pt-BR' | 'pt-PT' | 'en'>('pt-BR');
+  const [ultimoTreinoConcluidoId, setUltimoTreinoConcluidoId] = useState<string | null>(null);
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('@premium_theme');
@@ -49,14 +49,27 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
   const t = translations[lang];
 
   const themeStyles = isDark ? {
-    '--bg': '#0F1115', '--surface': '#151A22', '--surface-sec': '#1B2330', '--primary': '#3B82F6', '--primary-soft': '#60A5FA', '--text-primary': '#F8FAFC', '--text-secondary': '#94A3B8', '--border': 'rgba(255,255,255,0.05)',
+    '--bg': '#0F1115', '--surface': '#1A1D24', '--surface-sec': '#222731', '--primary': '#3B82F6', '--primary-soft': '#60A5FA', '--text-primary': '#F8FAFC', '--text-secondary': '#94A3B8', '--border': 'rgba(255,255,255,0.05)'
   } as React.CSSProperties : {
-    '--bg': '#F3F6FB', '--surface': '#FFFFFF', '--surface-sec': '#E8EEF9', '--primary': '#2563EB', '--primary-soft': '#60A5FA', '--text-primary': '#111827', '--text-secondary': '#6B7280', '--border': 'rgba(15,23,42,0.06)',
+    '--bg': '#F9FAFB', '--surface': '#FFFFFF', '--surface-sec': '#F3F4F6', '--primary': '#2563EB', '--primary-soft': '#60A5FA', '--text-primary': '#111827', '--text-secondary': '#6B7280', '--border': 'rgba(15,23,42,0.06)'
   } as React.CSSProperties;
 
   const META_SESSOES = 30;
 
-  // Função Robusta para ler o JSON independentemente da estrutura
+  const getTreinoMediaConfig = (nomeTreino: string) => {
+    const nome = nomeTreino.toLowerCase();
+    if (nome.includes('peito') || nome.includes('superior') || nome.includes('braço') || nome.includes('triceps')) {
+      return { localGif: '/gifs/peito.gif', gradient: 'from-blue-500 to-indigo-600', icon: <FaDumbbell className="text-white text-2xl animate-pulse" /> };
+    }
+    if (nome.includes('perna') || nome.includes('inferior') || nome.includes('glúteo') || nome.includes('coxa') || nome.includes('pernas')) {
+      return { localGif: '/gifs/pernas.gif', gradient: 'from-emerald-500 to-teal-600', icon: <FaRunning className="text-white text-2xl animate-pulse" /> };
+    }
+    if (nome.includes('costas') || nome.includes('dorsal') || nome.includes('ombro') || nome.includes('biceps')) {
+      return { localGif: '/gifs/costas.gif', gradient: 'from-purple-500 to-pink-600', icon: <FaDumbbell className="text-white text-2xl rotate-45 animate-pulse" /> };
+    }
+    return { localGif: '/gifs/geral.gif', gradient: 'from-blue-600 to-cyan-500', icon: <FaHeartbeat className="text-white text-2xl animate-pulse" /> };
+  };
+
   const getExercicios = (descricaoStr: any) => {
     if (!descricaoStr) return [];
     try {
@@ -89,9 +102,14 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
       }
 
       const [fichasRes, histRes] = await Promise.all([
-        supabase.from('fichas').select('*, tipo_treino, objetivo, dificuldade, data_inicio, data_vencimento').eq('aluno_id', id).eq('ativo', true), // Traz apenas treinos ativos
+        supabase.from('fichas').select('*, tipo_treino, objetivo, dificuldade, data_inicio, data_vencimento').eq('aluno_id', id).eq('ativo', true),
         supabase.from('conclusoes_treino').select('treino_id, data_conclusao, data_inicio, data_fim, duracao_minutos').eq('aluno_id', id).order('data_conclusao', { ascending: false })
       ]);
+
+      if (histRes.data && histRes.data.length > 0) {
+        // Guarda o ID do primeiríssimo registro do histórico (último treino que o aluno de fato completou)
+        setUltimoTreinoConcluidoId(histRes.data[0].treino_id);
+      }
 
       if (fichasRes.data) {
         const historicoData = histRes.data || [];
@@ -119,26 +137,15 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
 
   const fichasAgrupadas = useMemo(() => {
     return fichas.reduce((acc, f) => {
-      const partes = f.nome_treino ? f.nome_treino.split(' - ') : ['GERAL'];
-      const programaMaster = partes[0].trim().toUpperCase();
-      const nomeExibicaoCard = partes[1] ? partes[1].trim() : f.nome_treino;
+      const partes = f.nome_treino ? f.nome_treino.split(' - ') : ['PROGRAMA'];
+      const programaMaster = partes[0].trim();
+      const nomeExibicaoCard = partes.slice(1).join(' - ') || f.nome_treino;
 
       if (!acc[programaMaster]) acc[programaMaster] = [];
       acc[programaMaster].push({ ...f, nomeLimpoCard: nomeExibicaoCard });
       return acc;
     }, {} as Record<string, Array<any>>);
   }, [fichas]);
-
-  useEffect(() => {
-    const programas = Object.keys(fichasAgrupadas);
-    if (programas.length > 0 && Object.keys(expandedSections).length === 0) {
-      setExpandedSections({ [programas[0]]: true });
-    }
-  }, [fichasAgrupadas]);
-
-  const toggleSection = (programaMaster: string) => {
-    setExpandedSections(prev => ({ ...prev, [programaMaster]: !prev[programaMaster] }));
-  };
 
   if (precisaParq) {
     return (
@@ -149,158 +156,138 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
   }
 
   if (loading) return (
-    <main style={themeStyles} className="min-h-screen bg-[var(--bg)] p-6 space-y-8 animate-pulse pt-[max(env(safe-area-inset-top),2rem)]">
-      <div className="space-y-4 mb-10"><div className="w-48 h-10 bg-[var(--surface-sec)] rounded-full" /><div className="w-32 h-3 bg-[var(--surface-sec)] rounded-full" /></div>
-      <div className="space-y-4">{[1, 2, 3].map((i) => (<div key={i} className="p-6 bg-[var(--surface)] rounded-[2rem] border border-[var(--border)] space-y-5"><div className="flex justify-between"><div className="space-y-2"><div className="w-32 h-5 bg-[var(--surface-sec)] rounded-full" /><div className="w-20 h-3 bg-[var(--surface-sec)] rounded-full" /></div><div className="w-16 h-8 bg-[var(--surface-sec)] rounded-xl" /></div><div className="w-full h-1.5 bg-[var(--surface-sec)] rounded-full" /><div className="w-full h-12 bg-[var(--surface-sec)] rounded-2xl" /></div>))}</div>
+    <main style={themeStyles} className="min-h-screen bg-[var(--bg)] p-4 pt-10 animate-pulse">
+      <div className="w-32 h-8 bg-[var(--surface-sec)] rounded-md mb-8"></div>
+      <div className="w-full h-64 bg-[var(--surface-sec)] rounded-xl"></div>
     </main>
   );
   
   return (
     <main style={themeStyles} className="min-h-screen w-full bg-[var(--bg)] text-[var(--text-primary)] transition-colors duration-500 font-sans antialiased pt-[max(env(safe-area-inset-top),2rem)] pb-[env(safe-area-inset-bottom)] px-4">
       <div className="max-w-md mx-auto space-y-6 pb-32">
-        <header className="py-4">
-          <h1 className="text-4xl font-black tracking-tight">{t.title}</h1>
-          <p className="text-[var(--primary)] font-bold text-[10px] uppercase tracking-[0.2em] mt-2">{t.subtitle}</p>
+        
+        <header className="py-2 mb-4">
+          <h1 className="text-3xl font-black tracking-tight text-[var(--text-primary)]">{t.title}</h1>
         </header>
 
         <div className="space-y-6">
           {Object.entries(fichasAgrupadas).map(([programaMaster, treinos]) => {
-            const isExpanded = expandedSections[programaMaster];
+            
+            const treinosList = treinos as any[]; 
+            const totalSessoesPrograma = treinosList.reduce((acc: number, f: any) => acc + f.sessõesCount, 0);
+            const progressoPercent = Math.min(Math.round((totalSessoesPrograma / META_SESSOES) * 100), 100);
+            
+            const datasVencimento = treinosList.map((f: any) => f.data_vencimento).filter(Boolean);
+            const dataValidade = datasVencimento.length > 0 ? new Date(Math.max(...datasVencimento.map((d: any) => new Date(d).getTime()))) : null;
+
+            // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+            // LÓGICA DO PRÓXIMO TREINO DINÂMICO
+            // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+            let indexDoProximo = 0; // Fallback: se for inédito, começa pelo primeiro card
+            
+            if (ultimoTreinoConcluidoId) {
+              const indexUltimo = treinosList.findIndex(t => t.id === ultimoTreinoConcluidoId);
+              // Se o último treino pertence a este bloco e não é o último da lista, o próximo é o seguinte. 
+              // Se for o último da lista, reseta a rodada e volta a ser o índice 0.
+              if (indexUltimo !== -1) {
+                indexDoProximo = (indexUltimo + 1) % treinosList.length;
+              }
+            }
 
             return (
-              <div key={programaMaster} className="bg-[var(--surface)]/30 rounded-3xl p-2 border border-[var(--border)]">
-                <button 
-                  onClick={() => toggleSection(programaMaster)} 
-                  className="w-full flex flex-col items-start p-3 rounded-2xl hover:bg-[var(--surface-sec)] transition-colors"
-                >
-                  <div className="w-full flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <span className={`h-5 w-1 bg-gradient-to-b from-[var(--primary-soft)] to-[var(--primary)] rounded-full transition-all duration-300 ${isExpanded ? 'opacity-100' : 'opacity-50'}`} />
-                      <h2 className="text-lg font-black uppercase tracking-wider text-[var(--text-primary)]">
-                        {programaMaster}
-                      </h2>
-                    </div>
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center bg-[var(--surface-sec)] transition-transform duration-300 ${isExpanded ? 'rotate-180 bg-[var(--primary)] text-white' : 'text-[var(--text-secondary)]'}`}>
-                      <FaChevronDown size={12} />
-                    </div>
-                  </div>
+              <div key={programaMaster} className="bg-[var(--surface-sec)] rounded-3xl p-4 border border-[var(--border)] relative shadow-sm">
+                
+                <h2 className="text-xl font-black uppercase tracking-wider text-[var(--text-primary)] mb-2 ml-1">
+                  {programaMaster}
+                </h2>
 
-                  <div className="flex flex-wrap gap-1.5 mt-3 ml-3.5">
-                    {(treinos as any[])[0]?.tipo_treino && <span className="text-[8px] font-black bg-[var(--surface-sec)] text-[var(--text-secondary)] px-2 py-1 rounded-lg border border-[var(--border)] uppercase tracking-widest">{(treinos as any[])[0].tipo_treino}</span>}
-                    {(treinos as any[])[0]?.objetivo && <span className="text-[8px] font-black bg-[var(--surface-sec)] text-[var(--text-secondary)] px-2 py-1 rounded-lg border border-[var(--border)] uppercase tracking-widest">{(treinos as any[])[0].objetivo}</span>}
-                    {(treinos as any[])[0]?.dificuldade && <span className="text-[8px] font-black bg-[var(--surface-sec)] text-[var(--text-secondary)] px-2 py-1 rounded-lg border border-[var(--border)] uppercase tracking-widest">{(treinos as any[])[0].dificuldade}</span>}
-                  </div>
-                </button>
-
-                <div className={`grid transition-all duration-300 ease-in-out ${isExpanded ? 'grid-rows-[1fr] opacity-100 mt-3' : 'grid-rows-[0fr] opacity-0'}`}>
-                  <div className="overflow-hidden space-y-4 px-1 pb-1">
-                    {(treinos as any[]).map((f) => {
-                      const progressoPercent = Math.min(Math.round((f.sessõesCount / META_SESSOES) * 100), 100);
-                      const ultima = f.ultimaSessaoObj;
-                      const isHoje = ultima && new Date(ultima.data_fim || ultima.data_conclusao).toDateString() === new Date().toDateString();
-
-                      return (
-                        <div key={f.id} className="bg-[var(--surface)] p-6 rounded-[2rem] border border-[var(--border)] shadow-sm hover:shadow-md transition-all relative overflow-hidden group">
-                          <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--primary)]/5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none" />
-
-                          <div className="flex justify-between items-start mb-2 relative z-10">
-                            <div>
-                              <h3 className="font-black text-[var(--text-primary)] text-base leading-tight tracking-tight">{f.nomeLimpoCard}</h3>
-                              <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] mt-1.5 flex items-center gap-1.5">
-                                <span className="w-1.5 h-1.5 rounded-full bg-[var(--primary)] opacity-70"></span>
-                                {f.count} {t.exercises}
-                              </p>
-                            </div>
-                            <div className="text-right bg-[var(--surface-sec)] px-3 py-1.5 rounded-xl border border-[var(--border)]">
-                              <p className="text-[8px] font-bold uppercase text-[var(--text-secondary)] tracking-widest mb-0.5">{t.last}</p>
-                              <p className="text-[11px] font-black text-[var(--text-primary)]">
-                                {f.ultimaSessao ? new Date(f.ultimaSessao).toLocaleDateString(lang, { day: '2-digit', month: '2-digit' }) : t.never}
-                              </p>
-                            </div>
-                          </div>
-
-                          {/* DATAS DE INÍCIO E VENCIMENTO */}
-                          {(f.data_inicio || f.data_vencimento) && (
-                             <div className="flex gap-2 mb-4 relative z-10">
-                               {f.data_inicio && (
-                                 <span className="text-[9px] font-bold text-[var(--text-secondary)] bg-[var(--surface-sec)] px-2 py-1 rounded-md flex items-center gap-1 border border-[var(--border)]">
-                                   <FaCalendarAlt className="text-[var(--primary)]" /> Início: {new Date(f.data_inicio).toLocaleDateString(lang)}
-                                 </span>
-                               )}
-                               {f.data_vencimento && (
-                                 <span className="text-[9px] font-bold text-[var(--danger)] bg-[var(--danger)]/10 px-2 py-1 rounded-md flex items-center gap-1 border border-[var(--danger)]/20">
-                                   <FaCalendarAlt /> Vence: {new Date(f.data_vencimento).toLocaleDateString(lang)}
-                                 </span>
-                               )}
-                             </div>
-                          )}
-
-                          <div className="mb-5 space-y-1.5 relative z-10 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
-                            {f.exercicios && f.exercicios.length > 0 ? (
-                              f.exercicios.map((ex: any, idx: number) => {
-                                const totalSeries = Array.isArray(ex.series) ? ex.series.length : (typeof ex.series === 'object' ? 1 : (ex.series || 3));
-                                const reps = Array.isArray(ex.series) && ex.series[0] ? (ex.series[0].reps || ex.series[0].repeticoes || '12') : (ex.reps || ex.repeticoes || '12');
-                                const carga = Array.isArray(ex.series) && ex.series[0] ? ex.series[0].carga : ex.carga;
-                                let nomeFinal = `Exercício ${idx + 1}`;
-                                if (ex.nome) nomeFinal = ex.nome;
-                                else if (ex.exercicio) nomeFinal = typeof ex.exercicio === 'object' ? (ex.exercicio.nome || ex.exercicio.titulo || nomeFinal) : ex.exercicio;
-
-                                return (
-                                  <div key={idx} className="flex justify-between items-center bg-[var(--surface-sec)]/50 border border-[var(--border)] px-3 py-2 rounded-xl text-xs hover:bg-[var(--surface-sec)]/80 transition-colors">
-                                    <span className="font-bold text-[var(--text-primary)] truncate max-w-[190px]">{nomeFinal}</span>
-                                    <span className="text-[10px] text-[var(--text-secondary)] font-mono font-bold shrink-0 pl-2">{totalSeries}x{reps} {carga ? `• ${carga}kg` : ''}</span>
-                                  </div>
-                                );
-                              })
-                            ) : (<p className="text-xs text-[var(--text-secondary)] italic pl-1">Nenhum exercício cadastrado.</p>)}
-                          </div>
-
-                          <div className="mb-5 relative z-10">
-                            <div className="flex justify-between items-end mb-2">
-                              <p className="text-[9px] font-bold uppercase text-[var(--text-secondary)] tracking-widest">{t.progress}</p>
-                              <p className="text-[11px] font-black text-[var(--primary)]">{f.sessõesCount} <span className="text-[var(--text-secondary)] opacity-50 font-bold text-[9px]">/ {META_SESSOES}</span></p>
-                            </div>
-                            <div className="h-2 bg-[var(--surface-sec)] rounded-full overflow-hidden border border-[var(--border)]">
-                              <div className="h-full bg-gradient-to-r from-[var(--primary-soft)] to-[var(--primary)] rounded-full transition-all duration-1000 ease-out" style={{ width: `${progressoPercent}%` }} />
-                            </div>
-                          </div>
-
-                          {ultima && (
-                            <div className={`mb-5 p-3 rounded-xl border relative z-10 ${isHoje ? 'bg-[var(--success)]/10 border-[var(--success)]/20' : 'bg-[var(--surface-sec)] border-[var(--border)]'}`}>
-                              <div className="flex items-center gap-2 mb-1">
-                                {isHoje ? <FaCheckCircle className="text-[var(--success)] text-sm" /> : <FaClock className="text-[var(--text-secondary)] text-sm" />}
-                                <span className={`text-[10px] font-black uppercase tracking-widest ${isHoje ? 'text-[var(--success)]' : 'text-[var(--text-secondary)]'}`}>
-                                  {isHoje ? t.doneToday : t.lastExec}
-                                </span>
-                              </div>
-                              <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs font-bold text-[var(--text-primary)] pl-6">
-                                 <span>{t.date} <span className="font-medium text-[var(--text-secondary)]">{new Date(ultima.data_fim || ultima.data_conclusao).toLocaleDateString(lang)}</span></span>
-                                 {ultima.data_inicio && ultima.data_fim && (
-                                   <span>{t.time} <span className="font-medium text-[var(--text-secondary)]">{new Date(ultima.data_inicio).toLocaleTimeString(lang, { hour: '2-digit', minute: '2-digit' })} às {new Date(ultima.data_fim).toLocaleTimeString(lang, { hour: '2-digit', minute: '2-digit' })}</span></span>
-                                 )}
-                                 {ultima.duracao_minutos && <span>{t.duration} <span className="font-medium text-[var(--text-secondary)]">{ultima.duracao_minutos} min</span></span>}
-                              </div>
-                            </div>
-                          )}
-
-                          <button onClick={() => router.push(`/aluno/${id}/treino/${f.id}`)} className="w-full relative z-10 flex items-center justify-center gap-2 bg-[var(--primary)] text-white py-4 rounded-[1.2rem] font-black text-[11px] uppercase tracking-widest active:scale-[0.98] transition-all shadow-lg shadow-[var(--primary)]/20 hover:shadow-[var(--primary)]/30 hover:bg-blue-600">
-                            <FaPlay className="text-[10px]" /> {t.start}
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
+                <div className="flex flex-wrap gap-2 mb-5 ml-1">
+                  {treinosList[0]?.tipo_treino && <span className="text-[9px] font-bold bg-[var(--surface)] text-[var(--text-secondary)] px-2.5 py-1 rounded-md border border-[var(--border)] uppercase tracking-widest shadow-sm">{treinosList[0].tipo_treino}</span>}
+                  {treinosList[0]?.objetivo && <span className="text-[9px] font-bold bg-[var(--surface)] text-[var(--text-secondary)] px-2.5 py-1 rounded-md border border-[var(--border)] uppercase tracking-widest shadow-sm">{treinosList[0].objective || treinosList[0].objetivo}</span>}
+                  {treinosList[0]?.dificuldade && <span className="text-[9px] font-bold bg-[var(--surface)] text-[var(--text-secondary)] px-2.5 py-1 rounded-md border border-[var(--border)] uppercase tracking-widest shadow-sm">{treinosList[0].dificuldade}</span>}
                 </div>
+
+                <div className="space-y-3">
+                  {treinosList.map((f: any, index: number) => {
+                    // A tag 'Próximo' só ativa se o índice bater com o cálculo dinâmico da sequência
+                    const exibirProximo = index === indexDoProximo; 
+                    const mediaConfig = getTreinoMediaConfig(f.nomeLimpoCard);
+                    
+                    return (
+                      <div key={f.id} className="bg-[var(--surface)] p-3 rounded-[1.2rem] flex items-center gap-4 relative shadow-sm border border-[var(--border)] group hover:shadow-md transition-all">
+                        
+                        {/* TAG PRÓXIMO 100% FUNCIONAL */}
+                        {exibirProximo && (
+                          <span className="absolute -top-3 right-4 bg-[var(--primary)] text-white shadow-md shadow-[var(--primary)]/30 text-[10px] font-black px-3 py-1 rounded-lg z-10 uppercase tracking-wider">
+                            {t.next}
+                          </span>
+                        )}
+
+                        <div className="w-[4.5rem] h-[4.5rem] rounded-xl overflow-hidden shrink-0 relative border border-[var(--border)]">
+                          <img 
+                            src={f.imagem_url || mediaConfig.localGif} 
+                            alt={f.nomeLimpoCard} 
+                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 z-10 relative" 
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                              const fallbackDiv = e.currentTarget.nextElementSibling;
+                              if (fallbackDiv) fallbackDiv.classList.remove('hidden');
+                            }}
+                          />
+                          <div className={`w-full h-full bg-gradient-to-br ${mediaConfig.gradient} flex flex-col items-center justify-center shadow-inner`}>
+                            {mediaConfig.icon}
+                          </div>
+                        </div>
+                        
+                        <div className="flex-grow py-1">
+                          <h3 className="font-black text-[16px] uppercase tracking-tight leading-tight text-[var(--text-primary)]">
+                            {f.nomeLimpoCard}
+                          </h3>
+                          <p className="text-[12px] font-bold text-[var(--text-secondary)] mt-1 flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[var(--primary)] opacity-70"></span>
+                            {f.count} {t.exercises}
+                          </p>
+                        </div>
+
+                        <button 
+                          onClick={() => router.push(`/aluno/${id}/treino/${f.id}`)} 
+                          className="w-12 h-12 rounded-full bg-[var(--primary)] text-white flex items-center justify-center shrink-0 active:scale-90 transition-all shadow-lg shadow-[var(--primary)]/30 hover:bg-blue-600 mr-1"
+                        >
+                          <FaPlay className="ml-1 text-lg" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="mt-6 pt-4 flex justify-between items-end border-t border-[var(--border)] mx-1">
+                  <div className="w-[45%]">
+                    <div className="h-1.5 bg-[var(--border)] rounded-full mb-2 overflow-hidden flex shadow-inner">
+                      <div className="h-full bg-[var(--primary-soft)]/30 rounded-l-full" style={{ width: '40%' }}>
+                        <div className="h-full bg-[var(--primary)] rounded-full" style={{ width: `${(progressoPercent / 40) * 100}%` }}></div>
+                      </div>
+                    </div>
+                    <p className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-secondary)]">
+                      <span className="text-[var(--text-primary)]">{totalSessoesPrograma}</span>/{META_SESSOES} {t.sessions}
+                    </p>
+                  </div>
+
+                  {dataValidade && (
+                    <p className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-secondary)]">
+                      {t.validity} <span className="text-[var(--text-primary)]">{dataValidade.toLocaleDateString('pt-BR')}</span>
+                    </p>
+                  )}
+                </div>
+
               </div>
             );
           })}
         </div>
         
-        <button onClick={() => router.back()} className="w-full flex items-center justify-center gap-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all text-[10px] font-bold uppercase tracking-[0.2em] mt-8 py-4 active:scale-95">
+        <button onClick={() => router.back()} className="w-full flex items-center justify-center gap-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all text-xs uppercase tracking-widest mt-10 py-4 active:scale-95">
           <FaChevronLeft className="text-[10px]" /> {t.back}
         </button>
 
-        <div className="h-16 w-full shrink-0" aria-hidden="true" />
       </div>
     </main>
   );

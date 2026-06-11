@@ -293,7 +293,6 @@ function EditarFichaContent() {
         </div>
       )}
 
-      {/* Uso correto do componente externo com a prop onSelect */}
       <ModalCatalogo 
         isOpen={catalogoAberto} 
         onClose={() => setCatalogoAberto(false)} 
@@ -343,6 +342,15 @@ function EditarFichaContent() {
             {exercicios.map((ex, exIndex) => {
               const isExpanded = expandedExIndex === exIndex;
               
+              // INTELIGÊNCIA: Lê o número digitado na primeira série para atualizar o contador visual em tempo real
+              let numeroSeriesConfigurado = 0;
+              if (Array.isArray(ex.series) && ex.series.length > 0) {
+                const numNaOrdem = parseInt(String(ex.series[0]?.ordem).replace(/\D/g, ''));
+                numeroSeriesConfigurado = numNaOrdem > 0 ? Math.max(numNaOrdem, ex.series.length) : ex.series.length;
+              } else {
+                numeroSeriesConfigurado = Number(ex.series) || 1;
+              }
+              
               return (
                 <div key={exIndex} className="bg-[var(--surface)] rounded-[1.5rem] border border-[var(--border)] overflow-hidden shadow-md transition-all duration-200">
                   
@@ -356,7 +364,8 @@ function EditarFichaContent() {
 
                       <div className="flex flex-col min-w-0">
                         <span className="text-sm font-black text-[var(--text-primary)] truncate">{ex.nome || <span className="text-[var(--text-secondary)]/40 font-medium italic">Selecione ou digite...</span>}</span>
-                        {ex.nome && <span className="text-[8px] font-black uppercase tracking-wider text-[var(--primary)] mt-0.5 bg-[var(--primary)]/5 px-1.5 py-0.5 rounded w-max self-start">{autoCategorize(ex.nome)} • {ex.series?.length || 0} Séries</span>}
+                        {/* SELO DE SÉRIES ATUALIZADO: Lê o número que você digitar! */}
+                        {ex.nome && <span className="text-[8px] font-black uppercase tracking-wider text-[var(--primary)] mt-0.5 bg-[var(--primary)]/5 px-1.5 py-0.5 rounded w-max self-start">{autoCategorize(ex.nome)} • {numeroSeriesConfigurado} {numeroSeriesConfigurado === 1 ? 'Série' : 'Séries'}</span>}
                       </div>
                     </div>
 
@@ -393,13 +402,15 @@ function EditarFichaContent() {
 
                       <div className="border-t border-[var(--border)] pt-4">
                         <div className="grid grid-cols-[1.5fr_1fr_1.5fr_1fr_2.5rem] gap-1 sm:gap-2 text-[8px] sm:text-[9px] font-black text-[var(--text-secondary)] uppercase tracking-widest mb-2 text-center px-1">
-                          <span>Série</span><span>Reps</span><span>Carga</span><span>Desc.</span><span></span>
+                          <span>Série (Editável)</span><span>Reps</span><span>Carga</span><span>Desc.</span><span></span>
                         </div>
                         
                         <div className="space-y-2">
                           {Array.isArray(ex.series) && ex.series.map((s: any, sIndex: number) => (
                             <div key={sIndex} className="grid grid-cols-[1.5fr_1fr_1.5fr_1fr_2.5rem] gap-1 sm:gap-2 items-center">
+                              {/* INPUT DE SÉRIE: Aqui você pode digitar "3" em vez de "1ª" */}
                               <input type="text" className="w-full py-2.5 bg-[var(--bg)] border border-[var(--border)] rounded-xl text-xs font-black text-center text-[var(--primary)] outline-none focus:border-[var(--primary)]" value={s.ordem || ''} onChange={(e) => atualizarSerie(exIndex, sIndex, 'ordem', e.target.value)} placeholder={`${sIndex + 1}ª`} />
+                              
                               <input type="text" className="w-full py-2.5 bg-[var(--surface-sec)] border border-[var(--border)] rounded-xl text-xs font-bold text-center text-[var(--text-primary)] outline-none focus:border-[var(--primary)]" value={s.reps || ''} onChange={(e) => atualizarSerie(exIndex, sIndex, 'reps', e.target.value)} placeholder="10" />
                               
                               <div className="flex bg-[var(--surface-sec)] border border-[var(--border)] rounded-xl focus-within:border-[var(--primary)] overflow-hidden h-[34px] items-center">
