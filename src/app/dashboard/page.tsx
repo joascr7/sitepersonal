@@ -409,14 +409,22 @@ export default function Dashboard() {
           <div className="max-w-4xl mx-auto flex flex-col">
             
            <header className="bg-[#1C283F] text-white pt-[max(env(safe-area-inset-top),2rem)] pb-12 px-6 relative">
-  {/* Botões superiores */}
-  <div className="absolute top-[max(env(safe-area-inset-top),2rem)] right-6 flex gap-3">
-    <button onClick={toggleTheme} className="text-slate-400 hover:text-white transition-colors">
-      {isDark ? <FaSun size={18} /> : <FaMoon size={18} />}
+ {/* Botões superiores */}
+  <div className="absolute top-[max(env(safe-area-inset-top,1rem),1rem)] right-3 flex gap-1 z-20">
+    <button 
+      onClick={toggleTheme} 
+      className="p-3 text-slate-400 hover:text-white hover:bg-white/5 rounded-full transition-all active:scale-95 flex items-center justify-center"
+    >
+      {isDark ? <FaSun size={20} /> : <FaMoon size={20} />}
     </button>
-    <button onClick={toggleLang} className="text-slate-400 hover:text-white transition-colors relative">
-      <FaGlobe size={18} />
-      <span className="absolute -top-1 -right-2 bg-blue-500 text-[8px] font-bold px-1 rounded-full">{lang.split('-')[0]}</span>
+    <button 
+      onClick={toggleLang} 
+      className="p-3 text-slate-400 hover:text-white hover:bg-white/5 rounded-full transition-all relative active:scale-95 flex items-center justify-center"
+    >
+      <FaGlobe size={20} />
+      <span className="absolute top-1 right-1 bg-blue-500 text-[8px] text-white font-bold px-1.5 rounded-full shadow-sm">
+        {lang.split('-')[0]}
+      </span>
     </button>
   </div>
 
