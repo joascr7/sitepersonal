@@ -1,3 +1,4 @@
+
 'use server'
 
 import { createServerClient } from '@supabase/ssr'
@@ -11,7 +12,8 @@ export async function loginAlunoAction(formData: FormData) {
     return { error: 'Preencha todos os campos.' }
   }
 
-  const cookieStore = cookies()
+  // CORREÇÃO AQUI: Adicionado o "await" porque no Next.js 15 cookies() é assíncrono
+  const cookieStore = await cookies()
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
