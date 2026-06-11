@@ -12,7 +12,8 @@ export async function POST(request: Request) {
     const password = formData.get('password') as string;
 
     if (!email || !password) {
-      return NextResponse.redirect(new URL('/login-aluno?error=empty', requestUrl.origin));
+      // Adicionado status: 303
+      return NextResponse.redirect(new URL('/login-aluno?error=empty', requestUrl.origin), { status: 303 });
     }
 
     const cookieStore = await cookies();
@@ -27,15 +28,12 @@ export async function POST(request: Request) {
           },
           setAll(cookiesToSet) {
             cookiesToSet.forEach(({ name, value, options }) => {
-              // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-              // BLINDAGEM TOTAL: Força expiração física de 1 ano no cabeçalho nativo
-              // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
               cookieStore.set({
                 name,
                 value,
                 ...options,
-                maxAge: 31536000, // 1 ano em segundos
-                expires: new Date(Date.now() + 31536000 * 1000), // Data física de 1 ano
+                maxAge: 31536000, 
+                expires: new Date(Date.now() + 31536000 * 1000), 
                 path: '/',
                 sameSite: 'lax',
                 secure: process.env.NODE_ENV === 'production',
@@ -46,17 +44,16 @@ export async function POST(request: Request) {
       }
     );
 
-    // Executa a autenticação no Supabase
     const { data, error } = await supabase.auth.signInWithPassword({
       email: email.trim(),
       password,
     });
 
     if (error || !data.user) {
-      return NextResponse.redirect(new URL('/login-aluno?error=invalid', requestUrl.origin));
+      // Adicionado status: 303 AQUI (Onde o Android estava quebrando)
+      return NextResponse.redirect(new URL('/login-aluno?error=invalid', requestUrl.origin), { status: 303 });
     }
 
-    // Verifica se o aluno está ativo no banco
     const { data: aluno, error: alunoError } = await supabase
       .from('alunos')
       .select('ativo')
@@ -65,15 +62,15 @@ export async function POST(request: Request) {
 
     if (alunoError || !aluno || aluno.ativo === false) {
       await supabase.auth.signOut();
-      return NextResponse.redirect(new URL('/login-aluno?error=inactive', requestUrl.origin));
+      // Adicionado status: 303
+      return NextResponse.redirect(new URL('/login-aluno?error=inactive', requestUrl.origin), { status: 303 });
     }
 
-    // REDIRECIONAMENTO NATIVO: Sela o cookie de forma persistente no telemóvel
-    return NextResponse.redirect(new URL(`/aluno/${data.user.id}`, requestUrl.origin), {
-      status: 303, // Força o redirecionamento limpo de método POST para GET
-    });
+    // Sucesso já tinha o 303!
+    return NextResponse.redirect(new URL(`/aluno/${data.user.id}`, requestUrl.origin), { status: 303 });
 
   } catch (err) {
-    return NextResponse.redirect(new URL('/login-aluno?error=server', requestUrl.origin));
+    // Adicionado status: 303
+    return NextResponse.redirect(new URL('/login-aluno?error=server', requestUrl.origin), { status: 303 });
   }
 }
