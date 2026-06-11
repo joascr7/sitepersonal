@@ -4,18 +4,10 @@ import { NextResponse, type NextRequest } from 'next/server';
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // 1. ISENÇÃO TOTAL: Rotas públicas
-  const publicRoutes = [
-    '/login-personal', '/login-aluno', '/login-admin', '/', 
-    '/acesso-personal', '/planos', '/pagamento', 
-    '/pagamento-pendente', '/aluno/antecipar'
-  ];
-
-  // Identifica se é rota pública ou arquivo estático/api
-  const isPublicRoute = publicRoutes.some(route => pathname === route);
+  // 1. IGNORAR APENAS ARQUIVOS DO SISTEMA E API (Para não sobrecarregar o servidor)
   const isStaticFile = pathname.startsWith('/_next') || pathname.startsWith('/api') || pathname.includes('.');
 
-  if (isPublicRoute || isStaticFile) {
+  if (isStaticFile) {
     return NextResponse.next();
   }
 
@@ -29,19 +21,14 @@ export async function middleware(request: NextRequest) {
         getAll() { return request.cookies.getAll(); },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value, options }) => {
-            // Configuração flexível e persistente para o ecossistema PWA
             const persistentOptions = {
-              ...options, // Mantém as propriedades nativas de segurança do Supabase (incluindo se é ou não httpOnly)
-              maxAge: 31536000, // 1 Ano completo de vida do cookie (Impede o deslogar automático)
-              path: '/', // Garante acesso global em todas as subrotas do PWA
-              sameSite: 'lax' as const, // Compatibilidade com as diretivas estritas de PWAs no iOS/Android
+              ...options, 
+              maxAge: 31536000, // 1 Ano completo de vida do cookie
+              path: '/', 
+              sameSite: 'lax' as const, 
               secure: process.env.NODE_ENV === 'production',
             };
-
-            // Atualiza a árvore de pedidos atual (Request Headers)
             request.cookies.set(name, value);
-            
-            // Grava o cookie com a persistência de 1 ano respeitando a leitura do cliente
             response.cookies.set(name, value, persistentOptions);
           });
         },
@@ -49,7 +36,7 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  // 2. VERIFICAÇÃO DE SESSÃO REAL E SEGURA NO BANCO
+  // 2. VERIFICAÇÃO DE SESSÃO GLOBAL (Agora roda até na tela inicial!)
   const { data: { user } } = await supabase.auth.getUser();
 
   const isProtected = pathname.startsWith('/dashboard') || pathname.startsWith('/aluno/') || pathname.startsWith('/admin/');
@@ -63,13 +50,34 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL(loginPath, request.url));
   }
 
-  // 3. LÓGICA DE ADMIN E ROTAS PROTEGIDAS
+  // 3. A MÁGICA DO PWA: AUTO-REDIRECIONAMENTO QUANDO ESTÁ LOGADO
   if (user) {
     request.headers.set('x-user-id', user.id);
 
     // Redirecionamento direto para Admin
     if (pathname === '/admin' || pathname === '/admin/') {
       return NextResponse.redirect(new URL('/admin/financeiro?aba=gestao', request.url));
+    }
+
+    // Se o usuário está LOGADO e abre o app na tela inicial ('/') ou de login, 
+    // ele é redirecionado automaticamente para dentro do sistema!
+    const isPublicRoute = [
+      '/login-personal', '/login-aluno', '/login-admin', '/', '/acesso-personal'
+    ].includes(pathname);
+
+    if (isPublicRoute) {
+      // Bate no banco rapidinho para saber se é aluno ou personal
+      const { data: isAluno } = await supabase
+        .from('alunos')
+        .select('id')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (isAluno) {
+        return NextResponse.redirect(new URL(`/aluno/${user.id}`, request.url));
+      } else {
+        return NextResponse.redirect(new URL('/dashboard', request.url));
+      }
     }
   }
 
