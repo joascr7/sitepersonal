@@ -29,15 +29,27 @@ export async function middleware(request: NextRequest) {
         getAll() { return request.cookies.getAll(); },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value, options }) => {
+            // Configuração flexível e persistente para o ecossistema PWA
+            const persistentOptions = {
+              ...options, // Mantém as propriedades nativas de segurança do Supabase (incluindo se é ou não httpOnly)
+              maxAge: 31536000, // 1 Ano completo de vida do cookie (Impede o deslogar automático)
+              path: '/', // Garante acesso global em todas as subrotas do PWA
+              sameSite: 'lax' as const, // Compatibilidade com as diretivas estritas de PWAs no iOS/Android
+              secure: process.env.NODE_ENV === 'production',
+            };
+
+            // Atualiza a árvore de pedidos atual (Request Headers)
             request.cookies.set(name, value);
-            response.cookies.set(name, value, options);
+            
+            // Grava o cookie com a persistência de 1 ano respeitando a leitura do cliente
+            response.cookies.set(name, value, persistentOptions);
           });
         },
       },
     }
   );
 
-  // 2. VERIFICAÇÃO DE SESSÃO
+  // 2. VERIFICAÇÃO DE SESSÃO REAL E SEGURA NO BANCO
   const { data: { user } } = await supabase.auth.getUser();
 
   const isProtected = pathname.startsWith('/dashboard') || pathname.startsWith('/aluno/') || pathname.startsWith('/admin/');
@@ -59,10 +71,6 @@ export async function middleware(request: NextRequest) {
     if (pathname === '/admin' || pathname === '/admin/') {
       return NextResponse.redirect(new URL('/admin/financeiro?aba=gestao', request.url));
     }
-    
-    // NOTA: Como você delegou a verificação do 'is_pro' para o SubscriptionGuard no front-end,
-    // o middleware agora foca exclusivamente em garantir que quem está logado 
-    // consiga transitar entre as rotas de forma rápida.
   }
 
   return response;
