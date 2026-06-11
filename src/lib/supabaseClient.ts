@@ -12,8 +12,4 @@ export const supabase = createBrowserClient(
       secure: process.env.NODE_ENV === 'production', // true em produção, false em localhost
     }
   }
-<<<<<<< HEAD
 );
-=======
-);
->>>>>>> 16c2d73892a0630005cbb7176112f32d1612db73
