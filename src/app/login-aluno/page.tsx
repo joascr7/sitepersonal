@@ -1,16 +1,13 @@
-// src/app/login-aluno/page.tsx
 'use client';
-<<<<<<< HEAD
 import { useState, useEffect, Suspense } from 'react';
-=======
-import { useState, useEffect } from 'react';
->>>>>>> 16c2d73892a0630005cbb7176112f32d1612db73
 import { useRouter, useSearchParams } from 'next/navigation';
 import { FaChevronLeft, FaEye, FaEyeSlash, FaExclamationCircle, FaCheckCircle, FaGlobe, FaMoon, FaSun } from 'react-icons/fa';
 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// DICIONÁRIO DE INTERNACIONALIZAÇÃO (i18n)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 const translations = {
   'pt-BR': {
-<<<<<<< HEAD
     back: 'Voltar',
     appTitle: 'AURAFIT',
     subtitle: 'Área do Aluno',
@@ -69,15 +66,6 @@ const translations = {
     errorInvalid: 'Invalid credentials. Please check your details.',
     errorInactive: 'Your account is inactive or you lack student permissions. Contact your trainer.',
     errorServer: 'Internal server error. Please try again.'
-=======
-    back: 'Voltar', appTitle: 'AURAFIT', subtitle: 'Área do Aluno', emailPlaceholder: 'E-mail', passwordPlaceholder: 'Senha', show: 'Exibir', hide: 'Ocultar', forgotPassword: 'Esqueceu a senha?', forgotActionMsg: 'Solicite a redefinição com seu treinador.', loginBtn: 'Entrar no sistema', validating: 'Validando acesso...', noAccount: 'Não tenho conta', restrictedTitle: 'Acesso Restrito', restrictedDesc: 'O seu cadastro é realizado exclusivamente pelo seu Personal Trainer. Entre em contato para ativar sua jornada na AuraFit.', understood: 'Entendido', errorInvalid: 'Credenciais inválidas. Verifique seus dados.', errorInactive: 'Sua conta está inativa ou você não possui permissão de aluno. Contate seu treinador.', errorServer: 'Erro interno do servidor. Tente novamente.'
-  },
-  'pt-PT': {
-    back: 'Voltar', appTitle: 'AURAFIT', subtitle: 'Área do Aluno', emailPlaceholder: 'E-mail', passwordPlaceholder: 'Palavra-passe', show: 'Mostrar', hide: 'Ocultar', forgotPassword: 'Esqueceu a palavra-passe?', forgotActionMsg: 'Solicite a redefinição junto do seu treinador.', loginBtn: 'Entrar no sistema', validating: 'A validar acesso...', noAccount: 'Não tenho conta', restrictedTitle: 'Acesso Restrito', restrictedDesc: 'O seu registo é realizado exclusivamente pelo seu Personal Trainer. Entre em contacto para ativar a sua jornada na AuraFit.', understood: 'Entendido', errorInvalid: 'Credenciais inválidas. Verifique os seus dados.', errorInactive: 'A sua conta está inativa ou não tem permissão de aluno. Contacte o seu treinador.', errorServer: 'Erro interno do servidor. Tente novamente.'
-  },
-  'en': {
-    back: 'Back', appTitle: 'AURAFIT', subtitle: 'Student Portal', emailPlaceholder: 'Email', passwordPlaceholder: 'Password', show: 'Show', hide: 'Hide', forgotPassword: 'Forgot password?', forgotActionMsg: 'Request a password reset from your trainer.', loginBtn: 'Sign In', validating: 'Validating access...', noAccount: 'I don\'t have an account', restrictedTitle: 'Restricted Access', restrictedDesc: 'Your registration is done exclusively by your Personal Trainer. Please contact them to start your AuraFit journey.', understood: 'Understood', errorInvalid: 'Invalid credentials. Please check your details.', errorInactive: 'Your account is inactive or you lack student permissions. Contact your trainer.', errorServer: 'Internal server error. Please try again.'
->>>>>>> 16c2d73892a0630005cbb7176112f32d1612db73
   }
 };
 
@@ -92,32 +80,23 @@ function LoginAlunoContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
+  // Estados de Tema e i18n
   const [isDark, setIsDark] = useState(true);
   const [lang, setLang] = useState<'pt-BR' | 'pt-PT' | 'en'>('pt-BR');
   const [mounted, setMounted] = useState(false);
 
   const t = translations[lang];
 
-<<<<<<< HEAD
   useEffect(() => {
     // Captura erros vindos do redirecionamento da API de Autenticação
-=======
-  // Captura erros retornados pela URL da Rota de API
-  useEffect(() => {
->>>>>>> 16c2d73892a0630005cbb7176112f32d1612db73
     const errorParam = searchParams.get('error');
     if (errorParam) {
       if (errorParam === 'invalid') setMessage({ type: 'error', text: t.errorInvalid });
       else if (errorParam === 'inactive') setMessage({ type: 'error', text: t.errorInactive });
       else if (errorParam === 'server') setMessage({ type: 'error', text: t.errorServer });
-<<<<<<< HEAD
       setIsProcessing(false);
     }
 
-=======
-    }
-    
->>>>>>> 16c2d73892a0630005cbb7176112f32d1612db73
     const savedTheme = localStorage.getItem('@premium_theme');
     if (savedTheme) setIsDark(savedTheme === 'dark');
     
@@ -125,11 +104,7 @@ function LoginAlunoContent() {
     if (savedLang) setLang(savedLang);
     
     setMounted(true);
-<<<<<<< HEAD
   }, [searchParams, lang, t.errorInvalid, t.errorInactive, t.errorServer]);
-=======
-  }, [searchParams, lang]);
->>>>>>> 16c2d73892a0630005cbb7176112f32d1612db73
 
   const toggleTheme = () => {
     const newTheme = !isDark;
@@ -145,54 +120,65 @@ function LoginAlunoContent() {
     localStorage.setItem('@premium_lang', nextLang);
   };
 
-<<<<<<< HEAD
   const showToast = (text: string, type: 'error' | 'success' = 'error') => {
     setMessage({ text, type });
     if(type === 'success') setTimeout(() => setMessage(null), 4000);
   };
 
   // Configuração das Variáveis CSS Globais (Design System)
-=======
->>>>>>> 16c2d73892a0630005cbb7176112f32d1612db73
   const themeStyles = isDark ? {
-    '--bg': '#0F1115', '--surface': '#151A22', '--surface-sec': '#1B2330', '--primary': '#3B82F6', '--primary-soft': '#60A5FA', '--danger': '#EF4444', '--success': '#22C55E', '--text-primary': '#F8FAFC', '--text-secondary': '#94A3B8', '--border': 'rgba(255,255,255,0.05)',
-  } : {
-    '--bg': '#F3F6FB', '--surface': '#FFFFFF', '--surface-sec': '#E8EEF9', '--primary': '#2563EB', '--primary-soft': '#60A5FA', '--danger': '#DC2626', '--success': '#16A34A', '--text-primary': '#111827', '--text-secondary': '#6B7280', '--border': 'rgba(15,23,42,0.06)',
+    '--bg': '#0F1115',
+    '--surface': '#151A22',
+    '--surface-sec': '#1B2330',
+    '--primary': '#3B82F6',
+    '--primary-soft': '#60A5FA',
+    '--danger': '#EF4444',
+    '--success': '#22C55E',
+    '--text-primary': '#F8FAFC',
+    '--text-secondary': '#94A3B8',
+    '--border': 'rgba(255,255,255,0.05)',
+  } as React.CSSProperties : {
+    '--bg': '#F3F6FB',
+    '--surface': '#FFFFFF',
+    '--surface-sec': '#E8EEF9',
+    '--primary': '#2563EB',
+    '--primary-soft': '#60A5FA',
+    '--danger': '#DC2626',
+    '--success': '#16A34A',
+    '--text-primary': '#111827',
+    '--text-secondary': '#6B7280',
+    '--border': 'rgba(15,23,42,0.06)',
   } as React.CSSProperties;
 
   if (!mounted) return <main className="min-h-screen bg-[#0F1115]" />;
 
   return (
-    <main style={themeStyles} className="min-h-[100dvh] flex items-center justify-center bg-[var(--bg)] text-[var(--text-primary)] px-5 relative overflow-hidden font-sans pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
-      <div className="absolute top-[-10%] left-[-10%] w-[120vw] sm:w-[400px] h-[120vw] sm:h-[400px] bg-[var(--primary)]/10 rounded-full blur-[100px] pointer-events-none" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[100vw] sm:w-[350px] h-[100vw] sm:h-[350px] bg-[var(--primary-soft)]/5 rounded-full blur-[100px] pointer-events-none" />
+    <main 
+      style={themeStyles} 
+      className="min-h-[100dvh] flex items-center justify-center bg-[var(--bg)] text-[var(--text-primary)] px-5 relative overflow-hidden font-sans transition-colors duration-500 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]"
+    >
+      {/* ━━━━━━━━━━ ELEMENTOS DE PROFUNDIDADE (BLUR ORBS) ━━━━━━━━━━ */}
+      <div className="absolute top-[-10%] left-[-10%] w-[120vw] sm:w-[400px] h-[120vw] sm:h-[400px] bg-[var(--primary)]/10 rounded-full blur-[100px] pointer-events-none transition-colors duration-700" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[100vw] sm:w-[350px] h-[100vw] sm:h-[350px] bg-[var(--primary-soft)]/5 rounded-full blur-[100px] pointer-events-none transition-colors duration-700" />
       
-<<<<<<< HEAD
       {/* ━━━━━━━━━━ TOGGLES (THEME / LANG) ━━━━━━━━━━ */}
       <div className="absolute top-[max(env(safe-area-inset-top,20px),20px)] right-5 z-50 flex gap-2 animate-in fade-in duration-700">
         <button onClick={toggleLang} className="relative w-10 h-10 rounded-full bg-[var(--surface)] border border-[var(--border)] shadow-lg flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--primary)] transition-all active:scale-95" aria-label="Language">
-=======
-      <div className="absolute top-[max(env(safe-area-inset-top,20px),20px)] right-5 z-50 flex gap-2">
-        <button onClick={toggleLang} type="button" className="relative w-10 h-10 rounded-full bg-[var(--surface)] border border-[var(--border)] shadow-lg flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--primary)] active:scale-95">
->>>>>>> 16c2d73892a0630005cbb7176112f32d1612db73
           <FaGlobe size={16} />
           <span className="absolute -top-1 -right-1 bg-[var(--primary)] text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full">{lang.split('-')[0].toUpperCase()}</span>
         </button>
-        <button onClick={toggleTheme} type="button" className="relative w-10 h-10 rounded-full bg-[var(--surface)] border border-[var(--border)] shadow-lg flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--primary)] active:scale-95">
+        <button onClick={toggleTheme} className="relative w-10 h-10 rounded-full bg-[var(--surface)] border border-[var(--border)] shadow-lg flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--primary)] transition-all active:scale-95" aria-label="Theme">
           {isDark ? <FaSun size={16} /> : <FaMoon size={16} />}
         </button>
       </div>
 
-      <div className="w-full max-w-[360px] bg-[var(--surface)]/80 backdrop-blur-3xl p-8 sm:p-10 rounded-[2.5rem] sm:rounded-[3rem] border border-[var(--border)] shadow-[0_20px_50px_rgba(0,0,0,0.1)] z-10">
+      {/* ━━━━━━━━━━ CARD PRINCIPAL (GLASSMORPHISM) ━━━━━━━━━━ */}
+      <div className="w-full max-w-[360px] bg-[var(--surface)]/80 backdrop-blur-3xl p-8 sm:p-10 rounded-[2.5rem] sm:rounded-[3rem] border border-[var(--border)] shadow-[0_20px_50px_rgba(0,0,0,0.1)] z-10 animate-in slide-in-from-bottom-8 zoom-in-95 duration-700">
         
-<<<<<<< HEAD
         <button 
           onClick={() => router.back()} 
           className="flex items-center gap-2 text-[10px] font-bold text-[var(--text-secondary)] hover:text-[var(--primary)] transition-colors uppercase tracking-[0.2em] mb-8 active:scale-95 origin-left"
         >
-=======
-        <button onClick={() => router.back()} type="button" className="flex items-center gap-2 text-[10px] font-bold text-[var(--text-secondary)] hover:text-[var(--primary)] uppercase tracking-[0.2em] mb-8 active:scale-95 origin-left">
->>>>>>> 16c2d73892a0630005cbb7176112f32d1612db73
           <FaChevronLeft size={10} /> {t.back}
         </button>
         
@@ -204,15 +190,19 @@ function LoginAlunoContent() {
         </div>
         
         {message && (
-          <div className="mb-6 p-4 rounded-xl flex items-start gap-3 border bg-[var(--danger)]/5 text-[var(--danger)] border-[var(--danger)]/20 animate-in fade-in">
-            <div className="shrink-0 mt-0.5"><FaExclamationCircle /></div>
+          <div className={`mb-6 p-4 rounded-xl flex items-start gap-3 border animate-in slide-in-from-top-2 fade-in ${
+            message.type === 'error' 
+              ? 'bg-[var(--danger)]/5 text-[var(--danger)] border-[var(--danger)]/20' 
+              : 'bg-[var(--success)]/5 text-[var(--success)] border-[var(--success)]/20'
+          }`}>
+            <div className="shrink-0 mt-0.5">
+              {message.type === 'error' ? <FaExclamationCircle /> : <FaCheckCircle />}
+            </div>
             <p className="text-[10px] font-bold uppercase tracking-wider leading-relaxed">{message.text}</p>
           </div>
         )}
 
-<<<<<<< HEAD
         {/* ━━━━━━━━━━ SUBMISSÃO NATIVA (BLINDAGEM PWA) ━━━━━━━━━━ */}
-        {/* O formulário envia o POST nativo para /api/auth/login. Os inputs têm a propriedade 'name' obrigatória. */}
         <form 
           method="POST" 
           action="/api/auth/login" 
@@ -223,14 +213,6 @@ function LoginAlunoContent() {
             <input 
               name="email"
               className="w-full px-5 py-4 bg-[var(--surface-sec)] border border-[var(--border)] rounded-[1.2rem] outline-none focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)] transition-all duration-300 text-base sm:text-sm text-[var(--text-primary)] font-medium placeholder:text-[var(--text-secondary)] placeholder:font-normal shadow-inner" 
-=======
-        {/* SUBMISSÃO NATIVA POST PARA A ROTA DE API (BLINDAGEM PWA) */}
-        <form method="POST" action="/api/auth/login" onSubmit={() => setIsProcessing(true)} className="space-y-4">
-          <div>
-            <input 
-              name="email"
-              className="w-full px-5 py-4 bg-[var(--surface-sec)] border border-[var(--border)] rounded-[1.2rem] outline-none focus:border-[var(--primary)] text-[var(--text-primary)] font-medium shadow-inner" 
->>>>>>> 16c2d73892a0630005cbb7176112f32d1612db73
               placeholder={t.emailPlaceholder}
               type="email"
               autoCapitalize="none"
@@ -244,11 +226,7 @@ function LoginAlunoContent() {
           <div className="relative w-full group">
             <input 
               name="password"
-<<<<<<< HEAD
               className="w-full px-5 py-4 bg-[var(--surface-sec)] border border-[var(--border)] rounded-[1.2rem] outline-none focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)] transition-all duration-300 text-base sm:text-sm text-[var(--text-primary)] font-medium placeholder:text-[var(--text-secondary)] placeholder:font-normal shadow-inner pr-12" 
-=======
-              className="w-full px-5 py-4 bg-[var(--surface-sec)] border border-[var(--border)] rounded-[1.2rem] outline-none focus:border-[var(--primary)] text-[var(--text-primary)] font-medium shadow-inner pr-12" 
->>>>>>> 16c2d73892a0630005cbb7176112f32d1612db73
               type={showPass ? "text" : "password"} 
               placeholder={t.passwordPlaceholder}
               autoComplete="current-password"
@@ -258,8 +236,9 @@ function LoginAlunoContent() {
             />
             <button 
               type="button" 
-              className="absolute right-4 top-1/2 -translate-y-1/2 p-2 text-[var(--text-secondary)] hover:text-[var(--primary)] active:scale-90"
+              className="absolute right-4 top-1/2 -translate-y-1/2 p-2 text-[var(--text-secondary)] hover:text-[var(--primary)] transition-colors active:scale-90"
               onClick={() => setShowPass(!showPass)}
+              aria-label={showPass ? t.hide : t.show}
             >
               {showPass ? <FaEyeSlash size={16} /> : <FaEye size={16} />}
             </button>
@@ -268,13 +247,8 @@ function LoginAlunoContent() {
           <div className="mt-4 mb-8 text-right">
             <button 
               type="button"
-<<<<<<< HEAD
               onClick={() => showToast(t.forgotActionMsg, 'success')} 
               className="text-[10px] font-bold text-[var(--text-secondary)] hover:text-[var(--primary)] transition-colors uppercase tracking-widest active:scale-95 origin-right"
-=======
-              onClick={() => setMessage({ type: 'success', text: t.forgotActionMsg })} 
-              className="text-[10px] font-bold text-[var(--text-secondary)] hover:text-[var(--primary)] uppercase tracking-widest active:scale-95"
->>>>>>> 16c2d73892a0630005cbb7176112f32d1612db73
             >
               {t.forgotPassword}
             </button>
@@ -282,15 +256,9 @@ function LoginAlunoContent() {
           
           <div className="space-y-3">
             <button 
-<<<<<<< HEAD
               type="submit" 
               disabled={isProcessing || !email || !password}
               className={`w-full py-4 rounded-[1.2rem] font-black text-[11px] uppercase tracking-widest transition-all duration-300 active:scale-[0.98] ${
-=======
-              type="submit"
-              disabled={isProcessing || !email || !password}
-              className={`w-full py-4 rounded-[1.2rem] font-black text-[11px] uppercase tracking-widest transition-all duration-300 ${
->>>>>>> 16c2d73892a0630005cbb7176112f32d1612db73
                 isProcessing || !email || !password
                   ? 'bg-[var(--surface-sec)] text-[var(--text-secondary)] border border-[var(--border)] cursor-not-allowed'
                   : 'bg-[var(--primary)] text-white shadow-[0_10px_30px_-10px_var(--primary)] hover:bg-blue-600'
@@ -302,11 +270,7 @@ function LoginAlunoContent() {
             <button 
               type="button"
               onClick={() => setShowModal(true)} 
-<<<<<<< HEAD
               className="w-full bg-[var(--surface-sec)] hover:bg-[var(--border)] border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] py-4 rounded-[1.2rem] font-bold text-[10px] uppercase tracking-widest transition-all duration-300 active:scale-95"
-=======
-              className="w-full bg-[var(--surface-sec)] border border-[var(--border)] text-[var(--text-secondary)] py-4 rounded-[1.2rem] font-bold text-[10px] uppercase tracking-widest transition-all duration-300 active:scale-95"
->>>>>>> 16c2d73892a0630005cbb7176112f32d1612db73
             >
               {t.noAccount}
             </button>
@@ -314,22 +278,27 @@ function LoginAlunoContent() {
         </form>
       </div>
 
+      {/* ━━━━━━━━━━ MODAL DE ACESSO RESTRITO ━━━━━━━━━━ */}
       {showModal && (
-<<<<<<< HEAD
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xl z-[100] flex items-center justify-center p-5 animate-in fade-in duration-300">
           <div className="bg-[var(--surface)] border border-[var(--border)] p-8 sm:p-10 rounded-[2.5rem] w-full max-w-[340px] shadow-2xl animate-in zoom-in-95 slide-in-from-bottom-4 duration-300 relative overflow-hidden text-center">
             
-=======
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xl z-[100] flex items-center justify-center p-5 animate-in fade-in">
-          <div className="bg-[var(--surface)] border border-[var(--border)] p-8 rounded-[2.5rem] w-full max-w-[340px] text-center relative">
->>>>>>> 16c2d73892a0630005cbb7176112f32d1612db73
             <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-[var(--primary-soft)] to-[var(--primary)]" />
+            
             <div className="w-16 h-16 bg-[var(--primary)]/10 text-[var(--primary)] rounded-full flex items-center justify-center mx-auto mb-6">
               <FaExclamationCircle size={28} />
             </div>
-            <h3 className="text-[13px] font-black mb-4 uppercase tracking-[0.2em]">{t.restrictedTitle}</h3>
-            <p className="text-[var(--text-secondary)] mb-8 leading-relaxed text-sm font-medium">{t.restrictedDesc}</p>
-            <button onClick={() => setShowModal(false)} type="button" className="w-full bg-[var(--primary)] text-white py-4 rounded-[1.2rem] font-black text-[11px] uppercase tracking-widest shadow-lg shadow-[var(--primary)]/20">
+
+            <h3 className="text-[13px] font-black mb-4 uppercase tracking-[0.2em] text-[var(--text-primary)] leading-tight">{t.restrictedTitle}</h3>
+            
+            <p className="text-[var(--text-secondary)] mb-8 leading-relaxed text-sm font-medium">
+              {t.restrictedDesc}
+            </p>
+            
+            <button 
+              onClick={() => setShowModal(false)} 
+              className="w-full bg-[var(--primary)] text-white py-4 rounded-[1.2rem] font-black text-[11px] uppercase tracking-widest hover:bg-blue-600 transition-colors active:scale-95 shadow-lg shadow-[var(--primary)]/20"
+            >
               {t.understood}
             </button>
           </div>
@@ -338,7 +307,6 @@ function LoginAlunoContent() {
     </main>
   );
 }
-<<<<<<< HEAD
 
 // Envolve o conteúdo num Suspense boundary para evitar erros de build no Next.js (useSearchParams)
 export default function LoginAluno() {
@@ -348,5 +316,3 @@ export default function LoginAluno() {
     </Suspense>
   );
 }
-=======
->>>>>>> 16c2d73892a0630005cbb7176112f32d1612db73
