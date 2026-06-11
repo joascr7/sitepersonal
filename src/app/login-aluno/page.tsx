@@ -1,8 +1,9 @@
+// src/app/login-aluno/page.tsx
 'use client';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabaseClient';
 import { FaChevronLeft, FaEye, FaEyeSlash, FaExclamationCircle, FaCheckCircle, FaGlobe, FaMoon, FaSun } from 'react-icons/fa';
+import { loginAlunoAction } from './actions'; // <--- Importa a Server Action
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // DICIONÁRIO DE INTERNACIONALIZAÇÃO (i18n)
@@ -77,7 +78,6 @@ export default function LoginAluno() {
   
   const router = useRouter();
 
-  // Estados de Tema e i18n
   const [isDark, setIsDark] = useState(true);
   const [lang, setLang] = useState<'pt-BR' | 'pt-PT' | 'en'>('pt-BR');
   const [mounted, setMounted] = useState(false);
@@ -108,13 +108,11 @@ export default function LoginAluno() {
 
   const showToast = (text: string, type: 'error' | 'success' = 'error') => {
     setMessage({ text, type });
-    // Só auto-esconde se for success, erro de login é bom manter até o usuário interagir
     if(type === 'success') setTimeout(() => setMessage(null), 4000);
   };
 
   const t = translations[lang];
 
-  // Configuração das Variáveis CSS Globais (Design System)
   const themeStyles = isDark ? {
     '--bg': '#0F1115',
     '--surface': '#151A22',
@@ -139,35 +137,32 @@ export default function LoginAluno() {
     '--border': 'rgba(15,23,42,0.06)',
   } as React.CSSProperties;
 
-  const handleLogin = async () => {
+  // NOVA FUNÇÃO DE LOGIN VIA SERVIDOR
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
     setIsProcessing(true);
     setMessage(null);
 
-    const { data, error } = await supabase.auth.signInWithPassword({ 
-      email: email.trim(), 
-      password 
-    });
+    const formData = new FormData();
+    formData.append('email', email.trim());
+    formData.append('password', password);
 
-    if (error || !data.user) {
-      showToast(t.errorInvalid, 'error');
+    // Envia os dados para a ação de servidor
+    const result = await loginAlunoAction(formData);
+
+    if (result.error) {
+      // Ajusta a mensagem baseada no retorno
+      if (result.error === 'Conta inativa.') showToast(t.errorInactive, 'error');
+      else showToast(t.errorInvalid, 'error');
+      
       setIsProcessing(false);
       return;
     }
 
-    const { data: aluno, error: alunoError } = await supabase
-      .from('alunos')
-      .select('ativo')
-      .eq('id', data.user.id)
-      .maybeSingle();
-
-    if (alunoError || !aluno || aluno.ativo === false) {
-      await supabase.auth.signOut();
-      showToast(t.errorInactive, 'error');
-      setIsProcessing(false);
-      return;
+    if (result.success && result.userId) {
+      // Como o cookie foi gravado pelo servidor, redireciona o utilizador
+      router.push(`/aluno/${result.userId}`);
     }
-
-    window.location.href = `/aluno/${data.user.id}`;
   };
 
   if (!mounted) return <main className="min-h-screen bg-[#0F1115]" />;
@@ -177,13 +172,10 @@ export default function LoginAluno() {
       style={themeStyles} 
       className="min-h-[100dvh] flex items-center justify-center bg-[var(--bg)] text-[var(--text-primary)] px-5 relative overflow-hidden font-sans transition-colors duration-500 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]"
     >
-      {/* ━━━━━━━━━━ ELEMENTOS DE PROFUNDIDADE (BLUR ORBS) ━━━━━━━━━━ */}
       <div className="absolute top-[-10%] left-[-10%] w-[120vw] sm:w-[400px] h-[120vw] sm:h-[400px] bg-[var(--primary)]/10 rounded-full blur-[100px] pointer-events-none transition-colors duration-700" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[100vw] sm:w-[350px] h-[100vw] sm:h-[350px] bg-[var(--primary-soft)]/5 rounded-full blur-[100px] pointer-events-none transition-colors duration-700" />
       
-      {/* ━━━━━━━━━━ TOGGLES (THEME / LANG) ━━━━━━━━━━ */}
       <div className="absolute top-[max(env(safe-area-inset-top,20px),20px)] right-5 z-50 flex gap-2 animate-in fade-in duration-700">
-        {/* AQUI ESTÁ A CORREÇÃO: ADICIONADA A CLASSE 'relative' NO BOTÃO */}
         <button onClick={toggleLang} className="relative w-10 h-10 rounded-full bg-[var(--surface)] border border-[var(--border)] shadow-lg flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--primary)] transition-all active:scale-95" aria-label="Language">
           <FaGlobe size={16} />
           <span className="absolute -top-1 -right-1 bg-[var(--primary)] text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full">{lang.split('-')[0].toUpperCase()}</span>
@@ -193,10 +185,8 @@ export default function LoginAluno() {
         </button>
       </div>
 
-      {/* ━━━━━━━━━━ CARD PRINCIPAL (GLASSMORPHISM) ━━━━━━━━━━ */}
       <div className="w-full max-w-[360px] bg-[var(--surface)]/80 backdrop-blur-3xl p-8 sm:p-10 rounded-[2.5rem] sm:rounded-[3rem] border border-[var(--border)] shadow-[0_20px_50px_rgba(0,0,0,0.1)] z-10 animate-in slide-in-from-bottom-8 zoom-in-95 duration-700">
         
-        {/* Back Button */}
         <button 
           onClick={() => router.back()} 
           className="flex items-center gap-2 text-[10px] font-bold text-[var(--text-secondary)] hover:text-[var(--primary)] transition-colors uppercase tracking-[0.2em] mb-8 active:scale-95 origin-left"
@@ -204,7 +194,6 @@ export default function LoginAluno() {
           <FaChevronLeft size={10} /> {t.back}
         </button>
         
-        {/* Branding */}
         <div className="mb-10 text-center">
           <h1 className="text-4xl font-black tracking-tighter text-[var(--text-primary)] mb-1">
             {t.appTitle.replace('FIT', '')}<span className="text-[var(--primary)]">FIT</span>
@@ -212,7 +201,6 @@ export default function LoginAluno() {
           <p className="text-[var(--primary)] font-bold text-[10px] tracking-[0.2em] uppercase">{t.subtitle}</p>
         </div>
         
-        {/* Notification Toast (In-Card) */}
         {message && (
           <div className={`mb-6 p-4 rounded-xl flex items-start gap-3 border animate-in slide-in-from-top-2 fade-in ${
             message.type === 'error' 
@@ -226,8 +214,8 @@ export default function LoginAluno() {
           </div>
         )}
 
-        {/* Form Inputs */}
-        <div className="space-y-4">
+        {/* MUDANÇA PARA TAG FORM */}
+        <form onSubmit={handleLogin} className="space-y-4">
           <div className="relative">
             <input 
               className="w-full px-5 py-4 bg-[var(--surface-sec)] border border-[var(--border)] rounded-[1.2rem] outline-none focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)] transition-all duration-300 text-base sm:text-sm text-[var(--text-primary)] font-medium placeholder:text-[var(--text-secondary)] placeholder:font-normal shadow-inner" 
@@ -258,48 +246,45 @@ export default function LoginAluno() {
               {showPass ? <FaEyeSlash size={16} /> : <FaEye size={16} />}
             </button>
           </div>
-        </div>
-        
-        {/* Forgot Password Link */}
-        <div className="mt-4 mb-8 text-right">
-          <button 
-            type="button"
-            onClick={() => showToast(t.forgotActionMsg, 'success')} 
-            className="text-[10px] font-bold text-[var(--text-secondary)] hover:text-[var(--primary)] transition-colors uppercase tracking-widest active:scale-95 origin-right"
-          >
-            {t.forgotPassword}
-          </button>
-        </div>
-        
-        {/* Actions */}
-        <div className="space-y-3">
-          <button 
-            onClick={handleLogin} 
-            disabled={isProcessing || !email || !password}
-            className={`w-full py-4 rounded-[1.2rem] font-black text-[11px] uppercase tracking-widest transition-all duration-300 active:scale-[0.98] ${
-              isProcessing || !email || !password
-                ? 'bg-[var(--surface-sec)] text-[var(--text-secondary)] border border-[var(--border)] cursor-not-allowed'
-                : 'bg-[var(--primary)] text-white shadow-[0_10px_30px_-10px_var(--primary)] hover:bg-blue-600'
-            }`}
-          >
-            {isProcessing ? t.validating : t.loginBtn}
-          </button>
           
-          <button 
-            onClick={() => setShowModal(true)} 
-            className="w-full bg-[var(--surface-sec)] hover:bg-[var(--border)] border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] py-4 rounded-[1.2rem] font-bold text-[10px] uppercase tracking-widest transition-all duration-300 active:scale-95"
-          >
-            {t.noAccount}
-          </button>
-        </div>
+          <div className="mt-4 mb-8 text-right">
+            <button 
+              type="button"
+              onClick={() => showToast(t.forgotActionMsg, 'success')} 
+              className="text-[10px] font-bold text-[var(--text-secondary)] hover:text-[var(--primary)] transition-colors uppercase tracking-widest active:scale-95 origin-right"
+            >
+              {t.forgotPassword}
+            </button>
+          </div>
+          
+          <div className="space-y-3">
+            <button 
+              type="submit"
+              disabled={isProcessing || !email || !password}
+              className={`w-full py-4 rounded-[1.2rem] font-black text-[11px] uppercase tracking-widest transition-all duration-300 active:scale-[0.98] ${
+                isProcessing || !email || !password
+                  ? 'bg-[var(--surface-sec)] text-[var(--text-secondary)] border border-[var(--border)] cursor-not-allowed'
+                  : 'bg-[var(--primary)] text-white shadow-[0_10px_30px_-10px_var(--primary)] hover:bg-blue-600'
+              }`}
+            >
+              {isProcessing ? t.validating : t.loginBtn}
+            </button>
+            
+            <button 
+              type="button"
+              onClick={() => setShowModal(true)} 
+              className="w-full bg-[var(--surface-sec)] hover:bg-[var(--border)] border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] py-4 rounded-[1.2rem] font-bold text-[10px] uppercase tracking-widest transition-all duration-300 active:scale-95"
+            >
+              {t.noAccount}
+            </button>
+          </div>
+        </form>
       </div>
 
-      {/* ━━━━━━━━━━ MODAL DE ACESSO RESTRITO ━━━━━━━━━━ */}
       {showModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xl z-[100] flex items-center justify-center p-5 animate-in fade-in duration-300">
           <div className="bg-[var(--surface)] border border-[var(--border)] p-8 sm:p-10 rounded-[2.5rem] w-full max-w-[340px] shadow-2xl animate-in zoom-in-95 slide-in-from-bottom-4 duration-300 relative overflow-hidden text-center">
             
-            {/* Decorator */}
             <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-[var(--primary-soft)] to-[var(--primary)]" />
             
             <div className="w-16 h-16 bg-[var(--primary)]/10 text-[var(--primary)] rounded-full flex items-center justify-center mx-auto mb-6">
