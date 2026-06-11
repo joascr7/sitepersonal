@@ -29,20 +29,19 @@ export async function middleware(request: NextRequest) {
         getAll() { return request.cookies.getAll(); },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value, options }) => {
-            // Configuração refinada de persistência forçada para o ecossistema PWA
+            // Configuração flexível e persistente para o ecossistema PWA
             const persistentOptions = {
-              ...options,
+              ...options, // Mantém as propriedades nativas de segurança do Supabase (incluindo se é ou não httpOnly)
               maxAge: 31536000, // 1 Ano completo de vida do cookie (Impede o deslogar automático)
-              path: '/', // Garante acesso global em todas as subrotas
-              sameSite: 'lax' as const, // Compatibilidade máxima com as diretivas estritas do iOS (ITP)
+              path: '/', // Garante acesso global em todas as subrotas do PWA
+              sameSite: 'lax' as const, // Compatibilidade com as diretivas estritas de PWAs no iOS/Android
               secure: process.env.NODE_ENV === 'production',
-              httpOnly: true // Proteção adicional de segurança
             };
 
             // Atualiza a árvore de pedidos atual (Request Headers)
             request.cookies.set(name, value);
             
-            // CORREÇÃO CRUCIAL: Passagem explícita dos parâmetros para evitar falhas de mutação no Next.js
+            // Grava o cookie com a persistência de 1 ano respeitando a leitura do cliente
             response.cookies.set(name, value, persistentOptions);
           });
         },
@@ -51,7 +50,6 @@ export async function middleware(request: NextRequest) {
   );
 
   // 2. VERIFICAÇÃO DE SESSÃO REAL E SEGURA NO BANCO
-  // O getUser obriga o Supabase a validar o JWT. Se o token expirou, ele chama o setAll acima e renova-o.
   const { data: { user } } = await supabase.auth.getUser();
 
   const isProtected = pathname.startsWith('/dashboard') || pathname.startsWith('/aluno/') || pathname.startsWith('/admin/');
