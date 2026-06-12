@@ -258,8 +258,20 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
     if (savedLang) setLang(savedLang);
   }, []);
 
-  const toggleTheme = () => { const newTheme = !isDark; setIsDark(newTheme); localStorage.setItem('@premium_theme', newTheme ? 'dark' : 'light'); };
-  const toggleLang = () => { const langs: ('pt-BR' | 'pt-PT' | 'en')[] = ['pt-BR', 'pt-PT', 'en']; const nextLang = langs[(langs.indexOf(lang) + 1) % langs.length]; setLang(nextLang); localStorage.setItem('@premium_lang', nextLang); };
+  const toggleTheme = () => { 
+    const newTheme = !isDark; 
+    setIsDark(newTheme); 
+    localStorage.setItem('@premium_theme', newTheme ? 'dark' : 'light'); 
+    window.dispatchEvent(new Event('storage')); // AVISA A NAVBAR
+  };
+  
+  const toggleLang = () => { 
+    const langs: ('pt-BR' | 'pt-PT' | 'en')[] = ['pt-BR', 'pt-PT', 'en']; 
+    const nextLang = langs[(langs.indexOf(lang) + 1) % langs.length]; 
+    setLang(nextLang); 
+    localStorage.setItem('@premium_lang', nextLang); 
+    window.dispatchEvent(new Event('storage')); // AVISA A NAVBAR
+  };
 
   const t = translations[lang];
 
@@ -568,9 +580,9 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
                 >
                   <div className="flex items-center gap-4 overflow-hidden flex-1 pr-2">
                     
-                    {/* THUMBNAIL AUMENTADA (w-20 h-20) COM BORDAS ARREDONDADAS (rounded-2xl) */}
+                    {/* THUMBNAIL AINDA MAIOR (w-24 h-24) COM DESTAQUE PREMIUM */}
                     <div 
-                      className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden bg-[var(--surface-sec)] shrink-0 border border-[var(--border)] flex items-center justify-center relative cursor-pointer hover:opacity-90 transition-all group shadow-sm" 
+                      className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden bg-[var(--surface-sec)] shrink-0 border border-[var(--border)] flex items-center justify-center relative cursor-pointer hover:scale-105 transition-all group shadow-md" 
                       onClick={(e) => { 
                         e.stopPropagation(); 
                         if (ex.video) setActiveMediaEx({ video: ex.video, nome: ex.nome }); 
@@ -579,20 +591,20 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
                       {thumbnailUrl ? (
                          <>
                            <img src={thumbnailUrl} className="w-full h-full object-cover" alt="Thumb" />
-                           <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm">
-                             <FaPlay className="text-white" size={18} />
+                           <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-[2px]">
+                             <FaPlay className="text-white drop-shadow-md" size={22} />
                            </div>
                          </>
                       ) : (
-                         <FaPlay className="text-[var(--primary)]/30" size={24} />
+                         <FaPlay className="text-[var(--primary)]/30" size={28} />
                       )}
                     </div>
                     
-                    <div className="text-left flex-1 truncate">
-                      <span className={`font-black text-base sm:text-lg leading-tight block truncate ${isConcluido ? 'text-[var(--success)]' : 'text-[var(--text-primary)]'}`}>
+                    <div className="text-left flex-1 truncate py-2">
+                      <span className={`font-black text-lg sm:text-xl leading-tight block truncate ${isConcluido ? 'text-[var(--success)]' : 'text-[var(--text-primary)]'}`}>
                         {ex.nome || `Exercício ${exIndex + 1}`}
                       </span>
-                      <span className="text-[10px] text-[var(--text-secondary)] font-bold uppercase tracking-widest mt-1 block">
+                      <span className="text-[11px] text-[var(--text-secondary)] font-black uppercase tracking-[0.2em] mt-1.5 block bg-[var(--surface-sec)] w-max px-2 py-1 rounded-md">
                         {numeroSeriesConfigurado} {numeroSeriesConfigurado === 1 ? 'SÉRIE' : 'SÉRIES'}
                       </span>
                     </div>
