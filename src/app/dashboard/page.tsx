@@ -55,17 +55,23 @@ const translations = {
   'pt-BR': {
     search: 'Buscar aluno...', statusBlocked: 'BLOQUEADO', statusActive: 'ATIVO', statusPending: 'PENDENTE', testPeriod: 'Você está no período de teste.', subscribe: 'Assinar Plano', renewal: 'Renovação próxima', confirmReativar: 'Confirmar reativação do acesso para ', confirmBloqueio: 'Confirmar bloqueio de acesso para ', errStatus: 'Erro ao alterar status.', successStatusReativado: 'Aluno reativado!', successStatusBloqueado: 'Acesso bloqueado!', errProcess: 'Falha ao processar: ', successPay: 'Pagamento registrado com sucesso!', confirmPagamento: 'Confirmar Pagamento', valorPlaceholder: 'Valor (R$)', registrarPagamento: 'Registrar Pagamento', report: 'Relatório por Mês',
     addStudents: 'Adicionar novo aluno', students: 'Meus Alunos', active: 'Ativos', inactive: 'Inativos', yourStudents: 'Gestão de Alunos', manageStudents: 'Gerenciar Alunos', workouts: 'Gestão de Treinos', libraryWorkouts: 'Biblioteca de treinos', libraryExercises: 'Biblioteca de exercícios',
-    sendNotice: 'Enviar Aviso', noticeDesc: 'Notifique seus alunos rapidamente', parqTitle: 'Avaliações PAR-Q dos Alunos', notFound: 'Nenhum aluno encontrado.', prev: 'Anterior', next: 'Próxima', page: 'Página', of: 'de'
+    sendNotice: 'Enviar Aviso', noticeDesc: 'Notifique seus alunos rapidamente', parqTitle: 'Avaliações PAR-Q dos Alunos', notFound: 'Nenhum aluno encontrado.', prev: 'Anterior', next: 'Próxima', page: 'Página', of: 'de',
+    greetingMorning: 'Bom dia', greetingAfternoon: 'Boa tarde', greetingEvening: 'Boa noite',
+    tabHome: 'Início', tabFinance: 'Finanças', widgetFeedbacks: 'Feedbacks', widgetParq: 'PAR-Q', widgetNotices: 'Avisos'
   },
   'pt-PT': {
     search: 'Procurar aluno...', statusBlocked: 'BLOQUEADO', statusActive: 'ATIVO', statusPending: 'PENDENTE', testPeriod: 'Está no período de teste.', subscribe: 'Assinar Plano', renewal: 'Renovação próxima', confirmReativar: 'Confirmar reativação do acesso para ', confirmBloqueio: 'Confirmar bloqueio de acesso para ', errStatus: 'Erro ao alterar status.', successStatusReativado: 'Aluno reativado!', successStatusBloqueado: 'Acesso bloqueado!', errProcess: 'Falha ao processar: ', successPay: 'Pagamento registado com sucesso!', confirmPagamento: 'Confirmar Pagamento', valorPlaceholder: 'Valor', registrarPagamento: 'Registar Pagamento', report: 'Relatório por Mês',
     addStudents: 'Adicionar novo aluno', students: 'Meus Alunos', active: 'Ativos', inactive: 'Inativos', yourStudents: 'Gestão de Alunos', manageStudents: 'Gerir Alunos', workouts: 'Gestão de Treinos', libraryWorkouts: 'Biblioteca de treinos', libraryExercises: 'Biblioteca de exercícios',
-    sendNotice: 'Enviar Aviso', noticeDesc: 'Notifique os seus alunos rapidamente', parqTitle: 'Avaliações PAR-Q dos Alunos', notFound: 'Nenhum aluno encontrado.', prev: 'Anterior', next: 'Seguinte', page: 'Página', of: 'de'
+    sendNotice: 'Enviar Aviso', noticeDesc: 'Notifique os seus alunos rapidamente', parqTitle: 'Avaliações PAR-Q dos Alunos', notFound: 'Nenhum aluno encontrado.', prev: 'Anterior', next: 'Seguinte', page: 'Página', of: 'de',
+    greetingMorning: 'Bom dia', greetingAfternoon: 'Boa tarde', greetingEvening: 'Boa noite',
+    tabHome: 'Início', tabFinance: 'Finanças', widgetFeedbacks: 'Feedbacks', widgetParq: 'PAR-Q', widgetNotices: 'Avisos'
   },
   'en': {
     search: 'Search student...', statusBlocked: 'BLOCKED', statusActive: 'ACTIVE', statusPending: 'PENDING', testPeriod: 'You are in the trial period.', subscribe: 'Subscribe', renewal: 'Upcoming renewal', confirmReativar: 'Confirm access reactivation for ', confirmBloqueio: 'Confirm access blocking for ', errStatus: 'Error changing status.', successStatusReativado: 'Student reactivated!', successStatusBloqueado: 'Access blocked!', errProcess: 'Failed to process: ', successPay: 'Payment registered successfully!', confirmPagamento: 'Confirm Payment', valorPlaceholder: 'Value', registrarPagamento: 'Register Payment', report: 'Monthly Report',
     addStudents: 'Add new student', students: 'My Students', active: 'Active', inactive: 'Inactive', yourStudents: 'Student Management', manageStudents: 'Manage Students', workouts: 'Workout Management', libraryWorkouts: 'Workout Library', libraryExercises: 'Exercise Library',
-    sendNotice: 'Send Notice', noticeDesc: 'Notify your students quickly', parqTitle: 'Student PAR-Q Assessments', notFound: 'No students found.', prev: 'Previous', next: 'Next', page: 'Page', of: 'of'
+    sendNotice: 'Send Notice', noticeDesc: 'Notify your students quickly', parqTitle: 'Student PAR-Q Assessments', notFound: 'No students found.', prev: 'Previous', next: 'Next', page: 'Page', of: 'of',
+    greetingMorning: 'Good Morning', greetingAfternoon: 'Good Afternoon', greetingEvening: 'Good Evening',
+    tabHome: 'Home', tabFinance: 'Finances', widgetFeedbacks: 'Feedbacks', widgetParq: 'PAR-Q', widgetNotices: 'Notices'
   }
 };
 
@@ -141,11 +147,13 @@ export default function Dashboard() {
     };
   }, []);
 
+  const t = translations[lang] || translations['pt-BR'];
+
   const getSaudacao = () => {
     const hora = horaAtual.getHours();
-    if (hora < 12) return 'Bom dia';
-    if (hora < 18) return 'Boa tarde';
-    return 'Boa noite';
+    if (hora < 12) return t.greetingMorning;
+    if (hora < 18) return t.greetingAfternoon;
+    return t.greetingEvening;
   };
 
   const toggleTheme = () => { 
@@ -163,8 +171,6 @@ export default function Dashboard() {
     window.dispatchEvent(new Event('config-updated')); 
   };
   
-  const t = translations[lang] || translations['pt-BR'];
-
   const getStatusDisplay = (aluno: any) => {
     if (aluno.status_pagamento === 'bloqueado' || aluno.ativo === false) return { text: t.statusBlocked, color: 'bg-[var(--danger)]/10 text-[var(--danger)] border-[var(--danger)]/20 border' };
     const hoje = new Date();
@@ -502,13 +508,13 @@ export default function Dashboard() {
                   onClick={() => setActiveTab('inicio')} 
                   className={`flex-1 py-3 text-[13px] font-black rounded-xl transition-all duration-300 ${activeTab === 'inicio' ? 'bg-[var(--surface)] text-[var(--text-primary)] shadow-sm' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
                 >
-                  Início
+                  {t.tabHome}
                 </button>
                 <button 
                   onClick={() => setActiveTab('financas')} 
                   className={`flex-1 py-3 text-[13px] font-black rounded-xl transition-all duration-300 ${activeTab === 'financas' ? 'bg-[var(--surface)] text-[var(--text-primary)] shadow-sm' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
                 >
-                  Finanças
+                  {t.tabFinance}
                 </button>
               </div>
             </div>
@@ -522,7 +528,7 @@ export default function Dashboard() {
                     <div className="w-14 h-14 bg-[var(--surface)] text-[var(--primary)] rounded-full shadow-sm border border-[var(--border)] flex items-center justify-center text-xl group-hover:bg-[var(--primary)]/5 transition-all">
                       <FaCommentDots />
                     </div>
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] group-hover:text-[var(--primary)] transition-colors">Feedbacks</span>
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] group-hover:text-[var(--primary)] transition-colors">{t.widgetFeedbacks}</span>
                   </div>
                   
                   <div onClick={() => setIsParqModalOpen(true)} className="flex flex-col items-center gap-2 group cursor-pointer">
@@ -536,14 +542,14 @@ export default function Dashboard() {
                         </span>
                       )}
                     </div>
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] group-hover:text-[var(--primary)] transition-colors">PAR-Q</span>
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] group-hover:text-[var(--primary)] transition-colors">{t.widgetParq}</span>
                   </div>
                   
                   <div className="flex flex-col items-center gap-2 group cursor-pointer">
                     <div className="w-14 h-14 bg-[var(--surface)] text-[var(--primary)] rounded-full shadow-sm border border-[var(--border)] flex items-center justify-center text-xl group-hover:bg-[var(--primary)]/5 transition-all">
                       <NotificationBell />
                     </div>
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] group-hover:text-[var(--primary)] transition-colors">Avisos</span>
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] group-hover:text-[var(--primary)] transition-colors">{t.widgetNotices}</span>
                   </div>
                 </div>
 
