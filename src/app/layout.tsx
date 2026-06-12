@@ -87,13 +87,27 @@ export default function RootLayout({
     initTheme();
     setMounted(true);
 
-    const handleStorageChange = () => initTheme();
+    const handleStorageChange = () => {
+      initTheme();
+      window.dispatchEvent(new Event('config-updated'));
+    };
+    
     window.addEventListener('storage', handleStorageChange);
     
+    // Sobrescrita Mágica do localStorage
     const originalSetItem = localStorage.setItem;
     localStorage.setItem = function(key, value) {
       originalSetItem.apply(this, [key, value]);
-      if(key === '@premium_theme') initTheme();
+      
+      // Se alterou o tema, atualiza as variáveis CSS imediatamente
+      if (key === '@premium_theme') {
+        initTheme();
+      }
+      
+      // Se alterou o TEMA ou IDIOMA, avisa o app inteiro para se re-renderizar (sem precisar trocar de aba!)
+      if (key === '@premium_theme' || key === '@premium_lang') {
+        window.dispatchEvent(new Event('config-updated'));
+      }
     };
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
