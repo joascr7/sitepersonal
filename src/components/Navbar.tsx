@@ -1,5 +1,6 @@
 'use client';
 import { usePathname } from 'next/navigation';
+import Link from 'next/link'; // Imported Link component
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import LogoutButton from './LogoutButton';
@@ -21,14 +22,23 @@ export default function Navbar() {
   const [telefoneAluno, setTelefoneAluno] = useState<string | null>(null);
 
   useEffect(() => {
-    const updateLang = () => {
+    const updateSettings = () => {
       const savedLang = localStorage.getItem('@premium_lang') as 'pt-BR' | 'pt-PT' | 'en';
       if (savedLang) setLang(savedLang);
     };
-    updateLang();
+    
+    updateSettings();
     setMounted(true);
-    window.addEventListener('storage', updateLang);
-    return () => window.removeEventListener('storage', updateLang);
+    
+    // Listen for cross-tab changes
+    window.addEventListener('storage', updateSettings);
+    // Listen for same-tab custom changes
+    window.addEventListener('config-updated', updateSettings);
+    
+    return () => {
+      window.removeEventListener('storage', updateSettings);
+      window.removeEventListener('config-updated', updateSettings);
+    };
   }, []);
 
   // Extrai o ID do aluno se o personal estiver navegando na rota de um aluno específico
@@ -91,6 +101,75 @@ export default function Navbar() {
 
   if (!mounted) return null;
 
+  // Helper component to handle internal vs external links
+  const NavLink = ({ item, isMobile }: { item: any, isMobile: boolean }) => {
+    const isActive = pathname === item.path;
+    const isExternal = item.path.startsWith('http');
+
+    if (isExternal) {
+      return (
+        <a 
+          href={item.path} 
+          target="_blank"
+          rel="noopener noreferrer"
+          className={isMobile 
+            ? `flex flex-col items-center gap-1.5 transition-all duration-300 w-16 group cursor-pointer text-[var(--text-secondary)]` 
+            : `relative py-2 transition-all duration-300 hover:text-[var(--primary)] flex items-center gap-1.5`
+          }
+        >
+           {isMobile ? (
+             <>
+               <div className="relative flex items-center justify-center w-12 h-8 rounded-full transition-all duration-300 bg-[#25D366]/10 text-[#25D366] group-hover:bg-[#25D366]/20">
+                 <span className="text-lg transition-transform group-hover:scale-110 group-hover:text-[#25D366]">
+                   {item.icon}
+                 </span>
+               </div>
+               <span className="text-[8px] font-black uppercase tracking-widest transition-all opacity-70 group-hover:opacity-100 group-hover:text-[#25D366]">
+                 {item.name}
+               </span>
+             </>
+           ) : (
+             <>
+               <span className="text-sm text-[#25D366]">{item.icon}</span>
+               <span>{item.name}</span>
+             </>
+           )}
+        </a>
+      );
+    }
+
+    // Use Next.js Link for internal routing
+    return (
+      <Link 
+        href={item.path} 
+        className={isMobile
+          ? `flex flex-col items-center gap-1.5 transition-all duration-300 w-16 group cursor-pointer ${isActive ? 'text-[var(--primary)]' : 'text-[var(--text-secondary)]'}`
+          : `relative py-2 transition-all duration-300 hover:text-[var(--primary)] flex items-center gap-1.5 ${isActive ? 'text-[var(--primary)] font-black' : ''}`
+        }
+      >
+        {isMobile ? (
+          <>
+            <div className={`relative flex items-center justify-center w-12 h-8 rounded-full transition-all duration-300 ${isActive ? 'bg-[var(--primary)]/15 scale-110' : 'group-hover:bg-[var(--surface-sec)] group-hover:scale-105'}`}>
+              <span className={`text-lg transition-transform ${isActive ? 'drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]' : 'group-hover:scale-110 group-hover:text-[var(--primary)]'}`}>
+                {item.icon}
+              </span>
+            </div>
+            <span className={`text-[8px] font-black uppercase tracking-widest transition-all ${isActive ? 'opacity-100' : 'opacity-70 group-hover:opacity-100 group-hover:text-[var(--primary)]'}`}>
+              {item.name}
+            </span>
+          </>
+        ) : (
+          <>
+            <span>{item.name}</span>
+            {isActive && (
+              <span className="absolute bottom-0 left-0 w-full h-0.5 bg-[var(--primary)] rounded-full shadow-[0_0_8px_var(--primary)] animate-in fade-in zoom-in duration-300" />
+            )}
+          </>
+        )}
+      </Link>
+    );
+  };
+
   return (
     <>
       {/* ━━━━━━━━━━ DESKTOP NAVBAR (OCULTA NO MOBILE) ━━━━━━━━━━ */}
@@ -107,28 +186,9 @@ export default function Navbar() {
         </div>
         
         <div className="flex gap-8 items-center text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)]">
-          {navItems.map((item) => {
-            const isActive = pathname === item.path;
-            const isExternal = item.path.startsWith('http');
-
-            return (
-              <a 
-                key={item.path} 
-                href={item.path} 
-                target={isExternal ? '_blank' : '_self'}
-                rel={isExternal ? 'noopener noreferrer' : ''}
-                className={`relative py-2 transition-all duration-300 hover:text-[var(--primary)] flex items-center gap-1.5 ${
-                  isActive ? 'text-[var(--primary)] font-black' : ''
-                }`}
-              >
-                {isExternal && <span className="text-sm text-[#25D366]">{item.icon}</span>}
-                <span>{item.name}</span>
-                {isActive && (
-                  <span className="absolute bottom-0 left-0 w-full h-0.5 bg-[var(--primary)] rounded-full shadow-[0_0_8px_var(--primary)] animate-in fade-in zoom-in duration-300" />
-                )}
-              </a>
-            );
-          })}
+          {navItems.map((item) => (
+            <NavLink key={item.path} item={item} isMobile={false} />
+          ))}
           
           <div className="pl-6 ml-2 border-l border-[var(--border)] flex items-center gap-2 text-[var(--text-secondary)] hover:text-[var(--danger)] transition-colors">
             <LogoutButton />
@@ -141,35 +201,9 @@ export default function Navbar() {
         style={{ bottom: 'max(env(safe-area-inset-bottom, 20px), 20px)' }}
         className="md:hidden fixed left-5 right-5 z-[100] bg-[var(--surface)]/90 backdrop-blur-3xl border border-[var(--border)] rounded-[2rem] py-3 px-6 flex justify-between items-center shadow-[0_20px_40px_-10px_rgba(0,0,0,0.3)] transition-colors duration-500"
       >
-        {navItems.map((item) => {
-          const isActive = pathname === item.path;
-          const isExternal = item.path.startsWith('http');
-
-          return (
-            <a 
-              key={item.path} 
-              href={item.path} 
-              target={isExternal ? '_blank' : '_self'}
-              rel={isExternal ? 'noopener noreferrer' : ''}
-              className={`flex flex-col items-center gap-1.5 transition-all duration-300 w-16 group cursor-pointer ${
-                isActive ? 'text-[var(--primary)]' : 'text-[var(--text-secondary)]'
-              }`}
-            >
-              <div className={`relative flex items-center justify-center w-12 h-8 rounded-full transition-all duration-300 ${
-                isActive ? 'bg-[var(--primary)]/15 scale-110' : 'group-hover:bg-[var(--surface-sec)] group-hover:scale-105'
-              } ${isExternal ? 'bg-[#25D366]/10 text-[#25D366] group-hover:bg-[#25D366]/20' : ''}`}>
-                <span className={`text-lg transition-transform ${isActive ? 'drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]' : 'group-hover:scale-110 group-hover:text-[var(--primary)]'} ${isExternal ? 'group-hover:text-[#25D366]' : ''}`}>
-                  {item.icon}
-                </span>
-              </div>
-              <span className={`text-[8px] font-black uppercase tracking-widest transition-all ${
-                isActive ? 'opacity-100' : 'opacity-70 group-hover:opacity-100 group-hover:text-[var(--primary)]'
-              } ${isExternal ? 'group-hover:text-[#25D366]' : ''}`}>
-                {item.name}
-              </span>
-            </a>
-          );
-        })}
+        {navItems.map((item) => (
+          <NavLink key={item.path} item={item} isMobile={true} />
+        ))}
         
         {/* Logout Mobile */}
         <div className="flex flex-col items-center gap-1.5 text-[var(--text-secondary)] w-16 group cursor-pointer">
