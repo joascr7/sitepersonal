@@ -17,7 +17,9 @@ import {
   FaChevronRight,
   FaMoon,
   FaSun,
-  FaGlobe
+  FaGlobe,
+  FaCheck,
+  FaTimes
 } from 'react-icons/fa';
 import { LineChart, Line, AreaChart, Area, CartesianGrid, Tooltip, ResponsiveContainer, YAxis, XAxis, Legend } from 'recharts';
 import { startOfWeek, endOfWeek, eachDayOfInterval, format, isSameDay, parseISO, startOfMonth, endOfMonth, addMonths, subMonths, isSameMonth } from 'date-fns';
@@ -35,7 +37,8 @@ const translations = {
     historyTitle: 'Histórico de Treinos', analysis: 'Análise Corporal', evolution: 'Sua Evolução',
     evolutionWeight: 'Evolução de Peso (kg)', evolutionFat: '% de Gordura Corporal', evolutionMeasures: 'Circunferências Principais (cm)',
     currentWeight: 'Peso Atual', prevWeight: 'Peso Anterior', sinceLast: 'desde a última',
-    lastMark: 'Última marca', details: 'Medidas Detalhadas (cm)', obs: 'Observações do Personal', dateOfRecord: 'Data do registro'
+    lastMark: 'Última marca', details: 'Medidas Detalhadas (cm)', obs: 'Observações do Personal', dateOfRecord: 'Data do registro',
+    selectLanguage: 'Selecione o Idioma', selectTheme: 'Aparência', themeLight: 'Modo Claro', themeDark: 'Modo Escuro'
   },
   'pt-PT': {
     status: 'Estado', active: 'Assinatura Ativa', blocked: 'Bloqueado', due: 'Vencimento',
@@ -46,7 +49,8 @@ const translations = {
     historyTitle: 'Histórico de Treinos', analysis: 'Análise Corporal', evolution: 'A Sua Evolução',
     evolutionWeight: 'Evolução de Peso (kg)', evolutionFat: '% de Gordura Corporal', evolutionMeasures: 'Circunferências Principais (cm)',
     currentWeight: 'Peso Atual', prevWeight: 'Peso Anterior', sinceLast: 'desde a última',
-    lastMark: 'Última marca', details: 'Medidas Detalhadas (cm)', obs: 'Observações do Personal', dateOfRecord: 'Data do registo'
+    lastMark: 'Última marca', details: 'Medidas Detalhadas (cm)', obs: 'Observações do Personal', dateOfRecord: 'Data do registo',
+    selectLanguage: 'Selecione o Idioma', selectTheme: 'Aparência', themeLight: 'Modo Claro', themeDark: 'Modo Escuro'
   },
   'en': {
     status: 'Status', active: 'Active Subscription', blocked: 'Blocked', due: 'Due Date',
@@ -57,9 +61,16 @@ const translations = {
     historyTitle: 'Workout History', analysis: 'Body Analysis', evolution: 'Your Evolution',
     evolutionWeight: 'Weight Evolution (kg)', evolutionFat: 'Body Fat (%)', evolutionMeasures: 'Main Circumferences (cm)',
     currentWeight: 'Current Wt.', prevWeight: 'Previous Wt.', sinceLast: 'since last',
-    lastMark: 'Last mark', details: 'Detailed Measurements (cm)', obs: 'Trainer Notes', dateOfRecord: 'Record date'
+    lastMark: 'Last mark', details: 'Detailed Measurements (cm)', obs: 'Trainer Notes', dateOfRecord: 'Record date',
+    selectLanguage: 'Select Language', selectTheme: 'Appearance', themeLight: 'Light Mode', themeDark: 'Dark Mode'
   }
 };
+
+const languages = [
+  { code: 'pt-BR', name: 'Português (Brasil)', flag: '🇧🇷' },
+  { code: 'pt-PT', name: 'Português (Portugal)', flag: '🇵🇹' },
+  { code: 'en', name: 'English', flag: '🇺🇸' }
+];
 
 export default function AreaDoAluno({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -74,9 +85,11 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
   const [treinoDoDia, setTreinoDoDia] = useState<any>(null);
   const [horaAtual, setHoraAtual] = useState(new Date());
   
-  // Estados de Tema e i18n
+  // Estados de Tema, i18n e Modais Premium
   const [isDark, setIsDark] = useState(true);
   const [lang, setLang] = useState<'pt-BR' | 'pt-PT' | 'en'>('pt-BR');
+  const [isLangModalOpen, setIsLangModalOpen] = useState(false);
+  const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
 
   useEffect(() => {
     const timer = setInterval(() => setHoraAtual(new Date()), 1000);
@@ -91,26 +104,39 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
   };
 
   useEffect(() => {
-    const savedTheme = localStorage.getItem('@premium_theme');
-    if (savedTheme) setIsDark(savedTheme === 'dark');
-    
-    const savedLang = localStorage.getItem('@premium_lang') as 'pt-BR' | 'pt-PT' | 'en';
-    if (savedLang) setLang(savedLang);
+    const updateSettings = () => {
+      const savedTheme = localStorage.getItem('@premium_theme');
+      if (savedTheme) setIsDark(savedTheme === 'dark');
+      
+      const savedLang = localStorage.getItem('@premium_lang') as 'pt-BR' | 'pt-PT' | 'en';
+      if (savedLang) setLang(savedLang);
+    };
+
+    updateSettings();
+    window.addEventListener('storage', updateSettings);
+    window.addEventListener('config-updated', updateSettings);
     NotificationService.registrarDispositivo();
+
+    return () => {
+      window.removeEventListener('storage', updateSettings);
+      window.removeEventListener('config-updated', updateSettings);
+    };
   }, []);
 
-  const toggleTheme = () => {
-    const newTheme = !isDark;
-    setIsDark(newTheme);
-    localStorage.setItem('@premium_theme', newTheme ? 'dark' : 'light');
-    window.dispatchEvent(new Event('storage'));
+  // Handlers dos Modais Premium
+  const handleSelectLanguage = (newLang: string) => {
+    setLang(newLang as any);
+    localStorage.setItem('@premium_lang', newLang);
+    window.dispatchEvent(new Event('config-updated'));
+    setIsLangModalOpen(false);
   };
 
-  const toggleLang = () => {
-    const langs: ('pt-BR' | 'pt-PT' | 'en')[] = ['pt-BR', 'pt-PT', 'en'];
-    const nextLang = langs[(langs.indexOf(lang) + 1) % langs.length];
-    setLang(nextLang);
-    localStorage.setItem('@premium_lang', nextLang);
+  const handleSelectTheme = (theme: 'dark' | 'light') => {
+    const newIsDark = theme === 'dark';
+    setIsDark(newIsDark);
+    localStorage.setItem('@premium_theme', newIsDark ? 'dark' : 'light');
+    window.dispatchEvent(new Event('config-updated'));
+    setIsThemeModalOpen(false);
   };
 
   const t = translations[lang] || translations['pt-BR'];
@@ -195,22 +221,37 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
                 )}
               </div>
             </div>
-            <div className="flex flex-col truncate">
+            <div className="flex flex-col truncate pr-2">
               <span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-0.5">Personal Trainer</span>
               <h1 className="font-black text-lg leading-none tracking-tight truncate">{personal?.nome || 'Personal'}</h1>
               <p className="text-[var(--primary)] text-[9px] font-black uppercase tracking-[0.2em] mt-1">CREF: {personal?.cref || 'N/A'}</p>
             </div>
           </div>
           
-          <div className="flex gap-2 shrink-0">
-            <button onClick={toggleLang} className="w-10 h-10 rounded-full bg-[var(--surface)] border border-[var(--border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--primary)] transition-all active:scale-95 shadow-sm relative">
-              <FaGlobe size={16} />
-              <span className="absolute -top-1 -right-1 bg-[var(--primary)] text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full leading-none flex items-center">{lang.split('-')[0].toUpperCase()}</span>
+          {/* ━━━━━━━━━━ PILL UI DE CONTROLES (SaaS Gigante) ━━━━━━━━━━ */}
+          <div className="flex items-center bg-[var(--surface)] border border-[var(--border)] rounded-full shadow-sm p-1 shrink-0">
+            <button 
+              onClick={() => setIsLangModalOpen(true)}
+              className="flex items-center justify-center gap-1.5 px-2.5 h-8 rounded-full text-[var(--text-secondary)] hover:text-[var(--primary)] hover:bg-[var(--primary)]/5 transition-all active:scale-95"
+            >
+              <FaGlobe size={14} />
+              <span className="text-[10px] font-black uppercase tracking-widest hidden sm:block">{lang.split('-')[0]}</span>
             </button>
-            <div className="flex items-center justify-center"><NotificationBell /></div>
-            <button onClick={toggleTheme} className="w-10 h-10 rounded-full bg-[var(--surface)] border border-[var(--border)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--primary)] transition-all active:scale-95 shadow-sm">
-              {isDark ? <FaSun size={16} /> : <FaMoon size={16} />}
+            
+            <div className="w-[1px] h-4 bg-[var(--border)] mx-0.5" />
+            
+            <button 
+              onClick={() => setIsThemeModalOpen(true)} 
+              className="flex items-center justify-center w-8 h-8 rounded-full text-[var(--text-secondary)] hover:text-[var(--primary)] hover:bg-[var(--primary)]/5 transition-all active:scale-95"
+            >
+              {isDark ? <FaMoon size={14} /> : <FaSun size={14} />}
             </button>
+
+            <div className="w-[1px] h-4 bg-[var(--border)] mx-0.5" />
+
+            <div className="flex items-center justify-center w-8 h-8 rounded-full hover:bg-[var(--primary)]/5 transition-all">
+              <NotificationBell />
+            </div>
           </div>
         </header>
 
@@ -230,7 +271,7 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
           </div>
         )}
 
-        {/* Saudação Premium (Sem o Relógio redundante) */}
+        {/* Saudação Premium */}
         <div className="px-2 animate-in fade-in duration-700 delay-300 mt-2 mb-2">
            <h3 className="text-xl font-black text-[var(--text-primary)] tracking-tight">{getSaudacao()}, {aluno?.nome?.split(' ')[0] || 'Aluno'}! 👋</h3>
            <p className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mt-1">
@@ -301,7 +342,6 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
           <BotaoMenu icon={<FaFolderOpen />} label={t.files} onClick={() => router.push(`/aluno/${id}/arquivos`)} />
         </div>
 
-        {/* Card de Assinatura Reposicionado (Discreto no rodapé) */}
         {aluno && (
           <div className="bg-[var(--surface)] p-5 rounded-[1.5rem] border border-[var(--border)] flex justify-between items-center shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500 delay-300 mt-2">
             <div className="flex flex-col">
@@ -318,7 +358,7 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
           </div>
         )}
 
-        {/* Modal de Avaliação Premium */}
+        {/* Modais Antigos */}
         {modalAberta && (
           <ModalAvaliacao 
             isOpen={modalAberta} 
@@ -342,6 +382,118 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
               <button onClick={() => setCalendarioAberto(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-[var(--surface-sec)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all active:scale-95"><span className="text-xl leading-none">&times;</span></button>
             </div>
             <CalendarioTreino diasTreinados={diasTreino} lang={lang} />
+          </div>
+        </div>
+      )}
+
+      {/* ━━━━━━━━━━ MODAIS DE CONFIGURAÇÃO (Fundo Escuro) ━━━━━━━━━━ */}
+      {(isLangModalOpen || isThemeModalOpen) && (
+        <div className="fixed inset-0 z-[999999] flex items-end sm:items-center justify-center p-0 sm:p-5">
+          <div 
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300"
+            onClick={() => { setIsLangModalOpen(false); setIsThemeModalOpen(false); }} 
+          />
+          
+          <div style={themeStyles} className="w-full max-w-sm bg-[var(--bg)] border border-[var(--border)] rounded-t-[2.5rem] sm:rounded-[2.5rem] p-6 shadow-2xl relative z-10 animate-in slide-in-from-bottom-full sm:slide-in-from-bottom-8 sm:zoom-in-95 duration-300">
+            
+            {/* ━━ CONTEÚDO: IDIOMAS ━━ */}
+            {isLangModalOpen && (
+              <>
+                <div className="flex justify-between items-center mb-6 px-2">
+                  <h3 className="font-black text-lg tracking-tight text-[var(--text-primary)]">
+                    {t.selectLanguage}
+                  </h3>
+                  <button 
+                    onClick={() => setIsLangModalOpen(false)}
+                    className="w-8 h-8 rounded-full bg-[var(--surface)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--danger)] transition-colors active:scale-95"
+                  >
+                    <FaTimes size={14} />
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  {languages.map((language) => {
+                    const isActive = lang === language.code;
+                    return (
+                      <button
+                        key={language.code}
+                        onClick={() => handleSelectLanguage(language.code)}
+                        className={`w-full flex items-center justify-between p-4 rounded-[1.2rem] border transition-all active:scale-[0.98] ${
+                          isActive 
+                            ? 'bg-[var(--primary)]/10 border-[var(--primary)]/30 text-[var(--primary)]' 
+                            : 'bg-[var(--surface)] border-[var(--border)] text-[var(--text-primary)] hover:border-[var(--text-secondary)]/50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-4">
+                          <span className="text-2xl">{language.flag}</span>
+                          <span className={`font-bold text-sm ${isActive ? 'text-[var(--primary)]' : ''}`}>
+                            {language.name}
+                          </span>
+                        </div>
+                        {isActive && <FaCheck className="text-[var(--primary)]" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+
+            {/* ━━ CONTEÚDO: TEMA ━━ */}
+            {isThemeModalOpen && (
+              <>
+                <div className="flex justify-between items-center mb-6 px-2">
+                  <h3 className="font-black text-lg tracking-tight text-[var(--text-primary)]">
+                    {t.selectTheme}
+                  </h3>
+                  <button 
+                    onClick={() => setIsThemeModalOpen(false)}
+                    className="w-8 h-8 rounded-full bg-[var(--surface)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--danger)] transition-colors active:scale-95"
+                  >
+                    <FaTimes size={14} />
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  <button
+                    onClick={() => handleSelectTheme('light')}
+                    className={`w-full flex items-center justify-between p-4 rounded-[1.2rem] border transition-all active:scale-[0.98] ${
+                      !isDark 
+                        ? 'bg-[var(--primary)]/10 border-[var(--primary)]/30 text-[var(--primary)]' 
+                        : 'bg-[var(--surface)] border-[var(--border)] text-[var(--text-primary)] hover:border-[var(--text-secondary)]/50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-8 h-8 rounded-full bg-orange-100 text-orange-500 flex items-center justify-center">
+                        <FaSun size={16} />
+                      </div>
+                      <span className={`font-bold text-sm ${!isDark ? 'text-[var(--primary)]' : ''}`}>
+                        {t.themeLight}
+                      </span>
+                    </div>
+                    {!isDark && <FaCheck className="text-[var(--primary)]" />}
+                  </button>
+                  
+                  <button
+                    onClick={() => handleSelectTheme('dark')}
+                    className={`w-full flex items-center justify-between p-4 rounded-[1.2rem] border transition-all active:scale-[0.98] ${
+                      isDark 
+                        ? 'bg-[var(--primary)]/10 border-[var(--primary)]/30 text-[var(--primary)]' 
+                        : 'bg-[var(--surface)] border-[var(--border)] text-[var(--text-primary)] hover:border-[var(--text-secondary)]/50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-8 h-8 rounded-full bg-slate-800 text-slate-300 flex items-center justify-center">
+                        <FaMoon size={16} />
+                      </div>
+                      <span className={`font-bold text-sm ${isDark ? 'text-[var(--primary)]' : ''}`}>
+                        {t.themeDark}
+                      </span>
+                    </div>
+                    {isDark && <FaCheck className="text-[var(--primary)]" />}
+                  </button>
+                </div>
+              </>
+            )}
+            
+            <div className="w-12 h-1 bg-[var(--border)] rounded-full mx-auto mt-6 sm:hidden" />
           </div>
         </div>
       )}
