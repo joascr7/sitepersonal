@@ -1,6 +1,6 @@
 'use client';
 import { usePathname } from 'next/navigation';
-import Link from 'next/link'; // Imported Link component
+import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import LogoutButton from './LogoutButton';
@@ -18,21 +18,26 @@ const translations = {
 export default function Navbar() {
   const pathname = usePathname();
   const [lang, setLang] = useState<'pt-BR' | 'pt-PT' | 'en'>('pt-BR');
+  const [isDark, setIsDark] = useState(true);
   const [mounted, setMounted] = useState(false);
   const [telefoneAluno, setTelefoneAluno] = useState<string | null>(null);
 
   useEffect(() => {
     const updateSettings = () => {
+      // Atualiza o Idioma
       const savedLang = localStorage.getItem('@premium_lang') as 'pt-BR' | 'pt-PT' | 'en';
       if (savedLang) setLang(savedLang);
+
+      // Atualiza o Tema (Garante a sincronização instantânea)
+      const savedTheme = localStorage.getItem('@premium_theme');
+      if (savedTheme) setIsDark(savedTheme === 'dark');
     };
     
     updateSettings();
     setMounted(true);
     
-    // Listen for cross-tab changes
+    // Escuta mudanças de outras abas e da aba atual
     window.addEventListener('storage', updateSettings);
-    // Listen for same-tab custom changes
     window.addEventListener('config-updated', updateSettings);
     
     return () => {
@@ -42,7 +47,6 @@ export default function Navbar() {
   }, []);
 
   // Extrai o ID do aluno se o personal estiver navegando na rota de um aluno específico
-  // Exemplo: /dashboard/aluno/[id] ou /dashboard/aluno/[id]/progresso
   const parts = pathname.split('/');
   const isAlunoRoute = parts[1] === 'dashboard' && parts[2] === 'aluno' && parts[3];
   const alunoId = isAlunoRoute ? parts[3] : null;
@@ -75,19 +79,42 @@ export default function Navbar() {
 
   const t = translations[lang] || translations['pt-BR'];
 
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // VARIÁVEIS CSS LOCAIS (Sincroniza instantaneamente com o Dashboard)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  const themeStyles = isDark ? {
+    '--bg': '#0F1115',
+    '--surface': '#151A22',
+    '--surface-sec': '#1B2330',
+    '--primary': '#3B82F6',
+    '--danger': '#EF4444',
+    '--success': '#22C55E',
+    '--text-primary': '#F8FAFC',
+    '--text-secondary': '#94A3B8',
+    '--border': 'rgba(255,255,255,0.05)',
+  } as React.CSSProperties : {
+    '--bg': '#F3F6FB',
+    '--surface': '#FFFFFF',
+    '--surface-sec': '#E8EEF9',
+    '--primary': '#2563EB',
+    '--danger': '#DC2626',
+    '--success': '#16A34A',
+    '--text-primary': '#111827',
+    '--text-secondary': '#6B7280',
+    '--border': 'rgba(15,23,42,0.06)',
+  } as React.CSSProperties;
+
   const rotasExcluidas = [
     '/', '/login-professor', '/login-aluno', '/login-professor-cadastro', '/nova-senha', '/pagamento-pendente'
   ];
   
   if (rotasExcluidas.includes(pathname) || pathname.startsWith('/aluno')) return null;
 
-  // Montagem dinâmica dos links do Personal
   const navItems = [
     { name: t.dashboard, path: '/dashboard', icon: <FaChartLine /> },
     { name: t.financial, path: '/dashboard/financeiro', icon: <FaWallet /> },
   ];
 
-  // Adiciona o WhatsApp dinamicamente se estiver na tela de um aluno e tiver telefone
   if (telefoneAluno) {
     navItems.push({
       name: t.whatsapp,
@@ -96,12 +123,10 @@ export default function Navbar() {
     });
   }
 
-  // Adiciona o Perfil do Personal no final
   navItems.push({ name: t.profile, path: '/perfil', icon: <FaUser /> });
 
   if (!mounted) return null;
 
-  // Helper component to handle internal vs external links
   const NavLink = ({ item, isMobile }: { item: any, isMobile: boolean }) => {
     const isActive = pathname === item.path;
     const isExternal = item.path.startsWith('http');
@@ -138,7 +163,6 @@ export default function Navbar() {
       );
     }
 
-    // Use Next.js Link for internal routing
     return (
       <Link 
         href={item.path} 
@@ -172,8 +196,9 @@ export default function Navbar() {
 
   return (
     <>
-      {/* ━━━━━━━━━━ DESKTOP NAVBAR (OCULTA NO MOBILE) ━━━━━━━━━━ */}
+      {/* ━━━━━━━━━━ DESKTOP NAVBAR ━━━━━━━━━━ */}
       <nav 
+        style={themeStyles}
         className="hidden md:flex sticky top-0 z-[100] bg-[var(--surface)]/90 backdrop-blur-2xl border-b border-[var(--border)] px-10 py-4 justify-between items-center transition-colors duration-500 shadow-sm"
       >
         <div className="flex items-center gap-4 h-10 w-auto group cursor-pointer">
@@ -198,7 +223,7 @@ export default function Navbar() {
 
       {/* ━━━━━━━━━━ MOBILE BOTTOM NAVIGATION ━━━━━━━━━━ */}
       <nav 
-        style={{ bottom: 'max(env(safe-area-inset-bottom, 20px), 20px)' }}
+        style={{ ...themeStyles, bottom: 'max(env(safe-area-inset-bottom, 20px), 20px)' }}
         className="md:hidden fixed left-5 right-5 z-[100] bg-[var(--surface)]/90 backdrop-blur-3xl border border-[var(--border)] rounded-[2rem] py-3 px-6 flex justify-between items-center shadow-[0_20px_40px_-10px_rgba(0,0,0,0.3)] transition-colors duration-500"
       >
         {navItems.map((item) => (
