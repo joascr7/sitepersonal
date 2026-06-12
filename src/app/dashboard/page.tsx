@@ -50,15 +50,15 @@ const DashboardSkeleton = () => (
 const translations = {
   'pt-BR': {
     search: 'Buscar aluno...', statusBlocked: 'BLOQUEADO', statusActive: 'ATIVO', statusPending: 'PENDENTE', testPeriod: 'Você está no período de teste.', subscribe: 'Assinar Plano', renewal: 'Renovação próxima', confirmReativar: 'Confirmar reativação do acesso para ', confirmBloqueio: 'Confirmar bloqueio de acesso para ', errStatus: 'Erro ao alterar status.', successStatusReativado: 'Aluno reativado!', successStatusBloqueado: 'Acesso bloqueado!', errProcess: 'Falha ao processar: ', successPay: 'Pagamento registrado com sucesso!', confirmPagamento: 'Confirmar Pagamento', valorPlaceholder: 'Valor (R$)', registrarPagamento: 'Registrar Pagamento', report: 'Relatório por Mês',
-    addStudents: 'Adicionar alunos', students: 'Alunos', active: 'Ativos', inactive: 'Inativos', yourStudents: 'Seus alunos', manageStudents: 'Gerenciar Alunos', workouts: 'Treinos', libraryWorkouts: 'Biblioteca de treinos', libraryExercises: 'Biblioteca de exercícios'
+    addStudents: 'Adicionar novo aluno', students: 'Meus Alunos', active: 'Ativos', inactive: 'Inativos', yourStudents: 'Gestão de Alunos', manageStudents: 'Gerenciar Alunos', workouts: 'Gestão de Treinos', libraryWorkouts: 'Biblioteca de treinos', libraryExercises: 'Biblioteca de exercícios'
   },
   'pt-PT': {
     search: 'Procurar aluno...', statusBlocked: 'BLOQUEADO', statusActive: 'ATIVO', statusPending: 'PENDENTE', testPeriod: 'Está no período de teste.', subscribe: 'Assinar Plano', renewal: 'Renovação próxima', confirmReativar: 'Confirmar reativação do acesso para ', confirmBloqueio: 'Confirmar bloqueio de acesso para ', errStatus: 'Erro ao alterar status.', successStatusReativado: 'Aluno reativado!', successStatusBloqueado: 'Acesso bloqueado!', errProcess: 'Falha ao processar: ', successPay: 'Pagamento registado com sucesso!', confirmPagamento: 'Confirmar Pagamento', valorPlaceholder: 'Valor', registrarPagamento: 'Registar Pagamento', report: 'Relatório por Mês',
-    addStudents: 'Adicionar alunos', students: 'Alunos', active: 'Ativos', inactive: 'Inativos', yourStudents: 'Seus alunos', manageStudents: 'Gerir Alunos', workouts: 'Treinos', libraryWorkouts: 'Biblioteca de treinos', libraryExercises: 'Biblioteca de exercícios'
+    addStudents: 'Adicionar novo aluno', students: 'Meus Alunos', active: 'Ativos', inactive: 'Inativos', yourStudents: 'Gestão de Alunos', manageStudents: 'Gerir Alunos', workouts: 'Gestão de Treinos', libraryWorkouts: 'Biblioteca de treinos', libraryExercises: 'Biblioteca de exercícios'
   },
   'en': {
     search: 'Search student...', statusBlocked: 'BLOCKED', statusActive: 'ACTIVE', statusPending: 'PENDING', testPeriod: 'You are in the trial period.', subscribe: 'Subscribe', renewal: 'Upcoming renewal', confirmReativar: 'Confirm access reactivation for ', confirmBloqueio: 'Confirm access blocking for ', errStatus: 'Error changing status.', successStatusReativado: 'Student reactivated!', successStatusBloqueado: 'Access blocked!', errProcess: 'Failed to process: ', successPay: 'Payment registered successfully!', confirmPagamento: 'Confirm Payment', valorPlaceholder: 'Value', registrarPagamento: 'Register Payment', report: 'Monthly Report',
-    addStudents: 'Add students', students: 'Students', active: 'Active', inactive: 'Inactive', yourStudents: 'Your students', manageStudents: 'Manage Students', workouts: 'Workouts', libraryWorkouts: 'Workout Library', libraryExercises: 'Exercise Library'
+    addStudents: 'Add new student', students: 'My Students', active: 'Active', inactive: 'Inactive', yourStudents: 'Student Management', manageStudents: 'Manage Students', workouts: 'Workout Management', libraryWorkouts: 'Workout Library', libraryExercises: 'Exercise Library'
   }
 };
 
@@ -127,7 +127,7 @@ export default function Dashboard() {
   };
 
   const toggleTheme = () => { const newTheme = !isDark; setIsDark(newTheme); localStorage.setItem('@premium_theme', newTheme ? 'dark' : 'light'); window.dispatchEvent(new Event('storage')); };
-  const toggleLang = () => { const langs: ('pt-BR' | 'pt-PT' | 'en')[] = ['pt-BR', 'pt-PT', 'en']; const nextLang = langs[(langs.indexOf(lang) + 1) % langs.length]; setLang(nextLang); localStorage.setItem('@premium_lang', nextLang); };
+  const toggleLang = () => { const langs: ('pt-BR' | 'pt-PT' | 'en')[] = ['pt-BR', 'pt-PT', 'en']; const nextLang = langs[(langs.indexOf(lang) + 1) % langs.length]; setLang(nextLang); localStorage.setItem('@premium_lang', nextLang); window.dispatchEvent(new Event('storage')); };
   
   const t = translations[lang] || translations['pt-BR'];
 
@@ -408,157 +408,177 @@ export default function Dashboard() {
         {loading ? <DashboardSkeleton /> : (
           <div className="max-w-4xl mx-auto flex flex-col">
             
-           <header className="bg-[#1C283F] text-white pt-[max(env(safe-area-inset-top),2rem)] pb-12 px-6 relative">
- {/* Botões superiores */}
-  <div className="absolute top-[max(env(safe-area-inset-top,1rem),1rem)] right-3 flex gap-1 z-20">
-    <button 
-      onClick={toggleTheme} 
-      className="p-3 text-slate-400 hover:text-white hover:bg-white/5 rounded-full transition-all active:scale-95 flex items-center justify-center"
-    >
-      {isDark ? <FaSun size={20} /> : <FaMoon size={20} />}
-    </button>
-    <button 
-      onClick={toggleLang} 
-      className="p-3 text-slate-400 hover:text-white hover:bg-white/5 rounded-full transition-all relative active:scale-95 flex items-center justify-center"
-    >
-      <FaGlobe size={20} />
-      <span className="absolute top-1 right-1 bg-blue-500 text-[8px] text-white font-bold px-1.5 rounded-full shadow-sm">
-        {lang.split('-')[0]}
-      </span>
-    </button>
-  </div>
+            <header className="bg-[#1C283F] text-white pt-[max(env(safe-area-inset-top),2rem)] pb-12 px-6 relative">
+              {/* Botões superiores */}
+              <div className="absolute top-[max(env(safe-area-inset-top,1rem),1rem)] right-3 flex gap-1 z-20">
+                <button 
+                  onClick={toggleTheme} 
+                  className="p-3 text-slate-400 hover:text-white hover:bg-white/5 rounded-full transition-all active:scale-95 flex items-center justify-center"
+                >
+                  {isDark ? <FaSun size={20} /> : <FaMoon size={20} />}
+                </button>
+                <button 
+                  onClick={toggleLang} 
+                  className="p-3 text-slate-400 hover:text-white hover:bg-white/5 rounded-full transition-all relative active:scale-95 flex items-center justify-center"
+                >
+                  <FaGlobe size={20} />
+                  <span className="absolute top-1 right-1 bg-blue-500 text-[8px] text-white font-bold px-1.5 rounded-full shadow-sm">
+                    {lang.split('-')[0]}
+                  </span>
+                </button>
+              </div>
 
-  {/* Logo */}
-  <div className="flex justify-center items-center w-full mt-2 mb-10">
-    <div className="flex items-center gap-2 text-2xl font-black tracking-widest opacity-90">
-      <FaDumbbell className="text-white" />
-      AURAFIT<span className="font-light">PERSONAL</span>
-    </div>
-  </div>
+              {/* Logo */}
+              <div className="flex justify-center items-center w-full mt-2 mb-10">
+                <div className="flex items-center gap-2 text-2xl font-black tracking-widest opacity-90">
+                  <FaDumbbell className="text-white" />
+                  AURAFIT<span className="font-light">PERSONAL</span>
+                </div>
+              </div>
 
-  {/* Saudação Corrigida e Elegante */}
-  <div className="flex items-center gap-4 max-w-4xl mx-auto">
-    <div className="w-14 h-14 rounded-full border-2 border-white/10 bg-slate-700 flex items-center justify-center font-black text-xl overflow-hidden shrink-0 shadow-lg">
-      {avatarUrlRender && !avatarError ? (
-        <img 
-          src={avatarUrlRender} 
-          alt="Avatar"
-          className="w-full h-full object-cover"
-          onError={() => setAvatarError(true)}
-        />
-      ) : (
-        <span>{nomeDisplay.charAt(0).toUpperCase()}</span>
-      )}
-    </div>
-    <div className="flex flex-col">
-      <span className="text-[12px] font-medium text-slate-300 uppercase tracking-widest opacity-80">
-        {getSaudacao()},
-      </span>
-      <span className="text-xl font-bold text-white tracking-tight">
-        {nomeDisplay}
-      </span>
-    </div>
-  </div>
-</header>
+              {/* Saudação Corrigida e Elegante */}
+              <div className="flex items-center gap-4 max-w-4xl mx-auto">
+                <div className="w-14 h-14 rounded-full border-2 border-white/10 bg-slate-700 flex items-center justify-center font-black text-xl overflow-hidden shrink-0 shadow-lg">
+                  {avatarUrlRender && !avatarError ? (
+                    <img 
+                      src={avatarUrlRender} 
+                      alt="Avatar"
+                      className="w-full h-full object-cover"
+                      onError={() => setAvatarError(true)}
+                    />
+                  ) : (
+                    <span>{nomeDisplay.charAt(0).toUpperCase()}</span>
+                  )}
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-[12px] font-medium text-slate-300 uppercase tracking-widest opacity-80">
+                    {getSaudacao()},
+                  </span>
+                  <span className="text-xl font-bold text-white tracking-tight">
+                    {nomeDisplay}
+                  </span>
+                </div>
+              </div>
+            </header>
 
-            <div className="px-6 -mt-6 relative z-10">
-              <div className="flex bg-[var(--surface)] p-1.5 rounded-[1rem] shadow-xl border border-[var(--border)]">
-                <button onClick={() => setActiveTab('inicio')} className={`flex-1 py-3 text-sm font-black rounded-xl transition-all ${activeTab === 'inicio' ? 'bg-[var(--bg)] text-[var(--text-primary)] shadow-sm' : 'text-[var(--text-secondary)] bg-[#3B82F6] text-white hover:brightness-110'}`}>Início</button>
-                <button onClick={() => setActiveTab('financas')} className={`flex-1 py-3 text-sm font-black rounded-xl transition-all ${activeTab === 'financas' ? 'bg-[var(--bg)] text-[var(--text-primary)] shadow-sm' : 'text-[var(--text-secondary)] bg-[#3B82F6] text-white hover:brightness-110'}`}>Finanças</button>
+            {/* ABAS PREMIUM (Segmented Control) */}
+            <div className="px-5 -mt-6 relative z-10">
+              <div className="flex bg-[var(--surface-sec)] p-1.5 rounded-[1.2rem] shadow-inner border border-[var(--border)] backdrop-blur-md">
+                <button 
+                  onClick={() => setActiveTab('inicio')} 
+                  className={`flex-1 py-3 text-[13px] font-black rounded-xl transition-all duration-300 ${activeTab === 'inicio' ? 'bg-[var(--surface)] text-[var(--text-primary)] shadow-sm' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                >
+                  Início
+                </button>
+                <button 
+                  onClick={() => setActiveTab('financas')} 
+                  className={`flex-1 py-3 text-[13px] font-black rounded-xl transition-all duration-300 ${activeTab === 'financas' ? 'bg-[var(--surface)] text-[var(--text-primary)] shadow-sm' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+                >
+                  Finanças
+                </button>
               </div>
             </div>
 
             {activeTab === 'inicio' && (
               <div className="px-5 mt-8 space-y-8 animate-in fade-in duration-500">
                 
-                {/* Ações Rápidas Topo */}
+                {/* AÇÕES RÁPIDAS (Widgets Redondos e Elegantes) */}
                 <div className="flex justify-around items-end">
                   <div onClick={() => router.push('/dashboard/feedbacks')} className="flex flex-col items-center gap-2 group cursor-pointer">
-                    <div className="relative">
-                      <div className="w-14 h-14 bg-[var(--surface)] text-[#3B82F6] rounded-full shadow-md border border-blue-100 flex items-center justify-center text-xl group-hover:scale-105 transition-transform">
-                        <FaCommentDots />
-                      </div>
+                    <div className="w-14 h-14 bg-[var(--surface)] text-[var(--primary)] rounded-full shadow-sm border border-[var(--border)] flex items-center justify-center text-xl group-hover:bg-[var(--primary)]/5 transition-all">
+                      <FaCommentDots />
                     </div>
-                    <span className="text-[11px] font-bold text-[var(--text-secondary)]">Feedbacks</span>
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] group-hover:text-[var(--primary)] transition-colors">Feedbacks</span>
                   </div>
                   
                   <div onClick={() => setIsParqModalOpen(true)} className="flex flex-col items-center gap-2 group cursor-pointer">
                     <div className="relative">
-                      <div className="w-14 h-14 bg-[var(--surface)] text-[#3B82F6] rounded-full shadow-md border border-blue-100 flex items-center justify-center text-xl group-hover:scale-105 transition-transform">
+                      <div className="w-14 h-14 bg-[var(--surface)] text-[var(--primary)] rounded-full shadow-sm border border-[var(--border)] flex items-center justify-center text-xl group-hover:bg-[var(--primary)]/5 transition-all">
                         <FaCalendarAlt />
                       </div>
                       {alunosVencendo.length > 0 && (
-                        <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full border-2 border-[var(--bg)] shadow-sm">
+                        <span className="absolute -top-1 -right-1 bg-[var(--danger)] text-white text-[10px] font-black px-1.5 py-0.5 rounded-full border-2 border-[var(--bg)] shadow-sm">
                           {alunosVencendo.length}
                         </span>
                       )}
                     </div>
-                    <span className="text-[11px] font-bold text-[var(--text-secondary)]">PAR-Q</span>
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] group-hover:text-[var(--primary)] transition-colors">PAR-Q</span>
                   </div>
                   
                   <div className="flex flex-col items-center gap-2 group cursor-pointer">
-                    <div className="w-14 h-14 bg-[var(--surface)] text-[#3B82F6] rounded-full shadow-md border border-blue-100 flex items-center justify-center text-xl group-hover:scale-105 transition-transform">
+                    <div className="w-14 h-14 bg-[var(--surface)] text-[var(--primary)] rounded-full shadow-sm border border-[var(--border)] flex items-center justify-center text-xl group-hover:bg-[var(--primary)]/5 transition-all">
                       <NotificationBell />
                     </div>
-                    <span className="text-[11px] font-bold text-[var(--text-secondary)]">Notificações</span>
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] group-hover:text-[var(--primary)] transition-colors">Avisos</span>
                   </div>
                 </div>
 
-                {/* ━━━━━━━━━━ NOVA SEÇÃO: TREINOS ━━━━━━━━━━ */}
+                {/* ━━━━━━━━━━ SEÇÃO: GESTÃO DE TREINOS ━━━━━━━━━━ */}
                 <section>
-                  <h3 className="font-black text-sm text-[var(--text-primary)] mb-4">{t.workouts}</h3>
+                  <h3 className="text-[10px] font-black text-[var(--text-secondary)] uppercase tracking-[0.2em] mb-4 ml-1">{t.workouts}</h3>
                   <div className="grid grid-cols-2 gap-3 mb-3">
                     <button 
                       onClick={() => router.push('/dashboard/BibliotecaTreinos')} 
-                      className="bg-[var(--surface)] border border-[var(--border)] p-5 rounded-2xl flex flex-col gap-3 shadow-sm hover:border-[var(--primary)] hover:shadow-md transition-all active:scale-95 group"
+                      className="bg-[var(--surface)] border border-[var(--border)] p-5 rounded-2xl flex flex-col gap-3 shadow-sm hover:border-[var(--primary)]/50 hover:shadow-md transition-all active:scale-95 group"
                     >
-                      <div className="w-10 h-10 rounded-full bg-blue-500/10 text-[var(--primary)] flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <div className="w-10 h-10 rounded-full bg-[var(--primary)]/10 text-[var(--primary)] flex items-center justify-center group-hover:bg-[var(--primary)] group-hover:text-white transition-colors">
                         <FaBookOpen size={18} />
                       </div>
-                      <span className="font-bold text-xs text-left text-[var(--text-primary)] leading-tight">{t.libraryWorkouts}</span>
+                      <span className="font-bold text-[12px] text-left text-[var(--text-primary)] leading-tight">{t.libraryWorkouts}</span>
                     </button>
                     
                     <button 
                       onClick={() => router.push('/dashboard/BibliotecaTreinos?aba=exercicios')} 
-                      className="bg-[var(--surface)] border border-[var(--border)] p-5 rounded-2xl flex flex-col gap-3 shadow-sm hover:border-[var(--primary)] hover:shadow-md transition-all active:scale-95 group"
+                      className="bg-[var(--surface)] border border-[var(--border)] p-5 rounded-2xl flex flex-col gap-3 shadow-sm hover:border-[var(--primary)]/50 hover:shadow-md transition-all active:scale-95 group"
                     >
-                      <div className="w-10 h-10 rounded-full bg-blue-500/10 text-[var(--primary)] flex items-center justify-center group-hover:scale-110 transition-transform">
+                      <div className="w-10 h-10 rounded-full bg-[var(--primary)]/10 text-[var(--primary)] flex items-center justify-center group-hover:bg-[var(--primary)] group-hover:text-white transition-colors">
                         <FaListUl size={18} />
                       </div>
-                      <span className="font-bold text-xs text-left text-[var(--text-primary)] leading-tight">{t.libraryExercises}</span>
+                      <span className="font-bold text-[12px] text-left text-[var(--text-primary)] leading-tight">{t.libraryExercises}</span>
                     </button>
                   </div>
                 </section>
-                {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
 
+                {/* ━━━━━━━━━━ SEÇÃO: GESTÃO DE ALUNOS ━━━━━━━━━━ */}
                 <section>
-                  <h3 className="font-black text-sm text-[var(--text-primary)] mb-4">{t.yourStudents}</h3>
+                  <h3 className="text-[10px] font-black text-[var(--text-secondary)] uppercase tracking-[0.2em] mb-4 ml-1">{t.yourStudents}</h3>
                   
                   <BirthdaysWidget alunos={alunos} />
 
-                  {/* Alterado para grid-cols-1 após remoção do Link de Cadastro */}
-                  <div className="grid grid-cols-1 gap-3 mb-3">
-                    <button onClick={() => router.push('/dashboard/adicionar-aluno')} className="bg-[#3B82F6] text-white p-5 rounded-xl flex items-center gap-4 shadow-md hover:brightness-110 active:scale-95 transition-all">
-                      <FaUserPlus size={22} className="shrink-0" />
-                      <span className="font-bold text-sm text-left">{t.addStudents}</span>
-                    </button>
-                  </div>
-
+                  {/* Botão Primário: Gerenciar Alunos (Card com Gradiente) */}
                   <button 
                     onClick={() => { setIsAlunosModalOpen(true); setCurrentPage(1); }} 
-                    className="w-full bg-gradient-to-r from-blue-700 to-slate-900 text-white p-5 rounded-xl flex justify-between items-center shadow-lg mb-6 hover:brightness-110 active:scale-95 transition-all"
+                    className="w-full bg-gradient-to-br from-[var(--primary)] to-indigo-700 text-white p-6 rounded-[1.5rem] shadow-lg shadow-[var(--primary)]/20 flex justify-between items-center mb-3 hover:shadow-[var(--primary)]/40 active:scale-[0.98] transition-all group"
                   >
                     <div className="flex items-center gap-4">
-                      <FaUsers size={28} />
-                      <div className="flex flex-col items-start gap-1.5">
-                        <span className="font-black text-sm">{t.students}</span>
+                      <div className="w-12 h-12 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center">
+                        <FaUsers size={22} className="text-white" />
+                      </div>
+                      <div className="flex flex-col items-start gap-1">
+                        <span className="font-black text-lg tracking-tight">{t.students}</span>
+                        {/* Tags Premium (Soft UI) */}
                         <div className="flex gap-2">
-                          <span className="bg-green-400 text-green-900 text-[9px] px-2 py-0.5 rounded uppercase tracking-wider font-black">{t.active}: {alunosAtivosCount}</span>
-                          <span className="bg-yellow-400 text-yellow-900 text-[9px] px-2 py-0.5 rounded uppercase tracking-wider font-black">{t.inactive}: {alunosInativosCount}</span>
+                          <span className="bg-white/20 border border-white/10 text-white text-[9px] px-2 py-0.5 rounded-md uppercase tracking-widest font-black flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-green-400"></span> {t.active}: {alunosAtivosCount}
+                          </span>
+                          {alunosInativosCount > 0 && (
+                            <span className="bg-black/20 border border-black/10 text-white/90 text-[9px] px-2 py-0.5 rounded-md uppercase tracking-widest font-black flex items-center gap-1">
+                              <span className="w-1.5 h-1.5 rounded-full bg-yellow-400"></span> {t.inactive}: {alunosInativosCount}
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>
-                    <FaChevronRight className="opacity-50" />
+                    <FaChevronRight className="opacity-50 group-hover:opacity-100 transition-opacity" size={18} />
+                  </button>
+
+                  {/* Botão Secundário: Adicionar Aluno (Dashed Border) */}
+                  <button 
+                    onClick={() => router.push('/dashboard/adicionar-aluno')} 
+                    className="w-full bg-[var(--surface)] border border-dashed border-[var(--border)] p-4 rounded-[1.2rem] flex items-center justify-center gap-2 text-[var(--text-secondary)] hover:text-[var(--primary)] hover:border-[var(--primary)]/50 transition-all font-bold text-xs uppercase tracking-widest active:scale-95 shadow-sm mb-6"
+                  >
+                    <FaUserPlus size={16} />
+                    {t.addStudents}
                   </button>
                   
                   <NotificationManager personalId={user?.id} alunos={alunos} showStatus={showStatus} />
