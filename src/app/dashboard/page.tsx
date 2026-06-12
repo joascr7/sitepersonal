@@ -14,7 +14,7 @@ import {
   FaCalendarAlt, FaCheckCircle, FaExclamationCircle, FaGlobe, 
   FaMoon, FaSun, FaUsers, FaCommentDots, FaUserPlus, 
   FaChevronRight, FaInfoCircle, FaDumbbell, FaBookOpen, FaListUl,
-  FaPaperPlane
+  FaPaperPlane, FaCheck
 } from 'react-icons/fa';
 
 interface PersonalData {
@@ -57,23 +57,32 @@ const translations = {
     addStudents: 'Adicionar novo aluno', students: 'Meus Alunos', active: 'Ativos', inactive: 'Inativos', yourStudents: 'Gestão de Alunos', manageStudents: 'Gerenciar Alunos', workouts: 'Gestão de Treinos', libraryWorkouts: 'Biblioteca de treinos', libraryExercises: 'Biblioteca de exercícios',
     sendNotice: 'Enviar Aviso', noticeDesc: 'Notifique seus alunos rapidamente', parqTitle: 'Avaliações PAR-Q dos Alunos', notFound: 'Nenhum aluno encontrado.', prev: 'Anterior', next: 'Próxima', page: 'Página', of: 'de',
     greetingMorning: 'Bom dia', greetingAfternoon: 'Boa tarde', greetingEvening: 'Boa noite',
-    tabHome: 'Início', tabFinance: 'Finanças', widgetFeedbacks: 'Feedbacks', widgetParq: 'PAR-Q', widgetNotices: 'Avisos'
+    tabHome: 'Início', tabFinance: 'Finanças', widgetFeedbacks: 'Feedbacks', widgetParq: 'PAR-Q', widgetNotices: 'Avisos',
+    selectLanguage: 'Selecione o Idioma', selectTheme: 'Aparência', themeLight: 'Modo Claro', themeDark: 'Modo Escuro'
   },
   'pt-PT': {
     search: 'Procurar aluno...', statusBlocked: 'BLOQUEADO', statusActive: 'ATIVO', statusPending: 'PENDENTE', testPeriod: 'Está no período de teste.', subscribe: 'Assinar Plano', renewal: 'Renovação próxima', confirmReativar: 'Confirmar reativação do acesso para ', confirmBloqueio: 'Confirmar bloqueio de acesso para ', errStatus: 'Erro ao alterar status.', successStatusReativado: 'Aluno reativado!', successStatusBloqueado: 'Acesso bloqueado!', errProcess: 'Falha ao processar: ', successPay: 'Pagamento registado com sucesso!', confirmPagamento: 'Confirmar Pagamento', valorPlaceholder: 'Valor', registrarPagamento: 'Registar Pagamento', report: 'Relatório por Mês',
     addStudents: 'Adicionar novo aluno', students: 'Meus Alunos', active: 'Ativos', inactive: 'Inativos', yourStudents: 'Gestão de Alunos', manageStudents: 'Gerir Alunos', workouts: 'Gestão de Treinos', libraryWorkouts: 'Biblioteca de treinos', libraryExercises: 'Biblioteca de exercícios',
     sendNotice: 'Enviar Aviso', noticeDesc: 'Notifique os seus alunos rapidamente', parqTitle: 'Avaliações PAR-Q dos Alunos', notFound: 'Nenhum aluno encontrado.', prev: 'Anterior', next: 'Seguinte', page: 'Página', of: 'de',
     greetingMorning: 'Bom dia', greetingAfternoon: 'Boa tarde', greetingEvening: 'Boa noite',
-    tabHome: 'Início', tabFinance: 'Finanças', widgetFeedbacks: 'Feedbacks', widgetParq: 'PAR-Q', widgetNotices: 'Avisos'
+    tabHome: 'Início', tabFinance: 'Finanças', widgetFeedbacks: 'Feedbacks', widgetParq: 'PAR-Q', widgetNotices: 'Avisos',
+    selectLanguage: 'Selecione o Idioma', selectTheme: 'Aparência', themeLight: 'Modo Claro', themeDark: 'Modo Escuro'
   },
   'en': {
     search: 'Search student...', statusBlocked: 'BLOCKED', statusActive: 'ACTIVE', statusPending: 'PENDING', testPeriod: 'You are in the trial period.', subscribe: 'Subscribe', renewal: 'Upcoming renewal', confirmReativar: 'Confirm access reactivation for ', confirmBloqueio: 'Confirm access blocking for ', errStatus: 'Error changing status.', successStatusReativado: 'Student reactivated!', successStatusBloqueado: 'Access blocked!', errProcess: 'Failed to process: ', successPay: 'Payment registered successfully!', confirmPagamento: 'Confirm Payment', valorPlaceholder: 'Value', registrarPagamento: 'Register Payment', report: 'Monthly Report',
     addStudents: 'Add new student', students: 'My Students', active: 'Active', inactive: 'Inactive', yourStudents: 'Student Management', manageStudents: 'Manage Students', workouts: 'Workout Management', libraryWorkouts: 'Workout Library', libraryExercises: 'Exercise Library',
     sendNotice: 'Send Notice', noticeDesc: 'Notify your students quickly', parqTitle: 'Student PAR-Q Assessments', notFound: 'No students found.', prev: 'Previous', next: 'Next', page: 'Page', of: 'of',
     greetingMorning: 'Good Morning', greetingAfternoon: 'Good Afternoon', greetingEvening: 'Good Evening',
-    tabHome: 'Home', tabFinance: 'Finances', widgetFeedbacks: 'Feedbacks', widgetParq: 'PAR-Q', widgetNotices: 'Notices'
+    tabHome: 'Home', tabFinance: 'Finances', widgetFeedbacks: 'Feedbacks', widgetParq: 'PAR-Q', widgetNotices: 'Notices',
+    selectLanguage: 'Select Language', selectTheme: 'Appearance', themeLight: 'Light Mode', themeDark: 'Dark Mode'
   }
 };
+
+const languages = [
+  { code: 'pt-BR', name: 'Português (Brasil)', flag: '🇧🇷' },
+  { code: 'pt-PT', name: 'Português (Portugal)', flag: '🇵🇹' },
+  { code: 'en', name: 'English', flag: '🇺🇸' }
+];
 
 const ITEMS_PER_PAGE = 5;
 
@@ -100,6 +109,10 @@ export default function Dashboard() {
   
   // Estado para expansão das Notificações (Premium Accordion)
   const [isNotificacaoExpanded, setIsNotificacaoExpanded] = useState(false);
+
+  // Estados dos Modais Premium
+  const [isLangModalOpen, setIsLangModalOpen] = useState(false);
+  const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
 
   const showStatus = (type: 'success' | 'error' | 'info', text: string) => {
     setStatusMsg({ type, text });
@@ -156,19 +169,19 @@ export default function Dashboard() {
     return t.greetingEvening;
   };
 
-  const toggleTheme = () => { 
-    const newTheme = !isDark; 
-    setIsDark(newTheme); 
-    localStorage.setItem('@premium_theme', newTheme ? 'dark' : 'light'); 
-    window.dispatchEvent(new Event('config-updated')); 
+  const handleSelectLanguage = (newLang: string) => {
+    setLang(newLang as any);
+    localStorage.setItem('@premium_lang', newLang);
+    window.dispatchEvent(new Event('config-updated'));
+    setIsLangModalOpen(false);
   };
-  
-  const toggleLang = () => { 
-    const langs: ('pt-BR' | 'pt-PT' | 'en')[] = ['pt-BR', 'pt-PT', 'en']; 
-    const nextLang = langs[(langs.indexOf(lang) + 1) % langs.length]; 
-    setLang(nextLang); 
-    localStorage.setItem('@premium_lang', nextLang); 
-    window.dispatchEvent(new Event('config-updated')); 
+
+  const handleSelectTheme = (theme: 'dark' | 'light') => {
+    const newIsDark = theme === 'dark';
+    setIsDark(newIsDark);
+    localStorage.setItem('@premium_theme', newIsDark ? 'dark' : 'light');
+    window.dispatchEvent(new Event('config-updated'));
+    setIsThemeModalOpen(false);
   };
   
   const getStatusDisplay = (aluno: any) => {
@@ -449,23 +462,32 @@ export default function Dashboard() {
           <div className="max-w-4xl mx-auto flex flex-col">
             
             <header className="bg-[#1C283F] text-white pt-[max(env(safe-area-inset-top),2rem)] pb-12 px-6 relative">
-              {/* Botões superiores */}
-              <div className="absolute top-[max(env(safe-area-inset-top,1rem),1rem)] right-3 flex gap-1 z-20">
-                <button 
-                  onClick={toggleTheme} 
-                  className="p-3 text-slate-400 hover:text-white hover:bg-white/5 rounded-full transition-all active:scale-95 flex items-center justify-center"
-                >
-                  {isDark ? <FaSun size={20} /> : <FaMoon size={20} />}
-                </button>
-                <button 
-                  onClick={toggleLang} 
-                  className="p-3 text-slate-400 hover:text-white hover:bg-white/5 rounded-full transition-all relative active:scale-95 flex items-center justify-center"
-                >
-                  <FaGlobe size={20} />
-                  <span className="absolute top-1 right-1 bg-blue-500 text-[8px] text-white font-bold px-1.5 rounded-full shadow-sm">
-                    {lang.split('-')[0]}
-                  </span>
-                </button>
+              {/* ━━━━━━━━━━ CONTROLES UNIFICADOS (PILL UI) ━━━━━━━━━━ */}
+              <div className="absolute top-[max(env(safe-area-inset-top,1rem),1rem)] right-3 z-20 flex gap-1 animate-in fade-in duration-700">
+                <div className="flex items-center bg-black/20 backdrop-blur-md border border-white/10 rounded-full shadow-sm p-1">
+                  <button 
+                    onClick={() => setIsLangModalOpen(true)}
+                    className="flex items-center justify-center gap-1.5 px-3 h-8 rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-all active:scale-95"
+                  >
+                    <FaGlobe size={14} />
+                    <span className="text-[10px] font-black uppercase tracking-widest hidden sm:block">{lang.split('-')[0]}</span>
+                  </button>
+                  
+                  <div className="w-[1px] h-4 bg-white/20 mx-1" /> {/* Divisor */}
+                  
+                  <button 
+                    onClick={() => setIsThemeModalOpen(true)} 
+                    className="flex items-center justify-center w-10 h-8 rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-all active:scale-95"
+                  >
+                    {isDark ? <FaSun size={14} /> : <FaMoon size={14} />}
+                  </button>
+                  
+                  <div className="w-[1px] h-4 bg-white/20 mx-1" /> {/* Divisor */}
+                  
+                  <div className="flex items-center justify-center w-10 h-8 rounded-full hover:bg-white/10 transition-all cursor-pointer">
+                    <NotificationBell />
+                  </div>
+                </div>
               </div>
 
               {/* Logo */}
@@ -682,6 +704,122 @@ export default function Dashboard() {
           </div>
         )}
       </div>
+
+      {/* ━━━━━━━━━━ MODAIS DE CONFIGURAÇÃO (Fundo Escuro) ━━━━━━━━━━ */}
+      {(isLangModalOpen || isThemeModalOpen) && (
+        <div className="fixed inset-0 z-[999999] flex items-end sm:items-center justify-center p-0 sm:p-5">
+          <div 
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300"
+            onClick={() => { setIsLangModalOpen(false); setIsThemeModalOpen(false); }} 
+          />
+          
+          <div style={themeStyles} className="w-full max-w-sm bg-[var(--bg)] border border-[var(--border)] rounded-t-[2.5rem] sm:rounded-[2.5rem] p-6 shadow-2xl relative z-10 animate-in slide-in-from-bottom-full sm:slide-in-from-bottom-8 sm:zoom-in-95 duration-300">
+            
+            {/* ━━ CONTEÚDO: IDIOMAS ━━ */}
+            {isLangModalOpen && (
+              <>
+                <div className="flex justify-between items-center mb-6 px-2">
+                  <h3 className="font-black text-lg tracking-tight text-[var(--text-primary)]">
+                    {t.selectLanguage}
+                  </h3>
+                  <button 
+                    onClick={() => setIsLangModalOpen(false)}
+                    className="w-8 h-8 rounded-full bg-[var(--surface)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--danger)] transition-colors active:scale-95"
+                  >
+                    <FaTimes size={14} />
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  {languages.map((language) => {
+                    const isActive = lang === language.code;
+                    return (
+                      <button
+                        key={language.code}
+                        onClick={() => handleSelectLanguage(language.code)}
+                        className={`w-full flex items-center justify-between p-4 rounded-[1.2rem] border transition-all active:scale-[0.98] ${
+                          isActive 
+                            ? 'bg-[var(--primary)]/10 border-[var(--primary)]/30 text-[var(--primary)]' 
+                            : 'bg-[var(--surface)] border-[var(--border)] text-[var(--text-primary)] hover:border-[var(--text-secondary)]/50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-4">
+                          <span className="text-2xl">{language.flag}</span>
+                          <span className={`font-bold text-sm ${isActive ? 'text-[var(--primary)]' : ''}`}>
+                            {language.name}
+                          </span>
+                        </div>
+                        {isActive && <FaCheck className="text-[var(--primary)]" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+
+            {/* ━━ CONTEÚDO: TEMA ━━ */}
+            {isThemeModalOpen && (
+              <>
+                <div className="flex justify-between items-center mb-6 px-2">
+                  <h3 className="font-black text-lg tracking-tight text-[var(--text-primary)]">
+                    {t.selectTheme}
+                  </h3>
+                  <button 
+                    onClick={() => setIsThemeModalOpen(false)}
+                    className="w-8 h-8 rounded-full bg-[var(--surface)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--danger)] transition-colors active:scale-95"
+                  >
+                    <FaTimes size={14} />
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  {/* Botão Claro */}
+                  <button
+                    onClick={() => handleSelectTheme('light')}
+                    className={`w-full flex items-center justify-between p-4 rounded-[1.2rem] border transition-all active:scale-[0.98] ${
+                      !isDark 
+                        ? 'bg-[var(--primary)]/10 border-[var(--primary)]/30 text-[var(--primary)]' 
+                        : 'bg-[var(--surface)] border-[var(--border)] text-[var(--text-primary)] hover:border-[var(--text-secondary)]/50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-8 h-8 rounded-full bg-orange-100 text-orange-500 flex items-center justify-center">
+                        <FaSun size={16} />
+                      </div>
+                      <span className={`font-bold text-sm ${!isDark ? 'text-[var(--primary)]' : ''}`}>
+                        {t.themeLight}
+                      </span>
+                    </div>
+                    {!isDark && <FaCheck className="text-[var(--primary)]" />}
+                  </button>
+                  
+                  {/* Botão Escuro */}
+                  <button
+                    onClick={() => handleSelectTheme('dark')}
+                    className={`w-full flex items-center justify-between p-4 rounded-[1.2rem] border transition-all active:scale-[0.98] ${
+                      isDark 
+                        ? 'bg-[var(--primary)]/10 border-[var(--primary)]/30 text-[var(--primary)]' 
+                        : 'bg-[var(--surface)] border-[var(--border)] text-[var(--text-primary)] hover:border-[var(--text-secondary)]/50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-8 h-8 rounded-full bg-slate-800 text-slate-300 flex items-center justify-center">
+                        <FaMoon size={16} />
+                      </div>
+                      <span className={`font-bold text-sm ${isDark ? 'text-[var(--primary)]' : ''}`}>
+                        {t.themeDark}
+                      </span>
+                    </div>
+                    {isDark && <FaCheck className="text-[var(--primary)]" />}
+                  </button>
+                </div>
+              </>
+            )}
+            
+            {/* Indicador de Swipe Mobile (Trancinho) */}
+            <div className="w-12 h-1 bg-[var(--border)] rounded-full mx-auto mt-6 sm:hidden" />
+          </div>
+        </div>
+      )}
+
     </SubscriptionGuard>
   );
 }
