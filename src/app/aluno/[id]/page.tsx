@@ -230,30 +230,12 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
           </div>
         )}
 
-        {aluno && (
-          <div className="bg-[var(--surface)] p-4 rounded-[1.5rem] border border-[var(--border)] flex justify-between items-center shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="flex flex-col">
-              <span className="text-[9px] font-bold uppercase text-[var(--text-secondary)] tracking-widest mb-1">{t.status}</span>
-              <div className="flex items-center gap-2">
-                <div className={`w-2 h-2 rounded-full ${aluno.status_pagamento === 'bloqueado' ? 'bg-[var(--danger)] shadow-[0_0_8px_var(--danger)]' : 'bg-[var(--success)] shadow-[0_0_8px_var(--success)]'}`} />
-                <span className="font-black text-[12px]">{aluno.status_pagamento === 'bloqueado' ? t.blocked : t.active}</span>
-              </div>
-            </div>
-            <div className="text-right flex flex-col">
-              <span className="text-[9px] font-bold uppercase text-[var(--text-secondary)] tracking-widest mb-1">{t.due}</span>
-              <span className="font-black text-[12px]">{aluno.data_vencimento ? new Date(aluno.data_vencimento).toLocaleDateString(lang) : 'N/A'}</span>
-            </div>
-          </div>
-        )}
-
-        <div className="px-2 animate-in fade-in duration-700 delay-300 flex justify-between items-end">
-           <div>
-             <h3 className="text-[14px] font-bold text-[var(--text-primary)]">{getSaudacao()}, {aluno?.nome?.split(' ')[0] || 'Aluno'}! 👋</h3>
-             <p className="text-[10px] font-medium text-[var(--text-secondary)] uppercase tracking-widest mt-1">{format(horaAtual, "EEEE, d 'de' MMMM", { locale: lang === 'pt-BR' ? ptBR : lang === 'pt-PT' ? pt : enUS })}</p>
-           </div>
-           <div className="bg-[var(--surface-sec)] px-3 py-1.5 rounded-lg border border-[var(--border)]">
-              <p className="text-[14px] font-black text-[var(--primary)] tabular-nums tracking-widest">{format(horaAtual, 'HH:mm:ss')}</p>
-           </div>
+        {/* Saudação Premium (Sem o Relógio redundante) */}
+        <div className="px-2 animate-in fade-in duration-700 delay-300 mt-2 mb-2">
+           <h3 className="text-xl font-black text-[var(--text-primary)] tracking-tight">{getSaudacao()}, {aluno?.nome?.split(' ')[0] || 'Aluno'}! 👋</h3>
+           <p className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mt-1">
+             {format(horaAtual, "EEEE, d 'de' MMMM", { locale: lang === 'pt-BR' ? ptBR : lang === 'pt-PT' ? pt : enUS })}
+           </p>
         </div>
 
         {treinoDoDia ? (
@@ -264,14 +246,14 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
             else if (nomeLimpoHero.includes('-')) nomeLimpoHero = nomeLimpoHero.split('-').pop()?.trim() || nomeLimpoHero;
 
             return (
-              <section className="relative overflow-hidden bg-gradient-to-br from-[var(--primary)] to-blue-800 p-8 rounded-[2rem] shadow-[0_10px_30px_-10px_var(--primary)] border border-white/10 group animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">
+              <section className="relative overflow-hidden bg-gradient-to-br from-blue-600 to-indigo-700 p-8 rounded-[2rem] shadow-[0_10px_30px_rgba(37,99,235,0.3)] border border-white/10 group animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">
                 <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 blur-[50px] rounded-full transform translate-x-1/2 -translate-y-1/2" />
                 <div className="relative z-10 flex justify-between items-start mb-8">
                   <div className="flex flex-col flex-1 pr-4">
                     <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/70 mb-1">{t.today}</span>
                     <h2 className="text-3xl font-black tracking-tight text-white leading-tight break-words">{nomeLimpoHero}</h2>
                   </div>
-                  <div className="bg-white/20 backdrop-blur-md p-3.5 rounded-2xl shadow-inner shrink-0"><FaDumbbell className="text-white text-xl" /></div>
+                  <div className="bg-white/20 backdrop-blur-md p-3.5 rounded-2xl shadow-inner shrink-0 border border-white/10"><FaDumbbell className="text-white text-xl" /></div>
                 </div>
                 <button onClick={() => router.push(`/aluno/${id}/treino/${treinoDoDia.id}`)} className="relative z-10 w-full py-4 bg-white text-[var(--primary)] rounded-2xl font-black text-[12px] uppercase tracking-widest transition-transform active:scale-[0.98] shadow-xl hover:shadow-2xl flex items-center justify-center gap-2">{t.start}</button>
               </section>
@@ -292,7 +274,7 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
               const localeObj = lang === 'pt-BR' ? ptBR : lang === 'pt-PT' ? pt : enUS;
               return (
                 <div key={i} className="flex flex-col items-center gap-2">
-                  <div className={`w-11 h-11 rounded-[14px] flex items-center justify-center font-black text-sm transition-all duration-300 ${treinou ? 'bg-[var(--primary)] text-white shadow-[0_4px_15px_-3px_var(--primary)]' : hoje ? 'bg-[var(--surface-sec)] border-2 border-[var(--primary)] text-[var(--primary)]' : 'bg-[var(--surface-sec)] text-[var(--text-secondary)]'}`}>
+                  <div className={`w-11 h-11 rounded-[14px] flex items-center justify-center font-black text-sm transition-all duration-300 ${treinou ? 'bg-blue-600 text-white shadow-sm' : hoje ? 'bg-[var(--surface-sec)] border-2 border-[var(--primary)] text-[var(--primary)]' : 'bg-[var(--surface-sec)] text-[var(--text-secondary)]'}`}>
                     {treinou ? '✓' : format(dia, 'd')}
                   </div>
                   <span className={`text-[9px] font-bold uppercase tracking-wider ${hoje ? 'text-[var(--primary)]' : 'text-[var(--text-secondary)]'}`}>{format(dia, 'EEEEE', { locale: localeObj })}</span>
@@ -311,7 +293,7 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
           <BotaoMenu icon={<FaClipboardList />} label={t.evaluations} onClick={async () => { 
             const { data } = await supabase.from('avaliacoes_fisicas').select('*').eq('aluno_id', id).order('data_avaliacao', { ascending: true }); 
             if(data && data.length > 0) { setAvaliacoes(data); setModalAberta(true); } 
-            else { alert("Nenhuma avaliação encontrada."); } // Simples fallback caso não tenha
+            else { alert("Nenhuma avaliação encontrada."); }
           }} />
           <BotaoMenu icon={<FaChartLine />} label={t.progress} onClick={() => router.push(`/aluno/${id}/progresso`)} />
           <BotaoMenu icon={<FaCommentMedical />} label={t.feedback} onClick={() => router.push(`/aluno/${id}/feedback`)} />
@@ -319,7 +301,24 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
           <BotaoMenu icon={<FaFolderOpen />} label={t.files} onClick={() => router.push(`/aluno/${id}/arquivos`)} />
         </div>
 
-        {/* Modal de Avaliação Atualizada e Premium */}
+        {/* Card de Assinatura Reposicionado (Discreto no rodapé) */}
+        {aluno && (
+          <div className="bg-[var(--surface)] p-5 rounded-[1.5rem] border border-[var(--border)] flex justify-between items-center shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500 delay-300 mt-2">
+            <div className="flex flex-col">
+              <span className="text-[9px] font-bold uppercase text-[var(--text-secondary)] tracking-widest mb-1">{t.status}</span>
+              <div className="flex items-center gap-2">
+                <div className={`w-2 h-2 rounded-full ${aluno.status_pagamento === 'bloqueado' ? 'bg-[var(--danger)] shadow-[0_0_8px_var(--danger)]' : 'bg-[var(--success)] shadow-[0_0_8px_var(--success)]'}`} />
+                <span className="font-black text-[12px]">{aluno.status_pagamento === 'bloqueado' ? t.blocked : t.active}</span>
+              </div>
+            </div>
+            <div className="text-right flex flex-col">
+              <span className="text-[9px] font-bold uppercase text-[var(--text-secondary)] tracking-widest mb-1">{t.due}</span>
+              <span className="font-black text-[12px]">{aluno.data_vencimento ? new Date(aluno.data_vencimento).toLocaleDateString(lang) : 'N/A'}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Modal de Avaliação Premium */}
         {modalAberta && (
           <ModalAvaliacao 
             isOpen={modalAberta} 
