@@ -1,9 +1,11 @@
 'use client';
 import { useEffect, useState, useMemo } from 'react';
 import { supabase } from '@/lib/supabaseClient';
+import { useRouter } from 'next/navigation';
 import { 
   FaCheckCircle, FaDollarSign, FaPlus, FaGlobe, FaMoon, 
-  FaSun, FaExclamationCircle, FaCog, FaWallet, FaEye, FaEyeSlash
+  FaSun, FaExclamationCircle, FaCog, FaWallet, FaEye, FaEyeSlash,
+  FaChevronLeft, FaTimes, FaCheck
 } from 'react-icons/fa';
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -40,7 +42,8 @@ const translations = {
     transactions: 'Transações do Mês', student: 'Aluno', date: 'Data', value: 'Valor',
     noName: 'Sem nome', errMissing: 'Preencha todos os campos.',
     errProcess: 'Erro ao processar.', successPay: 'Pagamento registrado!',
-    successConfig: 'Configurações atualizadas!'
+    successConfig: 'Configurações atualizadas!',
+    selectLanguage: 'Selecione o Idioma', selectTheme: 'Aparência', themeLight: 'Modo Claro', themeDark: 'Modo Escuro'
   },
   'pt-PT': {
     title: 'Financeiro',
@@ -54,7 +57,8 @@ const translations = {
     transactions: 'Transações do Mês', student: 'Aluno', date: 'Data', value: 'Valor',
     noName: 'Sem nome', errMissing: 'Preencha todos os campos.',
     errProcess: 'Erro ao processar.', successPay: 'Pagamento registado!',
-    successConfig: 'Configurações atualizadas!'
+    successConfig: 'Configurações atualizadas!',
+    selectLanguage: 'Selecione o Idioma', selectTheme: 'Aparência', themeLight: 'Modo Claro', themeDark: 'Modo Escuro'
   },
   'en': {
     title: 'Financial',
@@ -68,9 +72,16 @@ const translations = {
     transactions: 'Monthly Transactions', student: 'Student', date: 'Date', value: 'Value',
     noName: 'No name', errMissing: 'Fill in all fields.',
     errProcess: 'Error processing.', successPay: 'Payment registered!',
-    successConfig: 'Settings updated!'
+    successConfig: 'Settings updated!',
+    selectLanguage: 'Select Language', selectTheme: 'Appearance', themeLight: 'Light Mode', themeDark: 'Dark Mode'
   }
 };
+
+const languages = [
+  { code: 'pt-BR', name: 'Português (Brasil)', flag: '🇧🇷' },
+  { code: 'pt-PT', name: 'Português (Portugal)', flag: '🇵🇹' },
+  { code: 'en', name: 'English', flag: '🇺🇸' }
+];
 
 const getMeses = (lang: string) => {
   if (lang === 'en') return ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -78,6 +89,7 @@ const getMeses = (lang: string) => {
 };
 
 export default function Financeiro() {
+  const router = useRouter();
   const [pagamentos, setPagamentos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [config, setConfig] = useState({ pix: '', valor: 150 });
@@ -87,6 +99,7 @@ export default function Financeiro() {
   const [listaAlunos, setListaAlunos] = useState<any[]>([]);
   const [toast, setToast] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   const [olhoAberto, setOlhoAberto] = useState(true);
+  
   // Filtros de Mês/Ano
   const [mesFiltro, setMesFiltro] = useState(new Date().getMonth());
   const [anoFiltro, setAnoFiltro] = useState(new Date().getFullYear());
@@ -95,27 +108,53 @@ export default function Financeiro() {
   const [isDark, setIsDark] = useState(true);
   const [lang, setLang] = useState<'pt-BR' | 'pt-PT' | 'en'>('pt-BR');
   const [mounted, setMounted] = useState(false);
+  const [isLangModalOpen, setIsLangModalOpen] = useState(false);
+  const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
 
   useEffect(() => {
-    const savedTheme = localStorage.getItem('@premium_theme');
-    const savedLang = localStorage.getItem('@premium_lang') as 'pt-BR' | 'pt-PT' | 'en';
-    if (savedTheme) setIsDark(savedTheme === 'dark');
-    if (savedLang) setLang(savedLang);
+    const updateSettings = () => {
+      const savedTheme = localStorage.getItem('@premium_theme');
+      if (savedTheme) setIsDark(savedTheme === 'dark');
+      const savedLang = localStorage.getItem('@premium_lang') as 'pt-BR' | 'pt-PT' | 'en';
+      if (savedLang) setLang(savedLang);
+    };
+
+    updateSettings();
     setMounted(true);
     fetchDados();
+
+    window.addEventListener('storage', updateSettings);
+    window.addEventListener('config-updated', updateSettings);
+
+    return () => {
+      window.removeEventListener('storage', updateSettings);
+      window.removeEventListener('config-updated', updateSettings);
+    };
   }, []);
 
-  const toggleTheme = () => { const newTheme = !isDark; setIsDark(newTheme); localStorage.setItem('@premium_theme', newTheme ? 'dark' : 'light'); window.dispatchEvent(new Event('storage')); };
-  const toggleLang = () => { const langs: ('pt-BR' | 'pt-PT' | 'en')[] = ['pt-BR', 'pt-PT', 'en']; const nextLang = langs[(langs.indexOf(lang) + 1) % langs.length]; setLang(nextLang); localStorage.setItem('@premium_lang', nextLang); };
+  const handleSelectLanguage = (newLang: string) => {
+    setLang(newLang as any);
+    localStorage.setItem('@premium_lang', newLang);
+    window.dispatchEvent(new Event('config-updated'));
+    setIsLangModalOpen(false);
+  };
+
+  const handleSelectTheme = (theme: 'dark' | 'light') => {
+    const newIsDark = theme === 'dark';
+    setIsDark(newIsDark);
+    localStorage.setItem('@premium_theme', newIsDark ? 'dark' : 'light');
+    window.dispatchEvent(new Event('config-updated'));
+    setIsThemeModalOpen(false);
+  };
   
   const t = translations[lang] || translations['pt-BR'];
   const showToast = (type: 'success' | 'error', text: string) => { setToast({ type, text }); setTimeout(() => setToast(null), 4000); };
 
-  // Configuração Dinâmica do Tema Premium
+  // Configuração Dinâmica do Tema Premium (Glassmorphism atualizado)
   const themeStyles = isDark ? {
-    '--bg': '#0F1115', '--surface': '#151A22', '--surface-sec': '#1B2330', '--primary': '#3B82F6', '--danger': '#EF4444', '--success': '#22C55E', '--text-primary': '#F8FAFC', '--text-secondary': '#94A3B8', '--border': 'rgba(255,255,255,0.05)',
+    '--bg': '#0F1115', '--surface': 'rgba(21, 26, 34, 0.8)', '--surface-sec': '#1B2330', '--primary': '#3B82F6', '--danger': '#EF4444', '--success': '#22C55E', '--text-primary': '#F8FAFC', '--text-secondary': '#94A3B8', '--border': 'rgba(255,255,255,0.08)',
   } as React.CSSProperties : {
-    '--bg': '#F3F6FB', '--surface': '#FFFFFF', '--surface-sec': '#E8EEF9', '--primary': '#2563EB', '--danger': '#DC2626', '--success': '#16A34A', '--text-primary': '#111827', '--text-secondary': '#6B7280', '--border': 'rgba(15,23,42,0.06)',
+    '--bg': '#F3F6FB', '--surface': 'rgba(255, 255, 255, 0.85)', '--surface-sec': '#E8EEF9', '--primary': '#2563EB', '--danger': '#DC2626', '--success': '#16A34A', '--text-primary': '#111827', '--text-secondary': '#6B7280', '--border': 'rgba(15,23,42,0.08)',
   } as React.CSSProperties;
 
   const fetchDados = async () => {
@@ -216,7 +255,7 @@ export default function Financeiro() {
   if (!mounted) return <main className="min-h-screen bg-[#0F1115]" />;
 
   return (
-    <main style={themeStyles} className="w-full min-h-[100dvh] bg-[var(--bg)] text-[var(--text-primary)] px-5 pt-[calc(env(safe-area-inset-top)+2rem)] pb-[calc(env(safe-area-inset-bottom)+8rem)] transition-colors duration-500 font-sans relative overflow-hidden">
+    <main style={themeStyles} className="w-full min-h-[100dvh] bg-[var(--bg)] text-[var(--text-primary)] px-5 pt-[calc(env(safe-area-inset-top)+1.5rem)] pb-[calc(env(safe-area-inset-bottom)+8rem)] transition-colors duration-500 font-sans relative overflow-hidden">
       
       {/* Background Orbs */}
       <div className="absolute top-[-10%] left-[-10%] w-[120vw] sm:w-[400px] h-[120vw] sm:h-[400px] bg-[var(--primary)]/10 rounded-full blur-[100px] pointer-events-none" />
@@ -232,86 +271,78 @@ export default function Financeiro() {
       {loading ? <FinanceiroSkeleton /> : (
         <div className="max-w-4xl mx-auto space-y-8 relative z-10 animate-in fade-in duration-700">
           
-          {/* Header e Toggles */}
-          <div className="flex justify-between items-center mb-8">
-            <h1 className="text-3xl sm:text-4xl font-black tracking-tighter text-[var(--text-primary)]">{t.title}</h1>
-            <div className="flex gap-2">
-              <button onClick={toggleLang} className="w-10 h-10 rounded-full bg-[var(--surface)] border border-[var(--border)] shadow-sm flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--primary)] transition-all active:scale-95 relative">
+          {/* CABEÇALHO PREMIUM UNIFICADO */}
+          <header className="flex justify-between items-center mb-8 pt-4">
+            <button 
+              onClick={() => router.back()} 
+              className="flex items-center justify-center w-11 h-11 rounded-full bg-[var(--surface)] backdrop-blur-md border border-[var(--border)] active:scale-95 transition-all shadow-sm hover:bg-[var(--surface-sec)]"
+            >
+              <FaChevronLeft className="text-[var(--text-primary)]" size={14} />
+            </button>
+            
+            <h1 className="text-xl sm:text-3xl font-black tracking-tighter text-[var(--text-primary)] px-2">{t.title}</h1>
+            
+            {/* ━━━━━━━━━━ CONTROLES UNIFICADOS (PILL UI) ━━━━━━━━━━ */}
+            <div className="flex items-center bg-[var(--surface)] backdrop-blur-md border border-[var(--border)] rounded-full shadow-sm p-1">
+              <button 
+                onClick={() => setIsLangModalOpen(true)}
+                className="flex items-center justify-center gap-1.5 px-3 h-8 rounded-full text-[var(--text-secondary)] hover:text-[var(--primary)] hover:bg-[var(--primary)]/5 transition-all active:scale-95"
+              >
                 <FaGlobe size={14} />
-                <span className="absolute -top-1 -right-1 bg-[var(--primary)] text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full">{lang.split('-')[0].toUpperCase()}</span>
+                <span className="text-[10px] font-black uppercase tracking-widest hidden sm:block">{lang.split('-')[0]}</span>
               </button>
-              <button onClick={toggleTheme} className="w-10 h-10 rounded-full bg-[var(--surface)] border border-[var(--border)] shadow-sm flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--primary)] transition-all active:scale-95">
+              
+              <div className="w-[1px] h-4 bg-[var(--border)] mx-0.5" />
+              
+              <button 
+                onClick={() => setIsThemeModalOpen(true)} 
+                className="flex items-center justify-center w-10 h-8 rounded-full text-[var(--text-secondary)] hover:text-[var(--primary)] hover:bg-[var(--primary)]/5 transition-all active:scale-95"
+              >
                 {isDark ? <FaSun size={14} /> : <FaMoon size={14} />}
               </button>
             </div>
-          </div>
+          </header>
           
           <div className="grid md:grid-cols-2 gap-6">
             
             {/* Card Faturamento Acumulado & Mensal */}
-          <div className="bg-[var(--surface)] p-8 rounded-[2.5rem] border border-[var(--border)] shadow-sm relative overflow-hidden h-[200px] flex flex-col justify-center">
-  
-  {/* Header com Olho alinhado ao topo direito */}
-  <button 
-    onClick={() => setOlhoAberto(!olhoAberto)} 
-    className="absolute top-6 right-6 text-[var(--text-secondary)] hover:text-[var(--primary)] z-20"
-  >
-    {olhoAberto ? <FaEye size={16} /> : <FaEyeSlash size={16} />}
-  </button>
-
-  <div className="relative z-10 flex flex-col gap-6">
-    {/* Bloco Faturamento do Mês */}
-    <div>
-      <h2 className="text-[9px] font-black text-[var(--text-secondary)] uppercase tracking-[0.2em] mb-1">
-        {t.monthlyRevenue}
-      </h2>
-      <p className="text-3xl sm:text-4xl font-black tracking-tighter text-[var(--primary)]">
-        {olhoAberto ? formatCurrency(faturamentoMes) : '••••••••'}
-      </p>
-    </div>
-    
-    {/* Bloco Faturamento Acumulado */}
-    <div>
-      <h2 className="text-[9px] font-black text-[var(--text-secondary)] uppercase tracking-[0.2em] mb-1">
-        {t.accumulated}
-      </h2>
-      <p className="text-xl sm:text-2xl font-black tracking-tighter text-[var(--text-primary)]">
-        {olhoAberto ? formatCurrency(totalGeral) : '••••••••'}
-      </p>
-    </div>
-  </div>
-</div>
-            {/* Card Configurações */}
-           {/*  <div className="bg-[var(--surface)] p-8 rounded-[2.5rem] border border-[var(--border)] shadow-xl">
-              <h2 className="text-[10px] font-black text-[var(--text-secondary)] uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
-                <FaCog /> {t.config}
-              </h2>
-              <div className="space-y-4">
-                <div className="relative group">
-                  <FaDollarSign className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] group-focus-within:text-[var(--primary)] transition-colors" />
-                  <input 
-                    type="number" placeholder={t.monthlyFee} value={config.valor} 
-                    onChange={(e) => setConfig({...config, valor: Number(e.target.value)})} 
-                    className="w-full pl-12 p-4 bg-[var(--surface-sec)] rounded-[1.2rem] border border-[var(--border)] text-sm font-bold outline-none focus:border-[var(--primary)] text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] transition-all shadow-inner" 
-                  />
-                </div>
-                <input 
-                  type="text" placeholder={t.pix} value={config.pix} 
-                  onChange={(e) => setConfig({...config, pix: e.target.value})} 
-                  className="w-full p-4 bg-[var(--surface-sec)] rounded-[1.2rem] border border-[var(--border)] text-sm font-bold outline-none focus:border-[var(--primary)] text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] transition-all shadow-inner" 
-                />
-              </div>
+            <div className="bg-[var(--surface)] backdrop-blur-xl p-8 rounded-[2.5rem] border border-[var(--border)] shadow-sm relative overflow-hidden flex flex-col justify-center gap-6">
+              
+              {/* Header com Olho alinhado ao topo direito */}
               <button 
-                onClick={salvarConfig} disabled={saving} 
-                className="w-full mt-6 bg-[var(--primary)] text-white py-4 rounded-[1.2rem] font-black text-[10px] uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all shadow-md shadow-[var(--primary)]/20 disabled:opacity-50"
+                onClick={() => setOlhoAberto(!olhoAberto)} 
+                className="absolute top-6 right-6 text-[var(--text-secondary)] hover:text-[var(--primary)] z-20 active:scale-90 transition-transform"
               >
-                {saving ? t.saving : t.saveChanges}
+                {olhoAberto ? <FaEye size={16} /> : <FaEyeSlash size={16} />}
               </button>
-            </div>*/}
+
+              {/* Bloco Faturamento do Mês */}
+              <div className="relative z-10 mt-2">
+                <h2 className="text-[9px] font-black text-[var(--text-secondary)] uppercase tracking-[0.2em] mb-1">
+                  {t.monthlyRevenue}
+                </h2>
+                <p className="text-3xl sm:text-4xl font-black tracking-tighter text-[var(--primary)]">
+                  {olhoAberto ? formatCurrency(faturamentoMes) : '••••••••'}
+                </p>
+              </div>
+              
+              {/* Bloco Faturamento Acumulado */}
+              <div className="relative z-10">
+                <h2 className="text-[9px] font-black text-[var(--text-secondary)] uppercase tracking-[0.2em] mb-1">
+                  {t.accumulated}
+                </h2>
+                <p className="text-xl sm:text-2xl font-black tracking-tighter text-[var(--text-primary)]">
+                  {olhoAberto ? formatCurrency(totalGeral) : '••••••••'}
+                </p>
+              </div>
+            </div>
+
+            {/* Opcional: Se for usar o card de configurações novamente, o bloco entra aqui */}
+            
           </div>
 
           {/* Card Pagamento Manual */}
-          <div className="bg-[var(--surface)] p-8 rounded-[2.5rem] border border-[var(--border)] shadow-xl">
+          <div className="bg-[var(--surface)] backdrop-blur-xl p-8 rounded-[2.5rem] border border-[var(--border)] shadow-sm">
             <h2 className="text-[10px] font-black text-[var(--text-secondary)] uppercase tracking-[0.2em] mb-6">{t.manualPayment}</h2>
             <div className="flex flex-col sm:flex-row gap-3">
               <select 
@@ -339,7 +370,7 @@ export default function Financeiro() {
           </div>
 
           {/* Tabela de Transações com Filtro de Mês/Ano e Rolagem Controlada */}
-          <div className="bg-[var(--surface)] rounded-[2.5rem] border border-[var(--border)] shadow-xl overflow-hidden flex flex-col">
+          <div className="bg-[var(--surface)] backdrop-blur-xl rounded-[2.5rem] border border-[var(--border)] shadow-sm overflow-hidden flex flex-col">
             <div className="p-6 sm:p-8 border-b border-[var(--border)] flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
               <h2 className="font-black text-lg sm:text-xl tracking-tighter text-[var(--text-primary)]">{t.transactions}</h2>
               <div className="flex gap-2">
@@ -395,6 +426,122 @@ export default function Financeiro() {
           
         </div>
       )}
+
+      {/* ━━━━━━━━━━ MODAIS DE CONFIGURAÇÃO (Fundo Escuro) ━━━━━━━━━━ */}
+      {(isLangModalOpen || isThemeModalOpen) && (
+        <div className="fixed inset-0 z-[999999] flex items-end sm:items-center justify-center p-0 sm:p-5">
+          <div 
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300"
+            onClick={() => { setIsLangModalOpen(false); setIsThemeModalOpen(false); }} 
+          />
+          
+          <div style={themeStyles} className="w-full max-w-sm bg-[var(--bg)] border border-[var(--border)] rounded-t-[2.5rem] sm:rounded-[2.5rem] p-6 shadow-2xl relative z-10 animate-in slide-in-from-bottom-full sm:slide-in-from-bottom-8 sm:zoom-in-95 duration-300">
+            
+            {/* ━━ CONTEÚDO: IDIOMAS ━━ */}
+            {isLangModalOpen && (
+              <>
+                <div className="flex justify-between items-center mb-6 px-2">
+                  <h3 className="font-black text-lg tracking-tight text-[var(--text-primary)]">
+                    {t.selectLanguage}
+                  </h3>
+                  <button 
+                    onClick={() => setIsLangModalOpen(false)}
+                    className="w-8 h-8 rounded-full bg-[var(--surface)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--danger)] transition-colors active:scale-95"
+                  >
+                    <FaTimes size={14} />
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  {languages.map((language) => {
+                    const isActive = lang === language.code;
+                    return (
+                      <button
+                        key={language.code}
+                        onClick={() => handleSelectLanguage(language.code)}
+                        className={`w-full flex items-center justify-between p-4 rounded-[1.2rem] border transition-all active:scale-[0.98] ${
+                          isActive 
+                            ? 'bg-[var(--primary)]/10 border-[var(--primary)]/30 text-[var(--primary)]' 
+                            : 'bg-[var(--surface)] border-[var(--border)] text-[var(--text-primary)] hover:border-[var(--text-secondary)]/50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-4">
+                          <span className="text-2xl">{language.flag}</span>
+                          <span className={`font-bold text-sm ${isActive ? 'text-[var(--primary)]' : ''}`}>
+                            {language.name}
+                          </span>
+                        </div>
+                        {isActive && <FaCheck className="text-[var(--primary)]" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+
+            {/* ━━ CONTEÚDO: TEMA ━━ */}
+            {isThemeModalOpen && (
+              <>
+                <div className="flex justify-between items-center mb-6 px-2">
+                  <h3 className="font-black text-lg tracking-tight text-[var(--text-primary)]">
+                    {t.selectTheme}
+                  </h3>
+                  <button 
+                    onClick={() => setIsThemeModalOpen(false)}
+                    className="w-8 h-8 rounded-full bg-[var(--surface)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--danger)] transition-colors active:scale-95"
+                  >
+                    <FaTimes size={14} />
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  {/* Botão Claro */}
+                  <button
+                    onClick={() => handleSelectTheme('light')}
+                    className={`w-full flex items-center justify-between p-4 rounded-[1.2rem] border transition-all active:scale-[0.98] ${
+                      !isDark 
+                        ? 'bg-[var(--primary)]/10 border-[var(--primary)]/30 text-[var(--primary)]' 
+                        : 'bg-[var(--surface)] border-[var(--border)] text-[var(--text-primary)] hover:border-[var(--text-secondary)]/50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-8 h-8 rounded-full bg-orange-100 text-orange-500 flex items-center justify-center">
+                        <FaSun size={16} />
+                      </div>
+                      <span className={`font-bold text-sm ${!isDark ? 'text-[var(--primary)]' : ''}`}>
+                        {t.themeLight}
+                      </span>
+                    </div>
+                    {!isDark && <FaCheck className="text-[var(--primary)]" />}
+                  </button>
+                  
+                  {/* Botão Escuro */}
+                  <button
+                    onClick={() => handleSelectTheme('dark')}
+                    className={`w-full flex items-center justify-between p-4 rounded-[1.2rem] border transition-all active:scale-[0.98] ${
+                      isDark 
+                        ? 'bg-[var(--primary)]/10 border-[var(--primary)]/30 text-[var(--primary)]' 
+                        : 'bg-[var(--surface)] border-[var(--border)] text-[var(--text-primary)] hover:border-[var(--text-secondary)]/50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-8 h-8 rounded-full bg-slate-800 text-slate-300 flex items-center justify-center">
+                        <FaMoon size={16} />
+                      </div>
+                      <span className={`font-bold text-sm ${isDark ? 'text-[var(--primary)]' : ''}`}>
+                        {t.themeDark}
+                      </span>
+                    </div>
+                    {isDark && <FaCheck className="text-[var(--primary)]" />}
+                  </button>
+                </div>
+              </>
+            )}
+            
+            {/* Indicador de Swipe Mobile (Trancinho) */}
+            <div className="w-12 h-1 bg-[var(--border)] rounded-full mx-auto mt-6 sm:hidden" />
+          </div>
+        </div>
+      )}
+
     </main>
   );
 }
