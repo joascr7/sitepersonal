@@ -316,8 +316,10 @@ export default function Perfil() {
           <label className="cursor-pointer relative rounded-[2rem] border-4 border-[var(--bg)] shadow-xl overflow-hidden transition-all duration-300 hover:border-[var(--primary)]/30 block">
             <div className="w-28 h-28 sm:w-32 sm:h-32 bg-[var(--surface-sec)] flex items-center justify-center">
                 {avatarUrl ? (
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={avatarUrl} className="w-full h-full object-cover" alt="Avatar" />
+                  <>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={avatarUrl} className="w-full h-full object-cover" alt="Avatar" />
+                  </>
                 ) : (
                   <span className="font-black text-[var(--text-secondary)] text-xl">
                     {getInitials(formData.nome)}
