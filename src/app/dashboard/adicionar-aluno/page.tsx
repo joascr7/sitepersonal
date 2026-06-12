@@ -116,7 +116,7 @@ const InputField = ({ label, name, value, onChange, type = "text", placeholder, 
       placeholder={placeholder}
       value={value}
       onChange={onChange}
-      className="block w-full px-5 py-4 bg-[var(--surface-sec)] border border-[var(--border)] rounded-[1.2rem] outline-none focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)] transition-all text-sm font-bold text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] placeholder:font-medium box-border shadow-inner"
+      className="block w-full px-5 py-4 bg-[var(--surface-sec)] border border-[var(--border)] rounded-[1.2rem] outline-none focus:border-[var(--primary)]/50 focus:ring-4 focus:ring-[var(--primary)]/10 transition-all text-[15px] font-bold text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] placeholder:font-medium box-border"
     />
   </div>
 );
@@ -131,7 +131,7 @@ const SelectField = ({ label, name, value, onChange, options, defaultOption }: a
         name={name}
         value={value}
         onChange={onChange}
-        className="block w-full px-5 py-4 bg-[var(--surface-sec)] border border-[var(--border)] rounded-[1.2rem] outline-none focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)] transition-all text-sm font-bold text-[var(--text-primary)] appearance-none cursor-pointer shadow-inner"
+        className="block w-full px-5 py-4 bg-[var(--surface-sec)] border border-[var(--border)] rounded-[1.2rem] outline-none focus:border-[var(--primary)]/50 focus:ring-4 focus:ring-[var(--primary)]/10 transition-all text-[15px] font-bold text-[var(--text-primary)] appearance-none cursor-pointer"
       >
         <option value="" disabled className="text-[var(--text-secondary)]">{defaultOption}</option>
         {options.map((opt: any) => (
@@ -205,7 +205,7 @@ export default function AdicionarAluno() {
   const themeStyles = isDark ? {
     '--bg': '#0F1115', '--surface': '#151A22', '--surface-sec': '#1B2330', '--primary': '#3B82F6', '--danger': '#EF4444', '--success': '#22C55E', '--text-primary': '#F8FAFC', '--text-secondary': '#94A3B8', '--border': 'rgba(255,255,255,0.05)',
   } as React.CSSProperties : {
-    '--bg': '#F3F6FB', '--surface': '#FFFFFF', '--surface-sec': '#E8EEF9', '--primary': '#2563EB', '--danger': '#DC2626', '--success': '#16A34A', '--text-primary': '#111827', '--text-secondary': '#6B7280', '--border': 'rgba(15,23,42,0.06)',
+    '--bg': '#F3F6FB', '--surface': '#FFFFFF', '--surface-sec': '#F8FAFC', '--primary': '#2563EB', '--danger': '#DC2626', '--success': '#16A34A', '--text-primary': '#111827', '--text-secondary': '#6B7280', '--border': 'rgba(15,23,42,0.06)',
   } as React.CSSProperties;
 
   const formatarTelefone = (val: string) => {
@@ -248,7 +248,7 @@ export default function AdicionarAluno() {
   if (!mounted) return <main className="min-h-screen bg-[#0F1115]" />;
 
   return (
-    <main style={themeStyles} className="w-full min-h-[100dvh] bg-[var(--bg)] flex flex-col items-center px-5 pt-[calc(env(safe-area-inset-top)+2rem)] pb-[calc(env(safe-area-inset-bottom)+8rem)] box-border text-[var(--text-primary)] transition-colors duration-500 font-sans relative overflow-hidden">
+    <main style={themeStyles} className="w-full min-h-[100dvh] bg-[var(--bg)] flex flex-col items-center px-4 sm:px-5 pt-[calc(env(safe-area-inset-top)+1.5rem)] pb-[calc(env(safe-area-inset-bottom)+8rem)] box-border text-[var(--text-primary)] transition-colors duration-500 font-sans relative overflow-hidden">
       
       {/* Elementos de Profundidade (Orbs) */}
       <div className="absolute top-[-10%] left-[-10%] w-[120vw] sm:w-[400px] h-[120vw] sm:h-[400px] bg-[var(--primary)]/10 rounded-full blur-[100px] pointer-events-none" />
@@ -265,56 +265,61 @@ export default function AdicionarAluno() {
       {/* Toggles Superiores */}
       <div className="w-full max-w-lg flex justify-end gap-2 mb-6 relative z-10">
         <button onClick={toggleLang} className="w-10 h-10 rounded-full bg-[var(--surface)] border border-[var(--border)] shadow-sm flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--primary)] transition-all active:scale-95 relative">
-          <FaGlobe size={14} />
+          <FaGlobe size={16} />
           <span className="absolute -top-1 -right-1 bg-[var(--primary)] text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full">{lang.split('-')[0].toUpperCase()}</span>
         </button>
         <button onClick={toggleTheme} className="w-10 h-10 rounded-full bg-[var(--surface)] border border-[var(--border)] shadow-sm flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--primary)] transition-all active:scale-95">
-          {isDark ? <FaSun size={14} /> : <FaMoon size={14} />}
+          {isDark ? <FaSun size={16} /> : <FaMoon size={16} />}
         </button>
       </div>
       
-      <div className="w-full max-w-lg bg-[var(--surface)]/90 backdrop-blur-2xl p-8 sm:p-10 rounded-[2.5rem] border border-[var(--border)] shadow-2xl box-border relative z-10 animate-in slide-in-from-bottom-8 duration-700">
+      <div className="w-full max-w-lg bg-[var(--surface)]/90 backdrop-blur-2xl p-6 sm:p-10 rounded-[2.5rem] border border-[var(--border)] shadow-xl box-border relative z-10 animate-in slide-in-from-bottom-8 duration-700">
         
-        <header className="mb-10 flex flex-col gap-4">
+        <header className="mb-10 flex flex-col gap-6">
           <button 
             onClick={() => router.back()} 
-            className="self-start flex items-center gap-2 text-[10px] font-bold text-[var(--text-secondary)] hover:text-[var(--primary)] transition-colors uppercase tracking-[0.2em] active:scale-95"
+            className="flex items-center justify-center w-11 h-11 rounded-full bg-[var(--surface)] border border-[var(--border)] active:scale-95 transition-all shadow-sm hover:bg-[var(--surface-sec)]"
           >
-            <FaChevronLeft size={10} /> {t.back}
+            <FaChevronLeft className="text-[var(--text-primary)]" size={14} />
           </button>
           <div>
-            <h1 className="text-3xl font-black tracking-tighter text-[var(--text-primary)]">{t.title}</h1>
-            <p className="text-[var(--text-secondary)] text-[10px] font-black uppercase tracking-[0.2em] mt-1">{t.subtitle}</p>
+            <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-[var(--text-primary)]">{t.title}</h1>
+            <p className="text-[var(--text-secondary)] text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.2em] mt-2">{t.subtitle}</p>
           </div>
         </header>
         
-        <div className="space-y-8">
+        <div className="space-y-10">
           
           {/* SESSÃO: ACESSO */}
-          <section className="space-y-4">
-            <h2 className="text-[9px] font-black uppercase text-[var(--primary)] tracking-widest mb-2 flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-[var(--primary)]"></span> {t.access}
-            </h2>
+          <section className="space-y-5">
+            <div className="flex items-center gap-3 mb-2">
+              <h2 className="text-[10px] font-black uppercase text-[var(--text-secondary)] tracking-[0.2em]">
+                {t.access}
+              </h2>
+              <div className="flex-1 h-px bg-gradient-to-r from-[var(--border)] to-transparent" />
+            </div>
+            
             <InputField label={t.email} name="email" type="email" autoComplete="email" value={formData.email} onChange={handleInputChange} placeholder={t.emailPlaceholder} />
             <InputField label={t.password} name="password" type="password" autoComplete="new-password" value={formData.password} onChange={handleInputChange} placeholder={t.passwordPlaceholder} />
           </section>
 
-          <div className="h-px w-full bg-[var(--border)]" />
-
           {/* SESSÃO: PERFIL */}
-          <section className="space-y-4">
-            <h2 className="text-[9px] font-black uppercase text-[var(--primary)] tracking-widest mb-2 flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-[var(--primary)]"></span> {t.profile}
-            </h2>
+          <section className="space-y-5">
+            <div className="flex items-center gap-3 mb-2">
+              <h2 className="text-[10px] font-black uppercase text-[var(--text-secondary)] tracking-[0.2em]">
+                {t.profile}
+              </h2>
+              <div className="flex-1 h-px bg-gradient-to-r from-[var(--border)] to-transparent" />
+            </div>
             
             <InputField label={t.name} name="nome" autoComplete="name" value={formData.nome} onChange={handleInputChange} placeholder={t.namePlaceholder} />
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <InputField label={t.phone} name="telefone" type="tel" value={formData.telefone} onChange={handleInputChange} placeholder={t.phonePlaceholder} />
               <InputField label={t.dob} name="dataNascimento" type="date" value={formData.dataNascimento} onChange={handleInputChange} />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <SelectField 
                 label={t.gender} 
                 name="sexo" 
@@ -347,9 +352,13 @@ export default function AdicionarAluno() {
         <button 
           onClick={handleAddAluno}
           disabled={loading || !formData.nome.trim() || !formData.email.trim() || !formData.password}
-          className="w-full mt-10 bg-[var(--primary)] text-white py-5 rounded-[1.2rem] font-black text-[11px] uppercase tracking-widest hover:brightness-110 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-[var(--primary)]/20"
+          className="w-full mt-10 bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-5 rounded-[1.2rem] font-black text-[12px] uppercase tracking-widest shadow-[0_8px_30px_rgb(79,70,229,0.3)] hover:shadow-[0_8px_30px_rgb(79,70,229,0.5)] transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center"
         >
-          {loading ? t.loading : t.submit}
+          {loading ? (
+            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+          ) : (
+            t.submit
+          )}
         </button>
 
       </div>
