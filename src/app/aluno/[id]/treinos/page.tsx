@@ -59,15 +59,15 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
   const getTreinoMediaConfig = (nomeTreino: string) => {
     const nome = nomeTreino.toLowerCase();
     if (nome.includes('peito') || nome.includes('superior') || nome.includes('braço') || nome.includes('triceps')) {
-      return { localGif: '/gifs/peito.gif', gradient: 'from-blue-500 to-indigo-600', icon: <FaDumbbell className="text-white text-2xl animate-pulse" /> };
+      return { localGif: '/gifs/peito.gif', gradient: 'from-blue-500 to-indigo-600', icon: <FaDumbbell className="text-white text-2xl" /> };
     }
     if (nome.includes('perna') || nome.includes('inferior') || nome.includes('glúteo') || nome.includes('coxa') || nome.includes('pernas')) {
-      return { localGif: '/gifs/pernas.gif', gradient: 'from-emerald-500 to-teal-600', icon: <FaRunning className="text-white text-2xl animate-pulse" /> };
+      return { localGif: '/gifs/pernas.gif', gradient: 'from-emerald-500 to-teal-600', icon: <FaRunning className="text-white text-2xl" /> };
     }
     if (nome.includes('costas') || nome.includes('dorsal') || nome.includes('ombro') || nome.includes('biceps')) {
-      return { localGif: '/gifs/costas.gif', gradient: 'from-purple-500 to-pink-600', icon: <FaDumbbell className="text-white text-2xl rotate-45 animate-pulse" /> };
+      return { localGif: '/gifs/costas.gif', gradient: 'from-purple-500 to-pink-600', icon: <FaDumbbell className="text-white text-2xl rotate-45" /> };
     }
-    return { localGif: '/gifs/geral.gif', gradient: 'from-blue-600 to-cyan-500', icon: <FaHeartbeat className="text-white text-2xl animate-pulse" /> };
+    return { localGif: '/gifs/geral.gif', gradient: 'from-blue-600 to-cyan-500', icon: <FaHeartbeat className="text-white text-2xl" /> };
   };
 
   const getExercicios = (descricaoStr: any) => {
@@ -107,7 +107,6 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
       ]);
 
       if (histRes.data && histRes.data.length > 0) {
-        // Guarda o ID do primeiríssimo registro do histórico (último treino que o aluno de fato completou)
         setUltimoTreinoConcluidoId(histRes.data[0].treino_id);
       }
 
@@ -156,137 +155,165 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
   }
 
   if (loading) return (
-    <main style={themeStyles} className="min-h-screen bg-[var(--bg)] p-4 pt-10 animate-pulse">
-      <div className="w-32 h-8 bg-[var(--surface-sec)] rounded-md mb-8"></div>
-      <div className="w-full h-64 bg-[var(--surface-sec)] rounded-xl"></div>
+    <main style={themeStyles} className="min-h-screen bg-[var(--bg)] p-4 pt-[max(env(safe-area-inset-top),2rem)] animate-pulse">
+      <div className="w-32 h-8 bg-[var(--surface-sec)] rounded-md mb-8 mx-auto"></div>
+      <div className="w-full max-w-md mx-auto h-64 bg-[var(--surface-sec)] rounded-[2rem]"></div>
     </main>
   );
   
   return (
-    <main style={themeStyles} className="min-h-screen w-full bg-[var(--bg)] text-[var(--text-primary)] transition-colors duration-500 font-sans antialiased pt-[max(env(safe-area-inset-top),2rem)] pb-[env(safe-area-inset-bottom)] px-4">
-      <div className="max-w-md mx-auto space-y-6 pb-32">
+    <main style={themeStyles} className="min-h-screen w-full bg-[var(--bg)] text-[var(--text-primary)] transition-colors duration-500 font-sans antialiased pt-[max(env(safe-area-inset-top),1.5rem)] pb-32 px-5 relative">
+      <div className="max-w-2xl mx-auto space-y-8">
         
-        <header className="py-2 mb-4">
-          <h1 className="text-3xl font-black tracking-tight text-[var(--text-primary)]">{t.title}</h1>
+        {/* CABEÇALHO DA PÁGINA */}
+        <header className="flex items-center gap-4 pt-4">
+          <button 
+            onClick={() => router.back()} 
+            className="flex items-center justify-center w-11 h-11 rounded-full bg-[var(--surface)] border border-[var(--border)] active:scale-95 transition-all shadow-sm hover:bg-[var(--surface-sec)]"
+          >
+            <FaChevronLeft className="text-[var(--text-primary)]" size={14} />
+          </button>
+          <div className="flex flex-col">
+            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-secondary)]">Seu Programa</span>
+            <h1 className="text-2xl font-black text-[var(--text-primary)] tracking-tight leading-none mt-0.5">{t.title}</h1>
+          </div>
         </header>
 
-        <div className="space-y-6">
+        <div className="space-y-8">
           {Object.entries(fichasAgrupadas).map(([programaMaster, treinos]) => {
             
             const treinosList = treinos as any[]; 
             const totalSessoesPrograma = treinosList.reduce((acc: number, f: any) => acc + f.sessõesCount, 0);
             const progressoPercent = Math.min(Math.round((totalSessoesPrograma / META_SESSOES) * 100), 100);
-            
             const datasVencimento = treinosList.map((f: any) => f.data_vencimento).filter(Boolean);
             const dataValidade = datasVencimento.length > 0 ? new Date(Math.max(...datasVencimento.map((d: any) => new Date(d).getTime()))) : null;
 
             // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
             // LÓGICA DO PRÓXIMO TREINO DINÂMICO
             // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-            let indexDoProximo = 0; // Fallback: se for inédito, começa pelo primeiro card
-            
+            let indexDoProximo = 0; 
             if (ultimoTreinoConcluidoId) {
               const indexUltimo = treinosList.findIndex(t => t.id === ultimoTreinoConcluidoId);
-              // Se o último treino pertence a este bloco e não é o último da lista, o próximo é o seguinte. 
-              // Se for o último da lista, reseta a rodada e volta a ser o índice 0.
               if (indexUltimo !== -1) {
                 indexDoProximo = (indexUltimo + 1) % treinosList.length;
               }
             }
 
             return (
-              <div key={programaMaster} className="bg-[var(--surface-sec)] rounded-3xl p-4 border border-[var(--border)] relative shadow-sm">
+              <div key={programaMaster} className="bg-[var(--surface)] rounded-[2rem] border border-[var(--border)] shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
                 
-                <h2 className="text-xl font-black uppercase tracking-wider text-[var(--text-primary)] mb-2 ml-1">
-                  {programaMaster}
-                </h2>
+                {/* HEADER DO PROGRAMA (CARD) */}
+                <div className="p-6 sm:p-8 border-b border-[var(--border)] relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--primary)]/5 blur-3xl rounded-full transform translate-x-1/2 -translate-y-1/2 pointer-events-none" />
+                  
+                  <h2 className="text-2xl font-black tracking-tight uppercase text-[var(--text-primary)] mb-4 relative z-10">
+                    {programaMaster}
+                  </h2>
 
-                <div className="flex flex-wrap gap-2 mb-5 ml-1">
-                  {treinosList[0]?.tipo_treino && <span className="text-[9px] font-bold bg-[var(--surface)] text-[var(--text-secondary)] px-2.5 py-1 rounded-md border border-[var(--border)] uppercase tracking-widest shadow-sm">{treinosList[0].tipo_treino}</span>}
-                  {treinosList[0]?.objetivo && <span className="text-[9px] font-bold bg-[var(--surface)] text-[var(--text-secondary)] px-2.5 py-1 rounded-md border border-[var(--border)] uppercase tracking-widest shadow-sm">{treinosList[0].objective || treinosList[0].objetivo}</span>}
-                  {treinosList[0]?.dificuldade && <span className="text-[9px] font-bold bg-[var(--surface)] text-[var(--text-secondary)] px-2.5 py-1 rounded-md border border-[var(--border)] uppercase tracking-widest shadow-sm">{treinosList[0].dificuldade}</span>}
+                  {/* TAGS SOFT UI */}
+                  <div className="flex flex-wrap gap-2 mb-6 relative z-10">
+                    {treinosList[0]?.tipo_treino && <span className="px-3 py-1.5 bg-[var(--surface-sec)] text-[var(--text-secondary)] text-[9px] font-black uppercase tracking-widest rounded-lg border border-[var(--border)]">{treinosList[0].tipo_treino}</span>}
+                    {treinosList[0]?.objetivo && <span className="px-3 py-1.5 bg-[var(--surface-sec)] text-[var(--text-secondary)] text-[9px] font-black uppercase tracking-widest rounded-lg border border-[var(--border)]">{treinosList[0].objective || treinosList[0].objetivo}</span>}
+                    {treinosList[0]?.dificuldade && <span className="px-3 py-1.5 bg-[var(--surface-sec)] text-[var(--text-secondary)] text-[9px] font-black uppercase tracking-widest rounded-lg border border-[var(--border)]">{treinosList[0].dificuldade}</span>}
+                  </div>
+
+                  {/* BARRA DE PROGRESSO NO TOPO */}
+                  <div className="relative z-10">
+                    <div className="flex justify-between items-end mb-2">
+                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-secondary)]">{t.progress}</span>
+                      <span className="text-[12px] font-black text-[var(--primary)]">
+                        {totalSessoesPrograma} <span className="text-[var(--text-secondary)]">/ {META_SESSOES} {t.sessions.toUpperCase()}</span>
+                      </span>
+                    </div>
+                    <div className="w-full h-2.5 bg-[var(--surface-sec)] rounded-full overflow-hidden border border-[var(--border)] shadow-inner">
+                      <div 
+                        className="h-full bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full transition-all duration-1000 ease-out relative" 
+                        style={{ width: `${progressoPercent}%` }}
+                      >
+                        <div className="absolute top-0 right-0 bottom-0 w-10 bg-white/30 blur-sm" />
+                      </div>
+                    </div>
+                    {dataValidade && (
+                      <p className="text-right text-[9px] font-bold uppercase tracking-widest text-[var(--text-secondary)] mt-3">
+                        {t.validity} <span className="text-[var(--text-primary)]">{dataValidade.toLocaleDateString(lang)}</span>
+                      </p>
+                    )}
+                  </div>
                 </div>
 
-                <div className="space-y-3">
+                {/* LISTA DE TREINOS */}
+                <div className="p-4 sm:p-6 space-y-3 bg-[var(--bg)]/30">
                   {treinosList.map((f: any, index: number) => {
-                    // A tag 'Próximo' só ativa se o índice bater com o cálculo dinâmico da sequência
-                    const exibirProximo = index === indexDoProximo; 
+                    const isProximo = index === indexDoProximo; 
                     const mediaConfig = getTreinoMediaConfig(f.nomeLimpoCard);
                     
                     return (
-                      <div key={f.id} className="bg-[var(--surface)] p-3 rounded-[1.2rem] flex items-center gap-4 relative shadow-sm border border-[var(--border)] group hover:shadow-md transition-all">
-                        
-                        {/* TAG PRÓXIMO 100% FUNCIONAL */}
-                        {exibirProximo && (
-                          <span className="absolute -top-3 right-4 bg-[var(--primary)] text-white shadow-md shadow-[var(--primary)]/30 text-[10px] font-black px-3 py-1 rounded-lg z-10 uppercase tracking-wider">
-                            {t.next}
-                          </span>
-                        )}
+                      <button 
+                        key={f.id}
+                        onClick={() => router.push(`/aluno/${id}/treino/${f.id}`)}
+                        className={`w-full p-4 rounded-[1.5rem] flex items-center justify-between transition-all duration-300 group text-left ${
+                          isProximo 
+                            ? 'bg-[var(--surface)] border-2 border-[var(--primary)] shadow-[0_8px_20px_rgba(37,99,235,0.15)] hover:shadow-[0_8px_25px_rgba(37,99,235,0.25)] active:scale-[0.98]' 
+                            : 'bg-[var(--surface)] border border-[var(--border)] shadow-sm hover:border-[var(--primary)]/40 active:scale-[0.98]'
+                        }`}
+                      >
+                        <div className="flex items-center gap-4">
+                          
+                          {/* MINIATURA PREMIUM */}
+                          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 overflow-hidden relative border border-[var(--border)] transition-transform group-hover:scale-105 ${isProximo ? 'shadow-inner' : ''}`}>
+                            <div className={`absolute inset-0 bg-gradient-to-br ${mediaConfig.gradient} opacity-90 z-10 flex items-center justify-center`}>
+                              {mediaConfig.icon}
+                            </div>
+                            <img 
+                              src={f.imagem_url || mediaConfig.localGif} 
+                              alt={f.nomeLimpoCard} 
+                              className="w-full h-full object-cover absolute inset-0 z-0" 
+                              onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                            />
+                          </div>
 
-                        <div className="w-[4.5rem] h-[4.5rem] rounded-xl overflow-hidden shrink-0 relative border border-[var(--border)]">
-                          <img 
-                            src={f.imagem_url || mediaConfig.localGif} 
-                            alt={f.nomeLimpoCard} 
-                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 z-10 relative" 
-                            onError={(e) => {
-                              e.currentTarget.style.display = 'none';
-                              const fallbackDiv = e.currentTarget.nextElementSibling;
-                              if (fallbackDiv) fallbackDiv.classList.remove('hidden');
-                            }}
-                          />
-                          <div className={`w-full h-full bg-gradient-to-br ${mediaConfig.gradient} flex flex-col items-center justify-center shadow-inner`}>
-                            {mediaConfig.icon}
+                          <div className="flex flex-col">
+                            <div className="flex items-center gap-2 mb-0.5">
+                              <span className="font-black text-base uppercase tracking-tight text-[var(--text-primary)]">
+                                {f.nomeLimpoCard}
+                              </span>
+                              
+                              {/* ETIQUETA PRÓXIMO INTERNA */}
+                              {isProximo && (
+                                <span className="bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full flex items-center gap-1">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
+                                  {t.next}
+                                </span>
+                              )}
+                            </div>
+                            
+                            <span className="text-[11px] font-bold text-[var(--text-secondary)] uppercase tracking-widest">
+                              {f.count} {t.exercises}
+                            </span>
                           </div>
                         </div>
-                        
-                        <div className="flex-grow py-1">
-                          <h3 className="font-black text-[16px] uppercase tracking-tight leading-tight text-[var(--text-primary)]">
-                            {f.nomeLimpoCard}
-                          </h3>
-                          <p className="text-[12px] font-bold text-[var(--text-secondary)] mt-1 flex items-center gap-1.5">
-                            <span className="w-1.5 h-1.5 rounded-full bg-[var(--primary)] opacity-70"></span>
-                            {f.count} {t.exercises}
-                          </p>
-                        </div>
 
-                        <button 
-                          onClick={() => router.push(`/aluno/${id}/treino/${f.id}`)} 
-                          className="w-12 h-12 rounded-full bg-[var(--primary)] text-white flex items-center justify-center shrink-0 active:scale-90 transition-all shadow-lg shadow-[var(--primary)]/30 hover:bg-blue-600 mr-1"
-                        >
-                          <FaPlay className="ml-1 text-lg" />
-                        </button>
-                      </div>
+                        {/* BOTÃO PLAY SUTIL */}
+                        <div className="pl-3 shrink-0">
+                          {isProximo ? (
+                            <div className="w-10 h-10 rounded-full bg-[var(--primary)]/10 flex items-center justify-center text-[var(--primary)] group-hover:bg-[var(--primary)] group-hover:text-white transition-colors">
+                              <FaPlay size={12} className="ml-1" />
+                            </div>
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-[var(--surface-sec)] flex items-center justify-center text-[var(--text-secondary)] group-hover:text-[var(--primary)] group-hover:bg-[var(--primary)]/10 transition-colors">
+                              <FaPlay size={12} className="ml-1 opacity-50 group-hover:opacity-100" />
+                            </div>
+                          )}
+                        </div>
+                      </button>
                     );
                   })}
-                </div>
-
-                <div className="mt-6 pt-4 flex justify-between items-end border-t border-[var(--border)] mx-1">
-                  <div className="w-[45%]">
-                    <div className="h-1.5 bg-[var(--border)] rounded-full mb-2 overflow-hidden flex shadow-inner">
-                      <div className="h-full bg-[var(--primary-soft)]/30 rounded-l-full" style={{ width: '40%' }}>
-                        <div className="h-full bg-[var(--primary)] rounded-full" style={{ width: `${(progressoPercent / 40) * 100}%` }}></div>
-                      </div>
-                    </div>
-                    <p className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-secondary)]">
-                      <span className="text-[var(--text-primary)]">{totalSessoesPrograma}</span>/{META_SESSOES} {t.sessions}
-                    </p>
-                  </div>
-
-                  {dataValidade && (
-                    <p className="text-[11px] font-bold uppercase tracking-widest text-[var(--text-secondary)]">
-                      {t.validity} <span className="text-[var(--text-primary)]">{dataValidade.toLocaleDateString('pt-BR')}</span>
-                    </p>
-                  )}
                 </div>
 
               </div>
             );
           })}
         </div>
-        
-        <button onClick={() => router.back()} className="w-full flex items-center justify-center gap-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all text-xs uppercase tracking-widest mt-10 py-4 active:scale-95">
-          <FaChevronLeft className="text-[10px]" /> {t.back}
-        </button>
 
       </div>
     </main>
