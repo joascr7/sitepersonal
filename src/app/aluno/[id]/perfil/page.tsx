@@ -14,11 +14,13 @@ import {
   FaCheckCircle,
   FaExclamationCircle,
   FaChevronDown,
-  FaLock
+  FaLock,
+  FaCheck,
+  FaTimes
 } from 'react-icons/fa';
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// COMPONENTES DE INPUT PREMIUM (In-line para garantir o design correto)
+// COMPONENTES DE INPUT PREMIUM
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 const InputField = ({ label, name, value, onChange, type = "text", placeholder, autoComplete, disabled = false, icon: Icon }: any) => (
   <div className="flex flex-col gap-1.5 w-full min-w-0 group">
@@ -35,9 +37,9 @@ const InputField = ({ label, name, value, onChange, type = "text", placeholder, 
         value={value || ''}
         onChange={onChange}
         disabled={disabled}
-        className={`block w-full max-w-full px-4 py-3.5 bg-[var(--surface-sec)] border border-[var(--border)] rounded-xl outline-none transition-all text-[14px] font-bold box-border appearance-none m-0 ${
+        className={`block w-full max-w-full px-5 py-4 bg-[var(--surface-sec)] border border-[var(--border)] rounded-[1.2rem] outline-none transition-all text-sm font-bold box-border appearance-none m-0 shadow-inner ${
           disabled 
-            ? 'text-[var(--text-secondary)] opacity-60 cursor-not-allowed shadow-inner' 
+            ? 'text-[var(--text-secondary)] opacity-60 cursor-not-allowed' 
             : 'text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] placeholder:font-medium focus:border-[var(--primary)]/50 focus:ring-2 focus:ring-[var(--primary)]/10'
         }`}
       />
@@ -55,7 +57,7 @@ const SelectField = ({ label, name, value, onChange, options, defaultOption }: a
         name={name}
         value={value}
         onChange={onChange}
-        className="block w-full max-w-full px-4 py-3.5 bg-[var(--surface-sec)] border border-[var(--border)] rounded-xl outline-none focus:border-[var(--primary)]/50 focus:ring-2 focus:ring-[var(--primary)]/10 transition-all text-[14px] font-bold text-[var(--text-primary)] appearance-none cursor-pointer box-border m-0"
+        className="block w-full max-w-full px-5 py-4 bg-[var(--surface-sec)] border border-[var(--border)] rounded-[1.2rem] outline-none focus:border-[var(--primary)]/50 focus:ring-2 focus:ring-[var(--primary)]/10 transition-all text-sm font-bold text-[var(--text-primary)] appearance-none cursor-pointer box-border m-0 shadow-inner"
       >
         <option value="" disabled className="text-[var(--text-secondary)]">{defaultOption}</option>
         {options.map((opt: any) => (
@@ -64,7 +66,7 @@ const SelectField = ({ label, name, value, onChange, options, defaultOption }: a
           </option>
         ))}
       </select>
-      <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-[var(--text-secondary)]">
+      <div className="absolute inset-y-0 right-5 flex items-center pointer-events-none text-[var(--text-secondary)]">
         <FaChevronDown size={12} />
       </div>
     </div>
@@ -104,7 +106,11 @@ const translations = {
     successPass: 'Senha atualizada com sucesso!',
     errorPass: 'Erro ao atualizar senha: ',
     passLength: 'Mínimo de 6 caracteres',
-    uploadError: 'Erro no upload: '
+    uploadError: 'Erro no upload: ',
+    selectLanguage: 'Selecione o Idioma',
+    selectTheme: 'Aparência',
+    themeLight: 'Modo Claro',
+    themeDark: 'Modo Escuro'
   },
   'pt-PT': {
     back: 'Voltar',
@@ -135,7 +141,11 @@ const translations = {
     successPass: 'Palavra-passe atualizada com sucesso!',
     errorPass: 'Erro ao atualizar palavra-passe: ',
     passLength: 'Mínimo de 6 caracteres',
-    uploadError: 'Erro no envio: '
+    uploadError: 'Erro no envio: ',
+    selectLanguage: 'Selecione o Idioma',
+    selectTheme: 'Aparência',
+    themeLight: 'Modo Claro',
+    themeDark: 'Modo Escuro'
   },
   'en': {
     back: 'Back',
@@ -166,9 +176,19 @@ const translations = {
     successPass: 'Password updated successfully!',
     errorPass: 'Error updating password: ',
     passLength: 'Minimum 6 characters',
-    uploadError: 'Upload error: '
+    uploadError: 'Upload error: ',
+    selectLanguage: 'Select Language',
+    selectTheme: 'Appearance',
+    themeLight: 'Light Mode',
+    themeDark: 'Dark Mode'
   }
 };
+
+const languages = [
+  { code: 'pt-BR', name: 'Português (Brasil)', flag: '🇧🇷' },
+  { code: 'pt-PT', name: 'Português (Portugal)', flag: '🇵🇹' },
+  { code: 'en', name: 'English', flag: '🇺🇸' }
+];
 
 export default function PerfilAluno({ params }: { params: Promise<{ id: string }> }) {
   const [loading, setLoading] = useState(true);
@@ -192,33 +212,48 @@ export default function PerfilAluno({ params }: { params: Promise<{ id: string }
 
   const [isDark, setIsDark] = useState(true);
   const [lang, setLang] = useState<'pt-BR' | 'pt-PT' | 'en'>('pt-BR');
-  const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' } | null>(null);
   const [mounted, setMounted] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' } | null>(null);
+
+  // Estados dos Modais Premium
+  const [isLangModalOpen, setIsLangModalOpen] = useState(false);
+  const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
 
   useEffect(() => {
-    const savedTheme = localStorage.getItem('@premium_theme');
-    if (savedTheme) setIsDark(savedTheme === 'dark');
-    
-    const savedLang = localStorage.getItem('@premium_lang') as 'pt-BR' | 'pt-PT' | 'en';
-    if (savedLang) setLang(savedLang);
-    
+    const updateSettings = () => {
+      const savedTheme = localStorage.getItem('@premium_theme');
+      if (savedTheme) setIsDark(savedTheme === 'dark');
+      
+      const savedLang = localStorage.getItem('@premium_lang') as 'pt-BR' | 'pt-PT' | 'en';
+      if (savedLang) setLang(savedLang);
+    };
+
+    updateSettings();
     setMounted(true);
     if (id) fetchPerfil();
+
+    window.addEventListener('storage', updateSettings);
+    window.addEventListener('config-updated', updateSettings);
+
+    return () => {
+      window.removeEventListener('storage', updateSettings);
+      window.removeEventListener('config-updated', updateSettings);
+    };
   }, [id]);
 
-  const toggleTheme = () => {
-    const newTheme = !isDark;
-    setIsDark(newTheme);
-    localStorage.setItem('@premium_theme', newTheme ? 'dark' : 'light');
-    window.dispatchEvent(new Event('storage'));
+  const handleSelectLanguage = (newLang: string) => {
+    setLang(newLang as any);
+    localStorage.setItem('@premium_lang', newLang);
+    window.dispatchEvent(new Event('config-updated'));
+    setIsLangModalOpen(false);
   };
 
-  const toggleLang = () => {
-    const langs: ('pt-BR' | 'pt-PT' | 'en')[] = ['pt-BR', 'pt-PT', 'en'];
-    const nextLang = langs[(langs.indexOf(lang) + 1) % langs.length];
-    setLang(nextLang);
-    localStorage.setItem('@premium_lang', nextLang);
-    window.dispatchEvent(new Event('storage'));
+  const handleSelectTheme = (theme: 'dark' | 'light') => {
+    const newIsDark = theme === 'dark';
+    setIsDark(newIsDark);
+    localStorage.setItem('@premium_theme', newIsDark ? 'dark' : 'light');
+    window.dispatchEvent(new Event('config-updated'));
+    setIsThemeModalOpen(false);
   };
 
   const showToast = (message: string, type: 'error' | 'success' = 'success') => {
@@ -226,28 +261,28 @@ export default function PerfilAluno({ params }: { params: Promise<{ id: string }
     setTimeout(() => setToast(null), 4000);
   };
 
-  const t = translations[lang];
+  const t = translations[lang] || translations['pt-BR'];
 
   const themeStyles = isDark ? {
     '--bg': '#0F1115',
-    '--surface': '#1A1D24',
-    '--surface-sec': '#222731',
+    '--surface': 'rgba(26, 29, 36, 0.8)', // Translúcido para Glassmorphism
+    '--surface-sec': '#1B2330',
     '--primary': '#3B82F6',
     '--danger': '#EF4444',
     '--success': '#22C55E',
     '--text-primary': '#F8FAFC',
     '--text-secondary': '#94A3B8',
-    '--border': 'rgba(255,255,255,0.05)',
+    '--border': 'rgba(255,255,255,0.08)',
   } as React.CSSProperties : {
     '--bg': '#F9FAFB',
-    '--surface': '#FFFFFF',
+    '--surface': 'rgba(255, 255, 255, 0.85)',
     '--surface-sec': '#F8FAFC',
     '--primary': '#2563EB',
     '--danger': '#DC2626',
     '--success': '#16A34A',
     '--text-primary': '#111827',
     '--text-secondary': '#6B7280',
-    '--border': 'rgba(15,23,42,0.06)',
+    '--border': 'rgba(15,23,42,0.08)',
   } as React.CSSProperties;
 
   const fetchPerfil = async () => {
@@ -371,6 +406,7 @@ export default function PerfilAluno({ params }: { params: Promise<{ id: string }
     >
       {/* Background Orbs */}
       <div className="absolute top-[-10%] left-[-10%] w-[120vw] sm:w-[400px] h-[120vw] sm:h-[400px] bg-[var(--primary)]/10 rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[100vw] sm:w-[350px] h-[100vw] sm:h-[350px] bg-[var(--primary-soft)]/5 rounded-full blur-[100px] pointer-events-none" />
 
       {toast && (
         <div className="fixed top-[max(env(safe-area-inset-top,20px),20px)] left-4 right-4 z-[9999] flex justify-center animate-in slide-in-from-top-4 fade-in duration-300">
@@ -389,26 +425,36 @@ export default function PerfilAluno({ params }: { params: Promise<{ id: string }
         <header className="flex justify-between items-center mb-6 pt-4">
           <button 
             onClick={() => router.back()} 
-            className="flex items-center justify-center w-11 h-11 rounded-full bg-[var(--surface)] border border-[var(--border)] active:scale-95 transition-all shadow-sm hover:bg-[var(--surface-sec)]"
+            className="flex items-center justify-center w-11 h-11 rounded-full bg-[var(--surface)] backdrop-blur-md border border-[var(--border)] active:scale-95 transition-all shadow-sm hover:bg-[var(--surface-sec)]"
           >
             <FaChevronLeft className="text-[var(--text-primary)]" size={14} />
           </button>
           
           <h1 className="font-black text-xs uppercase tracking-widest text-[var(--text-primary)] hidden sm:block">{t.title}</h1>
           
-          <div className="flex gap-2">
-            <button onClick={toggleLang} className="w-10 h-10 rounded-full bg-[var(--surface)] border border-[var(--border)] shadow-sm flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--primary)] transition-all active:scale-95 relative">
+          {/* ━━━━━━━━━━ CONTROLES UNIFICADOS (PILL UI) ━━━━━━━━━━ */}
+          <div className="flex items-center bg-[var(--surface)] backdrop-blur-md border border-[var(--border)] rounded-full shadow-sm p-1">
+            <button 
+              onClick={() => setIsLangModalOpen(true)}
+              className="flex items-center justify-center gap-1.5 px-3 h-8 rounded-full text-[var(--text-secondary)] hover:text-[var(--primary)] hover:bg-[var(--primary)]/5 transition-all active:scale-95"
+            >
               <FaGlobe size={14} />
-              <span className="absolute -top-1 -right-1 bg-[var(--primary)] text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full">{lang.split('-')[0].toUpperCase()}</span>
+              <span className="text-[10px] font-black uppercase tracking-widest hidden sm:block">{lang.split('-')[0]}</span>
             </button>
-            <button onClick={toggleTheme} className="w-10 h-10 rounded-full bg-[var(--surface)] border border-[var(--border)] shadow-sm flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--primary)] transition-all active:scale-95">
-              {isDark ? <FaSun size={14} /> : <FaMoon size={14} />}
+            
+            <div className="w-[1px] h-4 bg-[var(--border)] mx-0.5" />
+            
+            <button 
+              onClick={() => setIsThemeModalOpen(true)} 
+              className="flex items-center justify-center w-10 h-8 rounded-full text-[var(--text-secondary)] hover:text-[var(--primary)] hover:bg-[var(--primary)]/5 transition-all active:scale-95"
+            >
+              {isDark ? <FaMoon size={14} /> : <FaSun size={14} />}
             </button>
           </div>
         </header>
 
         {/* CARD DO AVATAR */}
-        <div className="bg-[var(--surface)]/90 backdrop-blur-md p-8 rounded-[2.5rem] border border-[var(--border)] flex flex-col items-center gap-5 text-center shadow-sm relative overflow-hidden group">
+        <div className="bg-[var(--surface)] backdrop-blur-2xl p-8 rounded-[2.5rem] border border-[var(--border)] flex flex-col items-center gap-5 text-center shadow-lg shadow-[var(--border)] relative overflow-hidden group">
           <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--primary)]/5 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none transition-all group-hover:bg-[var(--primary)]/10" />
 
           <div className="relative">
@@ -458,7 +504,7 @@ export default function PerfilAluno({ params }: { params: Promise<{ id: string }
         </div>
 
         {/* FORMULÁRIOS */}
-        <div className="bg-[var(--surface)] p-6 sm:p-8 rounded-[2.5rem] border border-[var(--border)] shadow-sm">
+        <div className="bg-[var(--surface)] backdrop-blur-2xl p-6 sm:p-8 rounded-[2.5rem] border border-[var(--border)] shadow-lg shadow-[var(--border)]">
           {activeTab === 'dados' ? (
             <div className="space-y-6 animate-in slide-in-from-left-4 fade-in duration-300">
               
@@ -518,7 +564,7 @@ export default function PerfilAluno({ params }: { params: Promise<{ id: string }
               <button 
                 onClick={handleUpdatePassword} 
                 disabled={saving || novaSenha.length < 6} 
-                className={`w-full py-4 rounded-xl text-[12px] font-black uppercase tracking-widest transition-all ${
+                className={`w-full py-4 rounded-[1.2rem] text-[12px] font-black uppercase tracking-widest transition-all ${
                   saving || novaSenha.length < 6
                     ? 'bg-[var(--surface-sec)] text-[var(--text-secondary)] border border-[var(--border)] cursor-not-allowed shadow-inner'
                     : 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-[0_8px_30px_rgb(79,70,229,0.3)] hover:shadow-[0_8px_30px_rgb(79,70,229,0.5)] active:scale-95'
@@ -530,7 +576,7 @@ export default function PerfilAluno({ params }: { params: Promise<{ id: string }
           )}
         </div>
 
-        {/* BOTAO DE SALVAR DADOS (Exibido apenas na aba Dados) */}
+        {/* BOTAO DE SALVAR DADOS */}
         {activeTab === 'dados' && (
           <button 
             onClick={handleUpdate} 
@@ -560,6 +606,119 @@ export default function PerfilAluno({ params }: { params: Promise<{ id: string }
         </button>
 
       </div>
+
+      {/* ━━━━━━━━━━ MODAIS DE CONFIGURAÇÃO (Fundo Escuro) ━━━━━━━━━━ */}
+      {(isLangModalOpen || isThemeModalOpen) && (
+        <div className="fixed inset-0 z-[999999] flex items-end sm:items-center justify-center p-0 sm:p-5">
+          <div 
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300"
+            onClick={() => { setIsLangModalOpen(false); setIsThemeModalOpen(false); }} 
+          />
+          
+          <div className="w-full max-w-sm bg-[var(--bg)] border border-[var(--border)] rounded-t-[2.5rem] sm:rounded-[2.5rem] p-6 shadow-2xl relative z-10 animate-in slide-in-from-bottom-full sm:slide-in-from-bottom-8 sm:zoom-in-95 duration-300">
+            
+            {/* ━━ CONTEÚDO: IDIOMAS ━━ */}
+            {isLangModalOpen && (
+              <>
+                <div className="flex justify-between items-center mb-6 px-2">
+                  <h3 className="font-black text-lg tracking-tight text-[var(--text-primary)]">
+                    {t.selectLanguage}
+                  </h3>
+                  <button 
+                    onClick={() => setIsLangModalOpen(false)}
+                    className="w-8 h-8 rounded-full bg-[var(--surface)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--danger)] transition-colors active:scale-95"
+                  >
+                    <FaTimes size={14} />
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  {languages.map((language) => {
+                    const isActive = lang === language.code;
+                    return (
+                      <button
+                        key={language.code}
+                        onClick={() => handleSelectLanguage(language.code)}
+                        className={`w-full flex items-center justify-between p-4 rounded-[1.2rem] border transition-all active:scale-[0.98] ${
+                          isActive 
+                            ? 'bg-[var(--primary)]/10 border-[var(--primary)]/30 text-[var(--primary)]' 
+                            : 'bg-[var(--surface)] border-[var(--border)] text-[var(--text-primary)] hover:border-[var(--text-secondary)]/50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-4">
+                          <span className="text-2xl">{language.flag}</span>
+                          <span className={`font-bold text-sm ${isActive ? 'text-[var(--primary)]' : ''}`}>
+                            {language.name}
+                          </span>
+                        </div>
+                        {isActive && <FaCheck className="text-[var(--primary)]" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+
+            {/* ━━ CONTEÚDO: TEMA ━━ */}
+            {isThemeModalOpen && (
+              <>
+                <div className="flex justify-between items-center mb-6 px-2">
+                  <h3 className="font-black text-lg tracking-tight text-[var(--text-primary)]">
+                    {t.selectTheme}
+                  </h3>
+                  <button 
+                    onClick={() => setIsThemeModalOpen(false)}
+                    className="w-8 h-8 rounded-full bg-[var(--surface)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--danger)] transition-colors active:scale-95"
+                  >
+                    <FaTimes size={14} />
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  <button
+                    onClick={() => handleSelectTheme('light')}
+                    className={`w-full flex items-center justify-between p-4 rounded-[1.2rem] border transition-all active:scale-[0.98] ${
+                      !isDark 
+                        ? 'bg-[var(--primary)]/10 border-[var(--primary)]/30 text-[var(--primary)]' 
+                        : 'bg-[var(--surface)] border-[var(--border)] text-[var(--text-primary)] hover:border-[var(--text-secondary)]/50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-8 h-8 rounded-full bg-orange-100 text-orange-500 flex items-center justify-center">
+                        <FaSun size={16} />
+                      </div>
+                      <span className={`font-bold text-sm ${!isDark ? 'text-[var(--primary)]' : ''}`}>
+                        {t.themeLight}
+                      </span>
+                    </div>
+                    {!isDark && <FaCheck className="text-[var(--primary)]" />}
+                  </button>
+                  
+                  <button
+                    onClick={() => handleSelectTheme('dark')}
+                    className={`w-full flex items-center justify-between p-4 rounded-[1.2rem] border transition-all active:scale-[0.98] ${
+                      isDark 
+                        ? 'bg-[var(--primary)]/10 border-[var(--primary)]/30 text-[var(--primary)]' 
+                        : 'bg-[var(--surface)] border-[var(--border)] text-[var(--text-primary)] hover:border-[var(--text-secondary)]/50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-8 h-8 rounded-full bg-slate-800 text-slate-300 flex items-center justify-center">
+                        <FaMoon size={16} />
+                      </div>
+                      <span className={`font-bold text-sm ${isDark ? 'text-[var(--primary)]' : ''}`}>
+                        {t.themeDark}
+                      </span>
+                    </div>
+                    {isDark && <FaCheck className="text-[var(--primary)]" />}
+                  </button>
+                </div>
+              </>
+            )}
+            
+            <div className="w-12 h-1 bg-[var(--border)] rounded-full mx-auto mt-6 sm:hidden" />
+          </div>
+        </div>
+      )}
+
     </main>
   );
 }
