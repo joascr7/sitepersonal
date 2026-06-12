@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { FaCamera, FaCheckCircle, FaExclamationCircle } from 'react-icons/fa';
 
@@ -84,6 +84,7 @@ export default function Perfil() {
   });
   const [newPassword, setNewPassword] = useState('');
   const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' } | null>(null);
+  const toastTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Estados de Tema e i18n
   const [isDark, setIsDark] = useState(true);
@@ -96,14 +97,17 @@ export default function Perfil() {
       if (savedTheme) setIsDark(savedTheme === 'dark');
       
       const savedLang = localStorage.getItem('@premium_lang') as 'pt-BR' | 'pt-PT' | 'en';
-      if (savedLang) setLang(savedLang);
+      if (savedLang && translations[savedLang]) setLang(savedLang);
     };
 
     updateSettings();
     setMounted(true);
 
     window.addEventListener('storage', updateSettings);
-    return () => window.removeEventListener('storage', updateSettings);
+    return () => {
+      window.removeEventListener('storage', updateSettings);
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    };
   }, []);
 
   const t = translations[lang] || translations['pt-BR'];
@@ -132,12 +136,20 @@ export default function Perfil() {
   } as React.CSSProperties;
 
   const showToast = (message: string, type: 'error' | 'success' = 'success') => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     setToast({ message, type });
-    setTimeout(() => setToast(null), 4000);
+    toastTimerRef.current = setTimeout(() => setToast(null), 4000);
   };
 
   const handleChange = (field: string) => (value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const getInitials = (name: string) => {
+    if (!name) return 'U';
+    const parts = name.trim().split(' ');
+    if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+    return name.substring(0, 2).toUpperCase();
   };
 
   const loadProfile = useCallback(async () => {
@@ -157,7 +169,7 @@ export default function Perfil() {
           nome: data.nome || '', 
           cref: data.cref || '', 
           telefone: data.telefone || '', 
-          email: data.email || '' 
+          email: data.email || user.email || '' 
         });
         setAvatarUrl(data.avatar_url);
       }
@@ -190,15 +202,22 @@ export default function Perfil() {
       const { error: uploadError } = await supabase.storage
         .from('perfil')
         .upload(filePath, file, { upsert: true });
+        
       if (uploadError) throw uploadError;
 
       const { data: { publicUrl } } = supabase.storage.from('perfil').getPublicUrl(filePath);
-      await supabase.from('personais').update({ avatar_url: publicUrl }).eq('id', user.id);
+      
+      const { error: updateError } = await supabase.from('personais')
+        .update({ avatar_url: publicUrl })
+        .eq('id', user.id);
+        
+      if (updateError) throw updateError;
       
       setAvatarUrl(publicUrl);
       showToast(t.successPhoto, 'success');
-    } catch (err: any) { 
-      showToast(t.errGeneral + err.message, 'error'); 
+    } catch (err: unknown) { 
+      const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
+      showToast(t.errGeneral + errorMessage, 'error'); 
     } finally { 
       setLoading(false); 
     }
@@ -212,34 +231,33 @@ export default function Perfil() {
     }
 
     setLoading(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (user) {
-      if (formData.email.trim() !== user.email) {
-        const { error: authError } = await supabase.auth.updateUser({ email: formData.email.trim() });
-        if (authError) {
-          showToast(t.errGeneral + authError.message, 'error');
-          setLoading(false);
-          return;
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (user) {
+        if (formData.email.trim() !== user.email) {
+          const { error: authError } = await supabase.auth.updateUser({ email: formData.email.trim() });
+          if (authError) throw authError;
         }
-      }
 
-      const { error } = await supabase.from('personais')
-        .update({ 
-          nome: formData.nome.trim(), 
-          telefone: formData.telefone.trim(),
-          cref: formData.cref.trim(),
-          email: formData.email.trim()
-        })
-        .eq('id', user.id);
-        
-      if (error) {
-        showToast(t.errGeneral + error.message, 'error');
-      } else {
+        const { error } = await supabase.from('personais')
+          .update({ 
+            nome: formData.nome.trim(), 
+            telefone: formData.telefone.trim(),
+            cref: formData.cref.trim(),
+            email: formData.email.trim()
+          })
+          .eq('id', user.id);
+          
+        if (error) throw error;
         showToast(t.successData, 'success');
       }
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
+      showToast(t.errGeneral + errorMessage, 'error');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleUpdatePassword = async () => {
@@ -247,15 +265,20 @@ export default function Perfil() {
       showToast(t.errPassLength, 'error');
       return;
     }
+    
     setLoading(true);
-    const { error } = await supabase.auth.updateUser({ password: newPassword });
-    if (error) {
-      showToast(t.errGeneral + error.message, 'error');
-    } else { 
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+      
       showToast(t.successPass, 'success'); 
       setNewPassword(''); 
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
+      showToast(t.errGeneral + errorMessage, 'error');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   if (fetching || !mounted) return (
@@ -293,9 +316,12 @@ export default function Perfil() {
           <label className="cursor-pointer relative rounded-[2rem] border-4 border-[var(--bg)] shadow-xl overflow-hidden transition-all duration-300 hover:border-[var(--primary)]/30 block">
             <div className="w-28 h-28 sm:w-32 sm:h-32 bg-[var(--surface-sec)] flex items-center justify-center">
                 {avatarUrl ? (
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={avatarUrl} className="w-full h-full object-cover" alt="Avatar" />
                 ) : (
-                  <span className="font-black text-[var(--text-secondary)] text-xl">PT</span>
+                  <span className="font-black text-[var(--text-secondary)] text-xl">
+                    {getInitials(formData.nome)}
+                  </span>
                 )}
             </div>
             
@@ -315,9 +341,10 @@ export default function Perfil() {
             <Input label={t.phoneLabel} value={formData.telefone} onChange={handleChange('telefone')} disabled={loading} />
           </div>
           
-          <Input label={t.emailLabel} value={formData.email} onChange={handleChange('email')} disabled={loading} />
+          <Input label={t.emailLabel} value={formData.email} onChange={handleChange('email')} disabled={loading} type="email" />
           
           <button 
+            type="submit"
             disabled={loading} 
             className="w-full mt-6 bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-4 rounded-xl font-black text-[12px] uppercase tracking-widest shadow-[0_8px_30px_rgb(79,70,229,0.3)] hover:shadow-[0_8px_30px_rgb(79,70,229,0.5)] transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center"
           >
@@ -340,6 +367,7 @@ export default function Perfil() {
             disabled={loading}
           />
           <button 
+            type="button"
             onClick={handleUpdatePassword} 
             disabled={loading || newPassword.length < 6} 
             className={`w-full py-4 rounded-xl font-black uppercase tracking-widest text-[11px] transition-all active:scale-[0.98] ${
@@ -359,7 +387,13 @@ export default function Perfil() {
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // COMPONENTE INPUT INTERNO APRIMORADO (Premium SaaS)
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-function Input({ label, value, onChange, disabled, type = "text", className = "", ...props }: any) {
+interface InputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'onChange'> {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}
+
+function Input({ label, value, onChange, disabled, type = "text", className = "", ...props }: InputProps) {
   return (
     <div className="flex flex-col gap-1.5 w-full min-w-0 group">
       <label className="text-[10px] font-black text-[var(--text-secondary)] uppercase tracking-[0.2em] px-1 truncate group-focus-within:text-[var(--primary)] transition-colors">
