@@ -13,7 +13,8 @@ import {
   FaSearch, FaChartLine, FaEdit, FaUser, FaTimes, 
   FaCalendarAlt, FaCheckCircle, FaExclamationCircle, FaGlobe, 
   FaMoon, FaSun, FaUsers, FaCommentDots, FaUserPlus, 
-  FaChevronRight, FaInfoCircle, FaDumbbell, FaBookOpen, FaListUl
+  FaChevronRight, FaInfoCircle, FaDumbbell, FaBookOpen, FaListUl,
+  FaPaperPlane
 } from 'react-icons/fa';
 
 interface PersonalData {
@@ -47,18 +48,24 @@ const DashboardSkeleton = () => (
   </div>
 );
 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// DICIONÁRIO DE TRADUÇÕES (i18n) APRIMORADO
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 const translations = {
   'pt-BR': {
     search: 'Buscar aluno...', statusBlocked: 'BLOQUEADO', statusActive: 'ATIVO', statusPending: 'PENDENTE', testPeriod: 'Você está no período de teste.', subscribe: 'Assinar Plano', renewal: 'Renovação próxima', confirmReativar: 'Confirmar reativação do acesso para ', confirmBloqueio: 'Confirmar bloqueio de acesso para ', errStatus: 'Erro ao alterar status.', successStatusReativado: 'Aluno reativado!', successStatusBloqueado: 'Acesso bloqueado!', errProcess: 'Falha ao processar: ', successPay: 'Pagamento registrado com sucesso!', confirmPagamento: 'Confirmar Pagamento', valorPlaceholder: 'Valor (R$)', registrarPagamento: 'Registrar Pagamento', report: 'Relatório por Mês',
-    addStudents: 'Adicionar novo aluno', students: 'Meus Alunos', active: 'Ativos', inactive: 'Inativos', yourStudents: 'Gestão de Alunos', manageStudents: 'Gerenciar Alunos', workouts: 'Gestão de Treinos', libraryWorkouts: 'Biblioteca de treinos', libraryExercises: 'Biblioteca de exercícios'
+    addStudents: 'Adicionar novo aluno', students: 'Meus Alunos', active: 'Ativos', inactive: 'Inativos', yourStudents: 'Gestão de Alunos', manageStudents: 'Gerenciar Alunos', workouts: 'Gestão de Treinos', libraryWorkouts: 'Biblioteca de treinos', libraryExercises: 'Biblioteca de exercícios',
+    sendNotice: 'Enviar Aviso', noticeDesc: 'Notifique seus alunos rapidamente', parqTitle: 'Avaliações PAR-Q dos Alunos', notFound: 'Nenhum aluno encontrado.', prev: 'Anterior', next: 'Próxima', page: 'Página', of: 'de'
   },
   'pt-PT': {
     search: 'Procurar aluno...', statusBlocked: 'BLOQUEADO', statusActive: 'ATIVO', statusPending: 'PENDENTE', testPeriod: 'Está no período de teste.', subscribe: 'Assinar Plano', renewal: 'Renovação próxima', confirmReativar: 'Confirmar reativação do acesso para ', confirmBloqueio: 'Confirmar bloqueio de acesso para ', errStatus: 'Erro ao alterar status.', successStatusReativado: 'Aluno reativado!', successStatusBloqueado: 'Acesso bloqueado!', errProcess: 'Falha ao processar: ', successPay: 'Pagamento registado com sucesso!', confirmPagamento: 'Confirmar Pagamento', valorPlaceholder: 'Valor', registrarPagamento: 'Registar Pagamento', report: 'Relatório por Mês',
-    addStudents: 'Adicionar novo aluno', students: 'Meus Alunos', active: 'Ativos', inactive: 'Inativos', yourStudents: 'Gestão de Alunos', manageStudents: 'Gerir Alunos', workouts: 'Gestão de Treinos', libraryWorkouts: 'Biblioteca de treinos', libraryExercises: 'Biblioteca de exercícios'
+    addStudents: 'Adicionar novo aluno', students: 'Meus Alunos', active: 'Ativos', inactive: 'Inativos', yourStudents: 'Gestão de Alunos', manageStudents: 'Gerir Alunos', workouts: 'Gestão de Treinos', libraryWorkouts: 'Biblioteca de treinos', libraryExercises: 'Biblioteca de exercícios',
+    sendNotice: 'Enviar Aviso', noticeDesc: 'Notifique os seus alunos rapidamente', parqTitle: 'Avaliações PAR-Q dos Alunos', notFound: 'Nenhum aluno encontrado.', prev: 'Anterior', next: 'Seguinte', page: 'Página', of: 'de'
   },
   'en': {
     search: 'Search student...', statusBlocked: 'BLOCKED', statusActive: 'ACTIVE', statusPending: 'PENDING', testPeriod: 'You are in the trial period.', subscribe: 'Subscribe', renewal: 'Upcoming renewal', confirmReativar: 'Confirm access reactivation for ', confirmBloqueio: 'Confirm access blocking for ', errStatus: 'Error changing status.', successStatusReativado: 'Student reactivated!', successStatusBloqueado: 'Access blocked!', errProcess: 'Failed to process: ', successPay: 'Payment registered successfully!', confirmPagamento: 'Confirm Payment', valorPlaceholder: 'Value', registrarPagamento: 'Register Payment', report: 'Monthly Report',
-    addStudents: 'Add new student', students: 'My Students', active: 'Active', inactive: 'Inactive', yourStudents: 'Student Management', manageStudents: 'Manage Students', workouts: 'Workout Management', libraryWorkouts: 'Workout Library', libraryExercises: 'Exercise Library'
+    addStudents: 'Add new student', students: 'My Students', active: 'Active', inactive: 'Inactive', yourStudents: 'Student Management', manageStudents: 'Manage Students', workouts: 'Workout Management', libraryWorkouts: 'Workout Library', libraryExercises: 'Exercise Library',
+    sendNotice: 'Send Notice', noticeDesc: 'Notify your students quickly', parqTitle: 'Student PAR-Q Assessments', notFound: 'No students found.', prev: 'Previous', next: 'Next', page: 'Page', of: 'of'
   }
 };
 
@@ -84,6 +91,9 @@ export default function Dashboard() {
   // Estados do Modal de Alunos e Paginação
   const [isAlunosModalOpen, setIsAlunosModalOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  
+  // Estado para expansão das Notificações (Premium Accordion)
+  const [isNotificacaoExpanded, setIsNotificacaoExpanded] = useState(false);
 
   const showStatus = (type: 'success' | 'error' | 'info', text: string) => {
     setStatusMsg({ type, text });
@@ -109,14 +119,26 @@ export default function Dashboard() {
   } as React.CSSProperties;
 
   useEffect(() => {
-    const savedTheme = localStorage.getItem('@premium_theme');
-    if (savedTheme) setIsDark(savedTheme === 'dark');
-    const savedLang = localStorage.getItem('@premium_lang') as 'pt-BR' | 'pt-PT' | 'en';
-    if (savedLang) setLang(savedLang);
+    const updateSettings = () => {
+      const savedTheme = localStorage.getItem('@premium_theme');
+      if (savedTheme) setIsDark(savedTheme === 'dark');
+      const savedLang = localStorage.getItem('@premium_lang') as 'pt-BR' | 'pt-PT' | 'en';
+      if (savedLang) setLang(savedLang);
+    };
+
+    updateSettings();
     setMounted(true);
 
     const timer = setInterval(() => setHoraAtual(new Date()), 1000);
-    return () => clearInterval(timer);
+    
+    window.addEventListener('storage', updateSettings);
+    window.addEventListener('config-updated', updateSettings);
+    
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener('storage', updateSettings);
+      window.removeEventListener('config-updated', updateSettings);
+    };
   }, []);
 
   const getSaudacao = () => {
@@ -126,8 +148,20 @@ export default function Dashboard() {
     return 'Boa noite';
   };
 
-  const toggleTheme = () => { const newTheme = !isDark; setIsDark(newTheme); localStorage.setItem('@premium_theme', newTheme ? 'dark' : 'light'); window.dispatchEvent(new Event('storage')); };
-  const toggleLang = () => { const langs: ('pt-BR' | 'pt-PT' | 'en')[] = ['pt-BR', 'pt-PT', 'en']; const nextLang = langs[(langs.indexOf(lang) + 1) % langs.length]; setLang(nextLang); localStorage.setItem('@premium_lang', nextLang); window.dispatchEvent(new Event('storage')); };
+  const toggleTheme = () => { 
+    const newTheme = !isDark; 
+    setIsDark(newTheme); 
+    localStorage.setItem('@premium_theme', newTheme ? 'dark' : 'light'); 
+    window.dispatchEvent(new Event('config-updated')); 
+  };
+  
+  const toggleLang = () => { 
+    const langs: ('pt-BR' | 'pt-PT' | 'en')[] = ['pt-BR', 'pt-PT', 'en']; 
+    const nextLang = langs[(langs.indexOf(lang) + 1) % langs.length]; 
+    setLang(nextLang); 
+    localStorage.setItem('@premium_lang', nextLang); 
+    window.dispatchEvent(new Event('config-updated')); 
+  };
   
   const t = translations[lang] || translations['pt-BR'];
 
@@ -301,7 +335,7 @@ export default function Dashboard() {
           <div className="fixed inset-0 bg-black/60 backdrop-blur-xl z-[400] flex items-center justify-center p-5 animate-in fade-in duration-300">
             <div className="bg-[var(--surface)] p-6 rounded-[2.5rem] w-full max-w-2xl max-h-[80vh] overflow-y-auto border border-[var(--border)] shadow-2xl animate-in zoom-in-95 slide-in-from-bottom-4 relative">
               <div className="flex justify-between items-center mb-6">
-                <h3 className="font-black text-lg tracking-tighter">Avaliações PAR-Q dos Alunos</h3>
+                <h3 className="font-black text-lg tracking-tighter">{t.parqTitle}</h3>
                 <button onClick={() => setIsParqModalOpen(false)} className="text-[var(--text-secondary)] hover:text-[var(--danger)] transition-colors p-2 bg-[var(--surface-sec)] rounded-full">
                   <FaTimes size={16} />
                 </button>
@@ -375,7 +409,7 @@ export default function Dashboard() {
                 })}
 
                 {paginatedAlunos.length === 0 && (
-                  <p className="text-center text-sm font-bold text-[var(--text-secondary)] py-8">Nenhum aluno encontrado.</p>
+                  <p className="text-center text-sm font-bold text-[var(--text-secondary)] py-8">{t.notFound}</p>
                 )}
               </div>
 
@@ -387,17 +421,17 @@ export default function Dashboard() {
                     disabled={currentPage === 1}
                     className="px-5 py-2.5 bg-[var(--surface-sec)] text-[var(--text-primary)] rounded-xl font-bold text-xs disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[var(--border)] border border-transparent hover:border-[var(--border)] transition-all active:scale-95"
                   >
-                    Anterior
+                    {t.prev}
                   </button>
                   <span className="text-[10px] font-black uppercase tracking-widest text-[var(--text-secondary)]">
-                    Página {currentPage} de {totalPages}
+                    {t.page} {currentPage} {t.of} {totalPages}
                   </span>
                   <button 
                     onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                     disabled={currentPage === totalPages}
                     className="px-5 py-2.5 bg-[var(--surface-sec)] text-[var(--text-primary)] rounded-xl font-bold text-xs disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[var(--border)] border border-transparent hover:border-[var(--border)] transition-all active:scale-95"
                   >
-                    Próxima
+                    {t.next}
                   </button>
                 </div>
               )}
@@ -581,7 +615,34 @@ export default function Dashboard() {
                     {t.addStudents}
                   </button>
                   
-                  <NotificationManager personalId={user?.id} alunos={alunos} showStatus={showStatus} />
+                  {/* ━━━━━━━━━━ ACCORDION PREMIUM DE NOTIFICAÇÕES ━━━━━━━━━━ */}
+                  <div className="mt-8 mb-6">
+                    <button
+                      onClick={() => setIsNotificacaoExpanded(!isNotificacaoExpanded)}
+                      className={`w-full bg-[var(--surface)] border p-5 rounded-[1.2rem] flex items-center justify-between shadow-sm transition-all active:scale-[0.98] group ${isNotificacaoExpanded ? 'border-[var(--primary)]/50 bg-[var(--primary)]/5' : 'border-[var(--border)] hover:border-[var(--primary)]/30'}`}
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${isNotificacaoExpanded ? 'bg-[var(--primary)] text-white shadow-md' : 'bg-[var(--surface-sec)] text-[var(--primary)] group-hover:bg-[var(--primary)]/10'}`}>
+                          <FaPaperPlane size={14} />
+                        </div>
+                        <div className="flex flex-col items-start gap-0.5">
+                          <span className="font-black text-[13px] text-[var(--text-primary)] tracking-tight">{t.sendNotice}</span>
+                          <span className="text-[10px] font-bold text-[var(--text-secondary)] tracking-wider uppercase">{t.noticeDesc}</span>
+                        </div>
+                      </div>
+                      <FaChevronRight className={`text-[var(--text-secondary)] transition-transform duration-300 ${isNotificacaoExpanded ? 'rotate-90 text-[var(--primary)]' : ''}`} size={14} />
+                    </button>
+
+                    <div className={`grid transition-[grid-template-rows,opacity,margin] duration-500 ease-in-out ${isNotificacaoExpanded ? 'grid-rows-[1fr] opacity-100 mt-4' : 'grid-rows-[0fr] opacity-0 mt-0'}`}>
+                      <div className="overflow-hidden">
+                        <div className="bg-[var(--surface-sec)] p-2 rounded-[1.5rem] border border-[var(--border)] shadow-inner">
+                          <NotificationManager personalId={user?.id} alunos={alunos} showStatus={showStatus} />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  {/* ━━━━━━━━━━ FIM ACCORDION NOTIFICAÇÕES ━━━━━━━━━━ */}
+
                 </section>
               </div>
             )}
