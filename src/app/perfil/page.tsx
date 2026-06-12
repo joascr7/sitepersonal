@@ -15,10 +15,10 @@ const translations = {
     crefLabel: 'CREF',
     phoneLabel: 'Telefone',
     emailLabel: 'E-mail',
-    btnSave: 'SALVAR DADOS',
+    btnSave: 'Salvar Dados',
     newPassLabel: 'Nova Senha',
     passPlaceholder: 'Mínimo 6 caracteres',
-    btnUpdatePass: 'ATUALIZAR SENHA',
+    btnUpdatePass: 'Atualizar Senha',
     errPhotoSize: 'A imagem é muito grande. Máximo 2MB.',
     errAuth: 'Não autenticado.',
     errNameReq: 'Nome é obrigatório.',
@@ -36,10 +36,10 @@ const translations = {
     crefLabel: 'Cédula',
     phoneLabel: 'Telefone',
     emailLabel: 'E-mail',
-    btnSave: 'GUARDAR DADOS',
+    btnSave: 'Guardar Dados',
     newPassLabel: 'Nova Palavra-passe',
     passPlaceholder: 'Mínimo 6 caracteres',
-    btnUpdatePass: 'ATUALIZAR PALAVRA-PASSE',
+    btnUpdatePass: 'Atualizar Palavra-passe',
     errPhotoSize: 'A imagem é muito grande. Máximo de 2MB.',
     errAuth: 'Não autenticado.',
     errNameReq: 'O Nome é obrigatório.',
@@ -57,10 +57,10 @@ const translations = {
     crefLabel: 'License',
     phoneLabel: 'Phone',
     emailLabel: 'E-mail',
-    btnSave: 'SAVE DATA',
+    btnSave: 'Save Data',
     newPassLabel: 'New Password',
     passPlaceholder: 'Minimum 6 characters',
-    btnUpdatePass: 'UPDATE PASSWORD',
+    btnUpdatePass: 'Update Password',
     errPhotoSize: 'Image is too large. Max 2MB.',
     errAuth: 'Not authenticated.',
     errNameReq: 'Name is required.',
@@ -111,8 +111,8 @@ export default function Perfil() {
   // Configuração das Variáveis CSS Globais (Design System)
   const themeStyles = isDark ? {
     '--bg': '#0F1115',
-    '--surface': '#151A22',
-    '--surface-sec': '#1B2330',
+    '--surface': '#1A1D24',
+    '--surface-sec': '#222731',
     '--primary': '#3B82F6',
     '--danger': '#EF4444',
     '--success': '#22C55E',
@@ -120,9 +120,9 @@ export default function Perfil() {
     '--text-secondary': '#94A3B8',
     '--border': 'rgba(255,255,255,0.05)',
   } as React.CSSProperties : {
-    '--bg': '#F3F6FB',
+    '--bg': '#F9FAFB',
     '--surface': '#FFFFFF',
-    '--surface-sec': '#E8EEF9',
+    '--surface-sec': '#F8FAFC',
     '--primary': '#2563EB',
     '--danger': '#DC2626',
     '--success': '#16A34A',
@@ -215,7 +215,6 @@ export default function Perfil() {
     const { data: { user } } = await supabase.auth.getUser();
     
     if (user) {
-      // Se o email foi alterado, também atualiza na autenticação do Supabase
       if (formData.email.trim() !== user.email) {
         const { error: authError } = await supabase.auth.updateUser({ email: formData.email.trim() });
         if (authError) {
@@ -266,12 +265,15 @@ export default function Perfil() {
   );
 
   return (
-    <main style={themeStyles} className="w-full min-h-screen bg-[var(--bg)] flex flex-col items-center px-4 py-8 pb-32 box-border text-[var(--text-primary)] transition-colors duration-500 font-sans antialiased">
+    <main style={themeStyles} className="w-full min-h-[100dvh] bg-[var(--bg)] flex flex-col items-center px-4 pt-[calc(env(safe-area-inset-top)+2rem)] pb-[calc(env(safe-area-inset-bottom)+8rem)] box-border text-[var(--text-primary)] transition-colors duration-500 font-sans relative overflow-hidden">
       
+      {/* Background Orbs */}
+      <div className="absolute top-[-10%] left-[-10%] w-[120vw] sm:w-[400px] h-[120vw] sm:h-[400px] bg-[var(--primary)]/10 rounded-full blur-[100px] pointer-events-none" />
+
       {/* ━━━━━━━━━━ NOTIFICAÇÃO PREMIUM FLOATING ━━━━━━━━━━ */}
       {toast && (
-        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[9999] flex justify-center animate-in slide-in-from-top-4 fade-in duration-300 w-[90%] max-w-sm">
-          <div className={`w-full bg-[var(--surface-sec)] border shadow-2xl rounded-[1.2rem] px-5 py-4 flex items-center gap-3 backdrop-blur-xl ${toast.type === 'error' ? 'border-[var(--danger)]/30' : 'border-[var(--success)]/30'}`}>
+        <div className="fixed top-[max(env(safe-area-inset-top,20px),20px)] left-4 right-4 z-[9999] flex justify-center animate-in slide-in-from-top-4 fade-in duration-300">
+          <div className={`bg-[var(--surface-sec)] border shadow-2xl rounded-xl px-5 py-4 flex items-center gap-3 backdrop-blur-xl ${toast.type === 'error' ? 'border-[var(--danger)]/30' : 'border-[var(--success)]/30'}`}>
             <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${toast.type === 'error' ? 'bg-[var(--danger)]/10 text-[var(--danger)]' : 'bg-[var(--success)]/10 text-[var(--success)]'}`}>
               {toast.type === 'error' ? <FaExclamationCircle /> : <FaCheckCircle />}
             </div>
@@ -280,36 +282,32 @@ export default function Perfil() {
         </div>
       )}
 
-      <div className="w-full max-w-md bg-[var(--surface)]/90 backdrop-blur-2xl p-8 md:p-10 rounded-[2.5rem] border border-[var(--border)] shadow-sm space-y-8 animate-in fade-in zoom-in-95 duration-500 relative overflow-hidden">
+      <div className="w-full max-w-md bg-[var(--surface)]/90 backdrop-blur-2xl p-6 sm:p-10 rounded-[2.5rem] border border-[var(--border)] shadow-xl space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700 relative z-10 box-border">
         
-        {/* Glow Decorativo Premium */}
-        <div className="absolute top-[-10%] right-[-10%] w-64 h-64 bg-[var(--primary)]/5 rounded-full blur-[80px] pointer-events-none" />
-
-        <h1 className="text-2xl sm:text-3xl font-black text-[var(--text-primary)] text-center tracking-tight relative z-10">
+        <h1 className="text-3xl font-black text-[var(--text-primary)] text-center tracking-tight">
           {t.title}
         </h1>
         
         {/* Foto de Perfil */}
-        <div className="flex justify-center relative z-10">
-            <label className="cursor-pointer group relative">
-              <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full overflow-hidden bg-[var(--surface-sec)] flex items-center justify-center border-[4px] border-[var(--border)] shadow-xl transition-all duration-300 group-hover:border-[var(--primary)] group-hover:shadow-[0_0_20px_rgba(59,130,246,0.3)]">
-                  {avatarUrl ? (
-                    <img src={avatarUrl} className="w-full h-full object-cover" alt="Avatar" />
-                  ) : (
-                    <span className="font-black text-[var(--text-secondary)] text-xl">PT</span>
-                  )}
-              </div>
-              
-              {/* Overlay de Câmera (Hover) */}
-              <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 backdrop-blur-[2px]">
-                <FaCamera className="text-white text-2xl drop-shadow-md" />
-              </div>
-              <input type="file" className="hidden" accept="image/*" onChange={handleAvatarUpload} disabled={loading} />
-            </label>
+        <div className="flex justify-center relative group">
+          <label className="cursor-pointer relative rounded-[2rem] border-4 border-[var(--bg)] shadow-xl overflow-hidden transition-all duration-300 hover:border-[var(--primary)]/30 block">
+            <div className="w-28 h-28 sm:w-32 sm:h-32 bg-[var(--surface-sec)] flex items-center justify-center">
+                {avatarUrl ? (
+                  <img src={avatarUrl} className="w-full h-full object-cover" alt="Avatar" />
+                ) : (
+                  <span className="font-black text-[var(--text-secondary)] text-xl">PT</span>
+                )}
+            </div>
+            
+            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 backdrop-blur-[2px]">
+              <FaCamera className="text-white text-2xl drop-shadow-md" />
+            </div>
+            <input type="file" className="hidden" accept="image/*" onChange={handleAvatarUpload} disabled={loading} />
+          </label>
         </div>
 
         {/* Dados Pessoais */}
-        <form onSubmit={handleUpdate} className="space-y-4 relative z-10">
+        <form onSubmit={handleUpdate} className="space-y-4">
           <Input label={t.nameLabel} value={formData.nome} onChange={handleChange('nome')} disabled={loading} />
           
           <div className="grid grid-cols-2 gap-4">
@@ -321,25 +319,18 @@ export default function Perfil() {
           
           <button 
             disabled={loading} 
-            className={`w-full py-4 rounded-[1.2rem] font-black uppercase tracking-widest text-xs transition-all duration-300 active:scale-[0.98] mt-4 flex items-center justify-center gap-2 ${
-              loading 
-                ? 'bg-[var(--surface-sec)] text-[var(--text-secondary)] border border-[var(--border)] cursor-not-allowed' 
-                : 'bg-[var(--primary)] text-white hover:brightness-110 shadow-[0_10px_30px_-10px_var(--primary)]'
-            }`}
+            className="w-full mt-6 bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-4 rounded-xl font-black text-[12px] uppercase tracking-widest shadow-[0_8px_30px_rgb(79,70,229,0.3)] hover:shadow-[0_8px_30px_rgb(79,70,229,0.5)] transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center"
           >
             {loading ? (
-              <>
-                <div className="w-4 h-4 border-2 border-[var(--text-secondary)] border-t-transparent rounded-full animate-spin" />
-                {t.saving}
-              </>
+              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
             ) : t.btnSave}
           </button>
         </form>
 
-        <hr className="border-[var(--border)] relative z-10" />
+        <div className="h-px w-full bg-gradient-to-r from-[var(--border)] to-transparent my-6" />
 
         {/* Troca de Senha */}
-        <div className="space-y-4 relative z-10">
+        <div className="space-y-4">
           <Input 
             label={t.newPassLabel} 
             type="password" 
@@ -350,8 +341,12 @@ export default function Perfil() {
           />
           <button 
             onClick={handleUpdatePassword} 
-            disabled={loading} 
-            className="w-full bg-[var(--surface-sec)] border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--border)] py-4 rounded-[1.2rem] font-black uppercase tracking-widest text-xs transition-all active:scale-[0.98]"
+            disabled={loading || newPassword.length < 6} 
+            className={`w-full py-4 rounded-xl font-black uppercase tracking-widest text-[11px] transition-all active:scale-[0.98] ${
+              loading || newPassword.length < 6
+                ? 'bg-[var(--surface-sec)] text-[var(--text-secondary)] border border-[var(--border)] cursor-not-allowed shadow-inner'
+                : 'bg-[var(--surface)] border border-[var(--primary)] text-[var(--primary)] hover:bg-[var(--primary)]/10 shadow-sm'
+            }`}
           >
             {t.btnUpdatePass}
           </button>
@@ -362,22 +357,28 @@ export default function Perfil() {
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// COMPONENTE INPUT INTERNO APRIMORADO
+// COMPONENTE INPUT INTERNO APRIMORADO (Premium SaaS)
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 function Input({ label, value, onChange, disabled, type = "text", className = "", ...props }: any) {
   return (
-    <div>
-      <label className="block text-[9px] font-black uppercase text-[var(--text-secondary)] mb-1.5 tracking-widest pl-1">
+    <div className="flex flex-col gap-1.5 w-full min-w-0 group">
+      <label className="text-[10px] font-black text-[var(--text-secondary)] uppercase tracking-[0.2em] px-1 truncate group-focus-within:text-[var(--primary)] transition-colors">
         {label}
       </label>
-      <input 
-        type={type}
-        disabled={disabled}
-        className={`w-full p-4 bg-[var(--surface-sec)] rounded-[1.2rem] border border-[var(--border)] focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)] outline-none transition-all duration-300 text-sm font-bold text-[var(--text-primary)] disabled:opacity-50 disabled:cursor-not-allowed placeholder:text-[var(--text-secondary)]/50 placeholder:font-normal shadow-inner ${className}`}
-        value={value} 
-        onChange={(e) => onChange && onChange(e.target.value)}
-        {...props}
-      />
+      <div className="w-full min-w-0">
+        <input 
+          type={type}
+          disabled={disabled}
+          className={`block w-full max-w-full px-4 py-3.5 bg-[var(--surface-sec)] border border-[var(--border)] rounded-xl outline-none transition-all text-[14px] font-bold box-border appearance-none m-0 ${
+            disabled 
+              ? 'text-[var(--text-secondary)] opacity-60 cursor-not-allowed shadow-inner' 
+              : 'text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] placeholder:font-medium focus:border-[var(--primary)]/50 focus:ring-2 focus:ring-[var(--primary)]/10'
+          } ${className}`}
+          value={value} 
+          onChange={(e) => onChange && onChange(e.target.value)}
+          {...props}
+        />
+      </div>
     </div>
   );
 }
