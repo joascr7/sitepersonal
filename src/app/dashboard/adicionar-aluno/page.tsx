@@ -102,36 +102,38 @@ const translations = {
 };
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// COMPONENTES DE INPUT PREMIUM
+// COMPONENTES DE INPUT PREMIUM (Ajustados para não vazar a tela)
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 const InputField = ({ label, name, value, onChange, type = "text", placeholder, autoComplete }: any) => (
-  <div className="flex flex-col gap-2 w-full min-w-0 group">
+  <div className="flex flex-col gap-1.5 w-full min-w-0 group">
     <label className="text-[10px] font-black text-[var(--text-secondary)] uppercase tracking-[0.2em] px-1 truncate group-focus-within:text-[var(--primary)] transition-colors">
       {label}
     </label>
-    <input 
-      name={name}
-      type={type}
-      autoComplete={autoComplete}
-      placeholder={placeholder}
-      value={value}
-      onChange={onChange}
-      className="block w-full px-5 py-4 bg-[var(--surface-sec)] border border-[var(--border)] rounded-[1.2rem] outline-none focus:border-[var(--primary)]/50 focus:ring-4 focus:ring-[var(--primary)]/10 transition-all text-[15px] font-bold text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] placeholder:font-medium box-border"
-    />
+    <div className="w-full min-w-0">
+      <input 
+        name={name}
+        type={type}
+        autoComplete={autoComplete}
+        placeholder={placeholder}
+        value={value}
+        onChange={onChange}
+        className="block w-full max-w-full px-4 py-3.5 bg-[var(--surface-sec)] border border-[var(--border)] rounded-xl outline-none focus:border-[var(--primary)]/50 focus:ring-2 focus:ring-[var(--primary)]/10 transition-all text-[14px] font-bold text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] placeholder:font-medium box-border appearance-none m-0"
+      />
+    </div>
   </div>
 );
 
 const SelectField = ({ label, name, value, onChange, options, defaultOption }: any) => (
-  <div className="flex flex-col gap-2 w-full min-w-0 group">
+  <div className="flex flex-col gap-1.5 w-full min-w-0 group">
     <label className="text-[10px] font-black text-[var(--text-secondary)] uppercase tracking-[0.2em] px-1 truncate group-focus-within:text-[var(--primary)] transition-colors">
       {label}
     </label>
-    <div className="relative">
+    <div className="relative w-full min-w-0">
       <select 
         name={name}
         value={value}
         onChange={onChange}
-        className="block w-full px-5 py-4 bg-[var(--surface-sec)] border border-[var(--border)] rounded-[1.2rem] outline-none focus:border-[var(--primary)]/50 focus:ring-4 focus:ring-[var(--primary)]/10 transition-all text-[15px] font-bold text-[var(--text-primary)] appearance-none cursor-pointer"
+        className="block w-full max-w-full px-4 py-3.5 bg-[var(--surface-sec)] border border-[var(--border)] rounded-xl outline-none focus:border-[var(--primary)]/50 focus:ring-2 focus:ring-[var(--primary)]/10 transition-all text-[14px] font-bold text-[var(--text-primary)] appearance-none cursor-pointer box-border m-0"
       >
         <option value="" disabled className="text-[var(--text-secondary)]">{defaultOption}</option>
         {options.map((opt: any) => (
@@ -140,7 +142,7 @@ const SelectField = ({ label, name, value, onChange, options, defaultOption }: a
           </option>
         ))}
       </select>
-      <div className="absolute inset-y-0 right-5 flex items-center pointer-events-none text-[var(--text-secondary)]">
+      <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-[var(--text-secondary)]">
         <FaChevronDown size={12} />
       </div>
     </div>
@@ -203,7 +205,7 @@ export default function AdicionarAluno() {
 
   // Configuração Dinâmica do Tema Premium
   const themeStyles = isDark ? {
-    '--bg': '#0F1115', '--surface': '#151A22', '--surface-sec': '#1B2330', '--primary': '#3B82F6', '--danger': '#EF4444', '--success': '#22C55E', '--text-primary': '#F8FAFC', '--text-secondary': '#94A3B8', '--border': 'rgba(255,255,255,0.05)',
+    '--bg': '#0F1115', '--surface': '#1A1D24', '--surface-sec': '#222731', '--primary': '#3B82F6', '--danger': '#EF4444', '--success': '#22C55E', '--text-primary': '#F8FAFC', '--text-secondary': '#94A3B8', '--border': 'rgba(255,255,255,0.05)',
   } as React.CSSProperties : {
     '--bg': '#F3F6FB', '--surface': '#FFFFFF', '--surface-sec': '#F8FAFC', '--primary': '#2563EB', '--danger': '#DC2626', '--success': '#16A34A', '--text-primary': '#111827', '--text-secondary': '#6B7280', '--border': 'rgba(15,23,42,0.06)',
   } as React.CSSProperties;
@@ -248,52 +250,51 @@ export default function AdicionarAluno() {
   if (!mounted) return <main className="min-h-screen bg-[#0F1115]" />;
 
   return (
-    <main style={themeStyles} className="w-full min-h-[100dvh] bg-[var(--bg)] flex flex-col items-center px-4 sm:px-5 pt-[calc(env(safe-area-inset-top)+1.5rem)] pb-[calc(env(safe-area-inset-bottom)+8rem)] box-border text-[var(--text-primary)] transition-colors duration-500 font-sans relative overflow-hidden">
+    <main style={themeStyles} className="w-full min-h-[100dvh] bg-[var(--bg)] flex flex-col items-center px-4 pt-[calc(env(safe-area-inset-top)+1.5rem)] pb-[calc(env(safe-area-inset-bottom)+7rem)] box-border text-[var(--text-primary)] transition-colors duration-500 font-sans relative overflow-hidden">
       
       {/* Elementos de Profundidade (Orbs) */}
       <div className="absolute top-[-10%] left-[-10%] w-[120vw] sm:w-[400px] h-[120vw] sm:h-[400px] bg-[var(--primary)]/10 rounded-full blur-[100px] pointer-events-none" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[100vw] sm:w-[350px] h-[100vw] sm:h-[350px] bg-[var(--primary)]/5 rounded-full blur-[100px] pointer-events-none" />
-
+      
       {/* Toast Flutuante */}
       {toast && (
-        <div className={`fixed top-[max(env(safe-area-inset-top,24px),24px)] left-1/2 -translate-x-1/2 px-6 py-4 rounded-[1.2rem] shadow-2xl z-[500] flex items-center gap-3 backdrop-blur-md border animate-in slide-in-from-top-4 fade-in ${toast.type === 'success' ? 'bg-[var(--success)]/10 text-[var(--success)] border-[var(--success)]/20' : 'bg-[var(--danger)]/10 text-[var(--danger)] border-[var(--danger)]/20'}`}>
+        <div className={`fixed top-[max(env(safe-area-inset-top,24px),24px)] left-1/2 -translate-x-1/2 px-6 py-4 rounded-xl shadow-2xl z-[500] flex items-center gap-3 backdrop-blur-md border animate-in slide-in-from-top-4 fade-in ${toast.type === 'success' ? 'bg-[var(--success)]/10 text-[var(--success)] border-[var(--success)]/20' : 'bg-[var(--danger)]/10 text-[var(--danger)] border-[var(--danger)]/20'}`}>
           {toast.type === 'success' ? <FaCheckCircle size={16} /> : <FaExclamationCircle size={16} />}
           <span className="text-[10px] font-black uppercase tracking-widest">{toast.text}</span>
         </div>
       )}
 
       {/* Toggles Superiores */}
-      <div className="w-full max-w-lg flex justify-end gap-2 mb-6 relative z-10">
+      <div className="w-full max-w-md flex justify-end gap-2 mb-4 relative z-10">
         <button onClick={toggleLang} className="w-10 h-10 rounded-full bg-[var(--surface)] border border-[var(--border)] shadow-sm flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--primary)] transition-all active:scale-95 relative">
-          <FaGlobe size={16} />
+          <FaGlobe size={14} />
           <span className="absolute -top-1 -right-1 bg-[var(--primary)] text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full">{lang.split('-')[0].toUpperCase()}</span>
         </button>
         <button onClick={toggleTheme} className="w-10 h-10 rounded-full bg-[var(--surface)] border border-[var(--border)] shadow-sm flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--primary)] transition-all active:scale-95">
-          {isDark ? <FaSun size={16} /> : <FaMoon size={16} />}
+          {isDark ? <FaSun size={14} /> : <FaMoon size={14} />}
         </button>
       </div>
       
-      <div className="w-full max-w-lg bg-[var(--surface)]/90 backdrop-blur-2xl p-6 sm:p-10 rounded-[2.5rem] border border-[var(--border)] shadow-xl box-border relative z-10 animate-in slide-in-from-bottom-8 duration-700">
+      <div className="w-full max-w-md bg-[var(--surface)]/90 backdrop-blur-2xl p-5 sm:p-8 rounded-[2rem] border border-[var(--border)] shadow-xl box-border relative z-10 animate-in slide-in-from-bottom-8 duration-700">
         
-        <header className="mb-10 flex flex-col gap-6">
+        <header className="mb-6 flex flex-col gap-4">
           <button 
             onClick={() => router.back()} 
-            className="flex items-center justify-center w-11 h-11 rounded-full bg-[var(--surface)] border border-[var(--border)] active:scale-95 transition-all shadow-sm hover:bg-[var(--surface-sec)]"
+            className="flex items-center justify-center w-10 h-10 rounded-full bg-[var(--surface-sec)] border border-[var(--border)] active:scale-95 transition-all shadow-sm hover:text-[var(--primary)]"
           >
-            <FaChevronLeft className="text-[var(--text-primary)]" size={14} />
+            <FaChevronLeft className="text-[var(--text-primary)]" size={12} />
           </button>
           <div>
-            <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-[var(--text-primary)]">{t.title}</h1>
-            <p className="text-[var(--text-secondary)] text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.2em] mt-2">{t.subtitle}</p>
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-[var(--text-primary)] leading-tight">{t.title}</h1>
+            <p className="text-[var(--text-secondary)] text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.2em] mt-1.5">{t.subtitle}</p>
           </div>
         </header>
         
-        <div className="space-y-10">
+        <div className="space-y-6">
           
           {/* SESSÃO: ACESSO */}
-          <section className="space-y-5">
-            <div className="flex items-center gap-3 mb-2">
-              <h2 className="text-[10px] font-black uppercase text-[var(--text-secondary)] tracking-[0.2em]">
+          <section className="space-y-4">
+            <div className="flex items-center gap-3 mb-1">
+              <h2 className="text-[9px] font-black uppercase text-[var(--text-secondary)] tracking-[0.2em]">
                 {t.access}
               </h2>
               <div className="flex-1 h-px bg-gradient-to-r from-[var(--border)] to-transparent" />
@@ -304,9 +305,9 @@ export default function AdicionarAluno() {
           </section>
 
           {/* SESSÃO: PERFIL */}
-          <section className="space-y-5">
-            <div className="flex items-center gap-3 mb-2">
-              <h2 className="text-[10px] font-black uppercase text-[var(--text-secondary)] tracking-[0.2em]">
+          <section className="space-y-4">
+            <div className="flex items-center gap-3 mb-1">
+              <h2 className="text-[9px] font-black uppercase text-[var(--text-secondary)] tracking-[0.2em]">
                 {t.profile}
               </h2>
               <div className="flex-1 h-px bg-gradient-to-r from-[var(--border)] to-transparent" />
@@ -314,12 +315,12 @@ export default function AdicionarAluno() {
             
             <InputField label={t.name} name="nome" autoComplete="name" value={formData.nome} onChange={handleInputChange} placeholder={t.namePlaceholder} />
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
               <InputField label={t.phone} name="telefone" type="tel" value={formData.telefone} onChange={handleInputChange} placeholder={t.phonePlaceholder} />
               <InputField label={t.dob} name="dataNascimento" type="date" value={formData.dataNascimento} onChange={handleInputChange} />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
               <SelectField 
                 label={t.gender} 
                 name="sexo" 
@@ -352,7 +353,7 @@ export default function AdicionarAluno() {
         <button 
           onClick={handleAddAluno}
           disabled={loading || !formData.nome.trim() || !formData.email.trim() || !formData.password}
-          className="w-full mt-10 bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-5 rounded-[1.2rem] font-black text-[12px] uppercase tracking-widest shadow-[0_8px_30px_rgb(79,70,229,0.3)] hover:shadow-[0_8px_30px_rgb(79,70,229,0.5)] transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center"
+          className="w-full mt-8 bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-4 rounded-xl font-black text-[12px] uppercase tracking-widest shadow-[0_8px_30px_rgb(79,70,229,0.3)] hover:shadow-[0_8px_30px_rgb(79,70,229,0.5)] transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center"
         >
           {loading ? (
             <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
