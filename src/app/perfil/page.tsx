@@ -19,7 +19,7 @@ const translations = {
     newPassLabel: 'Nova Senha',
     passPlaceholder: 'Mínimo 6 caracteres',
     btnUpdatePass: 'Atualizar Senha',
-    errPhotoSize: 'A imagem é muito grande. Máximo 2MB.',
+    errPhotoSize: 'A imagem é muito grande. Máximo 5MB.',
     errAuth: 'Não autenticado.',
     errNameReq: 'Nome é obrigatório.',
     errPassLength: 'A senha deve ter pelo menos 6 caracteres.',
@@ -40,7 +40,7 @@ const translations = {
     newPassLabel: 'Nova Palavra-passe',
     passPlaceholder: 'Mínimo 6 caracteres',
     btnUpdatePass: 'Atualizar Palavra-passe',
-    errPhotoSize: 'A imagem é muito grande. Máximo de 2MB.',
+    errPhotoSize: 'A imagem é muito grande. Máximo de 5MB.',
     errAuth: 'Não autenticado.',
     errNameReq: 'O Nome é obrigatório.',
     errPassLength: 'A palavra-passe deve ter pelo menos 6 caracteres.',
@@ -61,7 +61,7 @@ const translations = {
     newPassLabel: 'New Password',
     passPlaceholder: 'Minimum 6 characters',
     btnUpdatePass: 'Update Password',
-    errPhotoSize: 'Image is too large. Max 2MB.',
+    errPhotoSize: 'Image is too large. Max 5MB.',
     errAuth: 'Not authenticated.',
     errNameReq: 'Name is required.',
     errPassLength: 'Password must be at least 6 characters.',
@@ -186,7 +186,8 @@ export default function Perfil() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 2 * 1024 * 1024) {
+    // Aumentado o limite para 5MB (5 * 1024 * 1024 bytes)
+    if (file.size > 5 * 1024 * 1024) {
       showToast(t.errPhotoSize, 'error');
       return;
     }
