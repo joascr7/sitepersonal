@@ -438,7 +438,7 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
         </div>
       )}
 
-      {/* MODAL NATIVO DE EXECUÇÃO DE EXERCÍCIO */}
+      {/* MODAL NATIVO DE EXECUÇÃO DE EXERCÍCIO (AGORA COM OBJECT-CONTAIN) */}
       {activeMediaEx && (
         <div className="fixed inset-0 bg-[var(--bg)] z-[9999] flex flex-col animate-in fade-in duration-200 pt-[max(env(safe-area-inset-top),1rem)] px-4">
           <header className="flex items-center justify-between py-4 border-b border-[var(--border)] mb-6">
@@ -451,23 +451,19 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
             <div className="w-4" /> 
           </header>
 
-          <div className="w-full rounded-2xl overflow-hidden bg-[var(--surface)] border border-[var(--border)] shadow-md">
+          <div className="w-full rounded-3xl overflow-hidden bg-[var(--surface-sec)]/50 border border-[var(--border)] shadow-md flex items-center justify-center p-2">
             {getYouTubeId(activeMediaEx.video) ? (
-              <div className="w-full aspect-video">
+              <div className="w-full aspect-video rounded-2xl overflow-hidden">
                 <iframe className="w-full h-full" src={`https://www.youtube.com/embed/${getYouTubeId(activeMediaEx.video)}?autoplay=1`} allow="autoplay; fullscreen" frameBorder="0" />
               </div>
             ) : activeMediaEx.video.match(/\.(jpeg|jpg|png|webp|gif)$/i) ? (
-              <div className="w-full aspect-video">
-                <img src={activeMediaEx.video} className="w-full h-full object-cover" alt="Demonstração" />
-              </div>
+              <img src={activeMediaEx.video} className="w-full max-h-[70vh] object-contain rounded-2xl drop-shadow-sm" alt="Demonstração" />
             ) : (
-              <div className="w-full aspect-video">
-                <video src={activeMediaEx.video} controls autoPlay playsInline className="w-full h-full object-cover" />
-              </div>
+              <video src={activeMediaEx.video} controls autoPlay loop playsInline className="w-full max-h-[70vh] object-contain rounded-2xl drop-shadow-sm" />
             )}
           </div>
 
-          <h3 className="text-xl font-normal tracking-tight text-[var(--text-primary)] mt-5 pl-1">
+          <h3 className="text-xl font-normal tracking-tight text-[var(--text-primary)] mt-5 pl-1 text-center">
             {activeMediaEx.nome}
           </h3>
         </div>
@@ -580,9 +576,9 @@ export default function DetalheTreino({ params }: { params: Promise<{ id: string
                 >
                   <div className="flex items-center gap-4 overflow-hidden flex-1 pr-2">
                     
-                    {/* THUMBNAIL AINDA MAIOR (w-24 h-24) COM DESTAQUE PREMIUM */}
+                    {/* THUMBNAIL AUMENTADA PARA W-28 (112px) */}
                     <div 
-                      className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden bg-[var(--surface-sec)] shrink-0 border border-[var(--border)] flex items-center justify-center relative cursor-pointer hover:scale-105 transition-all group shadow-md" 
+                      className="w-28 h-28 sm:w-32 sm:h-32 rounded-2xl overflow-hidden bg-[var(--surface-sec)] shrink-0 border border-[var(--border)] flex items-center justify-center relative cursor-pointer hover:scale-105 transition-all group shadow-md" 
                       onClick={(e) => { 
                         e.stopPropagation(); 
                         if (ex.video) setActiveMediaEx({ video: ex.video, nome: ex.nome }); 
