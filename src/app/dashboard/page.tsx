@@ -107,17 +107,12 @@ export default function Dashboard() {
   const [isAlunosModalOpen, setIsAlunosModalOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   
-  // Estado para expansão das Notificações (Premium Accordion)
+  // Estado para expansão das Notificações
   const [isNotificacaoExpanded, setIsNotificacaoExpanded] = useState(false);
 
-  // Estados dos Modais Premium
+  // Estados dos Modais Premium (Tema/Idioma)
   const [isLangModalOpen, setIsLangModalOpen] = useState(false);
   const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
-
-  const showStatus = (type: 'success' | 'error' | 'info', text: string) => {
-    setStatusMsg({ type, text });
-    setTimeout(() => setStatusMsg(null), 3000);
-  };
 
   const [faturamentoMes, setFaturamentoMes] = useState(0);
   const [mesSelecionado, setMesSelecionado] = useState(new Date().getMonth());
@@ -183,7 +178,12 @@ export default function Dashboard() {
     window.dispatchEvent(new Event('config-updated'));
     setIsThemeModalOpen(false);
   };
-  
+
+  const showStatus = (type: 'success' | 'error' | 'info', text: string) => {
+    setStatusMsg({ type, text });
+    setTimeout(() => setStatusMsg(null), 3000);
+  };
+
   const getStatusDisplay = (aluno: any) => {
     if (aluno.status_pagamento === 'bloqueado' || aluno.ativo === false) return { text: t.statusBlocked, color: 'bg-[var(--danger)]/10 text-[var(--danger)] border-[var(--danger)]/20 border' };
     const hoje = new Date();
@@ -324,8 +324,9 @@ export default function Dashboard() {
 
   return (
     <SubscriptionGuard>
-      <div style={themeStyles} className="w-full min-h-screen bg-[var(--bg)] text-[var(--text-primary)] transition-colors duration-500 font-sans pb-12 relative">
+      <div style={themeStyles} className="w-full min-h-[100dvh] bg-[var(--bg)] text-[var(--text-primary)] transition-colors duration-500 font-sans pb-[env(safe-area-inset-bottom)] relative overflow-hidden">
         
+        {/* Toast Notificações Flutuante */}
         {statusMsg && (
           <div className={`fixed top-[max(env(safe-area-inset-top,24px),24px)] left-1/2 -translate-x-1/2 px-6 py-4 rounded-[1.2rem] shadow-2xl z-[500] flex items-center gap-3 backdrop-blur-md border animate-in slide-in-from-top-4 fade-in ${
             statusMsg.type === 'success' ? 'bg-[var(--success)]/10 text-[var(--success)] border-[var(--success)]/20' : 
@@ -337,6 +338,35 @@ export default function Dashboard() {
           </div>
         )}
 
+        {/* ━━━━━━━━━━ CONTROLES UNIFICADOS FLUTUANTES (PILL UI) ━━━━━━━━━━ */}
+        <div className="absolute top-[max(env(safe-area-inset-top,1rem),1.5rem)] right-5 z-40 animate-in fade-in duration-700">
+          <div className="flex items-center bg-[var(--surface)] backdrop-blur-md border border-[var(--border)] rounded-full shadow-sm p-1">
+            <button 
+              onClick={() => setIsLangModalOpen(true)}
+              className="flex items-center justify-center gap-1.5 px-3 h-8 rounded-full text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 transition-all active:scale-95"
+            >
+              <FaGlobe size={14} />
+              <span className="text-[10px] font-black uppercase tracking-widest hidden sm:block">{lang.split('-')[0]}</span>
+            </button>
+            
+            <div className="w-[1px] h-4 bg-[var(--border)] mx-1" />
+            
+            <button 
+              onClick={() => setIsThemeModalOpen(true)} 
+              className="flex items-center justify-center w-10 h-8 rounded-full text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 transition-all active:scale-95"
+            >
+              {isDark ? <FaSun size={14} /> : <FaMoon size={14} />}
+            </button>
+
+            <div className="w-[1px] h-4 bg-[var(--border)] mx-1" />
+
+            <div className="flex items-center justify-center w-10 h-8 rounded-full text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--text-primary)]/5 transition-all cursor-pointer">
+              <NotificationBell />
+            </div>
+          </div>
+        </div>
+
+        {/* Modal de Pagamento */}
         {isModalOpen && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-xl z-[300] flex items-center justify-center p-5 animate-in fade-in duration-300">
             <div className="bg-[var(--surface)] p-8 rounded-[2.5rem] w-full max-w-sm border border-[var(--border)] shadow-2xl animate-in zoom-in-95 slide-in-from-bottom-4">
@@ -350,6 +380,7 @@ export default function Dashboard() {
           </div>
         )}
 
+        {/* Modal ParQ */}
         {isParqModalOpen && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-xl z-[400] flex items-center justify-center p-5 animate-in fade-in duration-300">
             <div className="bg-[var(--surface)] p-6 rounded-[2.5rem] w-full max-w-2xl max-h-[80vh] overflow-y-auto border border-[var(--border)] shadow-2xl animate-in zoom-in-95 slide-in-from-bottom-4 relative">
@@ -368,8 +399,6 @@ export default function Dashboard() {
         {isAlunosModalOpen && (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-xl z-[400] flex items-center justify-center p-5 animate-in fade-in duration-300">
             <div className="bg-[var(--surface)] p-6 rounded-[2.5rem] w-full max-w-2xl max-h-[85vh] flex flex-col border border-[var(--border)] shadow-2xl animate-in zoom-in-95 slide-in-from-bottom-4 relative">
-              
-              {/* Header do Modal */}
               <div className="flex justify-between items-center mb-6 shrink-0">
                 <h3 className="font-black text-xl tracking-tighter">{t.manageStudents}</h3>
                 <button onClick={() => setIsAlunosModalOpen(false)} className="text-[var(--text-secondary)] hover:text-[var(--danger)] transition-colors p-2 bg-[var(--surface-sec)] rounded-full">
@@ -377,7 +406,6 @@ export default function Dashboard() {
                 </button>
               </div>
 
-              {/* Busca */}
               <div className="relative group mb-6 shrink-0">
                 <FaSearch className="absolute left-5 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] group-focus-within:text-[var(--primary)] transition-colors" size={16} />
                 <input 
@@ -386,12 +414,11 @@ export default function Dashboard() {
                   value={busca} 
                   onChange={(e) => {
                     setBusca(e.target.value);
-                    setCurrentPage(1); // Retorna à primeira página ao buscar
+                    setCurrentPage(1); 
                   }} 
                 />
               </div>
 
-              {/* Lista Paginada (Scroll independente) */}
               <div className="space-y-4 overflow-y-auto flex-1 custom-scrollbar pr-2 pb-2">
                 {paginatedAlunos.map((a) => {
                   const statusDisplay = getStatusDisplay(a);
@@ -432,7 +459,6 @@ export default function Dashboard() {
                 )}
               </div>
 
-              {/* Controles de Paginação ("Páginas de Livro") */}
               {totalPages > 1 && (
                 <div className="flex justify-between items-center mt-6 shrink-0 pt-4 border-t border-[var(--border)]">
                   <button 
@@ -459,48 +485,16 @@ export default function Dashboard() {
         )}
 
         {loading ? <DashboardSkeleton /> : (
-          <div className="max-w-4xl mx-auto flex flex-col">
+          <div className="max-w-4xl mx-auto flex flex-col pt-[max(env(safe-area-inset-top),2rem)]">
             
-            <header className="bg-[#1C283F] text-white pt-[max(env(safe-area-inset-top),2rem)] pb-12 px-6 relative">
-              {/* ━━━━━━━━━━ CONTROLES UNIFICADOS (PILL UI) ━━━━━━━━━━ */}
-              <div className="absolute top-[max(env(safe-area-inset-top,1rem),1rem)] right-3 z-20 flex gap-1 animate-in fade-in duration-700">
-                <div className="flex items-center bg-black/20 backdrop-blur-md border border-white/10 rounded-full shadow-sm p-1">
-                  <button 
-                    onClick={() => setIsLangModalOpen(true)}
-                    className="flex items-center justify-center gap-1.5 px-3 h-8 rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-all active:scale-95"
-                  >
-                    <FaGlobe size={14} />
-                    <span className="text-[10px] font-black uppercase tracking-widest hidden sm:block">{lang.split('-')[0]}</span>
-                  </button>
-                  
-                  <div className="w-[1px] h-4 bg-white/20 mx-1" /> {/* Divisor */}
-                  
-                  <button 
-                    onClick={() => setIsThemeModalOpen(true)} 
-                    className="flex items-center justify-center w-10 h-8 rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-all active:scale-95"
-                  >
-                    {isDark ? <FaSun size={14} /> : <FaMoon size={14} />}
-                  </button>
-                  
-                  <div className="w-[1px] h-4 bg-white/20 mx-1" /> {/* Divisor */}
-                  
-                  <div className="flex items-center justify-center w-10 h-8 rounded-full hover:bg-white/10 transition-all cursor-pointer">
-                    <NotificationBell />
-                  </div>
-                </div>
+            <header className="px-5 relative z-10 mb-8">
+              <div className="flex items-center gap-2 text-2xl font-black tracking-widest text-[var(--text-primary)] mb-6 opacity-90">
+                <FaDumbbell className="text-[var(--primary)]" />
+                AURAFIT<span className="font-light">PERSONAL</span>
               </div>
 
-              {/* Logo */}
-              <div className="flex justify-center items-center w-full mt-2 mb-10">
-                <div className="flex items-center gap-2 text-2xl font-black tracking-widest opacity-90">
-                  <FaDumbbell className="text-white" />
-                  AURAFIT<span className="font-light">PERSONAL</span>
-                </div>
-              </div>
-
-              {/* Saudação Corrigida e Elegante */}
-              <div className="flex items-center gap-4 max-w-4xl mx-auto">
-                <div className="w-14 h-14 rounded-full border-2 border-white/10 bg-slate-700 flex items-center justify-center font-black text-xl overflow-hidden shrink-0 shadow-lg">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 rounded-full border-2 border-[var(--border)] bg-[var(--surface-sec)] flex items-center justify-center font-black text-xl overflow-hidden shrink-0 shadow-lg">
                   {avatarUrlRender && !avatarError ? (
                     <img 
                       src={avatarUrlRender} 
@@ -509,22 +503,22 @@ export default function Dashboard() {
                       onError={() => setAvatarError(true)}
                     />
                   ) : (
-                    <span>{nomeDisplay.charAt(0).toUpperCase()}</span>
+                    <span className="text-[var(--text-secondary)]">{nomeDisplay.charAt(0).toUpperCase()}</span>
                   )}
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-[12px] font-medium text-slate-300 uppercase tracking-widest opacity-80">
+                  <span className="text-[12px] font-medium text-[var(--text-secondary)] uppercase tracking-widest opacity-80">
                     {getSaudacao()},
                   </span>
-                  <span className="text-xl font-bold text-white tracking-tight">
+                  <span className="text-xl font-bold text-[var(--text-primary)] tracking-tight">
                     {nomeDisplay}
                   </span>
                 </div>
               </div>
             </header>
 
-            {/* ABAS PREMIUM (Segmented Control) */}
-            <div className="px-5 -mt-6 relative z-10">
+            {/* ABAS PREMIUM */}
+            <div className="px-5 relative z-10 mb-6">
               <div className="flex bg-[var(--surface-sec)] p-1.5 rounded-[1.2rem] shadow-inner border border-[var(--border)] backdrop-blur-md">
                 <button 
                   onClick={() => setActiveTab('inicio')} 
@@ -542,20 +536,20 @@ export default function Dashboard() {
             </div>
 
             {activeTab === 'inicio' && (
-              <div className="px-5 mt-8 space-y-8 animate-in fade-in duration-500">
+              <div className="px-5 space-y-8 animate-in fade-in duration-500">
                 
-                {/* AÇÕES RÁPIDAS (Widgets Redondos e Elegantes) */}
-                <div className="flex justify-around items-end">
+                {/* WIDGETS DE AÇÃO */}
+                <div className="flex justify-around items-end bg-[var(--surface)] p-6 rounded-[2rem] border border-[var(--border)] shadow-sm">
                   <div onClick={() => router.push('/dashboard/feedbacks')} className="flex flex-col items-center gap-2 group cursor-pointer">
-                    <div className="w-14 h-14 bg-[var(--surface)] text-[var(--primary)] rounded-full shadow-sm border border-[var(--border)] flex items-center justify-center text-xl group-hover:bg-[var(--primary)]/5 transition-all">
+                    <div className="w-14 h-14 bg-[var(--surface-sec)] text-[var(--primary)] rounded-full shadow-inner border border-[var(--border)] flex items-center justify-center text-xl group-hover:bg-[var(--primary)] group-hover:text-white transition-all">
                       <FaCommentDots />
                     </div>
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] group-hover:text-[var(--primary)] transition-colors">{t.widgetFeedbacks}</span>
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors">{t.widgetFeedbacks}</span>
                   </div>
                   
                   <div onClick={() => setIsParqModalOpen(true)} className="flex flex-col items-center gap-2 group cursor-pointer">
                     <div className="relative">
-                      <div className="w-14 h-14 bg-[var(--surface)] text-[var(--primary)] rounded-full shadow-sm border border-[var(--border)] flex items-center justify-center text-xl group-hover:bg-[var(--primary)]/5 transition-all">
+                      <div className="w-14 h-14 bg-[var(--surface-sec)] text-[var(--primary)] rounded-full shadow-inner border border-[var(--border)] flex items-center justify-center text-xl group-hover:bg-[var(--primary)] group-hover:text-white transition-all">
                         <FaCalendarAlt />
                       </div>
                       {alunosVencendo.length > 0 && (
@@ -564,18 +558,13 @@ export default function Dashboard() {
                         </span>
                       )}
                     </div>
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] group-hover:text-[var(--primary)] transition-colors">{t.widgetParq}</span>
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors">{t.widgetParq}</span>
                   </div>
                   
-                  <div className="flex flex-col items-center gap-2 group cursor-pointer">
-                    <div className="w-14 h-14 bg-[var(--surface)] text-[var(--primary)] rounded-full shadow-sm border border-[var(--border)] flex items-center justify-center text-xl group-hover:bg-[var(--primary)]/5 transition-all">
-                      <NotificationBell />
-                    </div>
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] group-hover:text-[var(--primary)] transition-colors">{t.widgetNotices}</span>
-                  </div>
+                  {/* Ocultado NotificationBell duplicado */}
                 </div>
 
-                {/* ━━━━━━━━━━ SEÇÃO: GESTÃO DE TREINOS ━━━━━━━━━━ */}
+                {/* GESTÃO DE TREINOS */}
                 <section>
                   <h3 className="text-[10px] font-black text-[var(--text-secondary)] uppercase tracking-[0.2em] mb-4 ml-1">{t.workouts}</h3>
                   <div className="grid grid-cols-2 gap-3 mb-3">
@@ -601,13 +590,12 @@ export default function Dashboard() {
                   </div>
                 </section>
 
-                {/* ━━━━━━━━━━ SEÇÃO: GESTÃO DE ALUNOS ━━━━━━━━━━ */}
+                {/* GESTÃO DE ALUNOS */}
                 <section>
                   <h3 className="text-[10px] font-black text-[var(--text-secondary)] uppercase tracking-[0.2em] mb-4 ml-1">{t.yourStudents}</h3>
                   
                   <BirthdaysWidget alunos={alunos} />
 
-                  {/* Botão Primário: Gerenciar Alunos (Card com Gradiente) */}
                   <button 
                     onClick={() => { setIsAlunosModalOpen(true); setCurrentPage(1); }} 
                     className="w-full bg-gradient-to-br from-[var(--primary)] to-indigo-700 text-white p-6 rounded-[1.5rem] shadow-lg shadow-[var(--primary)]/20 flex justify-between items-center mb-3 hover:shadow-[var(--primary)]/40 active:scale-[0.98] transition-all group"
@@ -618,7 +606,6 @@ export default function Dashboard() {
                       </div>
                       <div className="flex flex-col items-start gap-1">
                         <span className="font-black text-lg tracking-tight">{t.students}</span>
-                        {/* Tags Premium (Soft UI) */}
                         <div className="flex gap-2">
                           <span className="bg-white/20 border border-white/10 text-white text-[9px] px-2 py-0.5 rounded-md uppercase tracking-widest font-black flex items-center gap-1">
                             <span className="w-1.5 h-1.5 rounded-full bg-green-400"></span> {t.active}: {alunosAtivosCount}
@@ -634,7 +621,6 @@ export default function Dashboard() {
                     <FaChevronRight className="opacity-50 group-hover:opacity-100 transition-opacity" size={18} />
                   </button>
 
-                  {/* Botão Secundário: Adicionar Aluno (Dashed Border) */}
                   <button 
                     onClick={() => router.push('/dashboard/adicionar-aluno')} 
                     className="w-full bg-[var(--surface)] border border-dashed border-[var(--border)] p-4 rounded-[1.2rem] flex items-center justify-center gap-2 text-[var(--text-secondary)] hover:text-[var(--primary)] hover:border-[var(--primary)]/50 transition-all font-bold text-xs uppercase tracking-widest active:scale-95 shadow-sm mb-6"
@@ -643,7 +629,7 @@ export default function Dashboard() {
                     {t.addStudents}
                   </button>
                   
-                  {/* ━━━━━━━━━━ ACCORDION PREMIUM DE NOTIFICAÇÕES ━━━━━━━━━━ */}
+                  {/* ACCORDION DE NOTIFICAÇÕES */}
                   <div className="mt-8 mb-6">
                     <button
                       onClick={() => setIsNotificacaoExpanded(!isNotificacaoExpanded)}
@@ -669,7 +655,6 @@ export default function Dashboard() {
                       </div>
                     </div>
                   </div>
-                  {/* ━━━━━━━━━━ FIM ACCORDION NOTIFICAÇÕES ━━━━━━━━━━ */}
 
                 </section>
               </div>
@@ -771,7 +756,6 @@ export default function Dashboard() {
                   </button>
                 </div>
                 <div className="space-y-2">
-                  {/* Botão Claro */}
                   <button
                     onClick={() => handleSelectTheme('light')}
                     className={`w-full flex items-center justify-between p-4 rounded-[1.2rem] border transition-all active:scale-[0.98] ${
@@ -791,7 +775,6 @@ export default function Dashboard() {
                     {!isDark && <FaCheck className="text-[var(--primary)]" />}
                   </button>
                   
-                  {/* Botão Escuro */}
                   <button
                     onClick={() => handleSelectTheme('dark')}
                     className={`w-full flex items-center justify-between p-4 rounded-[1.2rem] border transition-all active:scale-[0.98] ${
@@ -813,8 +796,6 @@ export default function Dashboard() {
                 </div>
               </>
             )}
-            
-            {/* Indicador de Swipe Mobile (Trancinho) */}
             <div className="w-12 h-1 bg-[var(--border)] rounded-full mx-auto mt-6 sm:hidden" />
           </div>
         </div>
