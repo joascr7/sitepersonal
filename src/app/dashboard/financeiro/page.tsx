@@ -7,7 +7,7 @@ import {
   FaCheckCircle, FaExclamationCircle, FaGlobe, FaMoon, FaSun, 
   FaChevronLeft, FaTimes, FaChartBar, FaListUl, 
   FaUserClock, FaWhatsapp, FaPlus, FaEye, FaEyeSlash, FaDumbbell,
-  FaChevronDown, FaCalendarCheck
+  FaChevronDown, FaCalendarCheck, FaTrophy
 } from 'react-icons/fa';
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -39,7 +39,8 @@ const translations = {
     tabOverview: 'Visão Geral', tabTransactions: 'Lançamentos', tabPending: 'Alunos Pendentes', tabAttendance: 'Frequência Geral',
     graphTitle: 'Faturamento Anual', charge: 'Cobrar Aluno', noPending: 'Nenhum aluno com pagamento atrasado!',
     freqTitle: 'Engajamento Global', freqSubtitle: 'Total de treinos concluídos por todos os alunos.',
-    totalWorkouts: 'Treinos Realizados', avgWeek: 'Média de Treinos/Semana', workoutsMonth: 'Treinos Totais por Mês'
+    totalWorkouts: 'Treinos Realizados', avgWeek: 'Média de Treinos/Semana', workoutsMonth: 'Treinos Totais por Mês',
+    topStudents: '🏆 Top 5 Alunos Mais Engajados'
   },
   'pt-PT': {
     title: 'Financeiro', accumulated: 'Receita Anual', monthlyRevenue: 'Receita do Mês',
@@ -51,7 +52,8 @@ const translations = {
     tabOverview: 'Visão Geral', tabTransactions: 'Lançamentos', tabPending: 'Alunos Pendentes', tabAttendance: 'Frequência Geral',
     graphTitle: 'Faturação Anual', charge: 'Cobrar Aluno', noPending: 'Nenhum aluno em incumprimento!',
     freqTitle: 'Envolvimento Global', freqSubtitle: 'Total de treinos concluídos por todos os alunos.',
-    totalWorkouts: 'Treinos Realizados', avgWeek: 'Média de Treinos/Semana', workoutsMonth: 'Treinos Totais por Mês'
+    totalWorkouts: 'Treinos Realizados', avgWeek: 'Média de Treinos/Semana', workoutsMonth: 'Treinos Totais por Mês',
+    topStudents: '🏆 Top 5 Alunos Mais Envolvidos'
   },
   'en': {
     title: 'Financial', accumulated: 'Yearly Revenue', monthlyRevenue: 'Monthly Revenue',
@@ -63,7 +65,8 @@ const translations = {
     tabOverview: 'Overview', tabTransactions: 'Transactions', tabPending: 'Pending Students', tabAttendance: 'Global Attendance',
     graphTitle: 'Yearly Revenue Chart', charge: 'Charge Student', noPending: 'No pending payments!',
     freqTitle: 'Global Engagement', freqSubtitle: 'Total workouts completed by all students.',
-    totalWorkouts: 'Workouts Completed', avgWeek: 'Avg Workouts/Week', workoutsMonth: 'Total Workouts per Month'
+    totalWorkouts: 'Workouts Completed', avgWeek: 'Avg Workouts/Week', workoutsMonth: 'Total Workouts per Month',
+    topStudents: '🏆 Top 5 Most Engaged Students'
   }
 };
 
@@ -154,7 +157,7 @@ export default function FinanceiroSaaS() {
       supabase.from('pagamentos').select('id, valor, data_pagamento, alunos(nome)').eq('personal_id', user.id).order('data_pagamento', { ascending: false })
     ]);
 
-    // 3. NOVO: Busca as conclusões de treino apenas dos alunos desse personal!
+    // 3. Busca as conclusões de treino dos alunos do personal
     let conclData: any[] = [];
     if (idsAlunos.length > 0) {
       const { data } = await supabase.from('conclusoes_treino').select('data_conclusao, aluno_id').in('aluno_id', idsAlunos);
@@ -164,7 +167,7 @@ export default function FinanceiroSaaS() {
     if (cRes.data) setConfigPersonal({ valor_mensalidade_padrao: cRes.data.valor_mensalidade || 0 });
     setPagamentos(pRes.data || []);
     setListaAlunos(listaDeAlunos);
-    setConclusoesGerais(conclData); // Armazena as conclusões para o gráfico de Frequência Geral
+    setConclusoesGerais(conclData);
     setLoading(false);
   };
 
@@ -254,7 +257,6 @@ export default function FinanceiroSaaS() {
   const totalAno = faturamentoAnual.reduce((acc, val) => acc + val, 0);
   const maxMes = Math.max(...faturamentoAnual, 1); 
 
-  // ━━━━━━━━━━━━━━━━ INADIMPLENTES (BLINDAGEM TOTAL MATEMÁTICA) ━━━━━━━━━━━━━━━━
   const alunosInadimplentes = useMemo(() => {
     const hojeObj = new Date();
     const anoH = hojeObj.getFullYear();
@@ -279,22 +281,25 @@ export default function FinanceiroSaaS() {
     window.open(`https://wa.me/${num}?text=${encodeURIComponent(msg)}`, '_blank');
   };
 
-  // ━━━━━━━━━━━━━━━━ FREQUÊNCIA GLOBAL (CÁLCULO E PREPARAÇÃO) ━━━━━━━━━━━━━━━━
+  // ━━━━━━━━━━━━━━━━ FREQUÊNCIA GLOBAL & RANKING ━━━━━━━━━━━━━━━━
   const dadosFrequenciaGlobal = useMemo(() => {
     const mesesExtenso = getMeses(lang);
     const agrupado: Record<string, number> = {};
+    const rankingMap: Record<string, { nome: string, treinos: number }> = {};
     const hoje = new Date();
     
-    // Gera a base zerada pros últimos 6 meses
+    // Prepara o array dos últimos 6 meses pro Gráfico
     for (let i = 5; i >= 0; i--) {
       const d = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
       const label = `${mesesExtenso[d.getMonth()]} ${d.getFullYear().toString().slice(2)}`;
       agrupado[label] = 0;
     }
 
-    // Soma as conclusões achadas no banco
+    // Processa os dados
     conclusoesGerais.forEach(c => {
       if (!c.data_conclusao) return;
+      
+      // 1. Lógica do Gráfico de Barras
       const partes = c.data_conclusao.split('T')[0].split('-');
       const d = new Date(Number(partes[0]), Number(partes[1]) - 1, Number(partes[2]));
       
@@ -302,24 +307,42 @@ export default function FinanceiroSaaS() {
       if (agrupado[label] !== undefined) {
         agrupado[label] += 1;
       }
+
+      // 2. Lógica do Ranking de Alunos
+      if (c.aluno_id) {
+        if (!rankingMap[c.aluno_id]) {
+          const alunoInfo = listaAlunos.find(a => a.id === c.aluno_id);
+          rankingMap[c.aluno_id] = {
+            nome: alunoInfo ? alunoInfo.nome : t.noName,
+            treinos: 0
+          };
+        }
+        rankingMap[c.aluno_id].treinos += 1;
+      }
     });
 
+    // Formata o Gráfico
     const dadosGrafico = Object.keys(agrupado).map(key => ({
       mes: key,
       treinos: agrupado[key]
     }));
 
+    // Formata o Ranking (pega os 5 com mais treinos)
+    const rankingOrdenado = Object.values(rankingMap)
+      .sort((a, b) => b.treinos - a.treinos)
+      .slice(0, 5);
+
     const total = conclusoesGerais.length;
     const totalUltimosSeisMeses = dadosGrafico.reduce((acc, curr) => acc + curr.treinos, 0);
-    // Média de treinos/semana do estúdio inteiro (base: últimos 6 meses ~ 24 semanas)
     const mediaSemana = totalUltimosSeisMeses > 0 ? Math.round((totalUltimosSeisMeses / 24) * 10) / 10 : 0;
 
     return {
       grafico: dadosGrafico,
       total,
-      mediaSemana
+      mediaSemana,
+      ranking: rankingOrdenado
     };
-  }, [conclusoesGerais, lang]);
+  }, [conclusoesGerais, listaAlunos, lang, t.noName]);
 
 
   if (!mounted) return <main className="min-h-screen bg-[#0F1115]" />;
@@ -512,7 +535,7 @@ export default function FinanceiroSaaS() {
             </div>
           )}
 
-          {/* ━━━━━━━━━━ ABA 3: INADIMPLENTES (AGORA 100% BLINDADO) ━━━━━━━━━━ */}
+          {/* ━━━━━━━━━━ ABA 3: INADIMPLENTES ━━━━━━━━━━ */}
           {activeTab === 'pending' && (
             <div className="space-y-4 animate-in slide-in-from-bottom-4 fade-in duration-500">
               {alunosInadimplentes.length === 0 ? (
@@ -581,7 +604,7 @@ export default function FinanceiroSaaS() {
             </div>
           )}
 
-          {/* ━━━━━━━━━━ ABA 4: FREQUÊNCIA GLOBAL (CÁLCULO CORRIGIDO!) ━━━━━━━━━━ */}
+          {/* ━━━━━━━━━━ ABA 4: FREQUÊNCIA GLOBAL & RANKING ━━━━━━━━━━ */}
           {activeTab === 'attendance' && (
             <div className="bg-[var(--surface)] backdrop-blur-xl rounded-[2.5rem] border border-[var(--border)] shadow-sm overflow-hidden p-6 animate-in slide-in-from-bottom-4 fade-in duration-500">
               <h2 className="text-2xl sm:text-3xl font-black tracking-tighter text-[var(--text-primary)] mb-1">{t.freqTitle}</h2>
@@ -620,6 +643,45 @@ export default function FinanceiroSaaS() {
                   </BarChart>
                 </ResponsiveContainer>
               </div>
+
+              {/* ━━━━━━━━━━ NOVO: RANKING DOS ALUNOS ━━━━━━━━━━ */}
+              <div className="mt-8 pt-8 border-t border-[var(--border)]">
+                <h3 className="font-black text-[var(--text-secondary)] text-[10px] uppercase tracking-widest mb-4 flex items-center gap-2 pl-2">
+                  <FaTrophy className="text-[var(--primary)]" /> {t.topStudents}
+                </h3>
+                
+                <div className="space-y-3">
+                  {dadosFrequenciaGlobal.ranking.length > 0 ? (
+                    dadosFrequenciaGlobal.ranking.map((aluno, idx) => {
+                      // Cores das Medalhas: Ouro, Prata, Bronze e Normal
+                      let medalColor = 'bg-[var(--primary)]/10 text-[var(--primary)] border-[var(--primary)]/20';
+                      if (idx === 0) medalColor = 'bg-[#F59E0B]/10 text-[#F59E0B] border-[#F59E0B]/20';
+                      if (idx === 1) medalColor = 'bg-[#94A3B8]/10 text-[#94A3B8] border-[#94A3B8]/20';
+                      if (idx === 2) medalColor = 'bg-[#B45309]/10 text-[#B45309] border-[#B45309]/20';
+
+                      return (
+                        <div key={idx} className="bg-[var(--surface-sec)] p-4 rounded-2xl border border-[var(--border)] flex items-center justify-between shadow-sm hover:border-[var(--primary)]/30 transition-colors">
+                          <div className="flex items-center gap-4">
+                            <div className={`w-10 h-10 rounded-[1rem] border flex items-center justify-center font-black text-sm shadow-inner ${medalColor}`}>
+                              {idx + 1}º
+                            </div>
+                            <span className="font-bold text-[13px] text-[var(--text-primary)]">{aluno.nome}</span>
+                          </div>
+                          <div className="text-right flex flex-col items-end">
+                            <span className="font-black text-[var(--text-primary)] text-lg leading-none">{aluno.treinos}</span>
+                            <span className="text-[8px] font-black text-[var(--text-secondary)] uppercase tracking-widest mt-1">Treinos</span>
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="text-center py-6 border-2 border-dashed border-[var(--border)] rounded-[1.5rem] bg-[var(--surface-sec)]/50">
+                      <p className="text-[var(--text-secondary)] font-black uppercase text-[10px] tracking-widest">Nenhum treino registrado.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
             </div>
           )}
 
