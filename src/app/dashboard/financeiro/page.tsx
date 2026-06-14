@@ -170,21 +170,39 @@ export default function FinanceiroSaaS() {
     const { data: { user } } = await supabase.auth.getUser();
     
     const alunoSelecionado = listaAlunos.find(a => a.id === alunoId);
-    let novaDataVencimento = new Date();
+    let novaDataStr = '';
     
+    // LÓGICA DE DATA BLINDADA: Adiciona 1 mês exatamente, mantendo o dia original de vencimento
     if (alunoSelecionado?.data_vencimento) {
-      const [ano, mes, dia] = alunoSelecionado.data_vencimento.split('T')[0].split('-');
-      const dataAtual = new Date(Number(ano), Number(mes) - 1, Number(dia));
-      if (dataAtual > novaDataVencimento) novaDataVencimento = dataAtual;
+      const [anoStr, mesStr, diaStr] = alunoSelecionado.data_vencimento.split('T')[0].split('-');
+      let ano = Number(anoStr);
+      let mes = Number(mesStr);
+      let dia = Number(diaStr);
+      
+      mes += 1;
+      if (mes > 12) {
+        mes = 1;
+        ano += 1;
+      }
+      
+      // Validação para o JS não quebrar meses curtos (ex: vencia dia 31 Jan, não pode virar 03 de Março)
+      const ultimoDiaDoMes = new Date(ano, mes, 0).getDate();
+      if (dia > ultimoDiaDoMes) dia = ultimoDiaDoMes;
+      
+      novaDataStr = `${ano}-${String(mes).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
+    } else {
+      // Se por acaso não tinha data nenhuma, cria uma nova pra daqui a 1 mês
+      const hj = new Date();
+      hj.setMonth(hj.getMonth() + 1);
+      novaDataStr = hj.toISOString().split('T')[0];
     }
-    novaDataVencimento.setMonth(novaDataVencimento.getMonth() + 1);
 
     const [pgError, alError] = await Promise.all([
       supabase.from('pagamentos').insert([{
         aluno_id: alunoId, personal_id: user?.id, valor: Number(novoValor), data_pagamento: new Date().toISOString(), status: 'pago'
       }]),
       supabase.from('alunos').update({ 
-        status_pagamento: 'ativo', ativo: true, data_vencimento: novaDataVencimento.toISOString().split('T')[0] 
+        status_pagamento: 'ativo', ativo: true, data_vencimento: novaDataStr 
       }).eq('id', alunoId)
     ]);
 
@@ -422,13 +440,20 @@ export default function FinanceiroSaaS() {
                 <div className="overflow-y-auto max-h-[350px] custom-scrollbar">
                   <table className="w-full text-left">
                     <tbody className="divide-y divide-[var(--border)]">
-                      {pagamentosMesFiltrado.map((p) => (
-                        <tr key={p.id} className="hover:bg-[var(--surface-sec)]/30 transition-colors">
-                          <td className="p-5 font-bold text-sm text-[var(--text-primary)]">{p.alunos?.nome || t.noName}</td>
-                          <td className="p-5 text-xs text-[var(--text-secondary)]">{p.data_pagamento ? new Date(p.data_pagamento).toLocaleDateString(lang) : '-'}</td>
-                          <td className="p-5 text-right font-black text-sm text-[var(--success)]">{formatCurrency(Number(p.valor))}</td>
-                        </tr>
-                      ))}
+                      {pagamentosMesFiltrado.map((p) => {
+                        // Garante formatação correta sem perder 1 dia pelo fuso
+                        const rawDate = p.data_pagamento ? p.data_pagamento.split('T')[0] : '';
+                        const dateParts = rawDate.split('-');
+                        const formattedDate = rawDate ? `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}` : '-';
+
+                        return (
+                          <tr key={p.id} className="hover:bg-[var(--surface-sec)]/30 transition-colors">
+                            <td className="p-5 font-bold text-sm text-[var(--text-primary)]">{p.alunos?.nome || t.noName}</td>
+                            <td className="p-5 text-xs font-medium text-[var(--text-secondary)]">{formattedDate}</td>
+                            <td className="p-5 text-right font-black text-sm text-[var(--success)]">{formatCurrency(Number(p.valor))}</td>
+                          </tr>
+                        );
+                      })}
                       {pagamentosMesFiltrado.length === 0 && (
                         <tr><td colSpan={3} className="p-8 text-center text-xs font-bold text-[var(--text-secondary)]">Nenhuma transação neste mês.</td></tr>
                       )}
