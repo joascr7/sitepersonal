@@ -1,5 +1,5 @@
 'use client';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { 
@@ -27,6 +27,8 @@ const translations = {
 
 export default function NavbarAluno() {
   const pathname = usePathname();
+  const router = useRouter();
+  
   const [lang, setLang] = useState<'pt-BR' | 'pt-PT' | 'en'>('pt-BR');
   const [isDark, setIsDark] = useState(true);
   const [mounted, setMounted] = useState(false);
@@ -236,6 +238,11 @@ export default function NavbarAluno() {
                 if (link.isLocked) {
                   e.preventDefault();
                   showToast('error', t.lockedToast);
+                } else if (!isExternal) {
+                  // Previne o reload padrão do link `<a>` em Next.js usando o router.push 
+                  // se não for link externo. Deixa o app muito mais rápido na navegação mobile.
+                  e.preventDefault();
+                  router.push(link.path);
                 }
               }}
               className={`flex flex-col items-center gap-1.5 w-16 group cursor-pointer transition-none ${
