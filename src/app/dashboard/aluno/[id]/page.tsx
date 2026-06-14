@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, Suspense, useMemo } from 'react';
+import { useState, useEffect, Suspense, useMemo, use } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { LineChart, Line, BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
@@ -468,11 +468,10 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
         <div className="max-w-4xl mx-auto space-y-8 relative z-10 animate-in fade-in duration-700">
           
           <div className="flex justify-between items-center mb-6">
-            <button onClick={() => router.back()} className="flex items-center justify-center w-11 h-11 rounded-full bg-[var(--surface)] border border-[var(--border)] active:scale-95 transition-all shadow-sm hover:bg-[var(--surface-sec)]">
-              <FaChevronLeft className="text-[var(--text-primary)]" size={14} />
+            <button onClick={() => router.back()} className="flex items-center gap-2 text-[10px] font-black text-[var(--text-secondary)] uppercase tracking-widest hover:text-[var(--primary)] transition-all active:scale-95">
+              <FaChevronLeft size={10} /> {t.back}
             </button>
             
-            {/* PILL UI DE CONTROLES */}
             <div className="flex items-center bg-[var(--surface)] backdrop-blur-md border border-[var(--border)] rounded-full shadow-sm p-1">
               <button 
                 onClick={() => setIsLangModalOpen(true)}
@@ -636,10 +635,10 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
                                 </div>
 
                                 <div className="flex gap-2">
-                                  <button onClick={() => router.push(`/dashboard/aluno/${id}/treino/${treino.id}`)} className="flex-[2] text-[10px] font-black uppercase tracking-widest text-[var(--primary)] py-3 bg-[var(--primary)]/5 border border-[var(--primary)]/10 rounded-[1.2rem]">
+                                  <button onClick={() => router.push(`/dashboard/aluno/${id}/treino/${treino.id}`)} className="flex-[2] text-[10px] font-black uppercase tracking-widest text-[var(--primary)] py-3 bg-[var(--primary)]/5 border border-[var(--primary)]/10 rounded-[1.2rem] transition-colors hover:bg-[var(--primary)]/10">
                                     {t.workouts.viewDetails}
                                   </button>
-                                  <button onClick={() => router.push(`/dashboard/aluno/${id}/editar-ficha/${treino.id}`)} className="flex-1 text-[10px] font-black uppercase tracking-widest text-white py-3 bg-[var(--primary)] rounded-[1.2rem] flex items-center justify-center gap-2">
+                                  <button onClick={() => router.push(`/dashboard/aluno/${id}/editar-ficha/${treino.id}`)} className="flex-1 text-[10px] font-black uppercase tracking-widest text-white py-3 bg-[var(--primary)] rounded-[1.2rem] flex items-center justify-center gap-2 hover:brightness-110 transition-all">
                                     <FaEdit size={12} /> <span className="hidden sm:inline">{t.workouts.edit}</span>
                                   </button>
                                 </div>
@@ -658,7 +657,7 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
               </div>
 
               {!mostrarArquivados && (
-                <a href={`/dashboard/aluno/${id}/nova-ficha`} className="flex items-center justify-center gap-2 w-full bg-[var(--primary)] text-white p-5 rounded-[1.5rem] font-black text-[10px] sm:text-[11px] uppercase tracking-widest active:scale-[0.98] transition-transform shadow-lg shadow-[var(--primary)]/20 mt-6">
+                <a href={`/dashboard/aluno/${id}/nova-ficha`} className="flex items-center justify-center gap-2 w-full bg-[var(--primary)] text-white p-5 rounded-[1.5rem] font-black text-[10px] sm:text-[11px] uppercase tracking-widest active:scale-[0.98] transition-transform shadow-lg shadow-[var(--primary)]/20 mt-6 hover:brightness-110">
                   <FaPlus size={12} /> {t.workouts.new}
                 </a>
               )}
@@ -893,10 +892,8 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
           {isModalAvaliacaoOpen && (
             <div className="fixed inset-0 z-[99999] flex sm:items-center justify-center sm:p-5 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
               
-              {/* O Container principal: Tela cheia no celular (h-full w-full), e modal normal no PC */}
               <div className="bg-[var(--surface)] w-full h-full sm:h-auto sm:max-w-2xl sm:rounded-[2.5rem] flex flex-col shadow-2xl border border-[var(--border)] animate-in slide-in-from-bottom-full sm:zoom-in-95 duration-300">
                 
-                {/* CABEÇALHO FIXO */}
                 <div className="p-5 sm:p-8 border-b border-[var(--border)] flex justify-between items-center shrink-0 pt-[max(env(safe-area-inset-top,1.25rem),1.25rem)]">
                   <div>
                     <h3 className="text-xl sm:text-2xl font-black tracking-tighter text-[var(--text-primary)]">{t.modalEval.title}</h3>
@@ -907,7 +904,6 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
                   </button>
                 </div>
 
-                {/* CONTEÚDO ROLÁVEL (Aqui o teclado não quebra a tela) */}
                 <div className="flex-1 overflow-y-auto p-5 sm:p-8 custom-scrollbar">
                   <div className="grid grid-cols-2 gap-4 sm:gap-6">
                     {Object.keys(medidas).filter(k => k !== 'observacoes').map((key) => (
@@ -929,7 +925,6 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
                   />
                 </div>
 
-                {/* RODAPÉ FIXO (Ajustado com +6.5rem no mobile para flutuar perfeitamente acima da navbar inferior) */}
                 <div className="p-5 sm:p-8 border-t border-[var(--border)] bg-[var(--surface)] shrink-0 flex gap-4 pb-[calc(max(env(safe-area-inset-bottom),1.25rem)+6.5rem)] sm:pb-8">
                   <button onClick={() => setIsModalAvaliacaoOpen(false)} className="flex-1 py-4 sm:py-5 bg-[var(--surface-sec)] text-[var(--text-primary)] hover:bg-[var(--border)] rounded-[1.2rem] font-black text-[10px] uppercase tracking-widest transition-colors active:scale-95 border border-[var(--border)]">{t.modalEval.cancel}</button>
                   <button onClick={salvarAvaliacaoCompleta} className="flex-1 py-4 sm:py-5 bg-[var(--primary)] text-white rounded-[1.2rem] font-black text-[10px] uppercase tracking-widest hover:brightness-110 shadow-lg shadow-[var(--primary)]/20 transition-all active:scale-95">{t.modalEval.save}</button>
@@ -1054,6 +1049,7 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
           </div>
         </div>
       )}
+
     </main>
   );
 }
