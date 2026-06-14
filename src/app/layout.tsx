@@ -1,14 +1,8 @@
-'use client';
-import { useEffect, useState } from 'react';
+import type { Metadata, Viewport } from 'next';
 import { Geist, Geist_Mono } from "next/font/google";
-import ConditionalNavbar from "@/components/ConditionalNavbar";
-import { LogoProvider } from "@/components/LogoProvider";
-import { AlunoProvider } from "@/app/context/AlunoContext";
+import ClientLayoutWrapper from "./ClientLayoutWrapper";
 import "./globals.css";
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// FONTES GLOBAIS
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 const geistSans = Geist({ 
   variable: "--font-geist-sans", 
   subsets: ["latin"],
@@ -21,205 +15,48 @@ const geistMono = Geist_Mono({
   display: 'swap',
 });
 
+// A MÁGICA DE TELA CHEIA (EDGE-TO-EDGE) ACONTECE AQUI!
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1.0,
+  maximumScale: 1.0,
+  userScalable: false,
+  viewportFit: 'cover', // <-- Isso estica a tela removendo bordas brancas do iOS
+};
+
+export const metadata: Metadata = {
+  title: "AuraFit",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent", // Transforma a barra de status em transparente
+    title: "AuraFit",
+  },
+  manifest: "/manifest.json",
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-
-  const [mounted, setMounted] = useState(false);
-  const [isDark, setIsDark] = useState(true);
-
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  // INICIALIZAÇÃO DE REVENUE CAT, TEMA E EDGE-TO-EDGE
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  useEffect(() => {
-    // 1. RevenueCat Original
-    const initRevenueCat = async () => {
-      try {
-        const Purchases = (await import('react-native-purchases')).default;
-        Purchases.configure({ apiKey: "test_mDDTbbsCmieDaWEsCfyTXVrzbwu" });
-      } catch (e) {
-        console.log("RevenueCat inicializado apenas em ambiente mobile.");
-      }
-    };
-    initRevenueCat();
-
-    // 2. Inicialização Global do Tema Premium
-    const initTheme = () => {
-      const savedTheme = localStorage.getItem('@premium_theme');
-      const isDarkMode = savedTheme ? savedTheme === 'dark' : true; 
-      setIsDark(isDarkMode);
-      
-      const root = document.documentElement;
-      
-      if (isDarkMode) {
-        root.style.setProperty('--bg', '#0F1115');
-        root.style.setProperty('--surface', '#151A22');
-        root.style.setProperty('--surface-sec', '#1B2330');
-        root.style.setProperty('--primary', '#3B82F6');
-        root.style.setProperty('--primary-soft', '#60A5FA');
-        root.style.setProperty('--text-primary', '#F8FAFC');
-        root.style.setProperty('--text-secondary', '#94A3B8');
-        root.style.setProperty('--border', 'rgba(255,255,255,0.05)');
-        root.style.setProperty('--success', '#22C55E');
-        root.style.setProperty('--warning', '#F59E0B');
-        root.style.setProperty('--danger', '#EF4444');
-      } else {
-        root.style.setProperty('--bg', '#F3F6FB');
-        root.style.setProperty('--surface', '#FFFFFF');
-        root.style.setProperty('--surface-sec', '#E8EEF9');
-        root.style.setProperty('--primary', '#2563EB');
-        root.style.setProperty('--primary-soft', '#60A5FA');
-        root.style.setProperty('--text-primary', '#111827');
-        root.style.setProperty('--text-secondary', '#6B7280');
-        root.style.setProperty('--border', 'rgba(15,23,42,0.06)');
-        root.style.setProperty('--success', '#16A34A');
-        root.style.setProperty('--warning', '#D97706');
-        root.style.setProperty('--danger', '#DC2626');
-      }
-      
-      if (!localStorage.getItem('@premium_lang')) {
-        localStorage.setItem('@premium_lang', 'pt-BR');
-      }
-    };
-
-    initTheme();
-    setMounted(true);
-
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    // 3. SOBRESCRITA DO VIEWPORT (Remove espaços em branco do iOS)
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    let viewportMeta = document.querySelector("meta[name='viewport']");
-    if (!viewportMeta) {
-      viewportMeta = document.createElement("meta");
-      viewportMeta.setAttribute("name", "viewport");
-      document.head.appendChild(viewportMeta);
-    }
-    // O viewport-fit=cover obriga o navegador a preencher as áreas seguras
-    viewportMeta.setAttribute("content", "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover");
-
-    const handleStorageChange = () => {
-      initTheme();
-      window.dispatchEvent(new Event('config-updated'));
-    };
-    
-    window.addEventListener('storage', handleStorageChange);
-    
-    // Sobrescrita Mágica do localStorage
-    const originalSetItem = localStorage.setItem;
-    localStorage.setItem = function(key, value) {
-      originalSetItem.apply(this, [key, value]);
-      
-      if (key === '@premium_theme') {
-        initTheme();
-      }
-      
-      if (key === '@premium_theme' || key === '@premium_lang') {
-        window.dispatchEvent(new Event('config-updated'));
-      }
-    };
-
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    // 4. BLOQUEIO DEFINITIVO DE ZOOM (Tipagem TypeScript Corrigida)
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    const preventPinchZoom = (e: TouchEvent) => {
-      if (e.touches && e.touches.length > 1) {
-        e.preventDefault();
-      }
-    };
-
-    const preventAppleGestures = (e: Event) => {
-      e.preventDefault();
-    };
-
-    const preventWheelZoom = (e: WheelEvent) => {
-      if (e.ctrlKey) {
-        e.preventDefault();
-      }
-    };
-
-    const preventKeyZoom = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && (e.key === '+' || e.key === '-' || e.key === '=')) {
-        e.preventDefault();
-      }
-    };
-
-    window.addEventListener('touchstart', preventPinchZoom as any, { passive: false });
-    window.addEventListener('touchmove', preventPinchZoom as any, { passive: false });
-    document.addEventListener('touchstart', preventPinchZoom as any, { passive: false });
-    document.addEventListener('touchmove', preventPinchZoom as any, { passive: false });
-    
-    document.addEventListener('gesturestart', preventAppleGestures as any, { passive: false });
-    document.addEventListener('gesturechange', preventAppleGestures as any, { passive: false });
-    document.addEventListener('gestureend', preventAppleGestures as any, { passive: false });
-
-    document.addEventListener('wheel', preventWheelZoom as any, { passive: false });
-    document.addEventListener('keydown', preventKeyZoom as any);
-
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      localStorage.setItem = originalSetItem;
-      
-      window.removeEventListener('touchstart', preventPinchZoom as any);
-      window.removeEventListener('touchmove', preventPinchZoom as any);
-      document.removeEventListener('touchstart', preventPinchZoom as any);
-      document.removeEventListener('touchmove', preventPinchZoom as any);
-      
-      document.removeEventListener('gesturestart', preventAppleGestures as any);
-      document.removeEventListener('gesturechange', preventAppleGestures as any);
-      document.removeEventListener('gestureend', preventAppleGestures as any);
-      
-      document.removeEventListener('wheel', preventWheelZoom as any);
-      document.removeEventListener('keydown', preventKeyZoom as any);
-    };
-  }, []);
-
-  const bgHex = isDark ? '#0F1115' : '#F3F6FB';
-
   return (
-    <html
-      lang="pt-br"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-      style={{ backgroundColor: bgHex }}
-    >
+    <html lang="pt-br" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
       <head>
-        {/* INJEÇÃO CSS GLOBAL: Trava o fundo Edge-to-Edge */}
+        {/* Injeta as variáveis globalmente para travar o branco */}
         <style dangerouslySetInnerHTML={{
           __html: `
             :root, html, body {
-              background-color: ${bgHex} !important;
               margin: 0;
               padding: 0;
               overscroll-behavior: none; /* Trava o 'bounce' elástico do iOS */
             }
           `
         }} />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta name="apple-mobile-web-app-title" content="AuraFit" />
-        <meta name="theme-color" content={bgHex} />
-        <link rel="apple-touch-icon" href="/icon-192.png" />
-        <link rel="manifest" href="/manifest.json" />
       </head>
-      <body 
-        className={`
-          min-h-[100dvh] flex flex-col bg-[var(--bg)] text-[var(--text-primary)] font-sans 
-          selection:bg-[var(--primary)] selection:text-white overscroll-none
-          ${mounted ? 'transition-colors duration-500' : ''}
-        `}
-      >
-        <AlunoProvider>
-          <LogoProvider>
-            <ConditionalNavbar />
-            <main className="flex flex-col flex-grow w-full relative">
-              <div className="flex-grow w-full">
-                {children}
-              </div>
-              <div className="h-[130px] w-full shrink-0 pointer-events-none" aria-hidden="true" />
-            </main>
-          </LogoProvider>
-        </AlunoProvider>
+      <body className="min-h-[100dvh] flex flex-col font-sans selection:bg-[#3B82F6] selection:text-white overscroll-none">
+        <ClientLayoutWrapper>
+          {children}
+        </ClientLayoutWrapper>
       </body>
     </html>
   );
