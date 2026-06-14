@@ -42,7 +42,7 @@ const translations = {
     selectLanguage: 'Idioma', selectTheme: 'Aparência', themeLight: 'Modo Claro', themeDark: 'Modo Escuro',
     tabOverview: 'Visão Geral', tabTransactions: 'Transações', tabPending: 'Pendências', tabAttendance: 'Frequência',
     graphTitle: 'Faturamento Anual', charge: 'Cobrar', lastSeen: 'Última atividade', daysAgo: 'dias atrás',
-    noPending: 'Nenhum aluno inadimplente!', noAttendance: 'Nenhum dado de frequência.'
+    noPending: 'Nenhum aluno pendente!', noAttendance: 'Nenhum dado de frequência.'
   },
   'pt-PT': {
     title: 'Gestão Financeira', accumulated: 'Receita Anual', monthlyRevenue: 'Receita do Mês',
@@ -140,7 +140,6 @@ export default function FinanceiroSaaS() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    // Busca o valor padrão do personal, pagamentos e os dados dos alunos (agora incluindo valor_mensalidade individual)
     const [cRes, pRes, aRes] = await Promise.all([
       supabase.from('personais').select('valor_mensalidade').eq('id', user.id).single(),
       supabase.from('pagamentos').select('id, valor, data_pagamento, alunos(nome)').eq('personal_id', user.id).order('data_pagamento', { ascending: false }),
@@ -159,10 +158,8 @@ export default function FinanceiroSaaS() {
       setNovoValor('');
       return;
     }
-    // Procura o aluno selecionado
     const aluno = listaAlunos.find(a => a.id === idSelecionado);
     if (aluno) {
-      // Se o aluno tiver um valor específico, puxa ele. Se não tiver, puxa o valor padrão do Personal.
       const valorParaCobrar = aluno.valor_mensalidade || configPersonal.valor_mensalidade_padrao;
       setNovoValor(valorParaCobrar ? valorParaCobrar.toString() : '');
     }
@@ -173,7 +170,6 @@ export default function FinanceiroSaaS() {
     setSaving(true);
     const { data: { user } } = await supabase.auth.getUser();
     
-    // Calcula nova data de vencimento (Soma 1 mês)
     const alunoSelecionado = listaAlunos.find(a => a.id === alunoId);
     let novaDataVencimento = new Date();
     if (alunoSelecionado?.data_vencimento) {
@@ -186,6 +182,7 @@ export default function FinanceiroSaaS() {
       supabase.from('pagamentos').insert([{
         aluno_id: alunoId, personal_id: user?.id, valor: Number(novoValor), data_pagamento: new Date().toISOString(), status: 'pago'
       }]),
+      // Ao pagar, o aluno volta a ficar ATIVO automaticamente
       supabase.from('alunos').update({ 
         status_pagamento: 'ativo', ativo: true, data_vencimento: novaDataVencimento.toISOString().split('T')[0] 
       }).eq('id', alunoId)
@@ -202,10 +199,9 @@ export default function FinanceiroSaaS() {
     setSaving(false);
   };
 
-  // ━━━━━━━━━━━━━━━━ CÁLCULOS FINANCEIROS & GRÁFICO ━━━━━━━━━━━━━━━━
+  // ━━━━━━━━━━━━━━━━ CÁLCULOS FINANCEIROS ━━━━━━━━━━━━━━━━
   const formatCurrency = (val: number) => new Intl.NumberFormat(lang, { style: 'currency', currency: lang === 'pt-PT' ? 'EUR' : lang === 'en' ? 'USD' : 'BRL' }).format(val);
 
-  // Pagamentos do Mês
   const pagamentosMesFiltrado = useMemo(() => pagamentos.filter(p => {
     if (!p.data_pagamento) return false;
     const date = new Date(p.data_pagamento);
@@ -214,7 +210,6 @@ export default function FinanceiroSaaS() {
 
   const faturamentoMes = pagamentosMesFiltrado.reduce((acc, curr) => acc + Number(curr.valor), 0);
   
-  // Faturamento do Ano Selecionado (para o Gráfico)
   const faturamentoAnual = useMemo(() => {
     const dadosAno = new Array(12).fill(0);
     pagamentos.forEach(p => {
@@ -228,18 +223,20 @@ export default function FinanceiroSaaS() {
   const totalAno = faturamentoAnual.reduce((acc, val) => acc + val, 0);
   const maxMes = Math.max(...faturamentoAnual, 1); 
 
-  // ━━━━━━━━━━━━━━━━ INADIMPLENTES (CÁLCULO DINÂMICO) ━━━━━━━━━━━━━━━━
+  // ━━━━━━━━━━━━━━━━ INADIMPLENTES (AGORA COM INATIVOS E HOJE) ━━━━━━━━━━━━━━━━
   const alunosInadimplentes = useMemo(() => listaAlunos.filter(a => {
     if (!a.data_vencimento) return false;
+    
     const hoje = new Date();
     hoje.setHours(0,0,0,0);
     const vencimento = new Date(a.data_vencimento + 'T00:00:00');
-    return vencimento < hoje; 
+    
+    // Verifica se a data de vencimento é HOJE ou do PASSADO (<=)
+    // Agora não filtramos mais o "a.ativo", ou seja, Inativos também aparecem se tiverem dívida.
+    return vencimento <= hoje; 
   }).sort((a,b) => new Date(a.data_vencimento).getTime() - new Date(b.data_vencimento).getTime()), [listaAlunos]);
 
-  // Total a receber (Soma os valores INDIVIDUAIS de cada aluno)
   const valorAtrasado = alunosInadimplentes.reduce((total, aluno) => {
-    // Tenta usar o valor específico do aluno. Se ele não tiver, usa o valor padrão do personal. Se nenhum existir, 0.
     const valorCobrado = aluno.valor_mensalidade || configPersonal.valor_mensalidade_padrao || 0;
     return total + Number(valorCobrado);
   }, 0); 
@@ -257,7 +254,6 @@ export default function FinanceiroSaaS() {
   return (
     <main style={themeStyles} className="w-full min-h-[100dvh] bg-[var(--bg)] text-[var(--text-primary)] px-5 pt-[calc(env(safe-area-inset-top)+1.5rem)] pb-[calc(env(safe-area-inset-bottom)+8rem)] transition-colors duration-500 font-sans relative overflow-hidden">
       
-      {/* Background Orbs */}
       <div className="absolute top-[-10%] left-[-10%] w-[120vw] sm:w-[400px] h-[120vw] sm:h-[400px] bg-[var(--primary)]/10 rounded-full blur-[100px] pointer-events-none" />
       
       {toast && (
@@ -270,7 +266,6 @@ export default function FinanceiroSaaS() {
       {loading ? <FinanceiroSkeleton /> : (
         <div className="max-w-4xl mx-auto space-y-6 relative z-10 animate-in fade-in duration-700">
           
-          {/* HEADER PREMIUM */}
           <header className="flex justify-between items-center mb-4 pt-2">
             <button onClick={() => router.back()} className="flex items-center justify-center w-11 h-11 rounded-full bg-[var(--surface)] backdrop-blur-md border border-[var(--border)] active:scale-95 transition-all shadow-sm">
               <FaChevronLeft className="text-[var(--text-primary)]" size={14} />
@@ -283,7 +278,6 @@ export default function FinanceiroSaaS() {
             </div>
           </header>
 
-          {/* MENU DE ABAS HORIZONTAL */}
           <div className="flex overflow-x-auto gap-2 pb-2 custom-scrollbar snap-x">
             {[
               { id: 'overview', icon: <FaChartBar />, label: t.tabOverview },
@@ -301,12 +295,10 @@ export default function FinanceiroSaaS() {
             ))}
           </div>
 
-          {/* ━━━━━━━━━━ ABA 1: VISÃO GERAL (Dashboard Visual) ━━━━━━━━━━ */}
+          {/* ABA 1: VISÃO GERAL */}
           {activeTab === 'overview' && (
             <div className="space-y-6 animate-in slide-in-from-bottom-4 fade-in duration-500">
-              
               <div className="grid grid-cols-2 gap-4">
-                {/* Receita do Mês Selecionado */}
                 <div className="bg-[var(--surface)] backdrop-blur-xl p-6 rounded-[2rem] border border-[var(--border)] shadow-sm relative overflow-hidden">
                   <button onClick={() => setOlhoAberto(!olhoAberto)} className="absolute top-4 right-4 text-[var(--text-secondary)]">
                     {olhoAberto ? <FaEye size={14} /> : <FaEyeSlash size={14} />}
@@ -315,14 +307,12 @@ export default function FinanceiroSaaS() {
                   <p className="text-2xl font-black tracking-tighter text-[var(--primary)]">{olhoAberto ? formatCurrency(faturamentoMes) : '••••••'}</p>
                 </div>
 
-                {/* Pendentes (A Receber) - AGORA COM VALOR DINÂMICO! */}
                 <div className="bg-[var(--danger)]/10 backdrop-blur-xl p-6 rounded-[2rem] border border-[var(--danger)]/20 shadow-sm relative overflow-hidden">
                   <h2 className="text-[9px] font-black text-[var(--danger)] uppercase tracking-[0.2em] mb-2">{t.pendingRevenue}</h2>
                   <p className="text-2xl font-black tracking-tighter text-[var(--danger)]">{olhoAberto ? formatCurrency(valorAtrasado) : '••••••'}</p>
                 </div>
               </div>
 
-              {/* Gráfico de Faturamento Anual */}
               <div className="bg-[var(--surface)] backdrop-blur-xl p-6 sm:p-8 rounded-[2.5rem] border border-[var(--border)] shadow-sm">
                 <div className="flex justify-between items-center mb-8">
                   <h2 className="text-[10px] font-black text-[var(--text-secondary)] uppercase tracking-[0.2em]">{t.graphTitle}</h2>
@@ -354,22 +344,23 @@ export default function FinanceiroSaaS() {
             </div>
           )}
 
-          {/* ━━━━━━━━━━ ABA 2: TRANSAÇÕES (Lançamentos e Histórico) ━━━━━━━━━━ */}
+          {/* ABA 2: TRANSAÇÕES */}
           {activeTab === 'transactions' && (
             <div className="space-y-6 animate-in slide-in-from-bottom-4 fade-in duration-500">
-              
-              {/* Formulário de Lançamento Rápido */}
               <div className="bg-[var(--surface)] backdrop-blur-xl p-6 sm:p-8 rounded-[2.5rem] border border-[var(--border)] shadow-sm">
                 <h2 className="text-[10px] font-black text-[var(--text-secondary)] uppercase tracking-[0.2em] mb-4">{t.manualPayment}</h2>
                 <div className="flex flex-col sm:flex-row gap-3">
-                  {/* SELECIONAR ALUNO */}
                   <select 
                     value={alunoId} 
                     onChange={(e) => handleSelecionarAluno(e.target.value)} 
                     className="flex-[2] min-w-[200px] p-4 bg-[var(--surface-sec)] rounded-[1.2rem] text-sm font-bold border border-[var(--border)] outline-none text-[var(--text-primary)] appearance-none cursor-pointer"
                   >
                     <option value="">{t.selectStudent}</option>
-                    {listaAlunos.map(a => <option key={a.id} value={a.id}>{a.nome}</option>)}
+                    {listaAlunos.map(a => (
+                      <option key={a.id} value={a.id}>
+                        {a.nome} {!a.ativo ? '(Inativo)' : ''}
+                      </option>
+                    ))}
                   </select>
                   
                   <div className="flex gap-3">
@@ -387,7 +378,6 @@ export default function FinanceiroSaaS() {
                 </div>
               </div>
 
-              {/* Tabela do Mês */}
               <div className="bg-[var(--surface)] backdrop-blur-xl rounded-[2.5rem] border border-[var(--border)] shadow-sm overflow-hidden">
                 <div className="p-6 border-b border-[var(--border)] flex justify-between items-center bg-[var(--surface-sec)]/50">
                   <h2 className="font-black text-sm tracking-tighter text-[var(--text-primary)]">{t.transactions}</h2>
@@ -417,7 +407,7 @@ export default function FinanceiroSaaS() {
             </div>
           )}
 
-          {/* ━━━━━━━━━━ ABA 3: INADIMPLENTES ━━━━━━━━━━ */}
+          {/* ABA 3: INADIMPLENTES (AGORA MOSTRA INATIVOS E VENCIMENTO DE HOJE) */}
           {activeTab === 'pending' && (
             <div className="space-y-4 animate-in slide-in-from-bottom-4 fade-in duration-500">
               {alunosInadimplentes.length === 0 ? (
@@ -437,15 +427,20 @@ export default function FinanceiroSaaS() {
                       <div className="flex flex-col">
                         <div className="flex items-center gap-2">
                           <span className="font-black text-[var(--text-primary)] text-sm">{aluno.nome}</span>
+                          {!aluno.ativo && (
+                            <span className="text-[8px] bg-[var(--danger)] text-white px-1.5 py-0.5 rounded uppercase font-bold tracking-widest">Inativo</span>
+                          )}
                           <span className="text-[10px] font-black text-[var(--text-secondary)]">({formatCurrency(valorCobrado)})</span>
                         </div>
                         <div className="flex gap-2 items-center mt-1">
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded text-white bg-[var(--danger)]">
-                            Venceu dia {new Date(aluno.data_vencimento + 'T00:00:00').toLocaleDateString('pt-BR').substring(0, 5)}
+                            Vence dia {new Date(aluno.data_vencimento + 'T00:00:00').toLocaleDateString('pt-BR').substring(0, 5)}
                           </span>
-                          <span className="text-[10px] font-bold text-[var(--danger)] uppercase tracking-wider">
-                            ({diasAtraso} dias atrasado)
-                          </span>
+                          {diasAtraso > 0 && (
+                            <span className="text-[10px] font-bold text-[var(--danger)] uppercase tracking-wider">
+                              ({diasAtraso} dias atrasado)
+                            </span>
+                          )}
                         </div>
                       </div>
                       
@@ -470,7 +465,7 @@ export default function FinanceiroSaaS() {
             </div>
           )}
 
-          {/* ━━━━━━━━━━ ABA 4: FREQUÊNCIA ━━━━━━━━━━ */}
+          {/* ABA 4: FREQUÊNCIA */}
           {activeTab === 'attendance' && (
             <div className="bg-[var(--surface)] backdrop-blur-xl rounded-[2.5rem] border border-[var(--border)] shadow-sm overflow-hidden p-2 animate-in slide-in-from-bottom-4 fade-in duration-500">
               <div className="p-6">
@@ -510,7 +505,6 @@ export default function FinanceiroSaaS() {
         </div>
       )}
 
-      {/* MODAL DE TEMA */}
       {isThemeModalOpen && (
         <div className="fixed inset-0 z-[999999] flex items-end sm:items-center justify-center p-0 sm:p-5">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setIsThemeModalOpen(false)} />
