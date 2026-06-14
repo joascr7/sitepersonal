@@ -15,20 +15,20 @@ const geistMono = Geist_Mono({
   display: 'swap',
 });
 
-// A MÁGICA DE TELA CHEIA (EDGE-TO-EDGE) ACONTECE AQUI!
+// A REGRA DE OURO PARA REMOVER BORDAS BRANCAS NO IOS
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1.0,
   maximumScale: 1.0,
   userScalable: false,
-  viewportFit: 'cover', // <-- Isso estica a tela removendo bordas brancas do iOS
+  viewportFit: 'cover', // <-- Isso estica a tela para o topo e rodapé
 };
 
 export const metadata: Metadata = {
   title: "AuraFit",
   appleWebApp: {
     capable: true,
-    statusBarStyle: "black-translucent", // Transforma a barra de status em transparente
+    statusBarStyle: "default", // Permite a cor de fundo dominar a barra superior
     title: "AuraFit",
   },
   manifest: "/manifest.json",
@@ -42,12 +42,14 @@ export default function RootLayout({
   return (
     <html lang="pt-br" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
       <head>
-        {/* Injeta as variáveis globalmente para travar o branco */}
+        {/* CSS GLOBAL BRUTO: Trava o Scroll de Borracha e zera margens */}
         <style dangerouslySetInnerHTML={{
           __html: `
-            :root, html, body {
+            html, body {
               margin: 0;
               padding: 0;
+              width: 100%;
+              height: 100%;
               overscroll-behavior: none; /* Trava o 'bounce' elástico do iOS */
             }
           `
