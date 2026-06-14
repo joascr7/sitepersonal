@@ -36,7 +36,7 @@ const translations = {
     successPay: 'Pagamento registrado com sucesso!', successConfig: 'Configurações atualizadas!',
     selectLanguage: 'Idioma', selectTheme: 'Aparência', themeLight: 'Modo Claro', themeDark: 'Modo Escuro',
     tabOverview: 'Visão Geral', tabTransactions: 'Lançamentos', tabPending: 'Alunos Pendentes', tabAttendance: 'Frequência',
-    graphTitle: 'Faturamento Anual', charge: 'Cobrar', noPending: 'Nenhum aluno com pagamento atrasado!'
+    graphTitle: 'Faturamento Anual', charge: 'Cobrar Aluno', noPending: 'Nenhum aluno com pagamento atrasado!'
   },
   'pt-PT': {
     title: 'Financeiro', accumulated: 'Receita Anual', monthlyRevenue: 'Receita do Mês',
@@ -46,7 +46,7 @@ const translations = {
     successPay: 'Pagamento registado com sucesso!', successConfig: 'Configurações atualizadas!',
     selectLanguage: 'Idioma', selectTheme: 'Aparência', themeLight: 'Modo Claro', themeDark: 'Modo Escuro',
     tabOverview: 'Visão Geral', tabTransactions: 'Lançamentos', tabPending: 'Alunos Pendentes', tabAttendance: 'Frequência',
-    graphTitle: 'Faturação Anual', charge: 'Cobrar', noPending: 'Nenhum aluno em incumprimento!'
+    graphTitle: 'Faturação Anual', charge: 'Cobrar Aluno', noPending: 'Nenhum aluno em incumprimento!'
   },
   'en': {
     title: 'Financial', accumulated: 'Yearly Revenue', monthlyRevenue: 'Monthly Revenue',
@@ -56,7 +56,7 @@ const translations = {
     successPay: 'Payment registered successfully!', successConfig: 'Settings updated!',
     selectLanguage: 'Language', selectTheme: 'Appearance', themeLight: 'Light Mode', themeDark: 'Dark Mode',
     tabOverview: 'Overview', tabTransactions: 'Transactions', tabPending: 'Pending Students', tabAttendance: 'Attendance',
-    graphTitle: 'Yearly Revenue Chart', charge: 'Charge', noPending: 'No pending payments!'
+    graphTitle: 'Yearly Revenue Chart', charge: 'Charge Student', noPending: 'No pending payments!'
   }
 };
 
@@ -173,7 +173,6 @@ export default function FinanceiroSaaS() {
     let novaDataVencimento = new Date();
     
     if (alunoSelecionado?.data_vencimento) {
-      // Extrai e converte a data de forma segura
       const [ano, mes, dia] = alunoSelecionado.data_vencimento.split('T')[0].split('-');
       const dataAtual = new Date(Number(ano), Number(mes) - 1, Number(dia));
       if (dataAtual > novaDataVencimento) novaDataVencimento = dataAtual;
@@ -223,27 +222,24 @@ export default function FinanceiroSaaS() {
   const totalAno = faturamentoAnual.reduce((acc, val) => acc + val, 0);
   const maxMes = Math.max(...faturamentoAnual, 1); 
 
-  // ━━━━━━━━━━━━━━━━ LÓGICA DE INADIMPLENTES (100% à prova de fuso horário) ━━━━━━━━━━━━━━━━
+  // ━━━━━━━━━━━━━━━━ INADIMPLENTES (AGORA 100% BLINDADO CONTRA BUG DE FUSO HORÁRIO) ━━━━━━━━━━━━━━━━
   const alunosInadimplentes = useMemo(() => listaAlunos.filter(a => {
     if (!a.data_vencimento) return false;
     
-    const hoje = new Date();
-    hoje.setHours(0, 0, 0, 0); // Hoje começando à meia-noite
+    // Pegamos a data real do dispositivo AGORA e formatamos como string YYYY-MM-DD
+    const hojeObj = new Date();
+    const ano = hojeObj.getFullYear();
+    const mes = String(hojeObj.getMonth() + 1).padStart(2, '0');
+    const dia = String(hojeObj.getDate()).padStart(2, '0');
+    const hojeStr = `${ano}-${mes}-${dia}`;
     
-    // Separa manualmente para evitar que o JS atrase 1 dia por causa do fuso GMT-3
-    const dataApenas = a.data_vencimento.split('T')[0];
-    const partes = dataApenas.split('-');
-    if (partes.length !== 3) return false;
-
-    const vencimento = new Date(Number(partes[0]), Number(partes[1]) - 1, Number(partes[2]));
-    vencimento.setHours(0, 0, 0, 0);
-
-    // Considera atrasado se a data do vencimento for ESTRITAMENTE MENOR que a data de hoje.
-    return vencimento < hoje; 
+    // Pegamos a data do banco puramente como string
+    const vencimentoStr = a.data_vencimento.split('T')[0];
+    
+    // Comparamos as duas Strings diretamente. Menor ou igual a hoje = devendo.
+    return vencimentoStr <= hojeStr; 
   }).sort((a,b) => {
-    const dA = new Date(a.data_vencimento.split('T')[0]).getTime();
-    const dB = new Date(b.data_vencimento.split('T')[0]).getTime();
-    return dA - dB;
+    return a.data_vencimento.localeCompare(b.data_vencimento);
   }), [listaAlunos]);
 
   const enviarCobrancaWhatsApp = (aluno: any) => {
@@ -443,7 +439,7 @@ export default function FinanceiroSaaS() {
             </div>
           )}
 
-          {/* ━━━━━━━━━━ ABA 3: INADIMPLENTES (FOCADO EM QUEM FALTA PAGAR - SEM VALORES) ━━━━━━━━━━ */}
+          {/* ━━━━━━━━━━ ABA 3: INADIMPLENTES (FOCADO EM QUEM FALTA PAGAR E 100% BLINDADO) ━━━━━━━━━━ */}
           {activeTab === 'pending' && (
             <div className="space-y-4 animate-in slide-in-from-bottom-4 fade-in duration-500">
               {alunosInadimplentes.length === 0 ? (
@@ -455,12 +451,20 @@ export default function FinanceiroSaaS() {
                 </div>
               ) : (
                 alunosInadimplentes.map(aluno => {
-                  const partes = aluno.data_vencimento.split('T')[0].split('-');
-                  const vencimento = new Date(Number(partes[0]), Number(partes[1]) - 1, Number(partes[2]));
-                  const hoje = new Date();
-                  hoje.setHours(0,0,0,0);
+                  const vencimentoStr = aluno.data_vencimento.split('T')[0];
                   
-                  const diasAtraso = Math.floor((hoje.getTime() - vencimento.getTime()) / (1000 * 3600 * 24));
+                  // Gerando strings seguras e locais para cálculo de dias
+                  const hojeObj = new Date();
+                  const anoH = hojeObj.getFullYear();
+                  const mesH = String(hojeObj.getMonth() + 1).padStart(2, '0');
+                  const diaH = String(hojeObj.getDate()).padStart(2, '0');
+                  const hojeLimpo = `${anoH}-${mesH}-${diaH}`;
+                  
+                  const dataHoje = new Date(`${hojeLimpo}T00:00:00`).getTime();
+                  const dataVencimento = new Date(`${vencimentoStr}T00:00:00`).getTime();
+                  
+                  const diasAtraso = Math.floor((dataHoje - dataVencimento) / (1000 * 3600 * 24));
+                  const partes = vencimentoStr.split('-');
                   
                   return (
                     <div key={aluno.id} className="bg-[var(--surface)] p-5 rounded-[1.5rem] border border-[var(--danger)]/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm hover:border-[var(--danger)]/60 transition-all">
@@ -475,7 +479,11 @@ export default function FinanceiroSaaS() {
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded text-white bg-[var(--danger)]">
                             Venceu dia {partes[2]}/{partes[1]}
                           </span>
-                          {diasAtraso > 0 && (
+                          {diasAtraso === 0 ? (
+                            <span className="text-[10px] font-bold text-[var(--warning)] uppercase tracking-wider">
+                              (Vence Hoje)
+                            </span>
+                          ) : (
                             <span className="text-[10px] font-bold text-[var(--danger)] uppercase tracking-wider">
                               ({diasAtraso} {diasAtraso === 1 ? 'dia atrasado' : 'dias atrasado'})
                             </span>
@@ -544,7 +552,6 @@ export default function FinanceiroSaaS() {
         </div>
       )}
 
-      {/* MODAL DE TEMA */}
       {isThemeModalOpen && (
         <div className="fixed inset-0 z-[999999] flex items-end sm:items-center justify-center p-0 sm:p-5">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setIsThemeModalOpen(false)} />
