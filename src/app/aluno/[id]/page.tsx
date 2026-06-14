@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState, useMemo, use } from 'react';
+import { useEffect, useState, use, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { ptBR, pt, enUS } from 'date-fns/locale';
@@ -24,7 +24,6 @@ import {
   FaLock,
   FaWhatsapp
 } from 'react-icons/fa';
-import { LineChart, Line, AreaChart, Area, CartesianGrid, Tooltip, ResponsiveContainer, YAxis, XAxis, Legend } from 'recharts';
 import { startOfWeek, endOfWeek, eachDayOfInterval, format, isSameDay, parseISO, startOfMonth, endOfMonth, addMonths, subMonths, isSameMonth } from 'date-fns';
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -79,15 +78,37 @@ const languages = [
 ];
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// COMPONENTE PRINCIPAL SEPARADO (Evita Suspense Re-renders)
+// SKELETON SCREEN
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const DetalheAlunoSkeleton = () => (
+  <div className="max-w-4xl mx-auto space-y-8 animate-pulse pt-8 px-5">
+    <div className="flex justify-between items-center mb-8">
+      <div className="w-12 h-12 bg-[var(--surface-sec)] rounded-full" />
+      <div className="w-24 h-10 bg-[var(--surface-sec)] rounded-[1.2rem]" />
+    </div>
+    <div className="bg-[var(--surface)] p-8 rounded-[2.5rem] flex flex-col items-center gap-4 border border-[var(--border)]">
+      <div className="w-24 h-24 rounded-[2rem] bg-[var(--surface-sec)]" />
+      <div className="w-48 h-8 bg-[var(--surface-sec)] rounded-xl" />
+      <div className="w-32 h-6 bg-[var(--surface-sec)] rounded-full" />
+      <div className="w-full h-16 bg-[var(--surface-sec)] rounded-2xl mt-4" />
+    </div>
+    <div className="flex gap-4 overflow-hidden border-b border-[var(--border)] pb-2">
+      {[1, 2, 3, 4, 5].map(i => <div key={i} className="w-20 h-6 bg-[var(--surface-sec)] rounded-full shrink-0" />)}
+    </div>
+    <div className="space-y-4">
+      {[1, 2].map(i => <div key={i} className="w-full h-32 bg-[var(--surface)] rounded-[2.5rem] border border-[var(--border)]" />)}
+    </div>
+  </div>
+);
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// COMPONENTE DE CONTEÚDO (Recebe o ID diretamente como String)
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 function AreaDoAlunoContent({ id }: { id: string }) {
   const router = useRouter();
   const [aluno, setAluno] = useState<any>(null);
   const [personal, setPersonal] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [avaliacoes, setAvaliacoes] = useState<any[]>([]);
-  const [modalAberta, setModalAberta] = useState(false);
   const [diasTreino, setDiasTreino] = useState<Date[]>([]);
   const [calendarioAberto, setCalendarioAberto] = useState(false);
   const [treinoDoDia, setTreinoDoDia] = useState<any>(null);
@@ -131,7 +152,7 @@ function AreaDoAlunoContent({ id }: { id: string }) {
     };
   }, []);
 
-  // Handlers dos Modais Premium (Ação Instantânea)
+  // Handlers dos Modais Premium
   const handleSelectLanguage = (newLang: string) => {
     setLang(newLang as any);
     localStorage.setItem('@premium_lang', newLang);
@@ -141,7 +162,7 @@ function AreaDoAlunoContent({ id }: { id: string }) {
 
   const handleSelectTheme = (theme: 'dark' | 'light') => {
     const newIsDark = theme === 'dark';
-    setIsDark(newIsDark); // ATUALIZAÇÃO IMEDIATA DO ESTADO
+    setIsDark(newIsDark);
     localStorage.setItem('@premium_theme', newIsDark ? 'dark' : 'light');
     window.dispatchEvent(new Event('config-updated'));
     setIsThemeModalOpen(false);
@@ -235,18 +256,10 @@ function AreaDoAlunoContent({ id }: { id: string }) {
     init();
   }, [id]);
 
-  if (loading) return (
-    <main style={themeStyles} className="min-h-screen bg-[var(--bg)] p-6 space-y-8 animate-pulse pt-[max(env(safe-area-inset-top),1.5rem)]">
-      <div className="w-full max-w-md md:max-w-2xl mx-auto flex flex-col space-y-6">
-        <div className="flex justify-between items-center mb-10"><div className="flex items-center gap-4"><div className="w-14 h-14 bg-[var(--surface-sec)] rounded-full" /><div className="space-y-2"><div className="w-24 h-4 bg-[var(--surface-sec)] rounded-full" /><div className="w-16 h-3 bg-[var(--surface-sec)] rounded-full" /></div></div></div>
-        <div className="space-y-4"><div className="w-48 h-8 bg-[var(--surface-sec)] rounded-full" /><div className="w-32 h-3 bg-[var(--surface-sec)] rounded-full" /><div className="w-full h-32 bg-[var(--surface-sec)] rounded-3xl" /></div>
-        <div className="grid grid-cols-2 gap-4">{[1, 2, 3, 4].map((i) => (<div key={i} className="h-28 bg-[var(--surface-sec)] rounded-3xl" />))}</div>
-      </div>
-    </main>
-  );
+  if (loading) return <DetalheAlunoSkeleton />;
 
   return (
-    <main style={themeStyles} className="w-full min-h-[100dvh] bg-[var(--bg)] text-[var(--text-primary)] font-sans antialiased pb-[env(safe-area-inset-bottom)] flex flex-col relative overflow-hidden">
+    <div style={themeStyles} className="w-full min-h-[100dvh] bg-[var(--bg)] text-[var(--text-primary)] transition-colors duration-500 font-sans antialiased pb-[env(safe-area-inset-bottom)] flex flex-col relative overflow-hidden">
       
       {/* Background Orbs */}
       <div className="absolute top-[-10%] left-[-10%] w-[120vw] sm:w-[400px] h-[120vw] sm:h-[400px] bg-[var(--primary)]/10 rounded-full blur-[120px] pointer-events-none" />
@@ -272,7 +285,7 @@ function AreaDoAlunoContent({ id }: { id: string }) {
           </div>
           
           {/* ━━━━━━━━━━ PILL UI DE CONTROLES (Ação Imediata) ━━━━━━━━━━ */}
-          <div className="flex items-center bg-[var(--surface)] border border-[var(--border)] rounded-full shadow-sm p-1 shrink-0">
+          <div className="flex items-center bg-[var(--surface)] backdrop-blur-md border border-[var(--border)] rounded-full shadow-sm p-1 shrink-0">
             <button 
               onClick={() => setIsLangModalOpen(true)}
               className="flex items-center justify-center gap-1.5 px-2.5 h-8 rounded-full text-[var(--text-secondary)] hover:text-[var(--primary)] hover:bg-[var(--primary)]/5 transition-all active:scale-95"
@@ -396,45 +409,10 @@ function AreaDoAlunoContent({ id }: { id: string }) {
               }
             }} 
           />
-          <BotaoMenu icon={<FaClipboardList />} label={t.evaluations} onClick={async () => { 
-            const { data } = await supabase.from('avaliacoes_fisicas').select('*').eq('aluno_id', id).order('data_avaliacao', { ascending: true }); 
-            if(data && data.length > 0) { setAvaliacoes(data); setModalAberta(true); } 
-            else { alert("Nenhuma avaliação encontrada."); }
-          }} />
           <BotaoMenu icon={<FaChartLine />} label={t.progress} onClick={() => router.push(`/aluno/${id}/progresso`)} />
           <BotaoMenu icon={<FaCommentMedical />} label={t.feedback} onClick={() => router.push(`/aluno/${id}/feedback`)} />
-          <BotaoMenu icon={<FaFileInvoice />} label={t.invoices} onClick={() => router.push(`/aluno/${id}/faturas`)} />
-          <BotaoMenu icon={<FaFolderOpen />} label={t.files} onClick={() => router.push(`/aluno/${id}/arquivos`)} />
+          <BotaoMenu icon={<FaUserCircle />} label={'Perfil'} onClick={() => router.push(`/aluno/${id}/perfil`)} />
         </div>
-
-        {aluno && (
-          <div className="bg-[var(--surface)] p-5 rounded-[1.5rem] border border-[var(--border)] flex justify-between items-center shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500 delay-300 mt-2">
-            <div className="flex flex-col">
-              <span className="text-[9px] font-bold uppercase text-[var(--text-secondary)] tracking-widest mb-1">{t.status}</span>
-              <div className="flex items-center gap-2">
-                <div className={`w-2 h-2 rounded-full ${aluno.status_pagamento === 'bloqueado' ? 'bg-[var(--danger)] shadow-[0_0_8px_var(--danger)]' : 'bg-[var(--success)] shadow-[0_0_8px_var(--success)]'}`} />
-                <span className="font-black text-[12px]">{aluno.status_pagamento === 'bloqueado' ? t.blocked : t.active}</span>
-              </div>
-            </div>
-            <div className="text-right flex flex-col">
-              <span className="text-[9px] font-bold uppercase text-[var(--text-secondary)] tracking-widest mb-1">{t.due}</span>
-              <span className="font-black text-[12px]">{aluno.data_vencimento ? new Date(aluno.data_vencimento).toLocaleDateString(lang) : 'N/A'}</span>
-            </div>
-          </div>
-        )}
-
-        {/* Modais Antigos */}
-        {modalAberta && (
-          <ModalAvaliacao 
-            isOpen={modalAberta} 
-            onClose={() => setModalAberta(false)} 
-            avaliacao={avaliacoes[avaliacoes.length - 1]} 
-            historico={avaliacoes}
-            themeStyles={themeStyles}
-            t={t}
-            lang={lang}
-          />
-        )}
 
         <div className="h-20 w-full shrink-0" aria-hidden="true" />
       </div>
@@ -562,12 +540,30 @@ function AreaDoAlunoContent({ id }: { id: string }) {
           </div>
         </div>
       )}
-    </main>
+
+    </div>
   );
 }
 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// COMPONENTE WRAPPER COM SUSPENSE
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 export default function AreaDoAlunoPage({ params }: { params: Promise<{ id: string }> }) {
-  return <AreaDoAlunoContent params={params} />;
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const bgTheme = mounted && localStorage.getItem('@premium_theme') === 'light' ? '#F3F6FB' : '#0F1115';
+
+  return (
+    <div style={{ backgroundColor: bgTheme }} className="min-h-screen transition-colors duration-500">
+      <Suspense fallback={<DetalheAlunoSkeleton />}>
+        <AreaDoAlunoContent id={use(params).id} />
+      </Suspense>
+    </div>
+  );
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -607,117 +603,6 @@ function CalendarioTreino({ diasTreinados, lang }: { diasTreinados: Date[], lang
             </div>
           );
         })}
-      </div>
-    </div>
-  );
-}
-
-function ModalAvaliacao({ isOpen, onClose, avaliacao, historico, themeStyles, t, lang }: any) {
-  if (!isOpen || !avaliacao) return null;
-
-  return (
-    <div className="fixed inset-0 z-[99999] flex sm:items-center justify-center sm:p-5 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
-      
-      {/* O Container principal Fullscreen mobile */}
-      <div style={themeStyles} className="bg-[var(--surface)] w-full h-full sm:h-auto sm:max-w-3xl sm:rounded-[2.5rem] flex flex-col shadow-2xl border border-[var(--border)] animate-in slide-in-from-bottom-full sm:zoom-in-95 duration-300 pb-[env(safe-area-inset-bottom)]">
-        
-        {/* Cabeçalho Fixo */}
-        <div className="p-5 sm:p-8 border-b border-[var(--border)] flex justify-between items-center shrink-0 pt-[max(env(safe-area-inset-top,1.25rem),1.25rem)]">
-          <div>
-            <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--primary)]">{t.analysis}</h2>
-            <p className="text-xl sm:text-2xl font-black text-[var(--text-primary)] tracking-tight">{t.evolution}</p>
-          </div>
-          <button onClick={onClose} className="w-10 h-10 bg-[var(--surface-sec)] border border-[var(--border)] rounded-full flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
-            <span className="font-bold text-lg leading-none">&times;</span>
-          </button>
-        </div>
-
-        {/* Conteúdo Rolável */}
-        <div className="flex-1 overflow-y-auto p-5 sm:p-8 custom-scrollbar pb-[calc(max(env(safe-area-inset-bottom),1.25rem)+6.5rem)] sm:pb-8">
-          
-          <div className="mb-8 bg-[var(--surface-sec)] px-4 py-3 rounded-2xl border border-[var(--border)] inline-block shadow-inner">
-             <p className="text-[10px] font-bold uppercase text-[var(--text-secondary)] tracking-widest">
-               {t.dateOfRecord}: <span className="text-[var(--text-primary)]">{new Date(avaliacao.data_avaliacao).toLocaleDateString(lang)}</span>
-             </p>
-          </div>
-          
-          {/* Gráficos Triplos Premium */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            
-            {/* 1. Evolução de Peso */}
-            <div className="bg-[var(--surface)] p-6 rounded-[2rem] border border-[var(--border)] h-64 shadow-sm flex flex-col">
-              <h3 className="font-black text-[var(--text-secondary)] text-[10px] uppercase tracking-widest mb-4 flex items-center gap-2"><FaChartLine /> {t.evolutionWeight}</h3>
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={historico.filter((a:any) => a.peso)} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
-                  <defs>
-                    <filter id="glowLinePeso" x="-20%" y="-20%" width="140%" height="140%">
-                      <feDropShadow dx="0" dy="4" stdDeviation="6" floodOpacity="0.4" floodColor="var(--primary)" />
-                    </filter>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
-                  <XAxis dataKey="data_avaliacao" tickFormatter={(v) => new Date(v).toLocaleDateString(lang, { day: '2-digit', month: '2-digit' })} tick={{fontSize: 9, fill: 'var(--text-secondary)', fontWeight: 700}} axisLine={false} tickLine={false} />
-                  <YAxis domain={['auto', 'auto']} tick={{fontSize: 10, fill: 'var(--text-secondary)', fontWeight: 700}} axisLine={false} tickLine={false} />
-                  <Tooltip labelFormatter={(l) => new Date(l).toLocaleDateString(lang)} contentStyle={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '12px', fontWeight: 'bold', color: 'var(--text-primary)' }} itemStyle={{ color: 'var(--primary)' }} />
-                  <Line filter="url(#glowLinePeso)" type="monotone" name="Peso (kg)" dataKey="peso" stroke="var(--primary)" strokeWidth={4} dot={false} activeDot={{ r: 6, fill: "var(--primary)", stroke: "var(--surface)", strokeWidth: 3 }} animationDuration={1500} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-
-            {/* 2. Evolução de Gordura Corporal */}
-            <div className="bg-[var(--surface)] p-6 rounded-[2rem] border border-[var(--border)] h-64 shadow-sm flex flex-col relative overflow-hidden group">
-              <div className="absolute inset-0 bg-gradient-to-t from-[var(--danger)]/5 to-transparent pointer-events-none" />
-              <h3 className="font-black text-[var(--text-secondary)] text-[10px] uppercase tracking-widest mb-4 flex items-center gap-2 relative z-10"><FaChartLine /> {t.evolutionFat}</h3>
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={historico.filter((a:any) => a.gordura)} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="colorGorduraAluno" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="var(--danger)" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="var(--danger)" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
-                  <XAxis dataKey="data_avaliacao" tickFormatter={(v) => new Date(v).toLocaleDateString(lang, { day: '2-digit', month: '2-digit' })} tick={{fontSize: 9, fill: 'var(--text-secondary)', fontWeight: 700}} axisLine={false} tickLine={false} />
-                  <YAxis domain={['auto', 'auto']} tick={{fontSize: 10, fill: 'var(--text-secondary)', fontWeight: 700}} axisLine={false} tickLine={false} />
-                  <Tooltip labelFormatter={(l) => new Date(l).toLocaleDateString(lang)} contentStyle={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '12px', fontWeight: 'bold', color: 'var(--text-primary)' }} itemStyle={{ color: 'var(--danger)' }} />
-                  <Area type="monotone" name="Gordura (%)" dataKey="gordura" stroke="var(--danger)" strokeWidth={4} fillOpacity={1} fill="url(#colorGorduraAluno)" animationDuration={1500} dot={false} activeDot={{ r: 6, fill: "var(--danger)", stroke: "var(--surface)", strokeWidth: 3 }} />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-
-            {/* 3. Evolução de Circunferências (Largura Total) */}
-            <div className="bg-[var(--surface)] p-6 rounded-[2rem] border border-[var(--border)] h-72 shadow-sm flex flex-col md:col-span-2">
-              <h3 className="font-black text-[var(--text-secondary)] text-[10px] uppercase tracking-widest mb-4 flex items-center gap-2"><FaChartLine /> {t.evolutionMeasures}</h3>
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={historico.filter((a:any) => a.abdomen || a.cintura || a.quadril)} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
-                  <XAxis dataKey="data_avaliacao" tickFormatter={(v) => new Date(v).toLocaleDateString(lang, { day: '2-digit', month: '2-digit' })} tick={{fontSize: 9, fill: 'var(--text-secondary)', fontWeight: 700}} axisLine={false} tickLine={false} />
-                  <YAxis domain={['auto', 'auto']} tick={{fontSize: 10, fill: 'var(--text-secondary)', fontWeight: 700}} axisLine={false} tickLine={false} />
-                  <Tooltip labelFormatter={(l) => new Date(l).toLocaleDateString(lang)} contentStyle={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '12px', fontWeight: 'bold', color: 'var(--text-primary)' }} />
-                  <Legend wrapperStyle={{ fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase' }} />
-                  <Line type="monotone" name="Abdômen" dataKey="abdomen" stroke="#3B82F6" strokeWidth={3} dot={false} activeDot={{ r: 5, strokeWidth: 2, stroke: 'var(--surface)' }} animationDuration={1500} />
-                  <Line type="monotone" name="Cintura" dataKey="cintura" stroke="#F59E0B" strokeWidth={3} dot={false} activeDot={{ r: 5, strokeWidth: 2, stroke: 'var(--surface)' }} animationDuration={1500} />
-                  <Line type="monotone" name="Quadril" dataKey="quadril" stroke="#22C55E" strokeWidth={3} dot={false} activeDot={{ r: 5, strokeWidth: 2, stroke: 'var(--surface)' }} animationDuration={1500} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-          
-          <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-secondary)] mb-4 mt-8">{t.details}</h3>
-          <div className="grid grid-cols-2 gap-3 mb-6">
-            <div className="bg-[var(--surface-sec)] p-4 rounded-xl border border-[var(--border)] flex justify-between items-center shadow-inner"><span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase">Tórax</span><span className="text-sm font-black text-[var(--text-primary)]">{avaliacao.torax || '--'}</span></div>
-            <div className="bg-[var(--surface-sec)] p-4 rounded-xl border border-[var(--border)] flex justify-between items-center shadow-inner"><span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase">Ombros</span><span className="text-sm font-black text-[var(--text-primary)]">{avaliacao.ombros || '--'}</span></div>
-            <div className="bg-[var(--surface-sec)] p-4 rounded-xl border border-[var(--border)] flex justify-between items-center shadow-inner"><span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase">Abdômen</span><span className="text-sm font-black text-[var(--text-primary)]">{avaliacao.abdomen || '--'}</span></div>
-            <div className="bg-[var(--surface-sec)] p-4 rounded-xl border border-[var(--border)] flex justify-between items-center shadow-inner"><span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase">Cintura</span><span className="text-sm font-black text-[var(--text-primary)]">{avaliacao.cintura || '--'}</span></div>
-            <div className="bg-[var(--surface-sec)] p-4 rounded-xl border border-[var(--border)] flex justify-between items-center shadow-inner"><span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase">Quadril</span><span className="text-sm font-black text-[var(--text-primary)]">{avaliacao.quadril || '--'}</span></div>
-          </div>
-          
-          {avaliacao.observacoes && (
-            <div className="mt-6">
-              <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-secondary)] mb-3">{t.obs}</h3>
-              <div className="w-full p-5 bg-[var(--surface-sec)] border border-[var(--border)] rounded-[1.2rem] font-medium text-sm text-[var(--text-primary)] shadow-inner italic">"{avaliacao.observacoes}"</div>
-            </div>
-          )}
-        </div>
       </div>
     </div>
   );
