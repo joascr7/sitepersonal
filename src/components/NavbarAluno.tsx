@@ -30,6 +30,8 @@ export default function NavbarAluno() {
   const [lang, setLang] = useState<'pt-BR' | 'pt-PT' | 'en'>('pt-BR');
   const [mounted, setMounted] = useState(false);
   const [telefonePersonal, setTelefonePersonal] = useState<string | null>(null);
+  
+  // Estados de Bloqueio e Toast
   const [isVencido, setIsVencido] = useState(false);
   const [toast, setToast] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
@@ -47,7 +49,7 @@ export default function NavbarAluno() {
     setMounted(true);
     window.addEventListener('storage', updateLang);
     window.addEventListener('config-updated', updateLang);
-    
+
     return () => {
       window.removeEventListener('storage', updateLang);
       window.removeEventListener('config-updated', updateLang);
@@ -55,6 +57,7 @@ export default function NavbarAluno() {
   }, []);
 
   const t = translations[lang] || translations['pt-BR'];
+  
   const parts = pathname.split('/');
   const alunoId = parts[2];
 
@@ -83,11 +86,11 @@ export default function NavbarAluno() {
           }
           setIsVencido(vencido);
 
-          // Puxa o telefone do personal para o botão do WhatsApp
+          // Puxa o telefone do personal para o WhatsApp
           if (alunoData.personal_id) {
             const { data: personalData } = await supabase
               .from('personais')
-              .select('telefone')
+              .select('telefone, nome')
               .eq('id', alunoData.personal_id)
               .single();
 
@@ -96,7 +99,10 @@ export default function NavbarAluno() {
               const numeroFinal = (numeroLimpo.length <= 11 && !numeroLimpo.startsWith('55')) 
                 ? `55${numeroLimpo}` 
                 : numeroLimpo;
-              setTelefonePersonal(numeroFinal);
+              
+              const personalNome = personalData.nome?.split(' ')[0] || 'Personal';
+              const mensagem = encodeURIComponent(`Olá ${personalNome}, gostaria de tirar uma dúvida!`);
+              setTelefonePersonal(`${numeroFinal}?text=${mensagem}`);
             }
           }
         }
@@ -125,14 +131,16 @@ export default function NavbarAluno() {
     { name: t.feedback, path: alunoId ? `/aluno/${alunoId}/feedback` : '#', icon: <FaCommentDots /> },
   ];
 
+  // Adiciona o WhatsApp apenas se o telefone foi encontrado
   if (telefonePersonal) {
     navLinks.push({
       name: t.contact,
-      path: `https://wa.me/${telefonePersonal}?text=Olá,%20gostaria%20de%20tirar%20uma%20dúvida!`,
+      path: `https://wa.me/${telefonePersonal}`,
       icon: <FaWhatsapp />
     });
   }
 
+  // Adiciona o Perfil por último
   navLinks.push({ name: t.profile, path: alunoId ? `/aluno/${alunoId}/perfil` : '#', icon: <FaUser /> });
 
   return (
