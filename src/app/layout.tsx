@@ -31,7 +31,7 @@ export default function RootLayout({
   const [isDark, setIsDark] = useState(true);
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  // INICIALIZAÇÃO DE REVENUE CAT, TEMA E BLOQUEIO DE ZOOM
+  // INICIALIZAÇÃO DE REVENUE CAT, TEMA E EDGE-TO-EDGE
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   useEffect(() => {
     // 1. RevenueCat Original
@@ -87,6 +87,18 @@ export default function RootLayout({
     initTheme();
     setMounted(true);
 
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // 3. SOBRESCRITA DO VIEWPORT (Remove espaços em branco do iOS)
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    let viewportMeta = document.querySelector("meta[name='viewport']");
+    if (!viewportMeta) {
+      viewportMeta = document.createElement("meta");
+      viewportMeta.setAttribute("name", "viewport");
+      document.head.appendChild(viewportMeta);
+    }
+    // O viewport-fit=cover obriga o navegador a preencher as áreas seguras
+    viewportMeta.setAttribute("content", "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover");
+
     const handleStorageChange = () => {
       initTheme();
       window.dispatchEvent(new Event('config-updated'));
@@ -99,19 +111,17 @@ export default function RootLayout({
     localStorage.setItem = function(key, value) {
       originalSetItem.apply(this, [key, value]);
       
-      // Se alterou o tema, atualiza as variáveis CSS imediatamente
       if (key === '@premium_theme') {
         initTheme();
       }
       
-      // Se alterou o TEMA ou IDIOMA, avisa o app inteiro para se re-renderizar (sem precisar trocar de aba!)
       if (key === '@premium_theme' || key === '@premium_lang') {
         window.dispatchEvent(new Event('config-updated'));
       }
     };
 
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    // 3. BLOQUEIO DEFINITIVO DE ZOOM (Com Tipagem TypeScript Corrigida)
+    // 4. BLOQUEIO DEFINITIVO DE ZOOM (Tipagem TypeScript Corrigida)
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     const preventPinchZoom = (e: TouchEvent) => {
       if (e.touches && e.touches.length > 1) {
@@ -135,7 +145,6 @@ export default function RootLayout({
       }
     };
 
-    // Castings (as any) adicionados porque TypeScript nativo não reconhece opções { passive: false } em todos os tipos de evento por padrão.
     window.addEventListener('touchstart', preventPinchZoom as any, { passive: false });
     window.addEventListener('touchmove', preventPinchZoom as any, { passive: false });
     document.addEventListener('touchstart', preventPinchZoom as any, { passive: false });
@@ -166,24 +175,36 @@ export default function RootLayout({
     };
   }, []);
 
+  const bgHex = isDark ? '#0F1115' : '#F3F6FB';
+
   return (
     <html
       lang="pt-br"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-      style={{ backgroundColor: isDark ? '#0F1115' : '#F3F6FB' }}
+      style={{ backgroundColor: bgHex }}
     >
       <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+        {/* INJEÇÃO CSS GLOBAL: Trava o fundo Edge-to-Edge */}
+        <style dangerouslySetInnerHTML={{
+          __html: `
+            :root, html, body {
+              background-color: ${bgHex} !important;
+              margin: 0;
+              padding: 0;
+              overscroll-behavior: none; /* Trava o 'bounce' elástico do iOS */
+            }
+          `
+        }} />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="AuraFit" />
-        <meta name="theme-color" content={isDark ? '#0F1115' : '#F3F6FB'} />
+        <meta name="theme-color" content={bgHex} />
         <link rel="apple-touch-icon" href="/icon-192.png" />
         <link rel="manifest" href="/manifest.json" />
       </head>
       <body 
         className={`
-          min-h-screen flex flex-col bg-[var(--bg)] text-[var(--text-primary)] font-sans 
+          min-h-[100dvh] flex flex-col bg-[var(--bg)] text-[var(--text-primary)] font-sans 
           selection:bg-[var(--primary)] selection:text-white overscroll-none
           ${mounted ? 'transition-colors duration-500' : ''}
         `}
