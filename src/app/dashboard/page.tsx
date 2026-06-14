@@ -436,20 +436,42 @@ export default function Dashboard() {
                         </div>
                       </div>
                       
-                      <div className="grid grid-cols-4 sm:flex gap-2 w-full sm:w-auto">
-                        <button onClick={() => toggleStatus(a)} className={`flex items-center justify-center p-3.5 rounded-xl transition-all active:scale-95 border ${a.ativo ? 'bg-[var(--primary)]/10 text-[var(--primary)] border-[var(--primary)]/20' : 'bg-[var(--danger)]/10 text-[var(--danger)] border-[var(--danger)]/20'}`} title="Alterar Status">
-                          {a.ativo ? <FaTimes size={14} /> : <FaUser size={14} />} 
+                      {/* BOTÕES CORRIGIDOS AQUI */}
+                      <div className="grid grid-cols-4 gap-2 w-full sm:w-auto mt-2 sm:mt-0">
+                        <button 
+                          onClick={() => toggleStatus(a)} 
+                          className={`flex flex-col items-center justify-center gap-1.5 py-2 px-1 rounded-xl transition-all active:scale-95 border ${a.ativo ? 'bg-[var(--danger)]/10 text-[var(--danger)] border-[var(--danger)]/20 hover:bg-[var(--danger)]/20' : 'bg-[var(--success)]/10 text-[var(--success)] border-[var(--success)]/20 hover:bg-[var(--success)]/20'}`}
+                        >
+                          {a.ativo ? <FaTimes size={16} /> : <FaCheck size={16} />} 
+                          <span className="text-[9px] font-bold uppercase tracking-wider">{a.ativo ? 'Inativar' : 'Ativar'}</span>
                         </button>
-                        <button onClick={() => router.push(`/dashboard/editar-aluno/${a.id}`)} className="flex items-center justify-center bg-[var(--surface)] p-3.5 rounded-xl text-[var(--text-secondary)] hover:text-[#3B82F6] border border-[var(--border)] transition-all active:scale-95" title="Editar">
-                          <FaEdit size={14} />
+
+                        <button 
+                          onClick={() => router.push(`/dashboard/editar-aluno/${a.id}`)} 
+                          className="flex flex-col items-center justify-center gap-1.5 bg-[var(--surface)] py-2 px-1 rounded-xl text-[var(--text-secondary)] hover:text-[#3B82F6] border border-[var(--border)] transition-all active:scale-95"
+                        >
+                          <FaEdit size={16} />
+                          <span className="text-[9px] font-bold uppercase tracking-wider">Editar</span>
                         </button>
-                        <button onClick={() => router.push(`/dashboard/aluno/${a.id}`)} className="flex items-center justify-center bg-[var(--surface)] p-3.5 rounded-xl text-[var(--text-secondary)] hover:text-[#3B82F6] border border-[var(--border)] transition-all active:scale-95" title="Perfil">
-                          <FaUser size={14} />
+
+                        <button 
+                          onClick={() => router.push(`/dashboard/aluno/${a.id}`)} 
+                          className="flex flex-col items-center justify-center gap-1.5 bg-[var(--surface)] py-2 px-1 rounded-xl text-[var(--text-secondary)] hover:text-[#3B82F6] border border-[var(--border)] transition-all active:scale-95"
+                        >
+                          <FaUser size={16} />
+                          <span className="text-[9px] font-bold uppercase tracking-wider">Perfil</span>
                         </button>
-                        <button onClick={() => router.push(`/dashboard/aluno/${a.id}/progresso`)} className="flex items-center justify-center bg-[#3B82F6] text-white p-3.5 rounded-xl shadow-md hover:brightness-110 active:scale-95 transition-all" title="Progresso">
-                          <FaChartLine size={14} />
+
+                        <button 
+                          onClick={() => router.push(`/dashboard/aluno/${a.id}/progresso`)} 
+                          className="flex flex-col items-center justify-center gap-1.5 bg-[#3B82F6] text-white py-2 px-1 rounded-xl shadow-md hover:brightness-110 active:scale-95 transition-all"
+                        >
+                          <FaChartLine size={16} />
+                          <span className="text-[9px] font-bold uppercase tracking-wider">Evolução</span>
                         </button>
                       </div>
+                      {/* FIM DOS BOTÕES CORRIGIDOS */}
+
                     </div>
                   );
                 })}
