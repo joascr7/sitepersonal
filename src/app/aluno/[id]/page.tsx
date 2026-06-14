@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState, use, useMemo } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { ptBR, pt, enUS } from 'date-fns/locale';
 import { NotificationService } from '@/lib/notificationService';
@@ -20,11 +20,10 @@ import {
   FaGlobe,
   FaCheck,
   FaTimes,
-  FaLock,
   FaExclamationTriangle,
+  FaLock,
   FaWhatsapp
 } from 'react-icons/fa';
-import { LineChart, Line, AreaChart, Area, CartesianGrid, Tooltip, ResponsiveContainer, YAxis, XAxis, Legend } from 'recharts';
 import { startOfWeek, endOfWeek, eachDayOfInterval, format, isSameDay, parseISO, startOfMonth, endOfMonth, addMonths, subMonths, isSameMonth } from 'date-fns';
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -42,7 +41,7 @@ const translations = {
     currentWeight: 'Peso Atual', prevWeight: 'Peso Anterior', sinceLast: 'desde a última',
     lastMark: 'Última marca', details: 'Medidas Detalhadas (cm)', obs: 'Observações do Personal', dateOfRecord: 'Data do registro',
     selectLanguage: 'Selecione o Idioma', selectTheme: 'Aparência', themeLight: 'Modo Claro', themeDark: 'Modo Escuro',
-    lockedTitle: 'Acesso Suspenso', lockedDesc: 'Sua assinatura está pendente ou vencida. Regularize para acessar os treinos.', regularize: 'Regularizar via WhatsApp'
+    lockedTitle: 'Acesso Suspenso', lockedDesc: 'Sua assinatura está pendente ou vencida. Fale com seu Personal para liberar o acesso aos treinos.', regularize: 'Regularizar via WhatsApp'
   },
   'pt-PT': {
     status: 'Estado', active: 'Assinatura Ativa', blocked: 'Bloqueado', due: 'Vencimento',
@@ -55,7 +54,7 @@ const translations = {
     currentWeight: 'Peso Atual', prevWeight: 'Peso Anterior', sinceLast: 'desde a última',
     lastMark: 'Última marca', details: 'Medidas Detalhadas (cm)', obs: 'Observações do Personal', dateOfRecord: 'Data do registo',
     selectLanguage: 'Selecione o Idioma', selectTheme: 'Aparência', themeLight: 'Modo Claro', themeDark: 'Modo Escuro',
-    lockedTitle: 'Acesso Suspenso', lockedDesc: 'A sua assinatura encontra-se pendente ou vencida. Regularize para aceder aos treinos.', regularize: 'Regularizar via WhatsApp'
+    lockedTitle: 'Acesso Suspenso', lockedDesc: 'A sua assinatura encontra-se pendente ou vencida. Fale com o seu Personal para libertar os treinos.', regularize: 'Regularizar via WhatsApp'
   },
   'en': {
     status: 'Status', active: 'Active Subscription', blocked: 'Blocked', due: 'Due Date',
@@ -68,7 +67,7 @@ const translations = {
     currentWeight: 'Current Wt.', prevWeight: 'Previous Wt.', sinceLast: 'since last',
     lastMark: 'Last mark', details: 'Detailed Measurements (cm)', obs: 'Trainer Notes', dateOfRecord: 'Record date',
     selectLanguage: 'Select Language', selectTheme: 'Appearance', themeLight: 'Light Mode', themeDark: 'Dark Mode',
-    lockedTitle: 'Access Suspended', lockedDesc: 'Your subscription is pending or expired. Please settle it to access workouts.', regularize: 'Settle via WhatsApp'
+    lockedTitle: 'Access Suspended', lockedDesc: 'Your subscription is pending or expired. Please contact your Trainer to unlock workouts.', regularize: 'Settle via WhatsApp'
   }
 };
 
@@ -129,7 +128,6 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
     };
   }, []);
 
-  // Handlers dos Modais Premium
   const handleSelectLanguage = (newLang: string) => {
     setLang(newLang as any);
     localStorage.setItem('@premium_lang', newLang);
@@ -148,9 +146,9 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
   const t = translations[lang] || translations['pt-BR'];
 
   const themeStyles = isDark ? {
-    '--bg': '#0F1115', '--surface': '#151A22', '--surface-sec': '#1B2330', '--primary': '#3B82F6', '--primary-soft': '#60A5FA', '--text-primary': '#F8FAFC', '--text-secondary': '#94A3B8', '--border': 'rgba(255,255,255,0.05)',
+    '--bg': '#0F1115', '--surface': '#151A22', '--surface-sec': '#1B2330', '--primary': '#3B82F6', '--primary-soft': '#60A5FA', '--danger': '#EF4444', '--success': '#22C55E', '--text-primary': '#F8FAFC', '--text-secondary': '#94A3B8', '--border': 'rgba(255,255,255,0.05)',
   } as React.CSSProperties : {
-    '--bg': '#F3F6FB', '--surface': '#FFFFFF', '--surface-sec': '#E8EEF9', '--primary': '#2563EB', '--primary-soft': '#60A5FA', '--text-primary': '#111827', '--text-secondary': '#6B7280', '--border': 'rgba(15,23,42,0.06)',
+    '--bg': '#F3F6FB', '--surface': '#FFFFFF', '--surface-sec': '#E8EEF9', '--primary': '#2563EB', '--primary-soft': '#60A5FA', '--danger': '#DC2626', '--success': '#16A34A', '--text-primary': '#111827', '--text-secondary': '#6B7280', '--border': 'rgba(15,23,42,0.06)',
   } as React.CSSProperties;
 
   const diasSemana = useMemo(() => 
@@ -158,7 +156,7 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
   []);
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  // LÓGICA DE BLOQUEIO / VENCIMENTO DO ALUNO
+  // INTELIGÊNCIA: BLOQUEIO / VENCIMENTO DO ALUNO
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   const isVencido = useMemo(() => {
     if (!aluno) return false;
@@ -171,17 +169,25 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
     return hoje > vencimento;
   }, [aluno]);
 
+  // REDIRECIONAMENTO PRO WHATSAPP DO PERSONAL TRAINER
   const handleWhatsAppRedirect = () => {
     if (!personal?.telefone) {
-      alert('Número do personal não encontrado.');
+      alert(lang === 'en' ? 'Trainer phone not found.' : 'Número do personal não encontrado no sistema.');
       return;
     }
-    const phoneStr = String(personal.telefone).replace(/\D/g, '');
-    const finalPhone = phoneStr.length <= 11 && !phoneStr.startsWith('55') ? `55${phoneStr}` : phoneStr;
-    const personalNome = personal.nome?.split(' ')[0] || 'Personal';
     
-    const message = encodeURIComponent(`Olá ${personalNome}, gostaria de regularizar a minha assinatura.`);
-    window.open(`https://wa.me/${finalPhone}?text=${message}`, '_blank');
+    // Limpa a string deixando apenas números
+    let phoneStr = String(personal.telefone).replace(/\D/g, '');
+    
+    // Adiciona DDI 55 (Brasil) caso o número tenha até 11 dígitos e não comece com 55
+    if (phoneStr.length <= 11 && !phoneStr.startsWith('55')) {
+      phoneStr = `55${phoneStr}`;
+    }
+    
+    const personalNome = personal.nome?.split(' ')[0] || 'Personal';
+    const message = encodeURIComponent(`Olá ${personalNome}, gostaria de regularizar a minha assinatura para liberar meus treinos.`);
+    
+    window.open(`https://wa.me/${phoneStr}?text=${message}`, '_blank');
   };
 
   useEffect(() => {
@@ -240,8 +246,12 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
   );
 
   return (
-    <main style={themeStyles} className="min-h-screen bg-[var(--bg)] text-[var(--text-primary)] transition-colors duration-500 font-sans antialiased pb-[env(safe-area-inset-bottom)] flex flex-col">
-      <div className="w-full max-w-md md:max-w-2xl mx-auto flex flex-col pt-[max(env(safe-area-inset-top),1.5rem)] px-5 pb-32 space-y-6">
+    <main style={themeStyles} className="min-h-screen bg-[var(--bg)] text-[var(--text-primary)] transition-colors duration-500 font-sans antialiased pb-[env(safe-area-inset-bottom)] flex flex-col relative overflow-hidden">
+      
+      {/* Background Orbs */}
+      <div className="absolute top-[-10%] left-[-10%] w-[120vw] sm:w-[400px] h-[120vw] sm:h-[400px] bg-[var(--primary)]/10 rounded-full blur-[120px] pointer-events-none" />
+
+      <div className="w-full max-w-md md:max-w-2xl mx-auto flex flex-col pt-[max(env(safe-area-inset-top),1.5rem)] px-5 pb-32 space-y-6 relative z-10">
 
         <header className="flex justify-between items-center w-full mt-4">
           <div className="flex items-center gap-4">
@@ -261,8 +271,8 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
             </div>
           </div>
           
-          {/* ━━━━━━━━━━ PILL UI DE CONTROLES (SaaS Gigante) ━━━━━━━━━━ */}
-          <div className="flex items-center bg-[var(--surface)] border border-[var(--border)] rounded-full shadow-sm p-1 shrink-0">
+          {/* ━━━━━━━━━━ PILL UI DE CONTROLES ━━━━━━━━━━ */}
+          <div className="flex items-center bg-[var(--surface)] backdrop-blur-md border border-[var(--border)] rounded-full shadow-sm p-1 shrink-0">
             <button 
               onClick={() => setIsLangModalOpen(true)}
               className="flex items-center justify-center gap-1.5 px-2.5 h-8 rounded-full text-[var(--text-secondary)] hover:text-[var(--primary)] hover:bg-[var(--primary)]/5 transition-all active:scale-95"
@@ -304,7 +314,6 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
           </div>
         )}
 
-        {/* Saudação Premium */}
         <div className="px-2 animate-in fade-in duration-700 delay-300 mt-2 mb-2">
            <h3 className="text-xl font-black text-[var(--text-primary)] tracking-tight">{getSaudacao()}, {aluno?.nome?.split(' ')[0] || 'Aluno'}! 👋</h3>
            <p className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mt-1">
@@ -312,7 +321,7 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
            </p>
         </div>
 
-        {/* ━━━━━━━━━━ HERO BANNER (BLOCO INTELIGENTE: VENCIDO OU TREINO) ━━━━━━━━━━ */}
+        {/* ━━━━━━━━━━ HERO BANNER INTELIGENTE: BLOQUEIO OU TREINO ━━━━━━━━━━ */}
         {isVencido ? (
           <section className="relative overflow-hidden bg-gradient-to-br from-red-600 to-rose-700 p-8 rounded-[2rem] shadow-[0_10px_30px_rgba(225,29,72,0.3)] border border-white/10 group animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">
             <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 blur-[50px] rounded-full transform translate-x-1/2 -translate-y-1/2" />
@@ -322,7 +331,7 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
             </div>
             <p className="relative z-10 text-white/90 text-[11px] sm:text-xs font-medium leading-relaxed mb-6">{t.lockedDesc}</p>
             <button onClick={handleWhatsAppRedirect} className="relative z-10 w-full py-4 bg-[#25D366] text-white rounded-2xl font-black text-[12px] uppercase tracking-widest transition-transform active:scale-[0.98] shadow-xl hover:shadow-2xl hover:brightness-110 flex items-center justify-center gap-2">
-              <FaWhatsapp size={16} /> {t.regularize}
+              <FaWhatsapp size={18} /> {t.regularize}
             </button>
           </section>
         ) : treinoDoDia ? (
@@ -347,12 +356,12 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
             );
           })()
         ) : (
-          <div className="p-8 text-center bg-[var(--surface)] rounded-[2rem] border border-dashed border-[var(--border)] animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">
+          <div className="p-8 text-center bg-[var(--surface)] backdrop-blur-xl rounded-[2rem] border border-dashed border-[var(--border)] animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">
             <p className="text-[var(--text-secondary)] text-sm font-bold">{t.none}</p>
           </div>
         )}
 
-        <section className="bg-[var(--surface)] p-6 rounded-[2rem] border border-[var(--border)] shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500 delay-150">
+        <section className="bg-[var(--surface)] backdrop-blur-xl p-6 rounded-[2rem] border border-[var(--border)] shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500 delay-150">
           <div className="flex justify-between items-center mb-5"><h2 className="text-[11px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.2em]">{t.week}</h2></div>
           <div className="flex justify-between items-center">
             {diasSemana.map((dia, i) => {
@@ -371,7 +380,7 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
           </div>
         </section>
 
-        <button onClick={() => setCalendarioAberto(true)} className="w-full py-4 bg-[var(--surface)] border border-[var(--border)] rounded-[1.5rem] text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all active:scale-95 shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500 delay-200">
+        <button onClick={() => setCalendarioAberto(true)} className="w-full py-4 bg-[var(--surface)] backdrop-blur-xl border border-[var(--border)] rounded-[1.5rem] text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all active:scale-95 shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500 delay-200">
           {t.historyBtn}
         </button>
 
@@ -399,7 +408,7 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
         </div>
 
         {aluno && (
-          <div className="bg-[var(--surface)] p-5 rounded-[1.5rem] border border-[var(--border)] flex justify-between items-center shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500 delay-300 mt-2">
+          <div className="bg-[var(--surface)] backdrop-blur-xl p-5 rounded-[1.5rem] border border-[var(--border)] flex justify-between items-center shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500 delay-300 mt-2">
             <div className="flex flex-col">
               <span className="text-[9px] font-bold uppercase text-[var(--text-secondary)] tracking-widest mb-1">{t.status}</span>
               <div className="flex items-center gap-2">
@@ -414,7 +423,6 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
           </div>
         )}
 
-        {/* Modais Antigos */}
         {modalAberta && (
           <ModalAvaliacao 
             isOpen={modalAberta} 
@@ -461,7 +469,7 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
                   </h3>
                   <button 
                     onClick={() => setIsLangModalOpen(false)}
-                    className="w-8 h-8 rounded-full bg-[var(--surface)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--danger)] transition-colors active:scale-95"
+                    className="w-8 h-8 rounded-full bg-[var(--surface)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--danger)] transition-colors active:scale-95 border border-[var(--border)]"
                   >
                     <FaTimes size={14} />
                   </button>
@@ -502,7 +510,7 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
                   </h3>
                   <button 
                     onClick={() => setIsThemeModalOpen(false)}
-                    className="w-8 h-8 rounded-full bg-[var(--surface)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--danger)] transition-colors active:scale-95"
+                    className="w-8 h-8 rounded-full bg-[var(--surface)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--danger)] transition-colors active:scale-95 border border-[var(--border)]"
                   >
                     <FaTimes size={14} />
                   </button>
@@ -553,6 +561,7 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
           </div>
         </div>
       )}
+
     </main>
   );
 }
@@ -563,7 +572,7 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
 
 function BotaoMenu({ icon, label, onClick }: any) {
   return (
-    <button onClick={onClick} className="bg-[var(--surface)] border border-[var(--border)] p-6 rounded-[2rem] flex flex-col items-center justify-center gap-4 active:scale-95 transition-all shadow-sm hover:shadow-[0_10px_30px_-15px_var(--primary)] hover:border-[var(--primary)]/50 group">
+    <button onClick={onClick} className="bg-[var(--surface)] backdrop-blur-xl border border-[var(--border)] p-6 rounded-[2rem] flex flex-col items-center justify-center gap-4 active:scale-95 transition-all shadow-sm hover:shadow-[0_10px_30px_-15px_var(--primary)] hover:border-[var(--primary)]/50 group">
       <div className="text-2xl text-[var(--text-secondary)] group-hover:text-[var(--primary)] transition-colors group-hover:scale-110 duration-300">{icon}</div>
       <span className="font-bold text-[11px] uppercase tracking-widest text-[var(--text-primary)]">{label}</span>
     </button>
@@ -602,16 +611,6 @@ function CalendarioTreino({ diasTreinados, lang }: { diasTreinados: Date[], lang
 function ModalAvaliacao({ isOpen, onClose, avaliacao, historico, themeStyles, t, lang }: any) {
   if (!isOpen || !avaliacao) return null;
 
-  const medidasList = [
-    { label: 'Tórax', value: avaliacao.torax },
-    { label: 'Ombros', value: avaliacao.ombros },
-    { label: 'Abdômen', value: avaliacao.abdomen },
-    { label: 'Cintura', value: avaliacao.cintura },
-    { label: 'Quadril', value: avaliacao.quadril },
-    { label: 'Braço Dir.', value: avaliacao.braco_direito },
-    { label: 'Braço Esq.', value: avaliacao.braco_esquerdo },
-  ];
-
   return (
     <div className="fixed inset-0 z-[99999] flex sm:items-center justify-center sm:p-5 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
       
@@ -631,95 +630,39 @@ function ModalAvaliacao({ isOpen, onClose, avaliacao, historico, themeStyles, t,
 
         {/* Conteúdo Rolável */}
         <div className="flex-1 overflow-y-auto p-5 sm:p-8 custom-scrollbar pb-[calc(max(env(safe-area-inset-bottom),1.25rem)+6.5rem)] sm:pb-8">
-          
           <div className="mb-8 bg-[var(--surface-sec)] px-4 py-3 rounded-2xl border border-[var(--border)] inline-block shadow-inner">
              <p className="text-[10px] font-bold uppercase text-[var(--text-secondary)] tracking-widest">
                {t.dateOfRecord}: <span className="text-[var(--text-primary)]">{new Date(avaliacao.data_avaliacao).toLocaleDateString(lang)}</span>
              </p>
           </div>
           
-          {/* Gráficos Triplos Premium */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            
-            {/* 1. Evolução de Peso */}
-            <div className="bg-[var(--surface)] p-6 rounded-[2rem] border border-[var(--border)] h-64 shadow-sm flex flex-col">
-              <h3 className="font-black text-[var(--text-secondary)] text-[10px] uppercase tracking-widest mb-4 flex items-center gap-2"><FaChartLine /> {t.evolutionWeight}</h3>
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={historico.filter((a:any) => a.peso)} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
-                  <defs>
-                    <filter id="glowLinePeso" x="-20%" y="-20%" width="140%" height="140%">
-                      <feDropShadow dx="0" dy="4" stdDeviation="6" floodOpacity="0.4" floodColor="var(--primary)" />
-                    </filter>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
-                  <XAxis dataKey="data_avaliacao" tickFormatter={(v) => new Date(v).toLocaleDateString(lang, { day: '2-digit', month: '2-digit' })} tick={{fontSize: 9, fill: 'var(--text-secondary)', fontWeight: 700}} axisLine={false} tickLine={false} />
-                  <YAxis domain={['auto', 'auto']} tick={{fontSize: 10, fill: 'var(--text-secondary)', fontWeight: 700}} axisLine={false} tickLine={false} />
-                  <Tooltip labelFormatter={(l) => new Date(l).toLocaleDateString(lang)} contentStyle={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '12px', fontWeight: 'bold', color: 'var(--text-primary)' }} itemStyle={{ color: 'var(--primary)' }} />
-                  <Line filter="url(#glowLinePeso)" type="monotone" name="Peso (kg)" dataKey="peso" stroke="var(--primary)" strokeWidth={4} dot={false} activeDot={{ r: 6, fill: "var(--primary)", stroke: "var(--surface)", strokeWidth: 3 }} animationDuration={1500} />
-                </LineChart>
-              </ResponsiveContainer>
+          {/* Gráficos Removidos Deste Componente de Avaliação Modal (A Evolução fica na tab do App) */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-[var(--surface-sec)] p-4 rounded-xl border border-[var(--border)] shadow-inner">
+               <p className="text-[9px] font-black uppercase text-[var(--text-secondary)] tracking-widest">{t.currentWeight}</p>
+               <p className="text-2xl font-black text-[var(--text-primary)]">{avaliacao.peso || '--'} kg</p>
             </div>
+            <div className="bg-[var(--surface-sec)] p-4 rounded-xl border border-[var(--border)] shadow-inner">
+               <p className="text-[9px] font-black uppercase text-[var(--text-secondary)] tracking-widest">% de Gordura</p>
+               <p className="text-2xl font-black text-[var(--text-primary)]">{avaliacao.gordura || '--'} %</p>
+            </div>
+          </div>
 
-            {/* 2. Evolução de Gordura Corporal */}
-            <div className="bg-[var(--surface)] p-6 rounded-[2rem] border border-[var(--border)] h-64 shadow-sm flex flex-col relative overflow-hidden group">
-              <div className="absolute inset-0 bg-gradient-to-t from-[var(--danger)]/5 to-transparent pointer-events-none" />
-              <h3 className="font-black text-[var(--text-secondary)] text-[10px] uppercase tracking-widest mb-4 flex items-center gap-2 relative z-10"><FaChartLine /> {t.evolutionFat}</h3>
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={historico.filter((a:any) => a.gordura)} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="colorGorduraAluno" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="var(--danger)" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="var(--danger)" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
-                  <XAxis dataKey="data_avaliacao" tickFormatter={(v) => new Date(v).toLocaleDateString(lang, { day: '2-digit', month: '2-digit' })} tick={{fontSize: 9, fill: 'var(--text-secondary)', fontWeight: 700}} axisLine={false} tickLine={false} />
-                  <YAxis domain={['auto', 'auto']} tick={{fontSize: 10, fill: 'var(--text-secondary)', fontWeight: 700}} axisLine={false} tickLine={false} />
-                  <Tooltip labelFormatter={(l) => new Date(l).toLocaleDateString(lang)} contentStyle={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '12px', fontWeight: 'bold', color: 'var(--text-primary)' }} itemStyle={{ color: 'var(--danger)' }} />
-                  <Area type="monotone" name="Gordura (%)" dataKey="gordura" stroke="var(--danger)" strokeWidth={4} fillOpacity={1} fill="url(#colorGorduraAluno)" animationDuration={1500} dot={false} activeDot={{ r: 6, fill: "var(--danger)", stroke: "var(--surface)", strokeWidth: 3 }} />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-
-            {/* 3. Evolução de Circunferências (Largura Total) */}
-            <div className="bg-[var(--surface)] p-6 rounded-[2rem] border border-[var(--border)] h-72 shadow-sm flex flex-col md:col-span-2">
-              <h3 className="font-black text-[var(--text-secondary)] text-[10px] uppercase tracking-widest mb-4 flex items-center gap-2"><FaChartLine /> {t.evolutionMeasures}</h3>
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={historico.filter((a:any) => a.abdomen || a.cintura || a.quadril)} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
-                  <XAxis dataKey="data_avaliacao" tickFormatter={(v) => new Date(v).toLocaleDateString(lang, { day: '2-digit', month: '2-digit' })} tick={{fontSize: 9, fill: 'var(--text-secondary)', fontWeight: 700}} axisLine={false} tickLine={false} />
-                  <YAxis domain={['auto', 'auto']} tick={{fontSize: 10, fill: 'var(--text-secondary)', fontWeight: 700}} axisLine={false} tickLine={false} />
-                  <Tooltip labelFormatter={(l) => new Date(l).toLocaleDateString(lang)} contentStyle={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '12px', fontWeight: 'bold', color: 'var(--text-primary)' }} />
-                  <Legend wrapperStyle={{ fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase' }} />
-                  <Line type="monotone" name="Abdômen" dataKey="abdomen" stroke="#3B82F6" strokeWidth={3} dot={false} activeDot={{ r: 5, strokeWidth: 2, stroke: 'var(--surface)' }} animationDuration={1500} />
-                  <Line type="monotone" name="Cintura" dataKey="cintura" stroke="#F59E0B" strokeWidth={3} dot={false} activeDot={{ r: 5, strokeWidth: 2, stroke: 'var(--surface)' }} animationDuration={1500} />
-                  <Line type="monotone" name="Quadril" dataKey="quadril" stroke="#22C55E" strokeWidth={3} dot={false} activeDot={{ r: 5, strokeWidth: 2, stroke: 'var(--surface)' }} animationDuration={1500} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
+          <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-secondary)] mb-4 mt-8">{t.details}</h3>
+          <div className="grid grid-cols-2 gap-3 mb-6">
+            <div className="bg-[var(--surface-sec)] p-4 rounded-xl border border-[var(--border)] flex justify-between items-center shadow-inner"><span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase">Tórax</span><span className="text-sm font-black text-[var(--text-primary)]">{avaliacao.torax || '--'}</span></div>
+            <div className="bg-[var(--surface-sec)] p-4 rounded-xl border border-[var(--border)] flex justify-between items-center shadow-inner"><span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase">Ombros</span><span className="text-sm font-black text-[var(--text-primary)]">{avaliacao.ombros || '--'}</span></div>
+            <div className="bg-[var(--surface-sec)] p-4 rounded-xl border border-[var(--border)] flex justify-between items-center shadow-inner"><span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase">Abdômen</span><span className="text-sm font-black text-[var(--text-primary)]">{avaliacao.abdomen || '--'}</span></div>
+            <div className="bg-[var(--surface-sec)] p-4 rounded-xl border border-[var(--border)] flex justify-between items-center shadow-inner"><span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase">Cintura</span><span className="text-sm font-black text-[var(--text-primary)]">{avaliacao.cintura || '--'}</span></div>
+            <div className="bg-[var(--surface-sec)] p-4 rounded-xl border border-[var(--border)] flex justify-between items-center shadow-inner"><span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase">Quadril</span><span className="text-sm font-black text-[var(--text-primary)]">{avaliacao.quadril || '--'}</span></div>
           </div>
           
-          {/* Medidas Atuais */}
-          <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-secondary)] mb-4">{t.details}</h3>
-          <div className="grid grid-cols-2 gap-3 mb-6">
-            {medidasList.map((m, i) => (
-              <div key={i} className="bg-[var(--surface-sec)] p-4 rounded-xl border border-[var(--border)] flex justify-between items-center shadow-inner">
-                <span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase">{m.label}</span>
-                <span className="text-sm font-black text-[var(--text-primary)]">{m.value || '--'}</span>
-              </div>
-            ))}
-          </div>
-
-          {/* Observações */}
           {avaliacao.observacoes && (
             <div className="mt-6">
               <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-secondary)] mb-3">{t.obs}</h3>
-              <div className="w-full p-5 bg-[var(--surface-sec)] border border-[var(--border)] rounded-[1.2rem] font-medium text-sm text-[var(--text-primary)] shadow-inner italic">
-                "{avaliacao.observacoes}"
-              </div>
+              <div className="w-full p-5 bg-[var(--surface-sec)] border border-[var(--border)] rounded-[1.2rem] font-medium text-sm text-[var(--text-primary)] shadow-inner italic">"{avaliacao.observacoes}"</div>
             </div>
           )}
-
         </div>
       </div>
     </div>
