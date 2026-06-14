@@ -39,19 +39,32 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
   const [lang, setLang] = useState<'pt-BR' | 'pt-PT' | 'en'>('pt-BR');
   const [ultimoTreinoConcluidoId, setUltimoTreinoConcluidoId] = useState<string | null>(null);
 
+  // Escuta instantânea de configuração (sem animação de delay no bg)
   useEffect(() => {
-    const savedTheme = localStorage.getItem('@premium_theme');
-    if (savedTheme) setIsDark(savedTheme === 'dark');
-    const savedLang = localStorage.getItem('@premium_lang') as 'pt-BR' | 'pt-PT' | 'en';
-    if (savedLang) setLang(savedLang);
+    const updateSettings = () => {
+      const savedTheme = localStorage.getItem('@premium_theme');
+      if (savedTheme) setIsDark(savedTheme === 'dark');
+      const savedLang = localStorage.getItem('@premium_lang') as 'pt-BR' | 'pt-PT' | 'en';
+      if (savedLang) setLang(savedLang);
+    };
+
+    updateSettings();
+    window.addEventListener('storage', updateSettings);
+    window.addEventListener('config-updated', updateSettings);
+
+    return () => {
+      window.removeEventListener('storage', updateSettings);
+      window.removeEventListener('config-updated', updateSettings);
+    };
   }, []);
 
-  const t = translations[lang];
+  const t = translations[lang] || translations['pt-BR'];
 
+  // Tema Glassmorphism unificado
   const themeStyles = isDark ? {
-    '--bg': '#0F1115', '--surface': '#1A1D24', '--surface-sec': '#222731', '--primary': '#3B82F6', '--primary-soft': '#60A5FA', '--text-primary': '#F8FAFC', '--text-secondary': '#94A3B8', '--border': 'rgba(255,255,255,0.05)'
+    '--bg': '#0F1115', '--surface': 'rgba(21, 26, 34, 0.8)', '--surface-sec': '#1B2330', '--primary': '#3B82F6', '--primary-soft': '#60A5FA', '--text-primary': '#F8FAFC', '--text-secondary': '#94A3B8', '--border': 'rgba(255,255,255,0.08)'
   } as React.CSSProperties : {
-    '--bg': '#F9FAFB', '--surface': '#FFFFFF', '--surface-sec': '#F3F4F6', '--primary': '#2563EB', '--primary-soft': '#60A5FA', '--text-primary': '#111827', '--text-secondary': '#6B7280', '--border': 'rgba(15,23,42,0.06)'
+    '--bg': '#F3F6FB', '--surface': 'rgba(255, 255, 255, 0.85)', '--surface-sec': '#E8EEF9', '--primary': '#2563EB', '--primary-soft': '#60A5FA', '--text-primary': '#111827', '--text-secondary': '#6B7280', '--border': 'rgba(15,23,42,0.08)'
   } as React.CSSProperties;
 
   const META_SESSOES = 30;
@@ -148,28 +161,32 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
 
   if (precisaParq) {
     return (
-      <div style={themeStyles} className="min-h-screen bg-[var(--bg)] pt-10 px-4 pb-20">
+      <div style={themeStyles} className="min-h-screen bg-[var(--bg)] pt-10 px-4 pb-20 transition-colors duration-200">
         <ParqForm alunoId={id} onComplete={() => window.location.reload()} />
       </div>
     );
   }
 
   if (loading) return (
-    <main style={themeStyles} className="min-h-screen bg-[var(--bg)] p-4 pt-[max(env(safe-area-inset-top),2rem)] animate-pulse">
+    <main style={themeStyles} className="min-h-screen bg-[var(--bg)] p-4 pt-[max(env(safe-area-inset-top),2rem)] animate-pulse transition-colors duration-200">
       <div className="w-32 h-8 bg-[var(--surface-sec)] rounded-md mb-8 mx-auto"></div>
       <div className="w-full max-w-md mx-auto h-64 bg-[var(--surface-sec)] rounded-[2rem]"></div>
     </main>
   );
   
   return (
-    <main style={themeStyles} className="min-h-screen w-full bg-[var(--bg)] text-[var(--text-primary)] transition-colors duration-500 font-sans antialiased pt-[max(env(safe-area-inset-top),1.5rem)] pb-32 px-5 relative">
-      <div className="max-w-2xl mx-auto space-y-8">
+    <main style={themeStyles} className="min-h-screen w-full bg-[var(--bg)] text-[var(--text-primary)] transition-colors duration-200 font-sans antialiased pt-[max(env(safe-area-inset-top),1.5rem)] pb-[calc(max(env(safe-area-inset-bottom),1.25rem)+6.5rem)] relative overflow-hidden">
+      
+      {/* Background Orbs */}
+      <div className="absolute top-[-10%] left-[-10%] w-[120vw] sm:w-[400px] h-[120vw] sm:h-[400px] bg-[var(--primary)]/10 rounded-full blur-[120px] pointer-events-none" />
+
+      <div className="max-w-2xl mx-auto space-y-8 px-5 relative z-10">
         
         {/* CABEÇALHO DA PÁGINA */}
         <header className="flex items-center gap-4 pt-4">
           <button 
             onClick={() => router.back()} 
-            className="flex items-center justify-center w-11 h-11 rounded-full bg-[var(--surface)] border border-[var(--border)] active:scale-95 transition-all shadow-sm hover:bg-[var(--surface-sec)]"
+            className="flex items-center justify-center w-11 h-11 rounded-full bg-[var(--surface)] backdrop-blur-md border border-[var(--border)] active:scale-95 transition-all shadow-sm hover:bg-[var(--surface-sec)]"
           >
             <FaChevronLeft className="text-[var(--text-primary)]" size={14} />
           </button>
@@ -188,9 +205,7 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
             const datasVencimento = treinosList.map((f: any) => f.data_vencimento).filter(Boolean);
             const dataValidade = datasVencimento.length > 0 ? new Date(Math.max(...datasVencimento.map((d: any) => new Date(d).getTime()))) : null;
 
-            // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
             // LÓGICA DO PRÓXIMO TREINO DINÂMICO
-            // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
             let indexDoProximo = 0; 
             if (ultimoTreinoConcluidoId) {
               const indexUltimo = treinosList.findIndex(t => t.id === ultimoTreinoConcluidoId);
@@ -200,10 +215,10 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
             }
 
             return (
-              <div key={programaMaster} className="bg-[var(--surface)] rounded-[2rem] border border-[var(--border)] shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div key={programaMaster} className="bg-[var(--surface)] backdrop-blur-xl rounded-[2.5rem] border border-[var(--border)] shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
                 
                 {/* HEADER DO PROGRAMA (CARD) */}
-                <div className="p-6 sm:p-8 border-b border-[var(--border)] relative overflow-hidden">
+                <div className="p-6 sm:p-8 border-b border-[var(--border)] relative overflow-hidden bg-[var(--surface-sec)]/30">
                   <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--primary)]/5 blur-3xl rounded-full transform translate-x-1/2 -translate-y-1/2 pointer-events-none" />
                   
                   <h2 className="text-2xl font-black tracking-tight uppercase text-[var(--text-primary)] mb-4 relative z-10">
@@ -212,9 +227,9 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
 
                   {/* TAGS SOFT UI */}
                   <div className="flex flex-wrap gap-2 mb-6 relative z-10">
-                    {treinosList[0]?.tipo_treino && <span className="px-3 py-1.5 bg-[var(--surface-sec)] text-[var(--text-secondary)] text-[9px] font-black uppercase tracking-widest rounded-lg border border-[var(--border)]">{treinosList[0].tipo_treino}</span>}
-                    {treinosList[0]?.objetivo && <span className="px-3 py-1.5 bg-[var(--surface-sec)] text-[var(--text-secondary)] text-[9px] font-black uppercase tracking-widest rounded-lg border border-[var(--border)]">{treinosList[0].objective || treinosList[0].objetivo}</span>}
-                    {treinosList[0]?.dificuldade && <span className="px-3 py-1.5 bg-[var(--surface-sec)] text-[var(--text-secondary)] text-[9px] font-black uppercase tracking-widest rounded-lg border border-[var(--border)]">{treinosList[0].dificuldade}</span>}
+                    {treinosList[0]?.tipo_treino && <span className="px-3 py-1.5 bg-[var(--surface)] text-[var(--text-secondary)] text-[9px] font-black uppercase tracking-widest rounded-lg border border-[var(--border)]">{treinosList[0].tipo_treino}</span>}
+                    {treinosList[0]?.objetivo && <span className="px-3 py-1.5 bg-[var(--surface)] text-[var(--text-secondary)] text-[9px] font-black uppercase tracking-widest rounded-lg border border-[var(--border)]">{treinosList[0].objective || treinosList[0].objetivo}</span>}
+                    {treinosList[0]?.dificuldade && <span className="px-3 py-1.5 bg-[var(--surface)] text-[var(--text-secondary)] text-[9px] font-black uppercase tracking-widest rounded-lg border border-[var(--border)]">{treinosList[0].dificuldade}</span>}
                   </div>
 
                   {/* BARRA DE PROGRESSO NO TOPO */}
@@ -225,9 +240,9 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
                         {totalSessoesPrograma} <span className="text-[var(--text-secondary)]">/ {META_SESSOES} {t.sessions.toUpperCase()}</span>
                       </span>
                     </div>
-                    <div className="w-full h-2.5 bg-[var(--surface-sec)] rounded-full overflow-hidden border border-[var(--border)] shadow-inner">
+                    <div className="w-full h-2.5 bg-[var(--surface)] rounded-full overflow-hidden border border-[var(--border)] shadow-inner">
                       <div 
-                        className="h-full bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full transition-all duration-1000 ease-out relative" 
+                        className="h-full bg-gradient-to-r from-[var(--primary)] to-indigo-600 rounded-full transition-all duration-1000 ease-out relative" 
                         style={{ width: `${progressoPercent}%` }}
                       >
                         <div className="absolute top-0 right-0 bottom-0 w-10 bg-white/30 blur-sm" />
@@ -242,7 +257,7 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
                 </div>
 
                 {/* LISTA DE TREINOS */}
-                <div className="p-4 sm:p-6 space-y-3 bg-[var(--bg)]/30">
+                <div className="p-4 sm:p-6 space-y-3 bg-[var(--surface)]/50">
                   {treinosList.map((f: any, index: number) => {
                     const isProximo = index === indexDoProximo; 
                     const mediaConfig = getTreinoMediaConfig(f.nomeLimpoCard);
@@ -253,14 +268,14 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
                         onClick={() => router.push(`/aluno/${id}/treino/${f.id}`)}
                         className={`w-full p-4 rounded-[1.5rem] flex items-center justify-between transition-all duration-300 group text-left ${
                           isProximo 
-                            ? 'bg-[var(--surface)] border-2 border-[var(--primary)] shadow-[0_8px_20px_rgba(37,99,235,0.15)] hover:shadow-[0_8px_25px_rgba(37,99,235,0.25)] active:scale-[0.98]' 
+                            ? 'bg-[var(--surface)] border border-[var(--primary)] shadow-[0_8px_20px_rgba(37,99,235,0.1)] hover:shadow-[0_8px_25px_rgba(37,99,235,0.2)] active:scale-[0.98]' 
                             : 'bg-[var(--surface)] border border-[var(--border)] shadow-sm hover:border-[var(--primary)]/40 active:scale-[0.98]'
                         }`}
                       >
                         <div className="flex items-center gap-4">
                           
                           {/* MINIATURA PREMIUM */}
-                          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 overflow-hidden relative border border-[var(--border)] transition-transform group-hover:scale-105 ${isProximo ? 'shadow-inner' : ''}`}>
+                          <div className={`w-14 h-14 rounded-[1.2rem] flex items-center justify-center shrink-0 overflow-hidden relative border border-[var(--border)] transition-transform group-hover:scale-105 ${isProximo ? 'shadow-inner' : ''}`}>
                             <div className={`absolute inset-0 bg-gradient-to-br ${mediaConfig.gradient} opacity-90 z-10 flex items-center justify-center`}>
                               {mediaConfig.icon}
                             </div>
@@ -274,20 +289,20 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
 
                           <div className="flex flex-col">
                             <div className="flex items-center gap-2 mb-0.5">
-                              <span className="font-black text-base uppercase tracking-tight text-[var(--text-primary)]">
+                              <span className="font-black text-sm uppercase tracking-tight text-[var(--text-primary)]">
                                 {f.nomeLimpoCard}
                               </span>
                               
                               {/* ETIQUETA PRÓXIMO INTERNA */}
                               {isProximo && (
-                                <span className="bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full flex items-center gap-1">
+                                <span className="bg-[var(--primary)]/10 text-[var(--primary)] text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md flex items-center gap-1">
                                   <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
                                   {t.next}
                                 </span>
                               )}
                             </div>
                             
-                            <span className="text-[11px] font-bold text-[var(--text-secondary)] uppercase tracking-widest">
+                            <span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mt-1">
                               {f.count} {t.exercises}
                             </span>
                           </div>
@@ -296,12 +311,12 @@ export default function ListaTreinosAluno({ params }: { params: Promise<{ id: st
                         {/* BOTÃO PLAY SUTIL */}
                         <div className="pl-3 shrink-0">
                           {isProximo ? (
-                            <div className="w-10 h-10 rounded-full bg-[var(--primary)]/10 flex items-center justify-center text-[var(--primary)] group-hover:bg-[var(--primary)] group-hover:text-white transition-colors">
-                              <FaPlay size={12} className="ml-1" />
+                            <div className="w-10 h-10 rounded-full bg-[var(--primary)]/10 flex items-center justify-center text-[var(--primary)] group-hover:bg-[var(--primary)] group-hover:text-white transition-colors border border-[var(--primary)]/20">
+                              <FaPlay size={10} className="ml-1" />
                             </div>
                           ) : (
-                            <div className="w-10 h-10 rounded-full bg-[var(--surface-sec)] flex items-center justify-center text-[var(--text-secondary)] group-hover:text-[var(--primary)] group-hover:bg-[var(--primary)]/10 transition-colors">
-                              <FaPlay size={12} className="ml-1 opacity-50 group-hover:opacity-100" />
+                            <div className="w-10 h-10 rounded-full bg-[var(--surface-sec)] flex items-center justify-center text-[var(--text-secondary)] group-hover:text-[var(--primary)] group-hover:bg-[var(--primary)]/10 transition-colors border border-[var(--border)]">
+                              <FaPlay size={10} className="ml-1 opacity-50 group-hover:opacity-100" />
                             </div>
                           )}
                         </div>
