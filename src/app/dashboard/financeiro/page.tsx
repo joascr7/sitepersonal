@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
 import { 
   FaCheckCircle, FaExclamationCircle, FaGlobe, FaMoon, FaSun, 
-  FaChevronLeft, FaTimes, FaCheck, FaChartBar, FaListUl, 
+  FaChevronLeft, FaTimes, FaChartBar, FaListUl, 
   FaUserClock, FaWhatsapp, FaPlus, FaEye, FaEyeSlash, FaDumbbell,
   FaChevronDown
 } from 'react-icons/fa';
@@ -30,36 +30,33 @@ const FinanceiroSkeleton = () => (
 const translations = {
   'pt-BR': {
     title: 'Financeiro', accumulated: 'Receita Anual', monthlyRevenue: 'Receita do Mês',
-    activeStudents: 'Alunos Ativos', manualPayment: 'Registrar Recebimento', 
-    selectStudent: 'Selecione o aluno...', valueLabel: 'Valor (R$)',
+    manualPayment: 'Registrar Recebimento', selectStudent: 'Selecione o aluno...', valueLabel: 'Valor (R$)',
     transactions: 'Transações Recentes', student: 'Aluno', date: 'Data', value: 'Valor',
     noName: 'Sem nome', errMissing: 'Preencha todos os campos.', errProcess: 'Erro ao processar.', 
     successPay: 'Pagamento registrado com sucesso!', successConfig: 'Configurações atualizadas!',
     selectLanguage: 'Idioma', selectTheme: 'Aparência', themeLight: 'Modo Claro', themeDark: 'Modo Escuro',
     tabOverview: 'Visão Geral', tabTransactions: 'Lançamentos', tabPending: 'Alunos Pendentes', tabAttendance: 'Frequência',
-    graphTitle: 'Faturamento Anual', charge: 'Cobrar Aluno', noPending: 'Nenhum aluno com pagamento atrasado!'
+    graphTitle: 'Faturamento Anual', charge: 'Cobrar', noPending: 'Nenhum aluno com pagamento atrasado!'
   },
   'pt-PT': {
     title: 'Financeiro', accumulated: 'Receita Anual', monthlyRevenue: 'Receita do Mês',
-    activeStudents: 'Alunos Ativos', manualPayment: 'Registar Recebimento', 
-    selectStudent: 'Selecione o aluno...', valueLabel: 'Valor (€)',
+    manualPayment: 'Registar Recebimento', selectStudent: 'Selecione o aluno...', valueLabel: 'Valor (€)',
     transactions: 'Transações Recentes', student: 'Aluno', date: 'Data', value: 'Valor',
     noName: 'Sem nome', errMissing: 'Preencha todos os campos.', errProcess: 'Erro ao processar.', 
     successPay: 'Pagamento registado com sucesso!', successConfig: 'Configurações atualizadas!',
     selectLanguage: 'Idioma', selectTheme: 'Aparência', themeLight: 'Modo Claro', themeDark: 'Modo Escuro',
     tabOverview: 'Visão Geral', tabTransactions: 'Lançamentos', tabPending: 'Alunos Pendentes', tabAttendance: 'Frequência',
-    graphTitle: 'Faturação Anual', charge: 'Cobrar Aluno', noPending: 'Nenhum aluno em incumprimento!'
+    graphTitle: 'Faturação Anual', charge: 'Cobrar', noPending: 'Nenhum aluno em incumprimento!'
   },
   'en': {
     title: 'Financial', accumulated: 'Yearly Revenue', monthlyRevenue: 'Monthly Revenue',
-    activeStudents: 'Active Students', manualPayment: 'Register Payment', 
-    selectStudent: 'Select student...', valueLabel: 'Value ($)',
+    manualPayment: 'Register Payment', selectStudent: 'Select student...', valueLabel: 'Value ($)',
     transactions: 'Recent Transactions', student: 'Student', date: 'Date', value: 'Value',
     noName: 'No name', errMissing: 'Fill in all fields.', errProcess: 'Error processing.', 
     successPay: 'Payment registered successfully!', successConfig: 'Settings updated!',
     selectLanguage: 'Language', selectTheme: 'Appearance', themeLight: 'Light Mode', themeDark: 'Dark Mode',
     tabOverview: 'Overview', tabTransactions: 'Transactions', tabPending: 'Pending Students', tabAttendance: 'Attendance',
-    graphTitle: 'Yearly Revenue Chart', charge: 'Charge Student', noPending: 'No pending payments!'
+    graphTitle: 'Yearly Revenue Chart', charge: 'Charge', noPending: 'No pending payments!'
   }
 };
 
@@ -71,6 +68,7 @@ const getMeses = (lang: string) => {
 export default function FinanceiroSaaS() {
   const router = useRouter();
   
+  // Dados do DB
   const [pagamentos, setPagamentos] = useState<any[]>([]);
   const [listaAlunos, setListaAlunos] = useState<any[]>([]);
   const [configPersonal, setConfigPersonal] = useState({ valor_mensalidade_padrao: 0 });
@@ -78,7 +76,7 @@ export default function FinanceiroSaaS() {
   
   // UI & UX States
   const [activeTab, setActiveTab] = useState<'overview' | 'transactions' | 'pending' | 'attendance'>('overview');
-  const [isTabMenuOpen, setIsTabMenuOpen] = useState(false); // NOVO: Controle do Menu Dropdown
+  const [isTabMenuOpen, setIsTabMenuOpen] = useState(false);
   const [toast, setToast] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   const [olhoAberto, setOlhoAberto] = useState(true);
   
@@ -173,8 +171,11 @@ export default function FinanceiroSaaS() {
     
     const alunoSelecionado = listaAlunos.find(a => a.id === alunoId);
     let novaDataVencimento = new Date();
+    
     if (alunoSelecionado?.data_vencimento) {
-      const dataAtual = new Date(alunoSelecionado.data_vencimento + 'T00:00:00');
+      // Extrai e converte a data de forma segura
+      const [ano, mes, dia] = alunoSelecionado.data_vencimento.split('T')[0].split('-');
+      const dataAtual = new Date(Number(ano), Number(mes) - 1, Number(dia));
       if (dataAtual > novaDataVencimento) novaDataVencimento = dataAtual;
     }
     novaDataVencimento.setMonth(novaDataVencimento.getMonth() + 1);
@@ -222,22 +223,35 @@ export default function FinanceiroSaaS() {
   const totalAno = faturamentoAnual.reduce((acc, val) => acc + val, 0);
   const maxMes = Math.max(...faturamentoAnual, 1); 
 
-  // ━━━━━━━━━━━━━━━━ INADIMPLENTES (Apenas a lógica limpa e precisa) ━━━━━━━━━━━━━━━━
+  // ━━━━━━━━━━━━━━━━ LÓGICA DE INADIMPLENTES (100% à prova de fuso horário) ━━━━━━━━━━━━━━━━
   const alunosInadimplentes = useMemo(() => listaAlunos.filter(a => {
     if (!a.data_vencimento) return false;
     
-    // Pegamos a data atual em formato YYYY-MM-DD para evitar problemas de fuso horário
-    const hojeStr = new Date().toISOString().split('T')[0];
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0); // Hoje começando à meia-noite
     
-    // Compara diretamente as strings: '2026-06-13' < '2026-06-14' (Se a data for menor que hoje, venceu)
-    return a.data_vencimento < hojeStr; 
-  }).sort((a,b) => a.data_vencimento.localeCompare(b.data_vencimento)), [listaAlunos]);
+    // Separa manualmente para evitar que o JS atrase 1 dia por causa do fuso GMT-3
+    const dataApenas = a.data_vencimento.split('T')[0];
+    const partes = dataApenas.split('-');
+    if (partes.length !== 3) return false;
+
+    const vencimento = new Date(Number(partes[0]), Number(partes[1]) - 1, Number(partes[2]));
+    vencimento.setHours(0, 0, 0, 0);
+
+    // Considera atrasado se a data do vencimento for ESTRITAMENTE MENOR que a data de hoje.
+    return vencimento < hoje; 
+  }).sort((a,b) => {
+    const dA = new Date(a.data_vencimento.split('T')[0]).getTime();
+    const dB = new Date(b.data_vencimento.split('T')[0]).getTime();
+    return dA - dB;
+  }), [listaAlunos]);
 
   const enviarCobrancaWhatsApp = (aluno: any) => {
     if(!aluno.telefone) return alert("Aluno sem telefone cadastrado.");
-    // A mensagem ainda pode conter o valor, já que pro aluno faz sentido, mas na TELA não vai mostrar.
-    const valorCobrado = aluno.valor_mensalidade || configPersonal.valor_mensalidade_padrao || 0;
-    const msg = `Olá ${aluno.nome}, tudo bem? Notei que sua mensalidade com vencimento em ${new Date(aluno.data_vencimento + 'T00:00:00').toLocaleDateString('pt-BR')} está pendente. Qualquer dúvida estou à disposição!`;
+    const partes = aluno.data_vencimento.split('T')[0].split('-');
+    const dataFormatada = `${partes[2]}/${partes[1]}/${partes[0]}`;
+    
+    const msg = `Olá ${aluno.nome}, tudo bem? Notei que sua mensalidade com vencimento em ${dataFormatada} está pendente. Qualquer dúvida estou à disposição!`;
     const num = aluno.telefone.replace(/\D/g, '');
     window.open(`https://wa.me/${num}?text=${encodeURIComponent(msg)}`, '_blank');
   };
@@ -271,17 +285,26 @@ export default function FinanceiroSaaS() {
             </div>
           </header>
 
-          {/* NOVO: MENU DROPDOWN ELEGANTE PARA AS ABAS */}
+          {/* ━━━━━━━━━━ MENU DROPDOWN ELEGANTE ━━━━━━━━━━ */}
           <div className="relative mb-6 z-30">
             <button 
               onClick={() => setIsTabMenuOpen(!isTabMenuOpen)}
-              className="w-full bg-[var(--surface)] backdrop-blur-xl border border-[var(--border)] p-4 rounded-[1.5rem] flex items-center justify-between shadow-sm active:scale-[0.98] transition-all"
+              className="w-full bg-[var(--surface)] backdrop-blur-xl border border-[var(--border)] p-5 rounded-[1.5rem] flex items-center justify-between shadow-sm active:scale-[0.98] transition-all"
             >
               <div className="flex items-center gap-3">
                 <span className="text-[var(--primary)]">{activeTabConfig?.icon}</span>
-                <span className="font-black text-[13px] tracking-wide text-[var(--text-primary)]">{activeTabConfig?.label}</span>
+                <span className="font-black text-[13px] tracking-wide text-[var(--text-primary)] uppercase">{activeTabConfig?.label}</span>
               </div>
-              <FaChevronDown className={`text-[var(--text-secondary)] transition-transform duration-300 ${isTabMenuOpen ? 'rotate-180' : ''}`} />
+              <div className="flex items-center gap-3">
+                {/* Etiqueta vermelha de aviso se houver devedores e não estiver na aba */}
+                {(alunosInadimplentes.length > 0 && activeTab !== 'pending') && (
+                  <span className="flex h-2.5 w-2.5 relative">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--danger)] opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[var(--danger)]"></span>
+                  </span>
+                )}
+                <FaChevronDown className={`text-[var(--text-secondary)] transition-transform duration-300 ${isTabMenuOpen ? 'rotate-180' : ''}`} />
+              </div>
             </button>
 
             {/* Opções do Menu Dropdown */}
@@ -293,9 +316,12 @@ export default function FinanceiroSaaS() {
                     <button
                       key={tab.id}
                       onClick={() => { setActiveTab(tab.id as any); setIsTabMenuOpen(false); }}
-                      className={`flex items-center gap-3 p-4 rounded-xl font-bold text-[13px] transition-all active:scale-[0.98] ${activeTab === tab.id ? 'bg-[var(--primary)]/10 text-[var(--primary)]' : 'text-[var(--text-secondary)] hover:bg-[var(--surface-sec)] hover:text-[var(--text-primary)]'}`}
+                      className={`flex items-center gap-3 p-4 rounded-xl font-bold text-[13px] uppercase transition-all active:scale-[0.98] ${activeTab === tab.id ? 'bg-[var(--primary)]/10 text-[var(--primary)]' : 'text-[var(--text-secondary)] hover:bg-[var(--surface-sec)] hover:text-[var(--text-primary)]'}`}
                     >
                       {tab.icon} {tab.label}
+                      {(tab.id === 'pending' && alunosInadimplentes.length > 0) && (
+                        <span className="ml-auto bg-[var(--danger)] text-white text-[10px] px-2 py-0.5 rounded-full">{alunosInadimplentes.length}</span>
+                      )}
                     </button>
                   ))}
                 </div>
@@ -303,19 +329,18 @@ export default function FinanceiroSaaS() {
             )}
           </div>
 
-          {/* ABA 1: VISÃO GERAL */}
+          {/* ━━━━━━━━━━ ABA 1: VISÃO GERAL ━━━━━━━━━━ */}
           {activeTab === 'overview' && (
             <div className="space-y-6 animate-in slide-in-from-bottom-4 fade-in duration-500">
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-[var(--surface)] backdrop-blur-xl p-6 rounded-[2rem] border border-[var(--border)] shadow-sm relative overflow-hidden flex flex-col justify-center">
-                  <button onClick={() => setOlhoAberto(!olhoAberto)} className="absolute top-4 right-4 text-[var(--text-secondary)]">
+                  <button onClick={() => setOlhoAberto(!olhoAberto)} className="absolute top-4 right-4 text-[var(--text-secondary)] hover:text-[var(--primary)] active:scale-95 transition-all">
                     {olhoAberto ? <FaEye size={14} /> : <FaEyeSlash size={14} />}
                   </button>
                   <h2 className="text-[9px] font-black text-[var(--text-secondary)] uppercase tracking-[0.2em] mb-2">{t.monthlyRevenue}</h2>
                   <p className="text-2xl sm:text-3xl font-black tracking-tighter text-[var(--primary)]">{olhoAberto ? formatCurrency(faturamentoMes) : '••••••'}</p>
                 </div>
 
-                {/* Bloco de Inadimplência agora mostra apenas a QUANTIDADE de alunos */}
                 <div className="bg-[var(--danger)]/10 backdrop-blur-xl p-6 rounded-[2rem] border border-[var(--danger)]/20 shadow-sm relative overflow-hidden flex flex-col justify-center">
                   <h2 className="text-[9px] font-black text-[var(--danger)] uppercase tracking-[0.2em] mb-2">Pendências</h2>
                   <p className="text-2xl sm:text-3xl font-black tracking-tighter text-[var(--danger)]">
@@ -355,7 +380,7 @@ export default function FinanceiroSaaS() {
             </div>
           )}
 
-          {/* ABA 2: TRANSAÇÕES */}
+          {/* ━━━━━━━━━━ ABA 2: TRANSAÇÕES ━━━━━━━━━━ */}
           {activeTab === 'transactions' && (
             <div className="space-y-6 animate-in slide-in-from-bottom-4 fade-in duration-500">
               <div className="bg-[var(--surface)] backdrop-blur-xl p-6 sm:p-8 rounded-[2.5rem] border border-[var(--border)] shadow-sm">
@@ -380,7 +405,7 @@ export default function FinanceiroSaaS() {
                       placeholder={t.valueLabel} 
                       value={novoValor} 
                       onChange={(e) => setNovoValor(e.target.value)} 
-                      className="w-full sm:flex-1 p-4 bg-[var(--surface-sec)] rounded-[1.2rem] text-sm font-bold border border-[var(--border)] outline-none text-[var(--text-primary)]" 
+                      className="w-full sm:flex-1 p-4 bg-[var(--surface-sec)] rounded-[1.2rem] text-sm font-bold border border-[var(--border)] outline-none text-[var(--text-primary)] focus:border-[var(--primary)] transition-colors" 
                     />
                     <button onClick={registrarPagamentoManual} disabled={saving} className="bg-[var(--primary)] text-white px-8 rounded-[1.2rem] font-black hover:brightness-110 active:scale-95 transition-all shadow-md shadow-[var(--primary)]/20 flex items-center justify-center">
                       <FaPlus />
@@ -403,9 +428,9 @@ export default function FinanceiroSaaS() {
                     <tbody className="divide-y divide-[var(--border)]">
                       {pagamentosMesFiltrado.map((p) => (
                         <tr key={p.id} className="hover:bg-[var(--surface-sec)]/30 transition-colors">
-                          <td className="p-4 font-bold text-sm text-[var(--text-primary)]">{p.alunos?.nome || t.noName}</td>
-                          <td className="p-4 text-xs text-[var(--text-secondary)]">{p.data_pagamento ? new Date(p.data_pagamento).toLocaleDateString(lang) : '-'}</td>
-                          <td className="p-4 text-right font-black text-sm text-[var(--success)]">{formatCurrency(Number(p.valor))}</td>
+                          <td className="p-5 font-bold text-sm text-[var(--text-primary)]">{p.alunos?.nome || t.noName}</td>
+                          <td className="p-5 text-xs text-[var(--text-secondary)]">{p.data_pagamento ? new Date(p.data_pagamento).toLocaleDateString(lang) : '-'}</td>
+                          <td className="p-5 text-right font-black text-sm text-[var(--success)]">{formatCurrency(Number(p.valor))}</td>
                         </tr>
                       ))}
                       {pagamentosMesFiltrado.length === 0 && (
@@ -418,11 +443,11 @@ export default function FinanceiroSaaS() {
             </div>
           )}
 
-          {/* ABA 3: INADIMPLENTES (AGORA FOCADO APENAS EM QUEM DEVE - SEM MOSTRAR VALOR) */}
+          {/* ━━━━━━━━━━ ABA 3: INADIMPLENTES (FOCADO EM QUEM FALTA PAGAR - SEM VALORES) ━━━━━━━━━━ */}
           {activeTab === 'pending' && (
             <div className="space-y-4 animate-in slide-in-from-bottom-4 fade-in duration-500">
               {alunosInadimplentes.length === 0 ? (
-                <div className="bg-[var(--success)]/10 border border-[var(--success)]/20 p-8 rounded-[2rem] text-center flex flex-col items-center gap-3">
+                <div className="bg-[var(--success)]/10 border border-[var(--success)]/20 p-10 rounded-[2.5rem] text-center flex flex-col items-center gap-4">
                   <div className="w-16 h-16 bg-[var(--success)]/20 rounded-full flex items-center justify-center text-[var(--success)]">
                     <FaCheckCircle size={32} />
                   </div>
@@ -430,7 +455,12 @@ export default function FinanceiroSaaS() {
                 </div>
               ) : (
                 alunosInadimplentes.map(aluno => {
-                  const diasAtraso = Math.floor((new Date().getTime() - new Date(aluno.data_vencimento + 'T00:00:00').getTime()) / (1000 * 3600 * 24));
+                  const partes = aluno.data_vencimento.split('T')[0].split('-');
+                  const vencimento = new Date(Number(partes[0]), Number(partes[1]) - 1, Number(partes[2]));
+                  const hoje = new Date();
+                  hoje.setHours(0,0,0,0);
+                  
+                  const diasAtraso = Math.floor((hoje.getTime() - vencimento.getTime()) / (1000 * 3600 * 24));
                   
                   return (
                     <div key={aluno.id} className="bg-[var(--surface)] p-5 rounded-[1.5rem] border border-[var(--danger)]/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm hover:border-[var(--danger)]/60 transition-all">
@@ -441,13 +471,13 @@ export default function FinanceiroSaaS() {
                             <span className="text-[8px] bg-[var(--danger)] text-white px-1.5 py-0.5 rounded uppercase font-bold tracking-widest">Inativo</span>
                           )}
                         </div>
-                        <div className="flex gap-2 items-center mt-1">
+                        <div className="flex gap-2 items-center mt-1.5">
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded text-white bg-[var(--danger)]">
-                            Venceu dia {new Date(aluno.data_vencimento + 'T00:00:00').toLocaleDateString('pt-BR').substring(0, 5)}
+                            Venceu dia {partes[2]}/{partes[1]}
                           </span>
                           {diasAtraso > 0 && (
                             <span className="text-[10px] font-bold text-[var(--danger)] uppercase tracking-wider">
-                              ({diasAtraso} dias atrasado)
+                              ({diasAtraso} {diasAtraso === 1 ? 'dia atrasado' : 'dias atrasado'})
                             </span>
                           )}
                         </div>
@@ -474,7 +504,7 @@ export default function FinanceiroSaaS() {
             </div>
           )}
 
-          {/* ABA 4: FREQUÊNCIA */}
+          {/* ━━━━━━━━━━ ABA 4: FREQUÊNCIA ━━━━━━━━━━ */}
           {activeTab === 'attendance' && (
             <div className="bg-[var(--surface)] backdrop-blur-xl rounded-[2.5rem] border border-[var(--border)] shadow-sm overflow-hidden p-2 animate-in slide-in-from-bottom-4 fade-in duration-500">
               <div className="p-6">
@@ -485,7 +515,7 @@ export default function FinanceiroSaaS() {
                   {listaAlunos.filter(a => a.ativo).map(aluno => {
                     const temDados = aluno.data_ultimo_treino; 
                     return (
-                      <div key={aluno.id} className="bg-[var(--surface-sec)] p-4 rounded-2xl flex items-center justify-between border border-[var(--border)]">
+                      <div key={aluno.id} className="bg-[var(--surface-sec)] p-4 rounded-2xl flex items-center justify-between border border-[var(--border)] hover:border-[var(--primary)]/50 transition-colors">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-full bg-[var(--primary)]/10 text-[var(--primary)] flex items-center justify-center">
                             <FaDumbbell size={14} />
@@ -499,7 +529,7 @@ export default function FinanceiroSaaS() {
                         </div>
                         <button 
                           onClick={() => router.push(`/dashboard/aluno/${aluno.id}/progresso`)}
-                          className="text-[10px] font-black uppercase bg-[var(--primary)]/10 text-[var(--primary)] px-3 py-1.5 rounded-lg hover:bg-[var(--primary)] hover:text-white transition-all"
+                          className="text-[10px] font-black uppercase bg-[var(--surface)] border border-[var(--border)] text-[var(--text-secondary)] px-3 py-2 rounded-lg hover:bg-[var(--primary)] hover:text-white hover:border-[var(--primary)] transition-all active:scale-95"
                         >
                           Ver Perfil
                         </button>
@@ -514,6 +544,7 @@ export default function FinanceiroSaaS() {
         </div>
       )}
 
+      {/* MODAL DE TEMA */}
       {isThemeModalOpen && (
         <div className="fixed inset-0 z-[999999] flex items-end sm:items-center justify-center p-0 sm:p-5">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setIsThemeModalOpen(false)} />
