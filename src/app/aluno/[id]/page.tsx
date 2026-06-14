@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState, use, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
 import { ptBR, pt, enUS } from 'date-fns/locale';
 import { NotificationService } from '@/lib/notificationService';
@@ -21,7 +21,8 @@ import {
   FaCheck,
   FaTimes,
   FaLock,
-  FaExclamationTriangle
+  FaExclamationTriangle,
+  FaWhatsapp
 } from 'react-icons/fa';
 import { LineChart, Line, AreaChart, Area, CartesianGrid, Tooltip, ResponsiveContainer, YAxis, XAxis, Legend } from 'recharts';
 import { startOfWeek, endOfWeek, eachDayOfInterval, format, isSameDay, parseISO, startOfMonth, endOfMonth, addMonths, subMonths, isSameMonth } from 'date-fns';
@@ -41,7 +42,7 @@ const translations = {
     currentWeight: 'Peso Atual', prevWeight: 'Peso Anterior', sinceLast: 'desde a última',
     lastMark: 'Última marca', details: 'Medidas Detalhadas (cm)', obs: 'Observações do Personal', dateOfRecord: 'Data do registro',
     selectLanguage: 'Selecione o Idioma', selectTheme: 'Aparência', themeLight: 'Modo Claro', themeDark: 'Modo Escuro',
-    lockedTitle: 'Acesso Suspenso', lockedDesc: 'Sua assinatura está pendente ou vencida. Regularize para acessar os treinos.', regularize: 'Regularizar Agora'
+    lockedTitle: 'Acesso Suspenso', lockedDesc: 'Sua assinatura está pendente ou vencida. Regularize para acessar os treinos.', regularize: 'Regularizar via WhatsApp'
   },
   'pt-PT': {
     status: 'Estado', active: 'Assinatura Ativa', blocked: 'Bloqueado', due: 'Vencimento',
@@ -54,7 +55,7 @@ const translations = {
     currentWeight: 'Peso Atual', prevWeight: 'Peso Anterior', sinceLast: 'desde a última',
     lastMark: 'Última marca', details: 'Medidas Detalhadas (cm)', obs: 'Observações do Personal', dateOfRecord: 'Data do registo',
     selectLanguage: 'Selecione o Idioma', selectTheme: 'Aparência', themeLight: 'Modo Claro', themeDark: 'Modo Escuro',
-    lockedTitle: 'Acesso Suspenso', lockedDesc: 'A sua assinatura encontra-se pendente ou vencida. Regularize para aceder aos treinos.', regularize: 'Regularizar Agora'
+    lockedTitle: 'Acesso Suspenso', lockedDesc: 'A sua assinatura encontra-se pendente ou vencida. Regularize para aceder aos treinos.', regularize: 'Regularizar via WhatsApp'
   },
   'en': {
     status: 'Status', active: 'Active Subscription', blocked: 'Blocked', due: 'Due Date',
@@ -67,7 +68,7 @@ const translations = {
     currentWeight: 'Current Wt.', prevWeight: 'Previous Wt.', sinceLast: 'since last',
     lastMark: 'Last mark', details: 'Detailed Measurements (cm)', obs: 'Trainer Notes', dateOfRecord: 'Record date',
     selectLanguage: 'Select Language', selectTheme: 'Appearance', themeLight: 'Light Mode', themeDark: 'Dark Mode',
-    lockedTitle: 'Access Suspended', lockedDesc: 'Your subscription is pending or expired. Please settle it to access workouts.', regularize: 'Settle Now'
+    lockedTitle: 'Access Suspended', lockedDesc: 'Your subscription is pending or expired. Please settle it to access workouts.', regularize: 'Settle via WhatsApp'
   }
 };
 
@@ -147,9 +148,9 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
   const t = translations[lang] || translations['pt-BR'];
 
   const themeStyles = isDark ? {
-    '--bg': '#0F1115', '--surface': '#151A22', '--surface-sec': '#1B2330', '--primary': '#3B82F6', '--primary-soft': '#60A5FA', '--danger': '#EF4444', '--success': '#22C55E', '--text-primary': '#F8FAFC', '--text-secondary': '#94A3B8', '--border': 'rgba(255,255,255,0.05)',
+    '--bg': '#0F1115', '--surface': '#151A22', '--surface-sec': '#1B2330', '--primary': '#3B82F6', '--primary-soft': '#60A5FA', '--text-primary': '#F8FAFC', '--text-secondary': '#94A3B8', '--border': 'rgba(255,255,255,0.05)',
   } as React.CSSProperties : {
-    '--bg': '#F3F6FB', '--surface': '#FFFFFF', '--surface-sec': '#E8EEF9', '--primary': '#2563EB', '--primary-soft': '#60A5FA', '--danger': '#DC2626', '--success': '#16A34A', '--text-primary': '#111827', '--text-secondary': '#6B7280', '--border': 'rgba(15,23,42,0.06)',
+    '--bg': '#F3F6FB', '--surface': '#FFFFFF', '--surface-sec': '#E8EEF9', '--primary': '#2563EB', '--primary-soft': '#60A5FA', '--text-primary': '#111827', '--text-secondary': '#6B7280', '--border': 'rgba(15,23,42,0.06)',
   } as React.CSSProperties;
 
   const diasSemana = useMemo(() => 
@@ -169,6 +170,19 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
     const vencimento = new Date(aluno.data_vencimento + 'T00:00:00');
     return hoje > vencimento;
   }, [aluno]);
+
+  const handleWhatsAppRedirect = () => {
+    if (!personal?.telefone) {
+      alert('Número do personal não encontrado.');
+      return;
+    }
+    const phoneStr = String(personal.telefone).replace(/\D/g, '');
+    const finalPhone = phoneStr.length <= 11 && !phoneStr.startsWith('55') ? `55${phoneStr}` : phoneStr;
+    const personalNome = personal.nome?.split(' ')[0] || 'Personal';
+    
+    const message = encodeURIComponent(`Olá ${personalNome}, gostaria de regularizar a minha assinatura.`);
+    window.open(`https://wa.me/${finalPhone}?text=${message}`, '_blank');
+  };
 
   useEffect(() => {
     if (!id) return;
@@ -307,7 +321,9 @@ export default function AreaDoAluno({ params }: { params: Promise<{ id: string }
                <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white leading-tight">{t.lockedTitle}</h2>
             </div>
             <p className="relative z-10 text-white/90 text-[11px] sm:text-xs font-medium leading-relaxed mb-6">{t.lockedDesc}</p>
-            <button onClick={() => router.push(`/aluno/${id}/faturas`)} className="relative z-10 w-full py-4 bg-white text-[var(--danger)] rounded-2xl font-black text-[12px] uppercase tracking-widest transition-transform active:scale-[0.98] shadow-xl hover:shadow-2xl flex items-center justify-center gap-2">{t.regularize}</button>
+            <button onClick={handleWhatsAppRedirect} className="relative z-10 w-full py-4 bg-[#25D366] text-white rounded-2xl font-black text-[12px] uppercase tracking-widest transition-transform active:scale-[0.98] shadow-xl hover:shadow-2xl hover:brightness-110 flex items-center justify-center gap-2">
+              <FaWhatsapp size={16} /> {t.regularize}
+            </button>
           </section>
         ) : treinoDoDia ? (
           (() => {
