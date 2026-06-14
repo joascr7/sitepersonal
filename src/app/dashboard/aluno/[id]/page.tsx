@@ -194,11 +194,25 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
   const t = translations[lang] || translations['pt-BR'];
   const showToast = (type: 'success' | 'error', text: string) => { setToast({ type, text }); setTimeout(() => setToast(null), 4000); };
 
-  // Glassmorphism Premium
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // LÓGICA DE BLINDAGEM DE DATAS (CORREÇÃO DE FUSO HORÁRIO)
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  const formatarDataSegura = (dataStr: string, formatoCurto = false) => {
+    if (!dataStr) return '-';
+    const dataLimpa = dataStr.split('T')[0];
+    const partes = dataLimpa.split('-');
+    if (partes.length !== 3) return dataStr;
+    const d = new Date(Number(partes[0]), Number(partes[1]) - 1, Number(partes[2]));
+    if (formatoCurto) {
+      return d.toLocaleDateString(lang, { day: '2-digit', month: '2-digit' });
+    }
+    return d.toLocaleDateString(lang);
+  };
+
   const themeStyles = isDark ? {
-    '--bg': '#0F1115', '--surface': 'rgba(21, 26, 34, 0.8)', '--surface-sec': '#1B2330', '--primary': '#3B82F6', '--danger': '#EF4444', '--success': '#22C55E', '--text-primary': '#F8FAFC', '--text-secondary': '#94A3B8', '--border': 'rgba(255,255,255,0.08)',
+    '--bg': '#0F1115', '--surface': 'rgba(21, 26, 34, 0.8)', '--surface-sec': '#1B2330', '--primary': '#3B82F6', '--danger': '#EF4444', '--warning': '#F59E0B', '--success': '#22C55E', '--text-primary': '#F8FAFC', '--text-secondary': '#94A3B8', '--border': 'rgba(255,255,255,0.08)',
   } as React.CSSProperties : {
-    '--bg': '#F3F6FB', '--surface': 'rgba(255, 255, 255, 0.85)', '--surface-sec': '#E8EEF9', '--primary': '#2563EB', '--danger': '#DC2626', '--success': '#16A34A', '--text-primary': '#111827', '--text-secondary': '#6B7280', '--border': 'rgba(15,23,42,0.08)',
+    '--bg': '#F3F6FB', '--surface': 'rgba(255, 255, 255, 0.85)', '--surface-sec': '#E8EEF9', '--primary': '#2563EB', '--danger': '#DC2626', '--warning': '#D97706', '--success': '#16A34A', '--text-primary': '#111827', '--text-secondary': '#6B7280', '--border': 'rgba(15,23,42,0.08)',
   } as React.CSSProperties;
 
   useEffect(() => {
@@ -256,7 +270,8 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
 
       data.forEach(c => {
         if (!c.data_conclusao) return;
-        const d = new Date(c.data_conclusao);
+        const partes = c.data_conclusao.split('T')[0].split('-');
+        const d = new Date(Number(partes[0]), Number(partes[1]) - 1, Number(partes[2]));
         const label = `${meses[d.getMonth()]} ${d.getFullYear().toString().slice(2)}`;
         if (agrupado[label] !== undefined) {
           agrupado[label] += 1;
@@ -294,13 +309,9 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
     }
   };
 
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  // AGRUPAMENTO E FILTRAGEM (ATIVOS / ARQUIVADOS)
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   const fichasAgrupadas = useMemo(() => {
     const grupos: Record<string, any[]> = {};
     fichas.forEach(f => {
-      // Considera ativo se for true ou se não existir (fichas antigas)
       const isAtivo = f.ativo !== false; 
       
       if (mostrarArquivados && isAtivo) return;
@@ -318,14 +329,10 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
     return Object.entries(grupos).map(([nomeMaster, treinos]) => ({ nomeMaster, treinos }));
   }, [fichas, mostrarArquivados]);
 
-  // Preparar dados da evolução (crescente no gráfico)
   const evolutionData = useMemo(() => {
     return [...historico].reverse();
   }, [historico]);
 
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  // GESTÃO DE TREINOS (ARQUIVAR, EXCLUIR, ATRIBUIR)
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   const excluirProgramaCompleto = async (treinos: any[]) => {
     if (!window.confirm(t.alerts.confirmMasterFicha)) return;
     const idsParaExcluir = treinos.map(t => t.id);
@@ -406,6 +413,49 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
       fetchHistorico();
       showToast('success', 'Avaliação salva!');
     } else showToast('error', t.alerts.errSave + error.message);
+  };
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // ETIQUETA INTELIGENTE DE VENCIMENTO
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  const renderVencimentoBadge = () => {
+    if (!aluno?.data_vencimento) return null;
+    
+    const vencimentoStr = aluno.data_vencimento.split('T')[0].trim();
+    const partes = vencimentoStr.split('-');
+    const dataFormatada = `${partes[2]}/${partes[1]}`; // Ex: 08/06
+    
+    // Pega o dia de hoje de forma blindada contra fuso horário
+    const hojeObj = new Date();
+    const anoH = hojeObj.getFullYear();
+    const mesH = String(hojeObj.getMonth() + 1).padStart(2, '0');
+    const diaH = String(hojeObj.getDate()).padStart(2, '0');
+    const hojeStr = `${anoH}-${mesH}-${diaH}`;
+    
+    if (vencimentoStr < hojeStr) {
+      // Cálculo de dias de atraso
+      const dataHoje = new Date(`${hojeStr}T00:00:00`).getTime();
+      const dataVenc = new Date(`${vencimentoStr}T00:00:00`).getTime();
+      const diasAtraso = Math.floor((dataHoje - dataVenc) / (1000 * 3600 * 24));
+      
+      return (
+        <span className="text-[10px] font-black uppercase tracking-widest bg-[var(--danger)]/10 text-[var(--danger)] px-3 py-1.5 rounded-full border border-[var(--danger)]/20 shadow-sm flex items-center gap-1.5">
+          <FaExclamationCircle size={10} /> Vencido há {diasAtraso} {diasAtraso === 1 ? 'dia' : 'dias'}
+        </span>
+      );
+    } else if (vencimentoStr === hojeStr) {
+      return (
+        <span className="text-[10px] font-black uppercase tracking-widest bg-[var(--warning)]/10 text-[var(--warning)] px-3 py-1.5 rounded-full border border-[var(--warning)]/20 shadow-sm flex items-center gap-1.5">
+          <FaExclamationCircle size={10} /> Vence Hoje ({dataFormatada})
+        </span>
+      );
+    } else {
+      return (
+        <span className="text-[10px] font-black uppercase tracking-widest bg-[var(--success)]/10 text-[var(--success)] px-3 py-1.5 rounded-full border border-[var(--success)]/20 shadow-sm flex items-center gap-1.5">
+          <FaCheckCircle size={10} /> Vence dia {dataFormatada}
+        </span>
+      );
+    }
   };
 
   if (!mounted) return <main className="min-h-screen bg-[#0F1115]" />;
@@ -492,15 +542,23 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
             </div>
           </div>
 
+          {/* CABEÇALHO DO ALUNO - AGORA COM A TAG DE VENCIMENTO INCLUÍDA */}
           <section className="bg-[var(--surface)] backdrop-blur-2xl p-8 rounded-[2.5rem] border border-[var(--border)] shadow-xl shadow-[var(--border)] mb-8 flex flex-col items-center text-center gap-5">
             <div className="w-24 h-24 rounded-[2rem] overflow-hidden border border-[var(--border)] shadow-inner bg-[var(--surface-sec)]">
               <img src={aluno?.avatar_url || 'https://via.placeholder.com/150'} className="w-full h-full object-cover" alt={aluno?.nome} />
             </div>
             <div>
-              <h1 className="text-3xl font-black tracking-tighter mb-2">{aluno?.nome}</h1>
-              <p className="text-[var(--primary)] font-black bg-[var(--primary)]/10 px-4 py-1.5 rounded-full inline-block text-[10px] uppercase tracking-widest border border-[var(--primary)]/20">
-                {t.modality} {aluno?.modalidade || t.notDefined}
-              </p>
+              <h1 className="text-3xl font-black tracking-tighter mb-3">{aluno?.nome}</h1>
+              
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                <span className="text-[var(--primary)] font-black bg-[var(--primary)]/10 px-3 py-1.5 rounded-full inline-flex items-center text-[10px] uppercase tracking-widest border border-[var(--primary)]/20 shadow-sm">
+                  {t.modality} {aluno?.modalidade || t.notDefined}
+                </span>
+                
+                {/* A MÁGICA VISUAL ACONTECE AQUI! */}
+                {renderVencimentoBadge()}
+              </div>
+
             </div>
             <div className="w-full mt-2">
                <ControleFinanceiro alunoId={id} initialStatus={aluno?.status_pagamento || 'pendente'} />
@@ -664,7 +722,7 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
             </section>
           )}
 
-          {/* ABA 2: FREQUÊNCIA (GRÁFICO DE BARRAS PREMIUM) */}
+          {/* ABA 2: FREQUÊNCIA */}
           {abaAtiva === 'frequencia' && (
             <section className="space-y-6 animate-in slide-in-from-right-4 fade-in duration-500">
               <div>
@@ -708,7 +766,7 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
             </section>
           )}
 
-          {/* ABA 3: EVOLUÇÃO (UPGRADE PREMIUM DE GRÁFICOS TRIPLOS COM EFEITO NEON/GLOW) */}
+          {/* ABA 3: EVOLUÇÃO */}
           {abaAtiva === 'evolucao' && (
             <section className="space-y-8 animate-in slide-in-from-right-4 fade-in duration-500">
               <div className="flex flex-col sm:flex-row gap-4 justify-between sm:items-end">
@@ -733,9 +791,9 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
                         </filter>
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? '#333' : '#e5e7eb'} />
-                      <XAxis dataKey="data_avaliacao" tickFormatter={(v) => new Date(v).toLocaleDateString(lang, { day: '2-digit', month: '2-digit' })} tick={{fontSize: 9, fill: 'var(--text-secondary)', fontWeight: 700}} axisLine={false} tickLine={false} />
+                      <XAxis dataKey="data_avaliacao" tickFormatter={(v) => formatarDataSegura(v, true)} tick={{fontSize: 9, fill: 'var(--text-secondary)', fontWeight: 700}} axisLine={false} tickLine={false} />
                       <YAxis domain={['auto', 'auto']} tick={{fontSize: 10, fill: 'var(--text-secondary)', fontWeight: 700}} axisLine={false} tickLine={false} />
-                      <Tooltip labelFormatter={(l) => new Date(l).toLocaleDateString(lang)} contentStyle={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '12px', fontWeight: 'bold', color: 'var(--text-primary)' }} itemStyle={{ color: 'var(--primary)' }} />
+                      <Tooltip labelFormatter={(l) => formatarDataSegura(l)} contentStyle={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '12px', fontWeight: 'bold', color: 'var(--text-primary)' }} itemStyle={{ color: 'var(--primary)' }} />
                       <Line filter="url(#glowLine)" type="monotone" name="Peso (kg)" dataKey="peso" stroke="var(--primary)" strokeWidth={4} dot={false} activeDot={{ r: 6, fill: "var(--primary)", stroke: "var(--surface)", strokeWidth: 3 }} animationDuration={1500} />
                     </LineChart>
                   </ResponsiveContainer>
@@ -754,23 +812,23 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
                         </linearGradient>
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? '#333' : '#e5e7eb'} />
-                      <XAxis dataKey="data_avaliacao" tickFormatter={(v) => new Date(v).toLocaleDateString(lang, { day: '2-digit', month: '2-digit' })} tick={{fontSize: 9, fill: 'var(--text-secondary)', fontWeight: 700}} axisLine={false} tickLine={false} />
+                      <XAxis dataKey="data_avaliacao" tickFormatter={(v) => formatarDataSegura(v, true)} tick={{fontSize: 9, fill: 'var(--text-secondary)', fontWeight: 700}} axisLine={false} tickLine={false} />
                       <YAxis domain={['auto', 'auto']} tick={{fontSize: 10, fill: 'var(--text-secondary)', fontWeight: 700}} axisLine={false} tickLine={false} />
-                      <Tooltip labelFormatter={(l) => new Date(l).toLocaleDateString(lang)} contentStyle={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '12px', fontWeight: 'bold', color: 'var(--text-primary)' }} itemStyle={{ color: 'var(--danger)' }} />
+                      <Tooltip labelFormatter={(l) => formatarDataSegura(l)} contentStyle={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '12px', fontWeight: 'bold', color: 'var(--text-primary)' }} itemStyle={{ color: 'var(--danger)' }} />
                       <Area type="monotone" name="Gordura (%)" dataKey="gordura" stroke="var(--danger)" strokeWidth={4} fillOpacity={1} fill="url(#colorGordura)" animationDuration={1500} dot={false} activeDot={{ r: 6, fill: "var(--danger)", stroke: "var(--surface)", strokeWidth: 3 }} />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
 
-                {/* 3. Evolução de Circunferências (Largura Total) */}
+                {/* 3. Evolução de Circunferências */}
                 <div className="bg-[var(--surface)] p-6 rounded-[2.5rem] border border-[var(--border)] h-72 shadow-sm flex flex-col md:col-span-2">
                   <h3 className="font-black text-[var(--text-secondary)] text-[10px] uppercase tracking-widest mb-4 flex items-center gap-2"><FaChartLine /> {t.evolution.measures}</h3>
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={evolutionData.filter(a => a.abdomen || a.cintura || a.quadril)} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? '#333' : '#e5e7eb'} />
-                      <XAxis dataKey="data_avaliacao" tickFormatter={(v) => new Date(v).toLocaleDateString(lang, { day: '2-digit', month: '2-digit' })} tick={{fontSize: 9, fill: 'var(--text-secondary)', fontWeight: 700}} axisLine={false} tickLine={false} />
+                      <XAxis dataKey="data_avaliacao" tickFormatter={(v) => formatarDataSegura(v, true)} tick={{fontSize: 9, fill: 'var(--text-secondary)', fontWeight: 700}} axisLine={false} tickLine={false} />
                       <YAxis domain={['auto', 'auto']} tick={{fontSize: 10, fill: 'var(--text-secondary)', fontWeight: 700}} axisLine={false} tickLine={false} />
-                      <Tooltip labelFormatter={(l) => new Date(l).toLocaleDateString(lang)} contentStyle={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '12px', fontWeight: 'bold', color: 'var(--text-primary)' }} />
+                      <Tooltip labelFormatter={(l) => formatarDataSegura(l)} contentStyle={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '12px', fontWeight: 'bold', color: 'var(--text-primary)' }} />
                       <Legend wrapperStyle={{ fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase' }} />
                       <Line type="monotone" name="Abdômen" dataKey="abdomen" stroke="#3B82F6" strokeWidth={3} dot={false} activeDot={{ r: 5, strokeWidth: 2, stroke: 'var(--surface)' }} animationDuration={1500} />
                       <Line type="monotone" name="Cintura" dataKey="cintura" stroke="#F59E0B" strokeWidth={3} dot={false} activeDot={{ r: 5, strokeWidth: 2, stroke: 'var(--surface)' }} animationDuration={1500} />
@@ -786,7 +844,7 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
                   <div key={av.id} className="bg-[var(--surface)] p-6 sm:p-8 rounded-[2.5rem] border border-[var(--border)] shadow-md hover:border-[var(--primary)]/30 transition-colors">
                     <div className="flex justify-between items-center mb-6 border-b border-[var(--border)] pb-4">
                       <p className="font-black text-lg text-[var(--text-primary)] bg-[var(--surface-sec)] px-4 py-1.5 rounded-xl">
-                        {new Date(av.data_avaliacao).toLocaleDateString(lang)}
+                        {formatarDataSegura(av.data_avaliacao)}
                       </p>
                       <button onClick={() => excluirAvaliacao(av.id)} className="text-[var(--text-secondary)] hover:text-[var(--danger)] bg-[var(--surface-sec)] hover:bg-[var(--danger)]/10 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-colors flex items-center gap-2">
                         <FaTrash size={10} /> <span className="hidden sm:inline">{t.evolution.delete}</span>
@@ -837,7 +895,9 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
                         <button onClick={() => excluirFeedback(f.id)} className="text-[var(--text-secondary)] hover:text-[var(--danger)] bg-[var(--surface-sec)] hover:bg-[var(--danger)]/10 w-10 h-10 rounded-xl flex items-center justify-center transition-colors"><FaTrash size={12} /></button>
                       </div>
                       <div className="text-sm italic font-medium leading-relaxed text-[var(--text-primary)] bg-[var(--surface-sec)] p-6 rounded-[1.5rem] border-l-4 border-[var(--primary)] shadow-inner">"{f.observacoes}"</div>
-                      <p className="text-[9px] font-black uppercase tracking-widest text-[var(--text-secondary)] mt-5 text-right">{new Date(f.data_criacao).toLocaleDateString(lang)}</p>
+                      <p className="text-[9px] font-black uppercase tracking-widest text-[var(--text-secondary)] mt-5 text-right">
+                        {formatarDataSegura(f.data_criacao)}
+                      </p>
                     </div>
                   )) : <div className="text-center py-12 border-2 border-dashed border-[var(--border)] rounded-[2.5rem] bg-[var(--surface)]/50"><p className="text-[var(--text-secondary)] font-black uppercase text-[10px] tracking-widest">{t.feedback.empty}</p></div>}
               </div>
