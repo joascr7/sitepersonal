@@ -2,11 +2,12 @@
 import { useEffect, useState, useMemo } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useRouter } from 'next/navigation';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { 
   FaCheckCircle, FaExclamationCircle, FaGlobe, FaMoon, FaSun, 
   FaChevronLeft, FaTimes, FaChartBar, FaListUl, 
   FaUserClock, FaWhatsapp, FaPlus, FaEye, FaEyeSlash, FaDumbbell,
-  FaChevronDown
+  FaChevronDown, FaCalendarCheck
 } from 'react-icons/fa';
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -35,8 +36,10 @@ const translations = {
     noName: 'Sem nome', errMissing: 'Preencha todos os campos.', errProcess: 'Erro ao processar.', 
     successPay: 'Pagamento registrado com sucesso!', successConfig: 'Configurações atualizadas!',
     selectLanguage: 'Idioma', selectTheme: 'Aparência', themeLight: 'Modo Claro', themeDark: 'Modo Escuro',
-    tabOverview: 'Visão Geral', tabTransactions: 'Lançamentos', tabPending: 'Alunos Pendentes', tabAttendance: 'Frequência',
-    graphTitle: 'Faturamento Anual', charge: 'Cobrar Aluno', noPending: 'Nenhum aluno com pagamento atrasado!'
+    tabOverview: 'Visão Geral', tabTransactions: 'Lançamentos', tabPending: 'Alunos Pendentes', tabAttendance: 'Frequência Geral',
+    graphTitle: 'Faturamento Anual', charge: 'Cobrar Aluno', noPending: 'Nenhum aluno com pagamento atrasado!',
+    freqTitle: 'Engajamento Global', freqSubtitle: 'Total de treinos concluídos por todos os alunos.',
+    totalWorkouts: 'Treinos Realizados', avgWeek: 'Média de Treinos/Semana', workoutsMonth: 'Treinos Totais por Mês'
   },
   'pt-PT': {
     title: 'Financeiro', accumulated: 'Receita Anual', monthlyRevenue: 'Receita do Mês',
@@ -45,8 +48,10 @@ const translations = {
     noName: 'Sem nome', errMissing: 'Preencha todos os campos.', errProcess: 'Erro ao processar.', 
     successPay: 'Pagamento registado com sucesso!', successConfig: 'Configurações atualizadas!',
     selectLanguage: 'Idioma', selectTheme: 'Aparência', themeLight: 'Modo Claro', themeDark: 'Modo Escuro',
-    tabOverview: 'Visão Geral', tabTransactions: 'Lançamentos', tabPending: 'Alunos Pendentes', tabAttendance: 'Frequência',
-    graphTitle: 'Faturação Anual', charge: 'Cobrar Aluno', noPending: 'Nenhum aluno em incumprimento!'
+    tabOverview: 'Visão Geral', tabTransactions: 'Lançamentos', tabPending: 'Alunos Pendentes', tabAttendance: 'Frequência Geral',
+    graphTitle: 'Faturação Anual', charge: 'Cobrar Aluno', noPending: 'Nenhum aluno em incumprimento!',
+    freqTitle: 'Envolvimento Global', freqSubtitle: 'Total de treinos concluídos por todos os alunos.',
+    totalWorkouts: 'Treinos Realizados', avgWeek: 'Média de Treinos/Semana', workoutsMonth: 'Treinos Totais por Mês'
   },
   'en': {
     title: 'Financial', accumulated: 'Yearly Revenue', monthlyRevenue: 'Monthly Revenue',
@@ -55,8 +60,10 @@ const translations = {
     noName: 'No name', errMissing: 'Fill in all fields.', errProcess: 'Error processing.', 
     successPay: 'Payment registered successfully!', successConfig: 'Settings updated!',
     selectLanguage: 'Language', selectTheme: 'Appearance', themeLight: 'Light Mode', themeDark: 'Dark Mode',
-    tabOverview: 'Overview', tabTransactions: 'Transactions', tabPending: 'Pending Students', tabAttendance: 'Attendance',
-    graphTitle: 'Yearly Revenue Chart', charge: 'Charge Student', noPending: 'No pending payments!'
+    tabOverview: 'Overview', tabTransactions: 'Transactions', tabPending: 'Pending Students', tabAttendance: 'Global Attendance',
+    graphTitle: 'Yearly Revenue Chart', charge: 'Charge Student', noPending: 'No pending payments!',
+    freqTitle: 'Global Engagement', freqSubtitle: 'Total workouts completed by all students.',
+    totalWorkouts: 'Workouts Completed', avgWeek: 'Avg Workouts/Week', workoutsMonth: 'Total Workouts per Month'
   }
 };
 
@@ -70,6 +77,7 @@ export default function FinanceiroSaaS() {
   
   const [pagamentos, setPagamentos] = useState<any[]>([]);
   const [listaAlunos, setListaAlunos] = useState<any[]>([]);
+  const [conclusoesGerais, setConclusoesGerais] = useState<any[]>([]);
   const [configPersonal, setConfigPersonal] = useState({ valor_mensalidade_padrao: 0 });
   const [loading, setLoading] = useState(true);
   
@@ -124,25 +132,39 @@ export default function FinanceiroSaaS() {
   const showToast = (type: 'success' | 'error', text: string) => { setToast({ type, text }); setTimeout(() => setToast(null), 4000); };
 
   const themeStyles = isDark ? {
-    '--bg': '#0F1115', '--surface': 'rgba(21, 26, 34, 0.7)', '--surface-sec': '#1B2330', '--primary': '#3B82F6', '--danger': '#EF4444', '--success': '#22C55E', '--text-primary': '#F8FAFC', '--text-secondary': '#94A3B8', '--border': 'rgba(255,255,255,0.08)',
+    '--bg': '#0F1115', '--surface': 'rgba(21, 26, 34, 0.7)', '--surface-sec': '#1B2330', '--primary': '#3B82F6', '--danger': '#EF4444', '--warning': '#F59E0B', '--success': '#22C55E', '--text-primary': '#F8FAFC', '--text-secondary': '#94A3B8', '--border': 'rgba(255,255,255,0.08)',
   } as React.CSSProperties : {
-    '--bg': '#F3F6FB', '--surface': 'rgba(255, 255, 255, 0.8)', '--surface-sec': '#E8EEF9', '--primary': '#2563EB', '--danger': '#DC2626', '--success': '#16A34A', '--text-primary': '#111827', '--text-secondary': '#6B7280', '--border': 'rgba(15,23,42,0.08)',
+    '--bg': '#F3F6FB', '--surface': 'rgba(255, 255, 255, 0.8)', '--surface-sec': '#E8EEF9', '--primary': '#2563EB', '--danger': '#DC2626', '--warning': '#D97706', '--success': '#16A34A', '--text-primary': '#111827', '--text-secondary': '#6B7280', '--border': 'rgba(15,23,42,0.08)',
   } as React.CSSProperties;
 
   const fetchDados = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    // ATENÇÃO AQUI: Mudado de select específico para select('*') em alunos para puxar a data de vencimento
-    const [cRes, pRes, aRes] = await Promise.all([
+    // 1. Busca os alunos desse personal
+    const { data: aRes } = await supabase.from('alunos').select('*').eq('personal_id', user.id);
+    const listaDeAlunos = aRes || [];
+    
+    // Extrai apenas os IDs dos alunos para usarmos na busca de conclusão
+    const idsAlunos = listaDeAlunos.map(a => a.id);
+
+    // 2. Busca pagamentos e configuração
+    const [cRes, pRes] = await Promise.all([
       supabase.from('personais').select('valor_mensalidade').eq('id', user.id).single(),
-      supabase.from('pagamentos').select('id, valor, data_pagamento, alunos(nome)').eq('personal_id', user.id).order('data_pagamento', { ascending: false }),
-      supabase.from('alunos').select('*').eq('personal_id', user.id)
+      supabase.from('pagamentos').select('id, valor, data_pagamento, alunos(nome)').eq('personal_id', user.id).order('data_pagamento', { ascending: false })
     ]);
+
+    // 3. NOVO: Busca as conclusões de treino apenas dos alunos desse personal!
+    let conclData: any[] = [];
+    if (idsAlunos.length > 0) {
+      const { data } = await supabase.from('conclusoes_treino').select('data_conclusao, aluno_id').in('aluno_id', idsAlunos);
+      if (data) conclData = data;
+    }
 
     if (cRes.data) setConfigPersonal({ valor_mensalidade_padrao: cRes.data.valor_mensalidade || 0 });
     setPagamentos(pRes.data || []);
-    setListaAlunos(aRes.data || []);
+    setListaAlunos(listaDeAlunos);
+    setConclusoesGerais(conclData); // Armazena as conclusões para o gráfico de Frequência Geral
     setLoading(false);
   };
 
@@ -232,9 +254,8 @@ export default function FinanceiroSaaS() {
   const totalAno = faturamentoAnual.reduce((acc, val) => acc + val, 0);
   const maxMes = Math.max(...faturamentoAnual, 1); 
 
-  // ━━━━━━━━━━━━━━━━ INADIMPLENTES (AGORA 100% BLINDADO CONTRA BUG DE FUSO HORÁRIO) ━━━━━━━━━━━━━━━━
+  // ━━━━━━━━━━━━━━━━ INADIMPLENTES (BLINDAGEM TOTAL MATEMÁTICA) ━━━━━━━━━━━━━━━━
   const alunosInadimplentes = useMemo(() => {
-    // 1. Pegamos a data de hoje formatada como 'YYYY-MM-DD' em string baseada no timezone local
     const hojeObj = new Date();
     const anoH = hojeObj.getFullYear();
     const mesH = String(hojeObj.getMonth() + 1).padStart(2, '0');
@@ -243,13 +264,8 @@ export default function FinanceiroSaaS() {
 
     return listaAlunos.filter(a => {
       if (!a.data_vencimento) return false;
-      
-      // 2. Pegamos a data do banco como string pura (ex: '2026-06-08')
       const vencimentoStr = a.data_vencimento.split('T')[0];
-      
-      // 3. Comparamos as strings: se a data do vencimento for menor ou igual a de hoje, está atrasado
-      return vencimentoStr <= hojeStr;
-      
+      return vencimentoStr <= hojeStr; 
     }).sort((a,b) => a.data_vencimento.localeCompare(b.data_vencimento));
   }, [listaAlunos]);
 
@@ -262,6 +278,49 @@ export default function FinanceiroSaaS() {
     const num = aluno.telefone.replace(/\D/g, '');
     window.open(`https://wa.me/${num}?text=${encodeURIComponent(msg)}`, '_blank');
   };
+
+  // ━━━━━━━━━━━━━━━━ FREQUÊNCIA GLOBAL (CÁLCULO E PREPARAÇÃO) ━━━━━━━━━━━━━━━━
+  const dadosFrequenciaGlobal = useMemo(() => {
+    const mesesExtenso = getMeses(lang);
+    const agrupado: Record<string, number> = {};
+    const hoje = new Date();
+    
+    // Gera a base zerada pros últimos 6 meses
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
+      const label = `${mesesExtenso[d.getMonth()]} ${d.getFullYear().toString().slice(2)}`;
+      agrupado[label] = 0;
+    }
+
+    // Soma as conclusões achadas no banco
+    conclusoesGerais.forEach(c => {
+      if (!c.data_conclusao) return;
+      const partes = c.data_conclusao.split('T')[0].split('-');
+      const d = new Date(Number(partes[0]), Number(partes[1]) - 1, Number(partes[2]));
+      
+      const label = `${mesesExtenso[d.getMonth()]} ${d.getFullYear().toString().slice(2)}`;
+      if (agrupado[label] !== undefined) {
+        agrupado[label] += 1;
+      }
+    });
+
+    const dadosGrafico = Object.keys(agrupado).map(key => ({
+      mes: key,
+      treinos: agrupado[key]
+    }));
+
+    const total = conclusoesGerais.length;
+    const totalUltimosSeisMeses = dadosGrafico.reduce((acc, curr) => acc + curr.treinos, 0);
+    // Média de treinos/semana do estúdio inteiro (base: últimos 6 meses ~ 24 semanas)
+    const mediaSemana = totalUltimosSeisMeses > 0 ? Math.round((totalUltimosSeisMeses / 24) * 10) / 10 : 0;
+
+    return {
+      grafico: dadosGrafico,
+      total,
+      mediaSemana
+    };
+  }, [conclusoesGerais, lang]);
+
 
   if (!mounted) return <main className="min-h-screen bg-[#0F1115]" />;
 
@@ -522,39 +581,44 @@ export default function FinanceiroSaaS() {
             </div>
           )}
 
-          {/* ━━━━━━━━━━ ABA 4: FREQUÊNCIA ━━━━━━━━━━ */}
+          {/* ━━━━━━━━━━ ABA 4: FREQUÊNCIA GLOBAL (CÁLCULO CORRIGIDO!) ━━━━━━━━━━ */}
           {activeTab === 'attendance' && (
-            <div className="bg-[var(--surface)] backdrop-blur-xl rounded-[2.5rem] border border-[var(--border)] shadow-sm overflow-hidden p-2 animate-in slide-in-from-bottom-4 fade-in duration-500">
-              <div className="p-6">
-                <h2 className="text-[10px] font-black text-[var(--text-secondary)] uppercase tracking-[0.2em] mb-4">Controle de Engajamento</h2>
-                <p className="text-xs text-[var(--text-secondary)] mb-6">Lista de alunos ativos. Acompanhe há quantos dias o aluno não registra um treino.</p>
-                
-                <div className="space-y-3">
-                  {listaAlunos.filter(a => a.ativo).map(aluno => {
-                    const temDados = aluno.data_ultimo_treino; 
-                    return (
-                      <div key={aluno.id} className="bg-[var(--surface-sec)] p-4 rounded-2xl flex items-center justify-between border border-[var(--border)] hover:border-[var(--primary)]/50 transition-colors">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-[var(--primary)]/10 text-[var(--primary)] flex items-center justify-center">
-                            <FaDumbbell size={14} />
-                          </div>
-                          <div>
-                            <p className="font-bold text-sm text-[var(--text-primary)]">{aluno.nome}</p>
-                            <p className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-wider mt-0.5">
-                              {temDados ? `Visto: ${new Date(aluno.data_ultimo_treino).toLocaleDateString()}` : 'Sem registros ainda'}
-                            </p>
-                          </div>
-                        </div>
-                        <button 
-                          onClick={() => router.push(`/dashboard/aluno/${aluno.id}/progresso`)}
-                          className="text-[10px] font-black uppercase bg-[var(--surface)] border border-[var(--border)] text-[var(--text-secondary)] px-3 py-2 rounded-lg hover:bg-[var(--primary)] hover:text-white hover:border-[var(--primary)] transition-all active:scale-95"
-                        >
-                          Ver Perfil
-                        </button>
-                      </div>
-                    )
-                  })}
+            <div className="bg-[var(--surface)] backdrop-blur-xl rounded-[2.5rem] border border-[var(--border)] shadow-sm overflow-hidden p-6 animate-in slide-in-from-bottom-4 fade-in duration-500">
+              <h2 className="text-2xl sm:text-3xl font-black tracking-tighter text-[var(--text-primary)] mb-1">{t.freqTitle}</h2>
+              <p className="text-xs text-[var(--text-secondary)] mb-8 font-medium">{t.freqSubtitle}</p>
+              
+              <div className="grid grid-cols-2 gap-4 mb-8">
+                <div className="bg-[var(--surface-sec)] p-6 rounded-[2rem] border border-[var(--border)] shadow-inner flex flex-col items-center justify-center gap-1 hover:border-[var(--primary)]/30 transition-colors">
+                  <span className="text-[10px] font-black uppercase text-[var(--text-secondary)] tracking-widest text-center">{t.totalWorkouts}</span>
+                  <span className="text-4xl font-black text-[var(--primary)]">{dadosFrequenciaGlobal.total}</span>
                 </div>
+                <div className="bg-[var(--surface-sec)] p-6 rounded-[2rem] border border-[var(--border)] shadow-inner flex flex-col items-center justify-center gap-1 hover:border-[var(--primary)]/30 transition-colors">
+                  <span className="text-[10px] font-black uppercase text-[var(--text-secondary)] tracking-widest text-center">{t.avgWeek}</span>
+                  <span className="text-4xl font-black text-[var(--primary)]">{dadosFrequenciaGlobal.mediaSemana}</span>
+                </div>
+              </div>
+
+              <div className="h-64 sm:h-80 relative overflow-hidden group w-full pt-4">
+                <div className="absolute top-0 right-0 w-full h-full bg-gradient-to-b from-[var(--primary)]/5 to-transparent pointer-events-none rounded-[2rem]" />
+                <h3 className="font-black text-[var(--text-secondary)] text-[10px] uppercase tracking-widest mb-4 flex items-center gap-2 pl-2 relative z-10">
+                  <FaCalendarCheck /> {t.workoutsMonth}
+                </h3>
+                
+                <ResponsiveContainer width="100%" height="80%">
+                  <BarChart data={dadosFrequenciaGlobal.grafico} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="colorBarGlow" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="var(--primary)" stopOpacity={1}/>
+                        <stop offset="100%" stopColor="var(--primary-soft)" stopOpacity={0.6}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? '#333' : '#e5e7eb'} />
+                    <XAxis dataKey="mes" tick={{ fontSize: 10, fill: 'var(--text-secondary)', fontWeight: 700 }} axisLine={false} tickLine={false} />
+                    <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: 'var(--text-secondary)', fontWeight: 700 }} axisLine={false} tickLine={false} />
+                    <Tooltip cursor={{ fill: 'var(--primary)', opacity: 0.05 }} contentStyle={{ backgroundColor: 'var(--surface)', borderRadius: '16px', border: '1px solid var(--border)', padding: '12px 16px', boxShadow: '0 10px 25px rgba(0,0,0,0.3)', color: 'var(--text-primary)', fontWeight: '900', textTransform: 'uppercase', fontSize: '11px' }} itemStyle={{ color: 'var(--primary)', fontSize: '14px' }}/>
+                    <Bar dataKey="treinos" fill="url(#colorBarGlow)" radius={[8, 8, 8, 8]} barSize={32} animationDuration={1200} />
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
             </div>
           )}
