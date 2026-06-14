@@ -68,28 +68,23 @@ const getMeses = (lang: string) => {
 export default function FinanceiroSaaS() {
   const router = useRouter();
   
-  // Dados do DB
   const [pagamentos, setPagamentos] = useState<any[]>([]);
   const [listaAlunos, setListaAlunos] = useState<any[]>([]);
   const [configPersonal, setConfigPersonal] = useState({ valor_mensalidade_padrao: 0 });
   const [loading, setLoading] = useState(true);
   
-  // UI & UX States
   const [activeTab, setActiveTab] = useState<'overview' | 'transactions' | 'pending' | 'attendance'>('overview');
   const [isTabMenuOpen, setIsTabMenuOpen] = useState(false);
   const [toast, setToast] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   const [olhoAberto, setOlhoAberto] = useState(true);
   
-  // Filtros
   const [mesFiltro, setMesFiltro] = useState(new Date().getMonth());
   const [anoFiltro, setAnoFiltro] = useState(new Date().getFullYear());
 
-  // Form Pagamento Manual
   const [novoValor, setNovoValor] = useState('');
   const [alunoId, setAlunoId] = useState('');
   const [saving, setSaving] = useState(false);
 
-  // Configurações e Tema
   const [isDark, setIsDark] = useState(true);
   const [lang, setLang] = useState<'pt-BR' | 'pt-PT' | 'en'>('pt-BR');
   const [mounted, setMounted] = useState(false);
@@ -97,7 +92,6 @@ export default function FinanceiroSaaS() {
 
   const t = translations[lang] || translations['pt-BR'];
 
-  // Definição das opções do Menu Dropdown
   const tabs = [
     { id: 'overview', icon: <FaChartBar />, label: t.tabOverview },
     { id: 'transactions', icon: <FaListUl />, label: t.tabTransactions },
@@ -172,7 +166,6 @@ export default function FinanceiroSaaS() {
     const alunoSelecionado = listaAlunos.find(a => a.id === alunoId);
     let novaDataStr = '';
     
-    // LÓGICA DE DATA BLINDADA: Adiciona 1 mês exatamente, mantendo o dia original de vencimento
     if (alunoSelecionado?.data_vencimento) {
       const [anoStr, mesStr, diaStr] = alunoSelecionado.data_vencimento.split('T')[0].split('-');
       let ano = Number(anoStr);
@@ -185,13 +178,11 @@ export default function FinanceiroSaaS() {
         ano += 1;
       }
       
-      // Validação para o JS não quebrar meses curtos (ex: vencia dia 31 Jan, não pode virar 03 de Março)
       const ultimoDiaDoMes = new Date(ano, mes, 0).getDate();
       if (dia > ultimoDiaDoMes) dia = ultimoDiaDoMes;
       
       novaDataStr = `${ano}-${String(mes).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
     } else {
-      // Se por acaso não tinha data nenhuma, cria uma nova pra daqui a 1 mês
       const hj = new Date();
       hj.setMonth(hj.getMonth() + 1);
       novaDataStr = hj.toISOString().split('T')[0];
@@ -240,25 +231,39 @@ export default function FinanceiroSaaS() {
   const totalAno = faturamentoAnual.reduce((acc, val) => acc + val, 0);
   const maxMes = Math.max(...faturamentoAnual, 1); 
 
-  // ━━━━━━━━━━━━━━━━ INADIMPLENTES (AGORA 100% BLINDADO CONTRA BUG DE FUSO HORÁRIO) ━━━━━━━━━━━━━━━━
-  const alunosInadimplentes = useMemo(() => listaAlunos.filter(a => {
-    if (!a.data_vencimento) return false;
-    
-    // Pegamos a data real do dispositivo AGORA e formatamos como string YYYY-MM-DD
-    const hojeObj = new Date();
-    const ano = hojeObj.getFullYear();
-    const mes = String(hojeObj.getMonth() + 1).padStart(2, '0');
-    const dia = String(hojeObj.getDate()).padStart(2, '0');
-    const hojeStr = `${ano}-${mes}-${dia}`;
-    
-    // Pegamos a data do banco puramente como string
-    const vencimentoStr = a.data_vencimento.split('T')[0];
-    
-    // Comparamos as duas Strings diretamente. Menor ou igual a hoje = devendo.
-    return vencimentoStr <= hojeStr; 
-  }).sort((a,b) => {
-    return a.data_vencimento.localeCompare(b.data_vencimento);
-  }), [listaAlunos]);
+  // ━━━━━━━━━━━━━━━━ INADIMPLENTES (BLINDAGEM TOTAL MATEMÁTICA) ━━━━━━━━━━━━━━━━
+  const alunosInadimplentes = useMemo(() => {
+    return listaAlunos.filter(a => {
+      if (!a.data_vencimento) return false;
+      
+      // Limpa e extrai os números reais da data de vencimento no banco de dados
+      const dataLimpa = a.data_vencimento.split('T')[0].trim();
+      const partes = dataLimpa.split('-');
+      
+      if (partes.length !== 3) return false;
+      
+      const anoVenc = Number(partes[0]);
+      const mesVenc = Number(partes[1]) - 1; // Mês no JS começa em 0 (Janeiro = 0)
+      const diaVenc = Number(partes[2]);
+      
+      // Data de Vencimento cravada meia-noite
+      const vencimentoObj = new Date(anoVenc, mesVenc, diaVenc);
+      vencimentoObj.setHours(0, 0, 0, 0);
+      
+      // Data de Hoje cravada meia-noite
+      const hojeObj = new Date();
+      hojeObj.setHours(0, 0, 0, 0);
+      
+      // Se Vencimento for <= Hoje, ele está devendo!
+      return vencimentoObj <= hojeObj; 
+      
+    }).sort((a,b) => {
+      // Ordena mostrando os que estão mais atrasados primeiro
+      const dataA = new Date(a.data_vencimento.split('T')[0] + 'T00:00:00').getTime();
+      const dataB = new Date(b.data_vencimento.split('T')[0] + 'T00:00:00').getTime();
+      return dataA - dataB;
+    });
+  }, [listaAlunos]);
 
   const enviarCobrancaWhatsApp = (aluno: any) => {
     if(!aluno.telefone) return alert("Aluno sem telefone cadastrado.");
@@ -299,7 +304,6 @@ export default function FinanceiroSaaS() {
             </div>
           </header>
 
-          {/* ━━━━━━━━━━ MENU DROPDOWN ELEGANTE ━━━━━━━━━━ */}
           <div className="relative mb-6 z-30">
             <button 
               onClick={() => setIsTabMenuOpen(!isTabMenuOpen)}
@@ -310,7 +314,6 @@ export default function FinanceiroSaaS() {
                 <span className="font-black text-[13px] tracking-wide text-[var(--text-primary)] uppercase">{activeTabConfig?.label}</span>
               </div>
               <div className="flex items-center gap-3">
-                {/* Etiqueta vermelha de aviso se houver devedores e não estiver na aba */}
                 {(alunosInadimplentes.length > 0 && activeTab !== 'pending') && (
                   <span className="flex h-2.5 w-2.5 relative">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--danger)] opacity-75"></span>
@@ -321,7 +324,6 @@ export default function FinanceiroSaaS() {
               </div>
             </button>
 
-            {/* Opções do Menu Dropdown */}
             {isTabMenuOpen && (
               <>
                 <div className="fixed inset-0 z-20" onClick={() => setIsTabMenuOpen(false)}></div>
@@ -441,7 +443,6 @@ export default function FinanceiroSaaS() {
                   <table className="w-full text-left">
                     <tbody className="divide-y divide-[var(--border)]">
                       {pagamentosMesFiltrado.map((p) => {
-                        // Garante formatação correta sem perder 1 dia pelo fuso
                         const rawDate = p.data_pagamento ? p.data_pagamento.split('T')[0] : '';
                         const dateParts = rawDate.split('-');
                         const formattedDate = rawDate ? `${dateParts[2]}/${dateParts[1]}/${dateParts[0]}` : '-';
@@ -464,7 +465,7 @@ export default function FinanceiroSaaS() {
             </div>
           )}
 
-          {/* ━━━━━━━━━━ ABA 3: INADIMPLENTES (FOCADO EM QUEM FALTA PAGAR E 100% BLINDADO) ━━━━━━━━━━ */}
+          {/* ━━━━━━━━━━ ABA 3: INADIMPLENTES (AGORA 100% BLINDADO) ━━━━━━━━━━ */}
           {activeTab === 'pending' && (
             <div className="space-y-4 animate-in slide-in-from-bottom-4 fade-in duration-500">
               {alunosInadimplentes.length === 0 ? (
@@ -476,20 +477,16 @@ export default function FinanceiroSaaS() {
                 </div>
               ) : (
                 alunosInadimplentes.map(aluno => {
-                  const vencimentoStr = aluno.data_vencimento.split('T')[0];
+                  const dataLimpa = aluno.data_vencimento.split('T')[0].trim();
+                  const partes = dataLimpa.split('-');
                   
-                  // Gerando strings seguras e locais para cálculo de dias
+                  const vencimentoObj = new Date(Number(partes[0]), Number(partes[1]) - 1, Number(partes[2]));
+                  vencimentoObj.setHours(0,0,0,0);
+                  
                   const hojeObj = new Date();
-                  const anoH = hojeObj.getFullYear();
-                  const mesH = String(hojeObj.getMonth() + 1).padStart(2, '0');
-                  const diaH = String(hojeObj.getDate()).padStart(2, '0');
-                  const hojeLimpo = `${anoH}-${mesH}-${diaH}`;
+                  hojeObj.setHours(0,0,0,0);
                   
-                  const dataHoje = new Date(`${hojeLimpo}T00:00:00`).getTime();
-                  const dataVencimento = new Date(`${vencimentoStr}T00:00:00`).getTime();
-                  
-                  const diasAtraso = Math.floor((dataHoje - dataVencimento) / (1000 * 3600 * 24));
-                  const partes = vencimentoStr.split('-');
+                  const diasAtraso = Math.floor((hojeObj.getTime() - vencimentoObj.getTime()) / (1000 * 3600 * 24));
                   
                   return (
                     <div key={aluno.id} className="bg-[var(--surface)] p-5 rounded-[1.5rem] border border-[var(--danger)]/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm hover:border-[var(--danger)]/60 transition-all">
