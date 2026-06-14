@@ -133,10 +133,11 @@ export default function FinanceiroSaaS() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
+    // ATENÇÃO AQUI: Mudado de select específico para select('*') em alunos para puxar a data de vencimento
     const [cRes, pRes, aRes] = await Promise.all([
       supabase.from('personais').select('valor_mensalidade').eq('id', user.id).single(),
       supabase.from('pagamentos').select('id, valor, data_pagamento, alunos(nome)').eq('personal_id', user.id).order('data_pagamento', { ascending: false }),
-      supabase.from('alunos').select('id, nome, ativo, data_vencimento, telefone, status_pagamento, valor_mensalidade, data_ultimo_treino').eq('personal_id', user.id)
+      supabase.from('alunos').select('*').eq('personal_id', user.id)
     ]);
 
     if (cRes.data) setConfigPersonal({ valor_mensalidade_padrao: cRes.data.valor_mensalidade || 0 });
@@ -231,38 +232,25 @@ export default function FinanceiroSaaS() {
   const totalAno = faturamentoAnual.reduce((acc, val) => acc + val, 0);
   const maxMes = Math.max(...faturamentoAnual, 1); 
 
-  // ━━━━━━━━━━━━━━━━ INADIMPLENTES (BLINDAGEM TOTAL MATEMÁTICA) ━━━━━━━━━━━━━━━━
+  // ━━━━━━━━━━━━━━━━ INADIMPLENTES (AGORA 100% BLINDADO CONTRA BUG DE FUSO HORÁRIO) ━━━━━━━━━━━━━━━━
   const alunosInadimplentes = useMemo(() => {
+    // 1. Pegamos a data de hoje formatada como 'YYYY-MM-DD' em string baseada no timezone local
+    const hojeObj = new Date();
+    const anoH = hojeObj.getFullYear();
+    const mesH = String(hojeObj.getMonth() + 1).padStart(2, '0');
+    const diaH = String(hojeObj.getDate()).padStart(2, '0');
+    const hojeStr = `${anoH}-${mesH}-${diaH}`;
+
     return listaAlunos.filter(a => {
       if (!a.data_vencimento) return false;
       
-      // Limpa e extrai os números reais da data de vencimento no banco de dados
-      const dataLimpa = a.data_vencimento.split('T')[0].trim();
-      const partes = dataLimpa.split('-');
+      // 2. Pegamos a data do banco como string pura (ex: '2026-06-08')
+      const vencimentoStr = a.data_vencimento.split('T')[0];
       
-      if (partes.length !== 3) return false;
+      // 3. Comparamos as strings: se a data do vencimento for menor ou igual a de hoje, está atrasado
+      return vencimentoStr <= hojeStr;
       
-      const anoVenc = Number(partes[0]);
-      const mesVenc = Number(partes[1]) - 1; // Mês no JS começa em 0 (Janeiro = 0)
-      const diaVenc = Number(partes[2]);
-      
-      // Data de Vencimento cravada meia-noite
-      const vencimentoObj = new Date(anoVenc, mesVenc, diaVenc);
-      vencimentoObj.setHours(0, 0, 0, 0);
-      
-      // Data de Hoje cravada meia-noite
-      const hojeObj = new Date();
-      hojeObj.setHours(0, 0, 0, 0);
-      
-      // Se Vencimento for <= Hoje, ele está devendo!
-      return vencimentoObj <= hojeObj; 
-      
-    }).sort((a,b) => {
-      // Ordena mostrando os que estão mais atrasados primeiro
-      const dataA = new Date(a.data_vencimento.split('T')[0] + 'T00:00:00').getTime();
-      const dataB = new Date(b.data_vencimento.split('T')[0] + 'T00:00:00').getTime();
-      return dataA - dataB;
-    });
+    }).sort((a,b) => a.data_vencimento.localeCompare(b.data_vencimento));
   }, [listaAlunos]);
 
   const enviarCobrancaWhatsApp = (aluno: any) => {
