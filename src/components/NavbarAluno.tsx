@@ -43,7 +43,7 @@ export default function NavbarAluno() {
   };
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  // TEMA E IDIOMA EM TEMPO REAL + CORREÇÃO GLOBAL DE FUNDO (iOS/Mobile)
+  // TEMA, IDIOMA E "EDGE-TO-EDGE" (CELULAR TELA CHEIA COMO BET365)
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   useEffect(() => {
     const updateSettings = () => {
@@ -54,10 +54,10 @@ export default function NavbarAluno() {
       const savedLang = localStorage.getItem('@premium_lang') as 'pt-BR' | 'pt-PT' | 'en';
       if (savedLang) setLang(savedLang);
 
-      // CORREÇÃO DO ESPAÇO BRANCO NO TOPO E RODAPÉ (BARRA DE STATUS DO CELULAR)
+      // CORREÇÃO DEFINITIVA DO ESPAÇO BRANCO NO TOPO E RODAPÉ (EDGE-TO-EDGE)
       const bgColor = isDarkTheme ? '#0F1115' : '#F3F6FB';
       
-      // 1. Muda a cor da barra de status (relógio, bateria)
+      // 1. Força a cor do Theme Color (Barra do relógio)
       let metaThemeColor = document.querySelector("meta[name='theme-color']");
       if (!metaThemeColor) {
         metaThemeColor = document.createElement("meta");
@@ -66,9 +66,18 @@ export default function NavbarAluno() {
       }
       metaThemeColor.setAttribute("content", bgColor);
 
-      // 2. Força o fundo do HTML e BODY em tempo real
-      document.documentElement.style.setProperty('background-color', bgColor, 'important');
-      document.body.style.setProperty('background-color', bgColor, 'important');
+      // 2. Injeta o viewport-fit=cover para o app preencher até o final da tela do iPhone
+      let metaViewport = document.querySelector("meta[name='viewport']");
+      if (!metaViewport) {
+        metaViewport = document.createElement("meta");
+        metaViewport.setAttribute("name", "viewport");
+        document.head.appendChild(metaViewport);
+      }
+      metaViewport.setAttribute("content", "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover");
+
+      // 3. Força a raiz do HTML/BODY a ter a cor do tema via JS
+      document.documentElement.style.backgroundColor = bgColor;
+      document.body.style.backgroundColor = bgColor;
     };
 
     updateSettings();
@@ -173,20 +182,18 @@ export default function NavbarAluno() {
       {/* ━━━━━━━━━━ INJEÇÃO GLOBAL EXTREMA PARA REMOVER ESPAÇOS BRANCOS ━━━━━━━━━━ */}
       <style dangerouslySetInnerHTML={{
         __html: `
-          :root, html, body {
+          html, body {
             background-color: ${isDark ? '#0F1115' : '#F3F6FB'} !important;
-            overscroll-behavior-y: none; /* Previne o quique branco do iOS */
+            margin: 0;
+            padding: 0;
+            overscroll-behavior: none; /* Previne o efeito "borracha" do iOS */
           }
-          #fixed-bg-premium {
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background-color: ${isDark ? '#0F1115' : '#F3F6FB'};
-            z-index: -9999;
-            pointer-events: none;
+          /* Aplica a cor em qualquer elemento base do Next.js que tentar ficar branco */
+          #__next, div[data-overlay-container] {
+            background-color: ${isDark ? '#0F1115' : '#F3F6FB'} !important;
           }
         `
       }} />
-      <div id="fixed-bg-premium" /> {/* Camada extra garantindo cor em 100% da tela */}
 
       {/* TOAST FLUTUANTE DE BLOQUEIO */}
       {toast && (
