@@ -34,6 +34,8 @@ const translations = {
     online: 'Online',
     inPerson: 'Presencial',
     dueDate: 'Vencimento',
+    monthlyFee: 'Mensalidade (R$)', // <-- NOVO
+    feePlaceholder: 'Ex: 150', // <-- NOVO
     submit: 'Confirmar Cadastro',
     loading: 'Cadastrando...',
     errSession: 'Sessão expirada.',
@@ -64,6 +66,8 @@ const translations = {
     online: 'Online',
     inPerson: 'Presencial',
     dueDate: 'Vencimento',
+    monthlyFee: 'Mensalidade (€)', // <-- NOVO
+    feePlaceholder: 'Ex: 50', // <-- NOVO
     submit: 'Confirmar Registo',
     loading: 'A registar...',
     errSession: 'Sessão expirada.',
@@ -94,6 +98,8 @@ const translations = {
     online: 'Online',
     inPerson: 'In-person',
     dueDate: 'Due Date',
+    monthlyFee: 'Monthly Fee ($)', // <-- NOVO
+    feePlaceholder: 'Ex: 100', // <-- NOVO
     submit: 'Confirm Registration',
     loading: 'Registering...',
     errSession: 'Session expired.',
@@ -102,7 +108,7 @@ const translations = {
 };
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// COMPONENTES DE INPUT PREMIUM (Ajustados para não vazar a tela)
+// COMPONENTES DE INPUT PREMIUM
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 const InputField = ({ label, name, value, onChange, type = "text", placeholder, autoComplete }: any) => (
   <div className="flex flex-col gap-1.5 w-full min-w-0 group">
@@ -161,7 +167,8 @@ export default function AdicionarAluno() {
     dataNascimento: '', 
     sexo: '', 
     modalidade: '', 
-    dataVencimento: ''
+    dataVencimento: '',
+    valorMensalidade: '' // <-- NOVO ESTADO
   });
   
   const [loading, setLoading] = useState(false);
@@ -235,7 +242,8 @@ export default function AdicionarAluno() {
 
       const result = await cadastrarAlunoAction({
         ...formData,
-        telefone: formData.telefone.replace(/\D/g, '') // Envia apenas os números
+        telefone: formData.telefone.replace(/\D/g, ''), // Envia apenas os números
+        valor_mensalidade: formData.valorMensalidade ? Number(formData.valorMensalidade) : null // <-- NOVO: Envia o valor
       }, session.user.id);
 
       if (result.error) throw new Error(result.error);
@@ -346,7 +354,11 @@ export default function AdicionarAluno() {
               />
             </div>
             
-            <InputField label={t.dueDate} name="dataVencimento" type="date" value={formData.dataVencimento} onChange={handleInputChange} />
+            {/* NOVO: AGRUPAMENTO DE VENCIMENTO E MENSALIDADE */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
+              <InputField label={t.dueDate} name="dataVencimento" type="date" value={formData.dataVencimento} onChange={handleInputChange} />
+              <InputField label={t.monthlyFee} name="valorMensalidade" type="number" placeholder={t.feePlaceholder} value={formData.valorMensalidade} onChange={handleInputChange} />
+            </div>
           </section>
         </div>
 
