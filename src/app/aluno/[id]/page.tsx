@@ -1,131 +1,73 @@
 'use client';
-import { useState, useEffect, Suspense, useMemo, use } from 'react';
+import { useEffect, useState, use, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabaseClient';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { LineChart, Line, BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-import ControleFinanceiro from '@/components/ControleFinanceiro';
-import { 
-  FaChevronLeft, FaGlobe, FaMoon, FaSun, FaExclamationCircle, FaCheckCircle, 
-  FaTrash, FaFilePdf, FaUpload, FaPlus, FaChartLine, FaDumbbell, FaCommentAlt, FaFolderOpen,
-  FaArchive, FaUndo, FaUsers, FaEdit, FaCalendarCheck, FaTimes, FaCheck,
-  FaLock, FaExclamationTriangle
-} from 'react-icons/fa';
-import { startOfWeek, endOfWeek, eachDayOfInterval, format, isSameDay, parseISO, startOfMonth, endOfMonth, addMonths, subMonths, isSameMonth } from 'date-fns';
 import { ptBR, pt, enUS } from 'date-fns/locale';
 import { NotificationService } from '@/lib/notificationService';
 import { NotificationBell } from '@/components/NotificationBell';
-
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// SKELETON SCREEN PREMIUM
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-const DetalheAlunoSkeleton = () => (
-  <div className="max-w-4xl mx-auto space-y-8 animate-pulse pt-8 px-5">
-    <div className="flex justify-between items-center mb-8">
-      <div className="w-12 h-12 bg-[var(--surface-sec)] rounded-full" />
-      <div className="w-24 h-10 bg-[var(--surface-sec)] rounded-[1.2rem]" />
-    </div>
-    <div className="bg-[var(--surface)] p-8 rounded-[2.5rem] flex flex-col items-center gap-4 border border-[var(--border)]">
-      <div className="w-24 h-24 rounded-[2rem] bg-[var(--surface-sec)]" />
-      <div className="w-48 h-8 bg-[var(--surface-sec)] rounded-xl" />
-      <div className="w-32 h-6 bg-[var(--surface-sec)] rounded-full" />
-      <div className="w-full h-16 bg-[var(--surface-sec)] rounded-2xl mt-4" />
-    </div>
-    <div className="flex gap-4 overflow-hidden border-b border-[var(--border)] pb-2">
-      {[1, 2, 3, 4, 5].map(i => <div key={i} className="w-20 h-6 bg-[var(--surface-sec)] rounded-full shrink-0" />)}
-    </div>
-    <div className="space-y-4">
-      {[1, 2].map(i => <div key={i} className="w-full h-32 bg-[var(--surface)] rounded-[2.5rem] border border-[var(--border)]" />)}
-    </div>
-  </div>
-);
+import { 
+  FaDumbbell, 
+  FaClipboardList, 
+  FaChartLine, 
+  FaFileInvoice, 
+  FaFolderOpen, 
+  FaUserCircle, 
+  FaCommentMedical, 
+  FaChevronLeft, 
+  FaChevronRight,
+  FaMoon,
+  FaSun,
+  FaGlobe,
+  FaCheck,
+  FaTimes,
+  FaLock,
+  FaExclamationTriangle
+} from 'react-icons/fa';
+import { LineChart, Line, AreaChart, Area, CartesianGrid, Tooltip, ResponsiveContainer, YAxis, XAxis, Legend } from 'recharts';
+import { startOfWeek, endOfWeek, eachDayOfInterval, format, isSameDay, parseISO, startOfMonth, endOfMonth, addMonths, subMonths, isSameMonth } from 'date-fns';
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // DICIONÁRIO DE INTERNACIONALIZAÇÃO (i18n)
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 const translations = {
   'pt-BR': {
-    back: 'Voltar', modality: 'Modalidade: ', notDefined: 'Não definido',
     status: 'Status', active: 'Assinatura Ativa', blocked: 'Bloqueado', due: 'Vencimento',
     today: 'Treino do dia', start: 'Iniciar Agora', none: 'Nenhum treino pendente para hoje.',
     week: 'Sua semana de treinos', historyBtn: 'Ver Histórico Completo',
     trainings: 'Treinos', evaluations: 'Avaliações', progress: 'Progresso',
-    feedback: 'Feedbacks', invoices: 'Faturas', files: 'Documentos',
+    feedback: 'Feedback', invoices: 'Faturas', files: 'Arquivos',
     historyTitle: 'Histórico de Treinos', analysis: 'Análise Corporal', evolution: 'Sua Evolução',
     evolutionWeight: 'Evolução de Peso (kg)', evolutionFat: '% de Gordura Corporal', evolutionMeasures: 'Circunferências Principais (cm)',
     currentWeight: 'Peso Atual', prevWeight: 'Peso Anterior', sinceLast: 'desde a última',
     lastMark: 'Última marca', details: 'Medidas Detalhadas (cm)', obs: 'Observações do Personal', dateOfRecord: 'Data do registro',
-    tabs: { workouts: 'Treinos', frequency: 'Frequência', evolution: 'Evolução', feedback: 'Feedbacks', files: 'Documentos' },
-    workouts: { 
-      active: 'Ativos', archived: 'Arquivados', program: 'Programa', viewDetails: 'Ver Treino', edit: 'Editar',
-      empty: 'Nenhuma ficha encontrada.', new: '+ Criar Nova Ficha', 
-      assign: 'Atribuir a outros', archive: 'Arquivar', restore: 'Restaurar', selectStudents: 'Selecione os Alunos'
-    },
-    frequency: { title: 'Frequência', subtitle: 'Assiduidade e consistência.', totalWorkouts: 'Treinos Totais', avgWeek: 'Média / Semana', workoutsMonth: 'Treinos por Mês' },
-    modalEval: { title: 'Nova Avaliação', subtitle: 'Preencha as métricas do aluno.', obs: 'Observações...', cancel: 'Cancelar', save: 'Salvar' },
-    alerts: { 
-      confirmFeedback: 'Tem certeza que deseja excluir este feedback?', confirmMasterFicha: 'Tem certeza que deseja excluir DE VEZ este programa e todos os treinos vinculados? Esta ação não tem volta.', 
-      confirmArchive: 'Arquivar este programa irá escondê-lo do aplicativo do aluno. Deseja continuar?', confirmRestore: 'Este programa voltará a aparecer para o aluno. Deseja continuar?',
-      confirmAvaliacao: 'Tem certeza que deseja excluir este registro?', confirmArquivo: 'Tem certeza que deseja excluir este arquivo?', 
-      errDelete: 'Erro ao excluir: ', errSave: 'Erro ao salvar: ', errUpload: 'Erro ao subir arquivo.', successUpload: 'Arquivo enviado com sucesso!' 
-    },
-    lockedTitle: 'Acesso Bloqueado', lockedDesc: 'Este aluno está com o pagamento pendente ou data de vencimento ultrapassada. O acesso aos treinos está temporariamente suspenso.',
-    selectLanguage: 'Selecione o Idioma', selectTheme: 'Aparência', themeLight: 'Modo Claro', themeDark: 'Modo Escuro'
+    selectLanguage: 'Selecione o Idioma', selectTheme: 'Aparência', themeLight: 'Modo Claro', themeDark: 'Modo Escuro',
+    lockedTitle: 'Acesso Suspenso', lockedDesc: 'Sua assinatura está pendente ou vencida. Regularize para acessar os treinos.', regularize: 'Regularizar Agora'
   },
   'pt-PT': {
-    back: 'Voltar', modality: 'Modalidade: ', notDefined: 'Não definido',
     status: 'Estado', active: 'Assinatura Ativa', blocked: 'Bloqueado', due: 'Vencimento',
     today: 'Treino de hoje', start: 'Iniciar Agora', none: 'Nenhum treino pendente para hoje.',
     week: 'A sua semana de treinos', historyBtn: 'Ver Histórico Completo',
     trainings: 'Treinos', evaluations: 'Avaliações', progress: 'Progresso',
-    feedback: 'Feedbacks', invoices: 'Faturas', files: 'Ficheiros',
+    feedback: 'Feedback', invoices: 'Faturas', files: 'Ficheiros',
     historyTitle: 'Histórico de Treinos', analysis: 'Análise Corporal', evolution: 'A Sua Evolução',
     evolutionWeight: 'Evolução de Peso (kg)', evolutionFat: '% de Gordura Corporal', evolutionMeasures: 'Circunferências Principais (cm)',
     currentWeight: 'Peso Atual', prevWeight: 'Peso Anterior', sinceLast: 'desde a última',
     lastMark: 'Última marca', details: 'Medidas Detalhadas (cm)', obs: 'Observações do Personal', dateOfRecord: 'Data do registo',
-    tabs: { workouts: 'Treinos', frequency: 'Frequência', evolution: 'Evolução', feedback: 'Feedbacks', files: 'Documentos' },
-    workouts: { 
-      active: 'Ativos', archived: 'Arquivados', program: 'Programa', viewDetails: 'Ver Treino', edit: 'Editar',
-      empty: 'Nenhuma ficha encontrada.', new: '+ Criar Nova Ficha', 
-      assign: 'Atribuir a outros', archive: 'Arquivar', restore: 'Restaurar', selectStudents: 'Selecione os Alunos'
-    },
-    frequency: { title: 'Frequência', subtitle: 'Assiduidade e consistência.', totalWorkouts: 'Treinos Totais', avgWeek: 'Média / Semana', workoutsMonth: 'Treinos por Mês' },
-    modalEval: { title: 'Nova Avaliação', subtitle: 'Preencha as métricas do aluno.', obs: 'Observações...', cancel: 'Cancelar', save: 'Guardar' },
-    alerts: { 
-      confirmFeedback: 'Tem certeza que deseja eliminar este feedback?', confirmMasterFicha: 'Tem certeza que deseja eliminar DE VEZ este programa e todos os treinos vinculados? Esta ação não tem volta.', 
-      confirmArchive: 'Arquivar este programa irá escondê-lo da aplicação do aluno. Deseja continuar?', confirmRestore: 'Este programa voltará a aparecer para o aluno. Deseja continuar?',
-      confirmAvaliacao: 'Tem certeza que deseja eliminar este registo?', confirmArquivo: 'Tem certeza que deseja eliminar este ficheiro?', 
-      errDelete: 'Erro ao eliminar: ', errSave: 'Erro ao guardar: ', errUpload: 'Erro ao subir ficheiro.', successUpload: 'Ficheiro enviado com sucesso!' 
-    },
-    lockedTitle: 'Acesso Bloqueado', lockedDesc: 'Este aluno tem pagamentos pendentes ou a data limite ultrapassada. O acesso aos treinos encontra-se suspenso.',
-    selectLanguage: 'Selecione o Idioma', selectTheme: 'Aparência', themeLight: 'Modo Claro', themeDark: 'Modo Escuro'
+    selectLanguage: 'Selecione o Idioma', selectTheme: 'Aparência', themeLight: 'Modo Claro', themeDark: 'Modo Escuro',
+    lockedTitle: 'Acesso Suspenso', lockedDesc: 'A sua assinatura encontra-se pendente ou vencida. Regularize para aceder aos treinos.', regularize: 'Regularizar Agora'
   },
   'en': {
-    back: 'Back', modality: 'Modality: ', notDefined: 'Not defined',
     status: 'Status', active: 'Active Subscription', blocked: 'Blocked', due: 'Due Date',
     today: 'Workout of the day', start: 'Start Now', none: 'No pending workouts for today.',
     week: 'Your training week', historyBtn: 'View Full History',
     trainings: 'Workouts', evaluations: 'Assessments', progress: 'Progress',
-    feedback: 'Feedbacks', invoices: 'Invoices', files: 'Documents',
+    feedback: 'Feedback', invoices: 'Invoices', files: 'Files',
     historyTitle: 'Workout History', analysis: 'Body Analysis', evolution: 'Your Evolution',
     evolutionWeight: 'Weight Evolution (kg)', evolutionFat: 'Body Fat (%)', evolutionMeasures: 'Main Circumferences (cm)',
     currentWeight: 'Current Wt.', prevWeight: 'Previous Wt.', sinceLast: 'since last',
     lastMark: 'Last mark', details: 'Detailed Measurements (cm)', obs: 'Trainer Notes', dateOfRecord: 'Record date',
-    tabs: { workouts: 'Workouts', frequency: 'Frequency', evolution: 'Evolution', feedback: 'Feedbacks', files: 'Documents' },
-    workouts: { 
-      active: 'Active', archived: 'Archived', program: 'Program', viewDetails: 'View Workout', edit: 'Edit',
-      empty: 'No workouts found.', new: '+ Create New Workout', 
-      assign: 'Assign to others', archive: 'Archive', restore: 'Restore', selectStudents: 'Select Students'
-    },
-    frequency: { title: 'Frequency', subtitle: 'Attendance and consistency.', totalWorkouts: 'Total Workouts', avgWeek: 'Avg / Week', workoutsMonth: 'Workouts per Month' },
-    modalEval: { title: 'New Assessment', subtitle: 'Fill in the student metrics.', obs: 'Observations...', cancel: 'Cancel', save: 'Save' },
-    alerts: { 
-      confirmFeedback: 'Are you sure you want to delete this feedback?', confirmMasterFicha: 'Are you sure you want to PERMANENTLY delete this program and all its splits? This action cannot be undone.', 
-      confirmArchive: 'Archiving this program will hide it from the student app. Continue?', confirmRestore: 'This program will reappear for the student. Continue?',
-      confirmAvaliacao: 'Are you sure you want to delete this record?', confirmArquivo: 'Are you sure you want to delete this file?', 
-      errDelete: 'Error deleting: ', errSave: 'Error saving: ', errUpload: 'Error uploading file.', successUpload: 'File uploaded successfully!' 
-    },
-    lockedTitle: 'Access Blocked', lockedDesc: 'This student has a pending payment or is past the due date. Workout access is temporarily suspended.',
-    selectLanguage: 'Select Language', selectTheme: 'Appearance', themeLight: 'Light Mode', themeDark: 'Dark Mode'
+    selectLanguage: 'Select Language', selectTheme: 'Appearance', themeLight: 'Light Mode', themeDark: 'Dark Mode',
+    lockedTitle: 'Access Suspended', lockedDesc: 'Your subscription is pending or expired. Please settle it to access workouts.', regularize: 'Settle Now'
   }
 };
 
@@ -135,43 +77,22 @@ const languages = [
   { code: 'en', name: 'English', flag: '🇺🇸' }
 ];
 
-function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
+export default function AreaDoAluno({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
-  const searchParams = useSearchParams();
-
   const [aluno, setAluno] = useState<any>(null);
-  const [fichas, setFichas] = useState<any[]>([]);
-  const [historico, setHistorico] = useState<any[]>([]);
+  const [personal, setPersonal] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [abaAtiva, setAbaAtiva] = useState(searchParams.get('aba') || 'treinos');
-  const [feedbacks, setFeedbacks] = useState<any[]>([]);
-  const [arquivos, setArquivos] = useState<any[]>([]);
-  const [isModalAvaliacaoOpen, setIsModalAvaliacaoOpen] = useState(false);
-  const [toast, setToast] = useState<{ type: 'success' | 'error', text: string } | null>(null);
-  const [indexAberto, setIndexAberto] = useState<number | null>(null);
+  const [avaliacoes, setAvaliacoes] = useState<any[]>([]);
+  const [modalAberta, setModalAberta] = useState(false);
+  const [diasTreino, setDiasTreino] = useState<Date[]>([]);
+  const [calendarioAberto, setCalendarioAberto] = useState(false);
+  const [treinoDoDia, setTreinoDoDia] = useState<any>(null);
   const [horaAtual, setHoraAtual] = useState(new Date());
   
-  const [mostrarArquivados, setMostrarArquivados] = useState(false);
-  const [isModalAtribuirOpen, setIsModalAtribuirOpen] = useState(false);
-  const [alunosList, setAlunosList] = useState<any[]>([]);
-  const [alunosSelecionados, setAlunosSelecionados] = useState<string[]>([]);
-  const [programaParaAtribuir, setProgramaParaAtribuir] = useState<any[]>([]);
-  const [treinoDoDia, setTreinoDoDia] = useState<any>(null);
-
-  // Estados Frequência
-  const [frequenciaMensal, setFrequenciaMensal] = useState<any[]>([]);
-  const [metricasFrequencia, setMetricasFrequencia] = useState({ total: 0, mediaSemana: 0 });
-
-  const [medidas, setMedidas] = useState({
-    peso: '', gordura: '', torax: '', ombros: '', abdomen: '', 
-    cintura: '', quadril: '', braco_direito: '', braco_esquerdo: '', observacoes: ''
-  });
-
-  // Estados Premium UI
+  // Estados de Tema, i18n e Modais Premium
   const [isDark, setIsDark] = useState(true);
   const [lang, setLang] = useState<'pt-BR' | 'pt-PT' | 'en'>('pt-BR');
-  const [mounted, setMounted] = useState(false);
   const [isLangModalOpen, setIsLangModalOpen] = useState(false);
   const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
 
@@ -180,26 +101,34 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
     return () => clearInterval(timer);
   }, []);
 
+  const getSaudacao = () => {
+    const hora = horaAtual.getHours();
+    if (hora < 12) return 'Bom dia';
+    if (hora < 18) return 'Boa tarde';
+    return 'Boa noite';
+  };
+
   useEffect(() => {
     const updateSettings = () => {
       const savedTheme = localStorage.getItem('@premium_theme');
-      const savedLang = localStorage.getItem('@premium_lang') as 'pt-BR' | 'pt-PT' | 'en';
       if (savedTheme) setIsDark(savedTheme === 'dark');
+      
+      const savedLang = localStorage.getItem('@premium_lang') as 'pt-BR' | 'pt-PT' | 'en';
       if (savedLang) setLang(savedLang);
     };
-    
-    updateSettings();
-    setMounted(true);
 
+    updateSettings();
     window.addEventListener('storage', updateSettings);
     window.addEventListener('config-updated', updateSettings);
-    
+    NotificationService.registrarDispositivo();
+
     return () => {
       window.removeEventListener('storage', updateSettings);
       window.removeEventListener('config-updated', updateSettings);
     };
   }, []);
 
+  // Handlers dos Modais Premium
   const handleSelectLanguage = (newLang: string) => {
     setLang(newLang as any);
     localStorage.setItem('@premium_lang', newLang);
@@ -214,29 +143,21 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
     window.dispatchEvent(new Event('config-updated'));
     setIsThemeModalOpen(false);
   };
-  
-  const t = translations[lang] || translations['pt-BR'];
-  const showToast = (type: 'success' | 'error', text: string) => { setToast({ type, text }); setTimeout(() => setToast(null), 4000); };
 
-  // Glassmorphism Premium
+  const t = translations[lang] || translations['pt-BR'];
+
   const themeStyles = isDark ? {
-    '--bg': '#0F1115', '--surface': 'rgba(21, 26, 34, 0.8)', '--surface-sec': '#1B2330', '--primary': '#3B82F6', '--danger': '#EF4444', '--success': '#22C55E', '--text-primary': '#F8FAFC', '--text-secondary': '#94A3B8', '--border': 'rgba(255,255,255,0.08)',
+    '--bg': '#0F1115', '--surface': '#151A22', '--surface-sec': '#1B2330', '--primary': '#3B82F6', '--primary-soft': '#60A5FA', '--danger': '#EF4444', '--success': '#22C55E', '--text-primary': '#F8FAFC', '--text-secondary': '#94A3B8', '--border': 'rgba(255,255,255,0.05)',
   } as React.CSSProperties : {
-    '--bg': '#F3F6FB', '--surface': 'rgba(255, 255, 255, 0.85)', '--surface-sec': '#E8EEF9', '--primary': '#2563EB', '--danger': '#DC2626', '--success': '#16A34A', '--text-primary': '#111827', '--text-secondary': '#6B7280', '--border': 'rgba(15,23,42,0.08)',
+    '--bg': '#F3F6FB', '--surface': '#FFFFFF', '--surface-sec': '#E8EEF9', '--primary': '#2563EB', '--primary-soft': '#60A5FA', '--danger': '#DC2626', '--success': '#16A34A', '--text-primary': '#111827', '--text-secondary': '#6B7280', '--border': 'rgba(15,23,42,0.06)',
   } as React.CSSProperties;
 
-  useEffect(() => {
-    if (!id) return;
-    const carregarDados = async () => {
-      setLoading(true);
-      await Promise.all([fetchDadosAluno(), fetchHistorico(), fetchFichas(), fetchFeedbacks(), fetchArquivos(), fetchAlunos(), fetchFrequencia()]);
-      setLoading(false);
-    };
-    carregarDados();
-  }, [id]);
+  const diasSemana = useMemo(() => 
+    eachDayOfInterval({ start: startOfWeek(new Date(), { weekStartsOn: 1 }), end: endOfWeek(new Date(), { weekStartsOn: 1 }) }), 
+  []);
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  // LÓGICA DE VENCIMENTO / BLOQUEIO DE ACESSO
+  // LÓGICA DE BLOQUEIO / VENCIMENTO DO ALUNO
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   const isVencido = useMemo(() => {
     if (!aluno) return false;
@@ -249,798 +170,259 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
     return hoje > vencimento;
   }, [aluno]);
 
-  const fetchAlunos = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    const { data } = await supabase.from('alunos').select('id, nome').eq('personal_id', user.id);
-    if (data) setAlunosList(data.filter(a => a.id !== id));
-  };
-
-  const fetchArquivos = async () => {
-    const { data, error } = await supabase.from('documentos').select('*').eq('aluno_id', id);
-    if (!error && data) setArquivos(data);
-  };
-
-  const fetchFeedbacks = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    const { data, error } = await supabase.from('feedbacks_treino').select('*').eq('aluno_id', id).order('data_criacao', { ascending: false });
-    if (!error) setFeedbacks(data || []);
-  };
-
-  const fetchDadosAluno = async () => {
-    const { data } = await supabase.from('alunos').select('*').eq('id', id).maybeSingle();
-    if (data) setAluno(data);
-  };
-
-  const fetchHistorico = async () => {
-    const { data, error } = await supabase.from('avaliacoes_fisicas').select('*').eq('aluno_id', id).order('data_avaliacao', { ascending: false });
-    if (!error) setHistorico(data || []);
-  };
-
-  const fetchFrequencia = async () => {
-    const { data, error } = await supabase.from('conclusoes_treino').select('data_conclusao').eq('aluno_id', id).order('data_conclusao', { ascending: true });
+  useEffect(() => {
+    if (!id) return;
     
-    if (!error && data) {
-      const meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-      const agrupado: Record<string, number> = {};
-      const hoje = new Date();
-      
-      for (let i = 5; i >= 0; i--) {
-        const d = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
-        const label = `${meses[d.getMonth()]} ${d.getFullYear().toString().slice(2)}`;
-        agrupado[label] = 0;
+    async function init() {
+      const { data: alunoData } = await supabase.from('alunos').select('*').eq('id', id).maybeSingle();
+      if (!alunoData) return;
+      setAluno(alunoData);
+
+      if (alunoData.personal_id) {
+        const { data: pData } = await supabase.from('personais').select('*').eq('id', alunoData.personal_id).maybeSingle();
+        setPersonal(pData);
       }
 
-      data.forEach(c => {
-        if (!c.data_conclusao) return;
-        const d = new Date(c.data_conclusao);
-        const label = `${meses[d.getMonth()]} ${d.getFullYear().toString().slice(2)}`;
-        if (agrupado[label] !== undefined) {
-          agrupado[label] += 1;
+      const { data: conclusoes } = await supabase.from('conclusoes_treino').select('data_conclusao, treino_id').eq('aluno_id', id);
+      
+      if (conclusoes) {
+        const inicioSemana = startOfWeek(new Date(), { weekStartsOn: 1 }).toISOString();
+        const treinosSemana = conclusoes.filter(c => c.data_conclusao >= inicioSemana);
+        setDiasTreino(treinosSemana.map(d => parseISO(d.data_conclusao)));
+      }
+
+      const { data: todasFichas } = await supabase.from('fichas').select('*').eq('aluno_id', id).or('ativo.eq.true,ativo.is.null').order('ordem', { ascending: true }).order('nome_treino', { ascending: true });
+
+      if (todasFichas && todasFichas.length > 0) {
+        if (!conclusoes || conclusoes.length === 0) {
+          setTreinoDoDia(todasFichas[0]);
+        } else {
+          const ultimaConclusao = conclusoes.sort((a, b) => new Date(b.data_conclusao).getTime() - new Date(a.data_conclusao).getTime())[0];
+          const indexUltimo = todasFichas.findIndex(f => f.id === ultimaConclusao.treino_id);
+
+          if (indexUltimo !== -1 && indexUltimo < todasFichas.length - 1) {
+            setTreinoDoDia(todasFichas[indexUltimo + 1]);
+          } else {
+            setTreinoDoDia(todasFichas[0]);
+          }
         }
-      });
-
-      const dadosGrafico = Object.keys(agrupado).map(key => ({
-        mes: key,
-        treinos: agrupado[key]
-      }));
-
-      setFrequenciaMensal(dadosGrafico);
-      const total = data.length;
-      const totalUltimosSeisMeses = dadosGrafico.reduce((acc, curr) => acc + curr.treinos, 0);
-      const mediaSemana = totalUltimosSeisMeses > 0 ? Math.round((totalUltimosSeisMeses / 24) * 10) / 10 : 0;
-      setMetricasFrequencia({ total, mediaSemana });
-    }
-  };
-
-  const fetchFichas = async () => {
-    const { data } = await supabase.from('fichas').select('*').eq('aluno_id', id).order('ordem', { ascending: true });
-    if (data) {
-      const processadas = data.map(f => {
-        let parsedEx = [];
-        try { parsedEx = typeof f.descricao === 'string' ? JSON.parse(f.descricao || '[]') : (f.descricao || []); } catch(e) {}
-        return { 
-          ...f, 
-          exercicios: Array.isArray(parsedEx) ? parsedEx : [],
-          tipo_treino: f.tipo_treino || 'Musculação', 
-          objetivo: f.objetivo || 'Hipertrofia',
-          dificuldade: f.dificuldade || 'Intermediário'
-        };
-      });
-      setFichas(processadas);
-      if (processadas.length > 0) {
-        setTreinoDoDia(processadas[0]); 
+      } else {
+        setTreinoDoDia(null);
       }
-    }
-  };
 
-  const fichasAgrupadas = useMemo(() => {
-    const grupos: Record<string, any[]> = {};
-    fichas.forEach(f => {
-      const isAtivo = f.ativo !== false; 
-      if (mostrarArquivados && isAtivo) return;
-      if (!mostrarArquivados && !isAtivo) return;
-
-      const nomeCompleto = f.nome_treino || '';
-      const partes = nomeCompleto.split(' - ');
-      const nomeMaster = partes.length > 1 ? partes[0].trim() : nomeCompleto.trim() || 'Programa Padrão';
-      const nomeSub = partes.length > 1 ? partes.slice(1).join(' - ').trim() : 'Ficha Única';
-
-      if (!grupos[nomeMaster]) grupos[nomeMaster] = [];
-      grupos[nomeMaster].push({ ...f, nome_sub: nomeSub });
-    });
-
-    return Object.entries(grupos).map(([nomeMaster, treinos]) => ({ nomeMaster, treinos }));
-  }, [fichas, mostrarArquivados]);
-
-  const evolutionData = useMemo(() => {
-    return [...historico].reverse();
-  }, [historico]);
-
-  const excluirProgramaCompleto = async (treinos: any[]) => {
-    if (!window.confirm(t.alerts.confirmMasterFicha)) return;
-    const idsParaExcluir = treinos.map(t => t.id);
-    const { error } = await supabase.from('fichas').delete().in('id', idsParaExcluir);
-    if (!error) fetchFichas(); else showToast('error', t.alerts.errDelete + error.message);
-  };
-
-  const toggleArquivarPrograma = async (treinos: any[], arquivar: boolean) => {
-    const confirmMsg = arquivar ? t.alerts.confirmArchive : t.alerts.confirmRestore;
-    if (!window.confirm(confirmMsg)) return;
-    
-    setLoading(true);
-    const ids = treinos.map(t => t.id);
-    const { error } = await supabase.from('fichas').update({ ativo: !arquivar }).in('id', ids);
-    
-    if (!error) await fetchFichas(); 
-    else showToast('error', t.alerts.errSave + error.message);
-    setLoading(false);
-  };
-
-  const atribuirProgramaEmLote = async () => {
-    if (alunosSelecionados.length === 0) return showToast('error', 'Selecione ao menos um aluno.');
-    setLoading(true);
-    
-    try {
-      for (const alunoId of alunosSelecionados) {
-        const { data: maxOrdemData } = await supabase.from('fichas')
-          .select('ordem').eq('aluno_id', alunoId).order('ordem', { ascending: false }).limit(1).maybeSingle();
-        const startOrdem = (maxOrdemData?.ordem || 0) + 1;
-
-        const inserts = programaParaAtribuir.map((treino, idx) => ({
-          aluno_id: alunoId,
-          nome_treino: treino.nome_treino,
-          descricao: JSON.stringify(treino.exercicios),
-          ordem: startOrdem + idx,
-          personal_id: treino.personal_id,
-          ativo: true
-        }));
-
-        await supabase.from('fichas').insert(inserts);
-
-        await supabase.from('user_notifications').insert([{
-          user_id: alunoId, titulo: 'Novo Treino Disponível! 💪',
-          corpo: `O personal adicionou o programa "${programaParaAtribuir[0]?.nome_treino.split('-')[0].trim()}" para você.`, lida: false
-        }]);
-      }
-      
-      showToast('success', 'Treinos copiados com sucesso!');
-      setIsModalAtribuirOpen(false);
-      setAlunosSelecionados([]);
-    } catch(e) {
-      showToast('error', 'Erro ao copiar treinos.');
-    } finally {
       setLoading(false);
     }
-  };
+    init();
+  }, [id]);
 
-  const excluirFeedback = async (idFeedback: string) => {
-    if (!window.confirm(t.alerts.confirmFeedback)) return;
-    const { error } = await supabase.from('feedbacks_treino').delete().eq('id', idFeedback);
-    if (!error) fetchFeedbacks(); else showToast('error', t.alerts.errDelete + error.message);
-  };
-
-  const excluirAvaliacao = async (avaliacaoId: string) => {
-    if (!window.confirm(t.alerts.confirmAvaliacao)) return;
-    const { error } = await supabase.from('avaliacoes_fisicas').delete().eq('id', avaliacaoId);
-    if (!error) fetchHistorico(); else showToast('error', t.alerts.errDelete + error.message);
-  };
-
-  const salvarAvaliacaoCompleta = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    const { error } = await supabase.from('avaliacoes_fisicas').insert({
-      aluno_id: id, personal_id: user?.id, data_avaliacao: new Date().toISOString(), ...medidas
-    });
-    if (!error) {
-      setIsModalAvaliacaoOpen(false);
-      setMedidas({ peso: '', gordura: '', torax: '', ombros: '', abdomen: '', cintura: '', quadril: '', braco_direito: '', braco_esquerdo: '', observacoes: '' });
-      fetchHistorico();
-      showToast('success', 'Avaliação salva!');
-    } else showToast('error', t.alerts.errSave + error.message);
-  };
-
-  if (!mounted) return <main className="min-h-screen bg-[#0F1115]" />;
+  if (loading) return (
+    <main style={themeStyles} className="min-h-screen bg-[var(--bg)] p-6 space-y-8 animate-pulse pt-[max(env(safe-area-inset-top),1.5rem)]">
+      <div className="w-full max-w-md md:max-w-2xl mx-auto flex flex-col space-y-6">
+        <div className="flex justify-between items-center mb-10"><div className="flex items-center gap-4"><div className="w-14 h-14 bg-[var(--surface-sec)] rounded-full" /><div className="space-y-2"><div className="w-24 h-4 bg-[var(--surface-sec)] rounded-full" /><div className="w-16 h-3 bg-[var(--surface-sec)] rounded-full" /></div></div></div>
+        <div className="space-y-4"><div className="w-48 h-8 bg-[var(--surface-sec)] rounded-full" /><div className="w-32 h-3 bg-[var(--surface-sec)] rounded-full" /><div className="w-full h-32 bg-[var(--surface-sec)] rounded-3xl" /></div>
+        <div className="grid grid-cols-2 gap-4">{[1, 2, 3, 4].map((i) => (<div key={i} className="h-28 bg-[var(--surface-sec)] rounded-3xl" />))}</div>
+      </div>
+    </main>
+  );
 
   return (
-    <main style={themeStyles} className="w-full min-h-[100dvh] bg-[var(--bg)] text-[var(--text-primary)] px-5 pt-[calc(env(safe-area-inset-top)+2rem)] pb-[calc(env(safe-area-inset-bottom)+8rem)] transition-colors duration-500 font-sans relative overflow-hidden">
-      
-      {/* Background Orbs (Premium Glow) */}
-      <div className="absolute top-[-10%] left-[-10%] w-[120vw] sm:w-[400px] h-[120vw] sm:h-[400px] bg-[var(--primary)]/10 rounded-full blur-[120px] pointer-events-none" />
+    <main style={themeStyles} className="min-h-screen bg-[var(--bg)] text-[var(--text-primary)] transition-colors duration-500 font-sans antialiased pb-[env(safe-area-inset-bottom)] flex flex-col">
+      <div className="w-full max-w-md md:max-w-2xl mx-auto flex flex-col pt-[max(env(safe-area-inset-top),1.5rem)] px-5 pb-32 space-y-6">
 
-      {/* TOAST PREMIUM */}
-      {toast && (
-        <div className={`fixed top-[max(env(safe-area-inset-top,24px),24px)] left-1/2 -translate-x-1/2 px-6 py-4 rounded-[1.2rem] shadow-2xl z-[99999] flex items-center gap-3 backdrop-blur-md border animate-in slide-in-from-top-4 fade-in ${toast.type === 'success' ? 'bg-[var(--success)]/10 text-[var(--success)] border-[var(--success)]/20' : 'bg-[var(--danger)]/10 text-[var(--danger)] border-[var(--danger)]/20'}`}>
-          {toast.type === 'success' ? <FaCheckCircle size={16} /> : <FaExclamationCircle size={16} />}
-          <span className="text-[10px] font-black uppercase tracking-widest">{toast.text}</span>
-        </div>
-      )}
-
-      {/* ━━━━━━━━━━ CONTROLES UNIFICADOS FLUTUANTES (PILL UI) ━━━━━━━━━━ */}
-      <div className="absolute top-[max(env(safe-area-inset-top,1rem),1.5rem)] right-5 z-40 animate-in fade-in duration-700">
-        <div className="flex items-center bg-[var(--surface)] backdrop-blur-md border border-[var(--border)] rounded-full shadow-sm p-1">
-          <button 
-            onClick={() => setIsLangModalOpen(true)}
-            className="flex items-center justify-center gap-1.5 px-3 h-8 rounded-full text-[var(--text-secondary)] hover:text-[var(--primary)] hover:bg-[var(--primary)]/5 transition-all active:scale-95"
-          >
-            <FaGlobe size={14} />
-            <span className="text-[10px] font-black uppercase tracking-widest hidden sm:block">{lang.split('-')[0]}</span>
-          </button>
-          
-          <div className="w-[1px] h-4 bg-[var(--border)] mx-0.5" />
-          
-          <button 
-            onClick={() => setIsThemeModalOpen(true)} 
-            className="flex items-center justify-center w-10 h-8 rounded-full text-[var(--text-secondary)] hover:text-[var(--primary)] hover:bg-[var(--primary)]/5 transition-all active:scale-95"
-          >
-            {isDark ? <FaSun size={14} /> : <FaMoon size={14} />}
-          </button>
-        </div>
-      </div>
-
-      {/* Modal: Atribuir Treinos */}
-      {isModalAtribuirOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xl z-[99999] flex items-end sm:items-center justify-center p-0 sm:p-5 animate-in fade-in duration-300">
-          <div className="bg-[var(--surface)] w-full sm:max-w-md rounded-t-[2.5rem] sm:rounded-[2.5rem] p-6 sm:p-8 shadow-2xl border border-[var(--border)] overflow-y-auto max-h-[90vh] sm:max-h-[85vh] animate-in slide-in-from-bottom-8 sm:zoom-in-95 custom-scrollbar">
-            <div className="mb-6 border-b border-[var(--border)] pb-4 flex justify-between items-start">
-              <div>
-                <h3 className="text-xl font-black tracking-tighter text-[var(--text-primary)]">{t.workouts.assign}</h3>
-                <p className="text-[var(--text-secondary)] text-[10px] uppercase tracking-widest font-black mt-1">
-                  {programaParaAtribuir[0]?.nome_treino.split('-')[0].trim() || 'Programa'}
-                </p>
-              </div>
-              <button onClick={() => setIsModalAtribuirOpen(false)} className="w-8 h-8 rounded-full bg-[var(--surface-sec)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--danger)] transition-colors active:scale-95">
-                <FaTimes size={12} />
-              </button>
-            </div>
-            
-            <div className="space-y-2 mb-6">
-              {alunosList.length > 0 ? alunosList.map(a => (
-                <label key={a.id} className="flex items-center gap-3 p-4 bg-[var(--surface-sec)] hover:bg-[var(--primary)]/5 border border-[var(--border)] hover:border-[var(--primary)]/30 rounded-2xl cursor-pointer transition-colors">
-                  <input 
-                    type="checkbox" 
-                    className="w-5 h-5 accent-[var(--primary)]"
-                    checked={alunosSelecionados.includes(a.id)}
-                    onChange={(e) => {
-                      if(e.target.checked) setAlunosSelecionados([...alunosSelecionados, a.id]);
-                      else setAlunosSelecionados(alunosSelecionados.filter(id => id !== a.id));
-                    }}
-                  />
-                  <span className="font-bold text-[var(--text-primary)] text-sm">{a.nome}</span>
-                </label>
-              )) : (
-                <p className="text-[var(--text-secondary)] text-[10px] font-black uppercase text-center py-4">Nenhum outro aluno encontrado.</p>
-              )}
-            </div>
-
-            <div className="flex gap-4">
-              <button onClick={() => { setIsModalAtribuirOpen(false); setAlunosSelecionados([]); }} className="flex-1 py-4 bg-[var(--surface-sec)] text-[var(--text-primary)] hover:bg-[var(--border)] rounded-[1.2rem] font-black text-[10px] uppercase tracking-widest transition-colors active:scale-95">
-                {t.modalEval.cancel}
-              </button>
-              <button onClick={atribuirProgramaEmLote} disabled={alunosSelecionados.length === 0} className="flex-1 py-4 bg-[var(--primary)] text-white rounded-[1.2rem] font-black text-[10px] uppercase tracking-widest disabled:opacity-50 hover:brightness-110 shadow-lg shadow-[var(--primary)]/20 transition-all active:scale-95">
-                Confirmar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {loading && !isModalAtribuirOpen ? <DetalheAlunoSkeleton /> : (
-        <div className="max-w-4xl mx-auto space-y-8 relative z-10 animate-in fade-in duration-700">
-          
-          <div className="flex justify-between items-center mb-6">
-            <button onClick={() => router.back()} className="flex items-center justify-center w-11 h-11 rounded-full bg-[var(--surface)] backdrop-blur-md border border-[var(--border)] active:scale-95 transition-all shadow-sm hover:bg-[var(--surface-sec)]">
-              <FaChevronLeft className="text-[var(--text-primary)]" size={14} />
-            </button>
-          </div>
-
-          {/* PERFIL DO ALUNO COM STATUS FINANCEIRO */}
-          <section className="bg-[var(--surface)] backdrop-blur-2xl p-8 rounded-[2.5rem] border border-[var(--border)] shadow-xl shadow-[var(--border)] mb-8 flex flex-col items-center text-center gap-5 relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--primary)]/5 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none transition-all group-hover:bg-[var(--primary)]/10" />
-            <div className={`w-24 h-24 rounded-[2rem] overflow-hidden border-4 shadow-xl bg-[var(--surface-sec)] relative z-10 transition-colors ${isVencido ? 'border-[var(--danger)]/30 shadow-[var(--danger)]/20' : 'border-[var(--bg)]'}`}>
-              <img src={aluno?.avatar_url || 'https://via.placeholder.com/150'} className="w-full h-full object-cover" alt={aluno?.nome} />
-            </div>
-            <div className="relative z-10">
-              <h1 className="text-3xl font-black tracking-tighter mb-2">{aluno?.nome}</h1>
-              <div className="flex justify-center gap-2">
-                <p className="text-[var(--primary)] font-black bg-[var(--primary)]/10 px-4 py-1.5 rounded-full inline-flex items-center gap-2 text-[10px] uppercase tracking-widest border border-[var(--primary)]/20">
-                  <FaCheckCircle size={10} className="text-[var(--primary)]" /> {t.modality} {aluno?.modalidade || t.notDefined}
-                </p>
-                {isVencido && (
-                  <p className="text-[var(--danger)] font-black bg-[var(--danger)]/10 px-4 py-1.5 rounded-full inline-flex items-center gap-2 text-[10px] uppercase tracking-widest border border-[var(--danger)]/20 animate-pulse">
-                    <FaLock size={10} className="text-[var(--danger)]" /> {t.blocked}
-                  </p>
+        <header className="flex justify-between items-center w-full mt-4">
+          <div className="flex items-center gap-4">
+            <div className="relative w-14 h-14 rounded-full p-[2px] bg-gradient-to-tr from-[var(--primary)] to-[var(--primary-soft)] shadow-lg shadow-[var(--primary)]/20 shrink-0">
+              <div className="w-full h-full rounded-full bg-[var(--surface)] p-[2px]">
+                {personal?.avatar_url ? (
+                  <img src={personal.avatar_url} alt="Personal Avatar" className="w-full h-full object-cover rounded-full" />
+                ) : (
+                  <FaUserCircle className="w-full h-full text-[var(--text-secondary)]" />
                 )}
               </div>
             </div>
-            <div className="w-full mt-2 relative z-10">
-               <ControleFinanceiro alunoId={id} initialStatus={aluno?.status_pagamento || 'pendente'} />
+            <div className="flex flex-col truncate pr-2">
+              <span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mb-0.5">Personal Trainer</span>
+              <h1 className="font-black text-lg leading-none tracking-tight truncate">{personal?.nome || 'Personal'}</h1>
+              <p className="text-[var(--primary)] text-[9px] font-black uppercase tracking-[0.2em] mt-1">CREF: {personal?.cref || 'N/A'}</p>
             </div>
-          </section>
-
-          {/* HERO BANNER - TREINO DO DIA OU BLOQUEADO */}
-          {isVencido ? (
-            <section className="relative overflow-hidden bg-gradient-to-br from-red-600 to-rose-700 p-8 rounded-[2rem] shadow-[0_10px_30px_rgba(225,29,72,0.3)] border border-white/10 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">
-              <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 blur-[50px] rounded-full transform translate-x-1/2 -translate-y-1/2" />
-              <div className="relative z-10 flex items-center gap-4 mb-3">
-                 <div className="bg-white/20 backdrop-blur-md p-3 rounded-2xl shadow-inner shrink-0 border border-white/10"><FaExclamationTriangle className="text-white text-xl" /></div>
-                 <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white leading-tight">Assinatura Vencida</h2>
-              </div>
-              <p className="relative z-10 text-white/90 text-[11px] sm:text-xs font-medium leading-relaxed mb-1">{t.lockedDesc}</p>
-            </section>
-          ) : treinoDoDia ? (
-            (() => {
-              let nomeLimpoHero = treinoDoDia.nome_treino || '';
-              const matchTreino = nomeLimpoHero.match(/(treino\s+[a-z0-9]+)/i);
-              if (matchTreino) nomeLimpoHero = matchTreino[0].toUpperCase();
-              else if (nomeLimpoHero.includes('-')) nomeLimpoHero = nomeLimpoHero.split('-').pop()?.trim() || nomeLimpoHero;
-
-              return (
-                <section className="relative overflow-hidden bg-gradient-to-br from-blue-600 to-indigo-700 p-8 rounded-[2rem] shadow-[0_10px_30px_rgba(37,99,235,0.3)] border border-white/10 group animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">
-                  <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 blur-[50px] rounded-full transform translate-x-1/2 -translate-y-1/2" />
-                  <div className="relative z-10 flex justify-between items-start mb-8">
-                    <div className="flex flex-col flex-1 pr-4">
-                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/70 mb-1">{t.today}</span>
-                      <h2 className="text-3xl font-black tracking-tight text-white leading-tight break-words">{nomeLimpoHero}</h2>
-                    </div>
-                    <div className="bg-white/20 backdrop-blur-md p-3.5 rounded-2xl shadow-inner shrink-0 border border-white/10"><FaDumbbell className="text-white text-xl" /></div>
-                  </div>
-                  <button onClick={() => router.push(`/aluno/${id}/treino/${treinoDoDia.id}`)} className="relative z-10 w-full py-4 bg-white text-[var(--primary)] rounded-2xl font-black text-[12px] uppercase tracking-widest transition-transform active:scale-[0.98] shadow-xl hover:shadow-2xl flex items-center justify-center gap-2">{t.start}</button>
-                </section>
-              );
-            })()
-          ) : (
-            <div className="p-8 text-center bg-[var(--surface)] rounded-[2rem] border border-dashed border-[var(--border)] animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">
-              <p className="text-[var(--text-secondary)] text-[10px] font-black uppercase tracking-widest">{t.none}</p>
-            </div>
-          )}
-
-          {/* MENUS E ABAS COMPACTAS FLUIDAS */}
-          <div className="flex gap-6 mb-8 border-b border-[var(--border)] overflow-x-auto custom-scrollbar pb-1 mt-6">
-            {[
-              { id: 'treinos', label: t.tabs.workouts, icon: FaDumbbell },
-              { id: 'frequencia', label: t.tabs.frequency, icon: FaCalendarCheck },
-              { id: 'evolucao', label: t.tabs.evolution, icon: FaChartLine },
-              { id: 'feedback', label: t.tabs.feedback, icon: FaCommentAlt },
-              { id: 'arquivos', label: t.tabs.files, icon: FaFolderOpen }
-            ].map((tab) => (
-              <button 
-                key={tab.id} 
-                onClick={() => { setAbaAtiva(tab.id); router.replace(`?aba=${tab.id}`) }} 
-                className={`pb-3 text-[10px] font-black uppercase tracking-widest transition-all border-b-2 whitespace-nowrap flex items-center gap-2 ${
-                  abaAtiva === tab.id ? 'border-[var(--primary)] text-[var(--primary)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                }`}
-              >
-                <tab.icon size={12} /> {tab.label}
-              </button>
-            ))}
           </div>
+          
+          {/* ━━━━━━━━━━ PILL UI DE CONTROLES (SaaS Gigante) ━━━━━━━━━━ */}
+          <div className="flex items-center bg-[var(--surface)] border border-[var(--border)] rounded-full shadow-sm p-1 shrink-0">
+            <button 
+              onClick={() => setIsLangModalOpen(true)}
+              className="flex items-center justify-center gap-1.5 px-2.5 h-8 rounded-full text-[var(--text-secondary)] hover:text-[var(--primary)] hover:bg-[var(--primary)]/5 transition-all active:scale-95"
+            >
+              <FaGlobe size={14} />
+              <span className="text-[10px] font-black uppercase tracking-widest hidden sm:block">{lang.split('-')[0]}</span>
+            </button>
+            
+            <div className="w-[1px] h-4 bg-[var(--border)] mx-0.5" />
+            
+            <button 
+              onClick={() => setIsThemeModalOpen(true)} 
+              className="flex items-center justify-center w-8 h-8 rounded-full text-[var(--text-secondary)] hover:text-[var(--primary)] hover:bg-[var(--primary)]/5 transition-all active:scale-95"
+            >
+              {isDark ? <FaMoon size={14} /> : <FaSun size={14} />}
+            </button>
 
-          {/* ABA 1: TREINOS */}
-          {abaAtiva === 'treinos' && (
-            <section className="space-y-6 animate-in slide-in-from-right-4 fade-in duration-500">
-              
-              {isVencido ? (
-                // BLOQUEIO DE ACESSO AOS TREINOS
-                <div className="bg-[var(--surface)] p-10 rounded-[2.5rem] border border-[var(--danger)]/30 shadow-xl shadow-[var(--danger)]/5 flex flex-col items-center text-center animate-in zoom-in-95 duration-500 relative overflow-hidden group">
-                  <div className="absolute inset-0 bg-gradient-to-b from-[var(--danger)]/10 to-transparent opacity-50 pointer-events-none" />
-                  <div className="w-20 h-20 bg-[var(--danger)]/10 text-[var(--danger)] rounded-full flex items-center justify-center mb-6 relative z-10 border border-[var(--danger)]/20 shadow-inner">
-                    <FaLock size={32} />
-                  </div>
-                  <h2 className="text-2xl font-black text-[var(--text-primary)] tracking-tight relative z-10 mb-2">{t.lockedTitle}</h2>
-                  <p className="text-[var(--text-secondary)] text-xs sm:text-sm font-medium relative z-10 max-w-sm mx-auto mb-8 leading-relaxed">
-                    {t.lockedDesc}
-                  </p>
-                  {/* O Controle de pagamento já facilita o destravamento para o Personal */}
-                  <div className="relative z-10 w-full max-w-xs">
-                    <ControleFinanceiro alunoId={id} initialStatus={aluno?.status_pagamento || 'bloqueado'} />
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <div className="flex gap-2">
-                    <button onClick={() => { setMostrarArquivados(false); setIndexAberto(null); }} className={`flex-1 py-3 rounded-[1.2rem] font-black text-[10px] uppercase tracking-widest transition-all ${!mostrarArquivados ? 'bg-[var(--primary)] text-white shadow-lg shadow-[var(--primary)]/20' : 'bg-[var(--surface-sec)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border)]'}`}>
-                      {t.workouts.active}
-                    </button>
-                    <button onClick={() => { setMostrarArquivados(true); setIndexAberto(null); }} className={`flex-1 py-3 rounded-[1.2rem] font-black text-[10px] uppercase tracking-widest transition-all ${mostrarArquivados ? 'bg-[var(--primary)] text-white shadow-lg shadow-[var(--primary)]/20' : 'bg-[var(--surface-sec)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border)]'}`}>
-                      {t.workouts.archived}
-                    </button>
-                  </div>
+            <div className="w-[1px] h-4 bg-[var(--border)] mx-0.5" />
 
-                  <div className="grid grid-cols-1 gap-6">
-                    {fichasAgrupadas.length > 0 ? (
-                      fichasAgrupadas.map((grupo, gIndex) => {
-                        const estaAberto = indexAberto === gIndex;
-                        
-                        return (
-                          <div 
-                            key={gIndex} 
-                            className={`p-6 sm:p-8 rounded-[2.5rem] shadow-sm relative transition-all duration-300 ${
-                              mostrarArquivados 
-                                ? 'bg-[var(--surface-sec)]/50 opacity-75 grayscale-[30%] border-2 border-dashed border-[var(--border)]' 
-                                : 'bg-[var(--surface)] backdrop-blur-xl border border-[var(--border)] hover:border-[var(--primary)]/30'
-                            }`}
-                          >
-                            <div 
-                              className={`flex flex-col sm:flex-row justify-between sm:items-center gap-4 cursor-pointer transition-colors ${estaAberto ? 'mb-6 border-b border-[var(--border)] pb-4' : ''}`}
-                              onClick={() => setIndexAberto(estaAberto ? null : gIndex)}
-                            >
-                              <div>
-                                <span className={`text-[8px] font-black uppercase tracking-widest px-2.5 py-1 rounded-md border ${mostrarArquivados ? 'bg-[var(--text-secondary)]/10 text-[var(--text-secondary)] border-[var(--border)]' : 'bg-[var(--primary)]/10 text-[var(--primary)] border-[var(--primary)]/20'}`}>
-                                  {mostrarArquivados ? t.workouts.archived : t.workouts.program}
-                                </span>
-                                <h2 className="text-xl sm:text-2xl font-black mt-3 text-[var(--text-primary)] tracking-tight">
-                                  {grupo.nomeMaster}
-                                </h2>
-                                <div className="flex flex-wrap gap-2 mt-3">
-                                  {grupo.treinos[0].tipo_treino && (
-                                    <span className="text-[9px] font-bold bg-[var(--surface-sec)] text-[var(--text-secondary)] px-2.5 py-1.5 rounded-lg border border-[var(--border)] shadow-inner">
-                                      {grupo.treinos[0].tipo_treino}
-                                    </span>
-                                  )}
-                                  {grupo.treinos[0].objetivo && (
-                                    <span className="text-[9px] font-bold bg-[var(--surface-sec)] text-[var(--text-secondary)] px-2.5 py-1.5 rounded-lg border border-[var(--border)] shadow-inner">
-                                      {grupo.treinos[0].objetivo}
-                                    </span>
-                                  )}
-                                  {grupo.treinos[0].dificuldade && (
-                                    <span className="text-[9px] font-bold bg-[var(--surface-sec)] text-[var(--text-secondary)] px-2.5 py-1.5 rounded-lg border border-[var(--border)] shadow-inner">
-                                      {grupo.treinos[0].dificuldade}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                                      
-                              <div className="flex flex-wrap gap-2" onClick={(e) => e.stopPropagation()}>
-                                <button onClick={() => { setProgramaParaAtribuir(grupo.treinos); setIsModalAtribuirOpen(true); }} className="w-10 h-10 flex items-center justify-center bg-[var(--primary)]/10 text-[var(--primary)] rounded-full hover:bg-[var(--primary)] hover:text-white transition-colors border border-[var(--primary)]/20" title={t.workouts.assign}>
-                                  <FaUsers size={14} />
-                                </button>
-                                
-                                {mostrarArquivados ? (
-                                  <button onClick={() => toggleArquivarPrograma(grupo.treinos, false)} className="w-10 h-10 flex items-center justify-center bg-[var(--success)]/10 text-[var(--success)] rounded-full hover:bg-[var(--success)] hover:text-white transition-colors border border-[var(--success)]/20" title={t.workouts.restore}>
-                                    <FaUndo size={14} />
-                                  </button>
-                                ) : (
-                                  <button onClick={() => toggleArquivarPrograma(grupo.treinos, true)} className="w-10 h-10 flex items-center justify-center bg-[var(--surface-sec)] text-[var(--text-secondary)] rounded-full hover:bg-[var(--text-primary)] transition-colors border border-[var(--border)] shadow-inner" title={t.workouts.archive}>
-                                    <FaArchive size={14} />
-                                  </button>
-                                )}
+            <div className="flex items-center justify-center w-8 h-8 rounded-full hover:bg-[var(--primary)]/5 transition-all">
+              <NotificationBell />
+            </div>
+          </div>
+        </header>
 
-                                <button onClick={() => excluirProgramaCompleto(grupo.treinos)} className="w-10 h-10 flex items-center justify-center text-[var(--danger)] bg-[var(--danger)]/10 rounded-full hover:bg-[var(--danger)] hover:text-white transition-colors border border-[var(--danger)]/20" title="Excluir Definitivamente">
-                                  <FaTrash size={14} />
-                                </button>
-                              </div>
-                            </div>
-
-                            {estaAberto && (
-                              <div className="grid gap-4 animate-in fade-in slide-in-from-top-4 duration-300">
-                                {grupo.treinos.map((treino: any) => (
-                                  <div key={treino.id} className="bg-[var(--surface-sec)] p-6 rounded-[1.5rem] border border-[var(--border)] shadow-inner">
-                                    <div className="mb-4">
-                                      <h3 className="text-lg font-black text-[var(--text-primary)]">{treino.nome_sub}</h3>
-                                    </div>
-                                    <div className="space-y-3 mb-6">
-                                      {treino.exercicios?.map((ex: any, eIdx: number) => (
-                                        <div key={eIdx} className="bg-[var(--surface)] p-4 rounded-xl border border-[var(--border)] shadow-sm">
-                                          <p className="font-black text-xs text-[var(--text-primary)] mb-2">{eIdx + 1}. {ex.nome}</p>
-                                          {ex.observacao && <p className="text-[9px] text-[var(--text-secondary)] italic mb-3">"{ex.observacao}"</p>}
-                                          
-                                          <div className="grid grid-cols-4 gap-1 text-[8px] font-black uppercase text-[var(--text-secondary)] mb-1 text-center tracking-widest">
-                                            <span>Série</span><span>Reps</span><span>Carga</span><span>Desc.</span>
-                                          </div>
-                                          {ex.series?.map((s: any, sIdx: number) => (
-                                            <div key={sIdx} className="grid grid-cols-4 gap-1 text-[11px] font-bold text-[var(--text-primary)] bg-[var(--surface-sec)] border border-[var(--border)] py-1.5 rounded-lg text-center mb-1">
-                                              <span>{s.ordem || sIdx + 1 + 'ª'}</span>
-                                              <span>{s.reps}</span>
-                                              <span>{s.carga}{s.unidadeCarga}</span>
-                                              <span>{s.intervalo}</span>
-                                            </div>
-                                          ))}
-                                        </div>
-                                      ))}
-                                    </div>
-
-                                    <div className="flex gap-3">
-                                      <button onClick={() => router.push(`/dashboard/aluno/${id}/treino/${treino.id}`)} className="flex-[2] text-[10px] font-black uppercase tracking-widest text-[var(--primary)] py-3.5 bg-[var(--primary)]/5 border border-[var(--primary)]/10 hover:bg-[var(--primary)]/10 rounded-[1.2rem] transition-colors shadow-sm">
-                                        {t.workouts.viewDetails}
-                                      </button>
-                                      <button onClick={() => router.push(`/dashboard/aluno/${id}/editar-ficha/${treino.id}`)} className="flex-1 text-[10px] font-black uppercase tracking-widest text-[var(--text-primary)] py-3.5 bg-[var(--surface)] border border-[var(--border)] hover:border-[var(--primary)] rounded-[1.2rem] flex items-center justify-center gap-2 transition-all shadow-sm">
-                                        <FaEdit size={12} /> <span className="hidden sm:inline">{t.workouts.edit}</span>
-                                      </button>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })
-                    ) : (
-                      <div className="py-12 text-center border-2 border-dashed border-[var(--border)] rounded-[2rem] bg-[var(--surface)]/50 backdrop-blur-sm">
-                        <p className="text-[var(--text-secondary)] font-black uppercase text-[10px] tracking-widest">{t.workouts.empty}</p>
-                      </div>
-                    )}
-                  </div>
-
-                  {!mostrarArquivados && (
-                    <a href={`/dashboard/aluno/${id}/nova-ficha`} className="flex items-center justify-center gap-2 w-full bg-[var(--primary)] text-white p-5 rounded-[1.5rem] font-black text-[10px] sm:text-[11px] uppercase tracking-widest active:scale-[0.98] transition-all shadow-lg shadow-[var(--primary)]/20 mt-6 hover:brightness-110">
-                      <FaPlus size={14} /> {t.workouts.new}
-                    </a>
-                  )}
-                </>
-              )}
-            </section>
-          )}
-
-          {/* ABA 2: FREQUÊNCIA (GRÁFICO DE BARRAS PREMIUM) */}
-          {abaAtiva === 'frequencia' && (
-            <section className="space-y-6 animate-in slide-in-from-right-4 fade-in duration-500">
+        {typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default' && (
+          <div className="bg-gradient-to-r from-blue-600 to-[var(--primary)] p-5 rounded-[1.5rem] border border-white/10 shadow-lg animate-in fade-in slide-in-from-top-4 duration-500">
+            <div className="flex flex-col gap-3">
               <div>
-                <h2 className="text-2xl sm:text-3xl font-black tracking-tighter text-[var(--text-primary)]">{t.frequency.title}</h2>
-                <p className="text-[var(--text-secondary)] font-black uppercase text-[9px] sm:text-[10px] tracking-widest mt-1">{t.frequency.subtitle}</p>
+                <h3 className="font-black text-sm text-white tracking-tight">Não perca nenhum treino! </h3>
+                <p className="text-white/80 text-[11px] font-medium leading-relaxed mt-1">
+                  Ative as notificações para receber os novos treinos e avisos do seu Personal diretamente no telemóvel.
+                </p>
               </div>
+              <button onClick={async () => { await NotificationService.registrarDispositivo(); router.refresh(); }} className="w-full py-2.5 bg-white text-[var(--primary)] rounded-xl font-black text-[11px] uppercase tracking-widest active:scale-[0.98] transition-all shadow-md">
+                Permitir Notificações
+              </button>
+            </div>
+          </div>
+        )}
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-[var(--surface)] backdrop-blur-xl p-6 rounded-[2rem] border border-[var(--border)] shadow-sm flex flex-col items-center justify-center gap-1">
-                  <span className="text-[10px] font-black uppercase text-[var(--text-secondary)] tracking-widest text-center">{t.frequency.totalWorkouts}</span>
-                  <span className="text-3xl font-black text-[var(--primary)]">{metricasFrequencia.total}</span>
-                </div>
-                <div className="bg-[var(--surface)] backdrop-blur-xl p-6 rounded-[2rem] border border-[var(--border)] shadow-sm flex flex-col items-center justify-center gap-1">
-                  <span className="text-[10px] font-black uppercase text-[var(--text-secondary)] tracking-widest text-center">{t.frequency.avgWeek}</span>
-                  <span className="text-3xl font-black text-[var(--primary)]">{metricasFrequencia.mediaSemana}</span>
-                </div>
-              </div>
+        {/* Saudação Premium */}
+        <div className="px-2 animate-in fade-in duration-700 delay-300 mt-2 mb-2">
+           <h3 className="text-xl font-black text-[var(--text-primary)] tracking-tight">{getSaudacao()}, {aluno?.nome?.split(' ')[0] || 'Aluno'}! 👋</h3>
+           <p className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest mt-1">
+             {format(horaAtual, "EEEE, d 'de' MMMM", { locale: lang === 'pt-BR' ? ptBR : lang === 'pt-PT' ? pt : enUS })}
+           </p>
+        </div>
 
-              <div className="bg-[var(--surface)] backdrop-blur-xl p-6 sm:p-8 rounded-[2.5rem] border border-[var(--border)] h-64 sm:h-80 shadow-xl relative overflow-hidden group">
-                <div className="absolute top-0 right-0 w-full h-full bg-gradient-to-b from-[var(--primary)]/5 to-transparent pointer-events-none" />
-                <div className="flex justify-between items-center mb-6 relative z-10">
-                  <h3 className="font-black text-[var(--text-secondary)] text-[10px] uppercase tracking-widest flex items-center gap-2"><FaCalendarCheck /> {t.frequency.workoutsMonth}</h3>
-                </div>
-                
-                <ResponsiveContainer width="100%" height="80%">
-                  <BarChart data={frequenciaMensal} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="colorBarGlow" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="var(--primary)" stopOpacity={1}/>
-                        <stop offset="100%" stopColor="var(--primary-soft)" stopOpacity={0.6}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'} />
-                    <XAxis dataKey="mes" tick={{ fontSize: 10, fill: 'var(--text-secondary)', fontWeight: 700 }} axisLine={false} tickLine={false} />
-                    <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: 'var(--text-secondary)', fontWeight: 700 }} axisLine={false} tickLine={false} />
-                    <Tooltip cursor={{ fill: 'var(--primary)', opacity: 0.05 }} contentStyle={{ backgroundColor: 'var(--surface)', borderRadius: '16px', border: '1px solid var(--border)', padding: '12px 16px', boxShadow: '0 10px 25px rgba(0,0,0,0.3)', color: 'var(--text-primary)', fontWeight: '900', textTransform: 'uppercase', fontSize: '11px' }} itemStyle={{ color: 'var(--primary)', fontSize: '14px' }}/>
-                    <Bar dataKey="treinos" fill="url(#colorBarGlow)" radius={[8, 8, 8, 8]} barSize={28} animationDuration={1200} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </section>
-          )}
+        {/* ━━━━━━━━━━ HERO BANNER (BLOCO INTELIGENTE: VENCIDO OU TREINO) ━━━━━━━━━━ */}
+        {isVencido ? (
+          <section className="relative overflow-hidden bg-gradient-to-br from-red-600 to-rose-700 p-8 rounded-[2rem] shadow-[0_10px_30px_rgba(225,29,72,0.3)] border border-white/10 group animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">
+            <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 blur-[50px] rounded-full transform translate-x-1/2 -translate-y-1/2" />
+            <div className="relative z-10 flex items-center gap-4 mb-3">
+               <div className="bg-white/20 backdrop-blur-md p-3 rounded-2xl shadow-inner shrink-0 border border-white/10"><FaExclamationTriangle className="text-white text-xl" /></div>
+               <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white leading-tight">{t.lockedTitle}</h2>
+            </div>
+            <p className="relative z-10 text-white/90 text-[11px] sm:text-xs font-medium leading-relaxed mb-6">{t.lockedDesc}</p>
+            <button onClick={() => router.push(`/aluno/${id}/faturas`)} className="relative z-10 w-full py-4 bg-white text-[var(--danger)] rounded-2xl font-black text-[12px] uppercase tracking-widest transition-transform active:scale-[0.98] shadow-xl hover:shadow-2xl flex items-center justify-center gap-2">{t.regularize}</button>
+          </section>
+        ) : treinoDoDia ? (
+          (() => {
+            let nomeLimpoHero = treinoDoDia.nome_treino || '';
+            const matchTreino = nomeLimpoHero.match(/(treino\s+[a-z0-9]+)/i);
+            if (matchTreino) nomeLimpoHero = matchTreino[0].toUpperCase();
+            else if (nomeLimpoHero.includes('-')) nomeLimpoHero = nomeLimpoHero.split('-').pop()?.trim() || nomeLimpoHero;
 
-          {/* ABA 3: EVOLUÇÃO (UPGRADE PREMIUM DE GRÁFICOS TRIPLOS COM EFEITO NEON/GLOW) */}
-          {abaAtiva === 'evolucao' && (
-            <section className="space-y-8 animate-in slide-in-from-right-4 fade-in duration-500">
-              <div className="flex flex-col sm:flex-row gap-4 justify-between sm:items-end">
-                <div>
-                  <h2 className="text-2xl sm:text-3xl font-black tracking-tighter text-[var(--text-primary)]">{t.evolution.title}</h2>
-                  <p className="text-[var(--text-secondary)] font-black uppercase text-[9px] sm:text-[10px] tracking-widest mt-1">{t.evolution.subtitle}</p>
-                </div>
-                <button onClick={() => setIsModalAvaliacaoOpen(true)} className="w-full sm:w-auto bg-gradient-to-r from-[var(--primary)] to-indigo-600 text-white px-6 py-4 rounded-[1.2rem] font-black text-[10px] uppercase tracking-widest active:scale-[0.98] transition-transform shadow-lg shadow-[var(--primary)]/20 flex items-center justify-center gap-2 hover:brightness-110"><FaPlus size={12} /> {t.evolution.newEval}</button>
-              </div>
-
-              {/* GRÁFICOS DETALHADOS DE EVOLUÇÃO */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                
-                {/* 1. Evolução de Peso */}
-                <div className="bg-[var(--surface)] backdrop-blur-xl p-6 rounded-[2.5rem] border border-[var(--border)] h-72 shadow-sm flex flex-col">
-                  <h3 className="font-black text-[var(--text-secondary)] text-[10px] uppercase tracking-widest mb-4 flex items-center gap-2"><FaChartLine /> {t.evolution.weight}</h3>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={evolutionData.filter(a => a.peso)} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
-                      <defs>
-                        <filter id="glowLine" x="-20%" y="-20%" width="140%" height="140%">
-                          <feDropShadow dx="0" dy="4" stdDeviation="6" floodOpacity="0.4" floodColor="var(--primary)" />
-                        </filter>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'} />
-                      <XAxis dataKey="data_avaliacao" tickFormatter={(v) => new Date(v).toLocaleDateString(lang, { day: '2-digit', month: '2-digit' })} tick={{fontSize: 9, fill: 'var(--text-secondary)', fontWeight: 700}} axisLine={false} tickLine={false} />
-                      <YAxis domain={['auto', 'auto']} tick={{fontSize: 10, fill: 'var(--text-secondary)', fontWeight: 700}} axisLine={false} tickLine={false} />
-                      <Tooltip labelFormatter={(l) => new Date(l).toLocaleDateString(lang)} contentStyle={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '12px', fontWeight: 'bold', color: 'var(--text-primary)' }} itemStyle={{ color: 'var(--primary)' }} />
-                      <Line filter="url(#glowLine)" type="monotone" name="Peso (kg)" dataKey="peso" stroke="var(--primary)" strokeWidth={4} dot={false} activeDot={{ r: 6, fill: "var(--primary)", stroke: "var(--surface)", strokeWidth: 3 }} animationDuration={1500} />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-
-                {/* 2. Evolução de Gordura Corporal */}
-                <div className="bg-[var(--surface)] backdrop-blur-xl p-6 rounded-[2.5rem] border border-[var(--border)] h-72 shadow-sm flex flex-col relative overflow-hidden group">
-                  <div className="absolute inset-0 bg-gradient-to-t from-[var(--danger)]/5 to-transparent pointer-events-none" />
-                  <h3 className="font-black text-[var(--text-secondary)] text-[10px] uppercase tracking-widest mb-4 flex items-center gap-2 relative z-10"><FaChartLine /> {t.evolution.fat}</h3>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={evolutionData.filter(a => a.gordura)} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
-                      <defs>
-                        <linearGradient id="colorGordura" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="var(--danger)" stopOpacity={0.3}/>
-                          <stop offset="95%" stopColor="var(--danger)" stopOpacity={0}/>
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'} />
-                      <XAxis dataKey="data_avaliacao" tickFormatter={(v) => new Date(v).toLocaleDateString(lang, { day: '2-digit', month: '2-digit' })} tick={{fontSize: 9, fill: 'var(--text-secondary)', fontWeight: 700}} axisLine={false} tickLine={false} />
-                      <YAxis domain={['auto', 'auto']} tick={{fontSize: 10, fill: 'var(--text-secondary)', fontWeight: 700}} axisLine={false} tickLine={false} />
-                      <Tooltip labelFormatter={(l) => new Date(l).toLocaleDateString(lang)} contentStyle={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '12px', fontWeight: 'bold', color: 'var(--text-primary)' }} itemStyle={{ color: 'var(--danger)' }} />
-                      <Area type="monotone" name="Gordura (%)" dataKey="gordura" stroke="var(--danger)" strokeWidth={4} fillOpacity={1} fill="url(#colorGordura)" animationDuration={1500} dot={false} activeDot={{ r: 6, fill: "var(--danger)", stroke: "var(--surface)", strokeWidth: 3 }} />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
-
-                {/* 3. Evolução de Circunferências (Largura Total) */}
-                <div className="bg-[var(--surface)] backdrop-blur-xl p-6 rounded-[2.5rem] border border-[var(--border)] h-72 shadow-sm flex flex-col md:col-span-2">
-                  <h3 className="font-black text-[var(--text-secondary)] text-[10px] uppercase tracking-widest mb-4 flex items-center gap-2"><FaChartLine /> {t.evolution.measures}</h3>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={evolutionData.filter(a => a.abdomen || a.cintura || a.quadril)} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'} />
-                      <XAxis dataKey="data_avaliacao" tickFormatter={(v) => new Date(v).toLocaleDateString(lang, { day: '2-digit', month: '2-digit' })} tick={{fontSize: 9, fill: 'var(--text-secondary)', fontWeight: 700}} axisLine={false} tickLine={false} />
-                      <YAxis domain={['auto', 'auto']} tick={{fontSize: 10, fill: 'var(--text-secondary)', fontWeight: 700}} axisLine={false} tickLine={false} />
-                      <Tooltip labelFormatter={(l) => new Date(l).toLocaleDateString(lang)} contentStyle={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '12px', fontWeight: 'bold', color: 'var(--text-primary)' }} />
-                      <Legend wrapperStyle={{ fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase' }} />
-                      <Line type="monotone" name="Abdômen" dataKey="abdomen" stroke="#3B82F6" strokeWidth={3} dot={false} activeDot={{ r: 5, strokeWidth: 2, stroke: 'var(--surface)' }} animationDuration={1500} />
-                      <Line type="monotone" name="Cintura" dataKey="cintura" stroke="#F59E0B" strokeWidth={3} dot={false} activeDot={{ r: 5, strokeWidth: 2, stroke: 'var(--surface)' }} animationDuration={1500} />
-                      <Line type="monotone" name="Quadril" dataKey="quadril" stroke="#22C55E" strokeWidth={3} dot={false} activeDot={{ r: 5, strokeWidth: 2, stroke: 'var(--surface)' }} animationDuration={1500} />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-
-              </div>
-
-              <div className="space-y-4">
-                {historico.filter(a => !a.tipo).map((av) => (
-                  <div key={av.id} className="bg-[var(--surface)] backdrop-blur-xl p-6 sm:p-8 rounded-[2.5rem] border border-[var(--border)] shadow-md hover:border-[var(--primary)]/30 transition-colors">
-                    <div className="flex justify-between items-center mb-6 border-b border-[var(--border)] pb-4">
-                      <p className="font-black text-lg text-[var(--text-primary)] bg-[var(--surface-sec)] shadow-inner px-4 py-1.5 rounded-xl">
-                        {new Date(av.data_avaliacao).toLocaleDateString(lang)}
-                      </p>
-                      <button onClick={() => excluirAvaliacao(av.id)} className="text-[var(--text-secondary)] hover:text-[var(--danger)] bg-[var(--surface-sec)] hover:bg-[var(--danger)]/10 px-4 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-colors flex items-center gap-2 border border-[var(--border)] hover:border-transparent">
-                        <FaTrash size={12} /> <span className="hidden sm:inline">{t.evolution.delete}</span>
-                      </button>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                      {Object.entries(av).map(([key, val]: any) => {
-                        const camposProibidos = ['id', 'aluno_id', 'data_avaliacao', 'observacoes', 'tipo', 'personal_id', 'created_at', 'updated_at'];
-                        if (camposProibidos.includes(key) || !val) return null;
-                        return (
-                          <div key={key} className="bg-[var(--surface-sec)] p-4 rounded-[1.2rem] border border-[var(--border)] shadow-inner flex flex-col justify-center">
-                            <p className="text-[8px] sm:text-[9px] font-black text-[var(--text-secondary)] uppercase tracking-widest truncate mb-1">{key.replace('_', ' ')}</p>
-                            <p className="font-black text-sm sm:text-base text-[var(--text-primary)]">
-                              {val}<span className="text-[9px] text-[var(--text-secondary)] ml-1">{['peso', 'gordura'].includes(key) ? (key === 'peso' ? 'kg' : '%') : 'cm'}</span>
-                            </p>
-                          </div>
-                        );
-                      })}
-                    </div>
+            return (
+              <section className="relative overflow-hidden bg-gradient-to-br from-blue-600 to-indigo-700 p-8 rounded-[2rem] shadow-[0_10px_30px_rgba(37,99,235,0.3)] border border-white/10 group animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">
+                <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 blur-[50px] rounded-full transform translate-x-1/2 -translate-y-1/2" />
+                <div className="relative z-10 flex justify-between items-start mb-8">
+                  <div className="flex flex-col flex-1 pr-4">
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/70 mb-1">{t.today}</span>
+                    <h2 className="text-3xl font-black tracking-tight text-white leading-tight break-words">{nomeLimpoHero}</h2>
                   </div>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {/* ABA 4: FEEDBACKS */}
-          {abaAtiva === 'feedback' && (
-            <section className="space-y-6 animate-in slide-in-from-right-4 fade-in duration-500">
-              <div className="flex items-end justify-between mb-8">
-                <div>
-                  <h2 className="text-2xl sm:text-3xl font-black tracking-tighter text-[var(--text-primary)]">{t.feedback.title}</h2>
-                  <p className="text-[var(--text-secondary)] font-black uppercase text-[9px] sm:text-[10px] tracking-widest mt-1">{t.feedback.subtitle}</p>
+                  <div className="bg-white/20 backdrop-blur-md p-3.5 rounded-2xl shadow-inner shrink-0 border border-white/10"><FaDumbbell className="text-white text-xl" /></div>
                 </div>
-                <div className="text-[10px] font-black uppercase tracking-widest text-[var(--primary)] bg-[var(--primary)]/10 px-4 py-2 rounded-full border border-[var(--primary)]/20 shadow-sm">{feedbacks.length}</div>
-              </div>
-              <div className="grid gap-4">
-                {feedbacks.length > 0 ? feedbacks.map((f) => (
-                    <div key={f.id} className="bg-[var(--surface)] backdrop-blur-xl p-6 sm:p-8 rounded-[2.5rem] border border-[var(--border)] shadow-md">
-                      <div className="flex justify-between items-start mb-6">
-                        <div className="flex items-center gap-4">
-                          <div className={`w-14 h-14 rounded-[1.2rem] flex items-center justify-center font-black text-lg shadow-inner border ${f.intensidade > 7 ? 'bg-[var(--danger)]/10 text-[var(--danger)] border-[var(--danger)]/20' : 'bg-[var(--primary)]/10 text-[var(--primary)] border-[var(--primary)]/20'}`}>{f.intensidade}</div>
-                          <div>
-                            <p className="text-[9px] font-black uppercase tracking-widest text-[var(--text-secondary)]">{t.feedback.intensity}</p>
-                            <p className="font-black text-[var(--text-primary)] text-sm">{t.feedback.level} {f.intensidade} / 10</p>
-                          </div>
-                        </div>
-                        <button onClick={() => excluirFeedback(f.id)} className="text-[var(--text-secondary)] hover:text-[var(--danger)] bg-[var(--surface-sec)] hover:bg-[var(--danger)]/10 w-10 h-10 rounded-xl flex items-center justify-center transition-colors border border-[var(--border)] hover:border-transparent"><FaTrash size={12} /></button>
-                      </div>
-                      <div className="text-sm italic font-medium leading-relaxed text-[var(--text-primary)] bg-[var(--surface-sec)] p-6 rounded-[1.5rem] border-l-4 border-[var(--primary)] shadow-inner">"{f.observacoes}"</div>
-                      <p className="text-[9px] font-black uppercase tracking-widest text-[var(--text-secondary)] mt-5 text-right">{new Date(f.data_criacao).toLocaleDateString(lang)}</p>
-                    </div>
-                  )) : <div className="text-center py-12 border-2 border-dashed border-[var(--border)] rounded-[2.5rem] bg-[var(--surface)]/50 backdrop-blur-sm"><p className="text-[var(--text-secondary)] font-black uppercase text-[10px] tracking-widest">{t.feedback.empty}</p></div>}
-              </div>
-            </section>
-          )}
+                <button onClick={() => router.push(`/aluno/${id}/treino/${treinoDoDia.id}`)} className="relative z-10 w-full py-4 bg-white text-[var(--primary)] rounded-2xl font-black text-[12px] uppercase tracking-widest transition-transform active:scale-[0.98] shadow-xl hover:shadow-2xl flex items-center justify-center gap-2">{t.start}</button>
+              </section>
+            );
+          })()
+        ) : (
+          <div className="p-8 text-center bg-[var(--surface)] rounded-[2rem] border border-dashed border-[var(--border)] animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100">
+            <p className="text-[var(--text-secondary)] text-sm font-bold">{t.none}</p>
+          </div>
+        )}
 
-          {/* ABA 5: DOCUMENTOS / ARQUIVOS */}
-          {abaAtiva === 'arquivos' && (
-            <section className="space-y-8 animate-in slide-in-from-right-4 fade-in duration-500">
-              <div>
-                <h2 className="text-2xl sm:text-3xl font-black tracking-tighter text-[var(--text-primary)]">{t.files.title}</h2>
-                <p className="text-[var(--text-secondary)] font-black uppercase text-[9px] sm:text-[10px] tracking-widest mt-1">{t.files.subtitle}</p>
-              </div>
-
-              <div className="bg-[var(--surface)] backdrop-blur-xl p-8 rounded-[2.5rem] border-2 border-dashed border-[var(--border)] text-center hover:border-[var(--primary)] hover:bg-[var(--primary)]/5 transition-all group">
-                <label className="cursor-pointer flex flex-col items-center gap-4">
-                  <div className="p-4 bg-[var(--primary)]/10 text-[var(--primary)] rounded-2xl shadow-inner group-hover:scale-110 transition-transform"><FaUpload size={24} /></div>
-                  <span className="font-black text-[11px] text-[var(--text-primary)] uppercase tracking-widest group-hover:text-[var(--primary)] transition-colors">{t.files.upload}</span>
-                  <input type="file" accept="application/pdf" className="hidden" onChange={async (e) => {
-                      const file = e.target.files?.[0]; if (!file) return;
-                      const filePath = `${id}/${Date.now()}-${file.name}`;
-                      const { error: uploadError } = await supabase.storage.from('documentos-alunos').upload(filePath, file);
-                      if (uploadError) return showToast('error', t.alerts.errUpload);
-                      await supabase.from('documentos').insert({ aluno_id: id, url: filePath, nome_arquivo: file.name });
-                      showToast('success', t.alerts.successUpload); await fetchArquivos(); 
-                  }}/>
-                </label>
-              </div>
-
-              <div className="space-y-4">
-                {arquivos && arquivos.length > 0 ? arquivos.map((arq: any) => (
-                    <div key={arq.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-5 bg-[var(--surface)] backdrop-blur-xl border border-[var(--border)] rounded-[2rem] shadow-sm gap-4 hover:border-[var(--primary)]/30 transition-colors">
-                      <div className="flex items-center gap-4 overflow-hidden w-full sm:w-auto">
-                        <div className="p-3 bg-[var(--danger)]/10 text-[var(--danger)] rounded-xl shrink-0"><FaFilePdf size={16} /></div>
-                        <span className="font-black text-xs text-[var(--text-primary)] truncate">{arq.nome_arquivo}</span>
-                      </div>
-                      <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-                        <button onClick={() => { const { data } = supabase.storage.from('documentos-alunos').getPublicUrl(arq.url); window.open(data.publicUrl, '_blank'); }} className="flex-1 sm:flex-none text-[9px] font-black uppercase tracking-widest bg-[var(--primary)]/10 text-[var(--primary)] border border-[var(--primary)]/20 px-4 py-3 rounded-xl hover:bg-[var(--primary)] hover:text-white transition-colors text-center shadow-sm">{t.files.open}</button>
-                        <button onClick={async () => {
-                            if (!window.confirm(t.alerts.confirmArquivo)) return;
-                            await supabase.storage.from('documentos-alunos').remove([arq.url]);
-                            await supabase.from('documentos').delete().eq('id', arq.id); await fetchArquivos();
-                        }} className="p-3 bg-[var(--surface-sec)] border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--danger)] hover:bg-[var(--danger)]/10 hover:border-transparent rounded-xl transition-colors shrink-0 shadow-sm" title="Remover"><FaTrash size={14} /></button>
-                      </div>
-                    </div>
-                  )) : <div className="text-center py-12 border-2 border-dashed border-[var(--border)] rounded-[2.5rem] bg-[var(--surface)]/50 backdrop-blur-sm"><p className="text-[var(--text-secondary)] font-black uppercase text-[10px] tracking-widest">{t.files.empty}</p></div>}
-              </div>
-            </section>
-          )}
-
-          {/* NOVA MODAL DE AVALIAÇÃO FÍSICA (FULLSCREEN NO MOBILE / BLINDADA CONTRA TECLADO) */}
-          {isModalAvaliacaoOpen && (
-            <div className="fixed inset-0 z-[99999] flex sm:items-center justify-center sm:p-5 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
-              
-              <div className="bg-[var(--surface)] w-full h-full sm:h-auto sm:max-w-2xl sm:rounded-[2.5rem] flex flex-col shadow-2xl border border-[var(--border)] animate-in slide-in-from-bottom-full sm:zoom-in-95 duration-300">
-                
-                <div className="p-5 sm:p-8 border-b border-[var(--border)] flex justify-between items-center shrink-0 pt-[max(env(safe-area-inset-top,1.25rem),1.25rem)]">
-                  <div>
-                    <h3 className="text-xl sm:text-2xl font-black tracking-tighter text-[var(--text-primary)]">{t.modalEval.title}</h3>
-                    <p className="text-[10px] text-[var(--text-secondary)] uppercase tracking-widest font-black mt-1">{t.modalEval.subtitle}</p>
+        <section className="bg-[var(--surface)] p-6 rounded-[2rem] border border-[var(--border)] shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500 delay-150">
+          <div className="flex justify-between items-center mb-5"><h2 className="text-[11px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.2em]">{t.week}</h2></div>
+          <div className="flex justify-between items-center">
+            {diasSemana.map((dia, i) => {
+              const treinou = diasTreino.some(d => isSameDay(d, dia));
+              const hoje = isSameDay(dia, new Date());
+              const localeObj = lang === 'pt-BR' ? ptBR : lang === 'pt-PT' ? pt : enUS;
+              return (
+                <div key={i} className="flex flex-col items-center gap-2">
+                  <div className={`w-11 h-11 rounded-[14px] flex items-center justify-center font-black text-sm transition-all duration-300 ${treinou ? 'bg-blue-600 text-white shadow-sm' : hoje ? 'bg-[var(--surface-sec)] border-2 border-[var(--primary)] text-[var(--primary)]' : 'bg-[var(--surface-sec)] text-[var(--text-secondary)]'}`}>
+                    {treinou ? '✓' : format(dia, 'd')}
                   </div>
-                  <button onClick={() => setIsModalAvaliacaoOpen(false)} className="w-10 h-10 bg-[var(--surface-sec)] border border-[var(--border)] rounded-full flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
-                    <span className="font-bold text-lg leading-none">&times;</span>
-                  </button>
+                  <span className={`text-[9px] font-bold uppercase tracking-wider ${hoje ? 'text-[var(--primary)]' : 'text-[var(--text-secondary)]'}`}>{format(dia, 'EEEEE', { locale: localeObj })}</span>
                 </div>
+              );
+            })}
+          </div>
+        </section>
 
-                <div className="flex-1 overflow-y-auto p-5 sm:p-8 custom-scrollbar">
-                  <div className="grid grid-cols-2 gap-4 sm:gap-6">
-                    {Object.keys(medidas).filter(k => k !== 'observacoes').map((key) => (
-                      <div key={key} className="space-y-2">
-                        <label className="text-[9px] font-black uppercase text-[var(--text-secondary)] tracking-widest pl-1">{key.replace('_', ' ')}</label>
-                        <input 
-                          type="number" 
-                          className="w-full p-4 bg-[var(--surface-sec)] border border-[var(--border)] rounded-[1.2rem] font-bold text-[var(--text-primary)] text-sm outline-none focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)] transition-all shadow-inner placeholder:text-[var(--text-secondary)]" 
-                          placeholder="0.0" 
-                          onChange={(e) => setMedidas({...medidas, [key]: e.target.value})} 
-                        />
-                      </div>
-                    ))}
-                  </div>
-                  <textarea 
-                    className="w-full p-5 bg-[var(--surface-sec)] border border-[var(--border)] rounded-[1.2rem] mt-6 outline-none font-medium text-sm h-32 focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)] transition-all text-[var(--text-primary)] placeholder:text-[var(--text-secondary)] shadow-inner custom-scrollbar" 
-                    placeholder={t.modalEval.obs} 
-                    onChange={(e) => setMedidas({...medidas, observacoes: e.target.value})} 
-                  />
-                </div>
+        <button onClick={() => setCalendarioAberto(true)} className="w-full py-4 bg-[var(--surface)] border border-[var(--border)] rounded-[1.5rem] text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all active:scale-95 shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500 delay-200">
+          {t.historyBtn}
+        </button>
 
-                <div className="p-5 sm:p-8 border-t border-[var(--border)] bg-[var(--surface)] shrink-0 flex gap-4 pb-[calc(max(env(safe-area-inset-bottom),1.25rem)+6.5rem)] sm:pb-8">
-                  <button onClick={() => setIsModalAvaliacaoOpen(false)} className="flex-1 py-4 sm:py-5 bg-[var(--surface-sec)] text-[var(--text-primary)] hover:bg-[var(--border)] rounded-[1.2rem] font-black text-[10px] uppercase tracking-widest transition-colors active:scale-95 border border-[var(--border)]">{t.modalEval.cancel}</button>
-                  <button onClick={salvarAvaliacaoCompleta} className="flex-1 py-4 sm:py-5 bg-[var(--primary)] text-white rounded-[1.2rem] font-black text-[10px] uppercase tracking-widest hover:brightness-110 shadow-lg shadow-[var(--primary)]/20 transition-all active:scale-95">{t.modalEval.save}</button>
-                </div>
+        <div className="grid grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-300">
+          <BotaoMenu 
+            icon={isVencido ? <FaLock className="text-[var(--danger)]/50 group-hover:text-[var(--danger)] transition-colors" /> : <FaDumbbell />} 
+            label={t.trainings} 
+            onClick={() => {
+              if (isVencido) {
+                alert(t.lockedDesc);
+              } else {
+                router.push(`/aluno/${id}/treinos`);
+              }
+            }} 
+          />
+          <BotaoMenu icon={<FaClipboardList />} label={t.evaluations} onClick={async () => { 
+            const { data } = await supabase.from('avaliacoes_fisicas').select('*').eq('aluno_id', id).order('data_avaliacao', { ascending: true }); 
+            if(data && data.length > 0) { setAvaliacoes(data); setModalAberta(true); } 
+            else { alert("Nenhuma avaliação encontrada."); }
+          }} />
+          <BotaoMenu icon={<FaChartLine />} label={t.progress} onClick={() => router.push(`/aluno/${id}/progresso`)} />
+          <BotaoMenu icon={<FaCommentMedical />} label={t.feedback} onClick={() => router.push(`/aluno/${id}/feedback`)} />
+          <BotaoMenu icon={<FaFileInvoice />} label={t.invoices} onClick={() => router.push(`/aluno/${id}/faturas`)} />
+          <BotaoMenu icon={<FaFolderOpen />} label={t.files} onClick={() => router.push(`/aluno/${id}/arquivos`)} />
+        </div>
 
+        {aluno && (
+          <div className="bg-[var(--surface)] p-5 rounded-[1.5rem] border border-[var(--border)] flex justify-between items-center shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500 delay-300 mt-2">
+            <div className="flex flex-col">
+              <span className="text-[9px] font-bold uppercase text-[var(--text-secondary)] tracking-widest mb-1">{t.status}</span>
+              <div className="flex items-center gap-2">
+                <div className={`w-2 h-2 rounded-full ${aluno.status_pagamento === 'bloqueado' ? 'bg-[var(--danger)] shadow-[0_0_8px_var(--danger)]' : 'bg-[var(--success)] shadow-[0_0_8px_var(--success)]'}`} />
+                <span className="font-black text-[12px]">{aluno.status_pagamento === 'bloqueado' ? t.blocked : t.active}</span>
               </div>
             </div>
-          )}
+            <div className="text-right flex flex-col">
+              <span className="text-[9px] font-bold uppercase text-[var(--text-secondary)] tracking-widest mb-1">{t.due}</span>
+              <span className="font-black text-[12px]">{aluno.data_vencimento ? new Date(aluno.data_vencimento).toLocaleDateString(lang) : 'N/A'}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Modais Antigos */}
+        {modalAberta && (
+          <ModalAvaliacao 
+            isOpen={modalAberta} 
+            onClose={() => setModalAberta(false)} 
+            avaliacao={avaliacoes[avaliacoes.length - 1]} 
+            historico={avaliacoes}
+            themeStyles={themeStyles}
+            t={t}
+            lang={lang}
+          />
+        )}
+
+        <div className="h-20 w-full shrink-0" aria-hidden="true" />
+      </div>
+
+      {calendarioAberto && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xl z-[99999] flex items-center justify-center p-4 transition-opacity">
+          <div style={themeStyles} className="bg-[var(--surface)] w-full max-w-sm p-6 sm:p-8 rounded-[2.5rem] border border-[var(--border)] shadow-2xl transform transition-transform animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex justify-between items-center mb-8">
+              <h2 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--primary)]">{t.historyTitle}</h2>
+              <button onClick={() => setCalendarioAberto(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-[var(--surface-sec)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all active:scale-95"><span className="text-xl leading-none">&times;</span></button>
+            </div>
+            <CalendarioTreino diasTreinados={diasTreino} lang={lang} />
+          </div>
         </div>
       )}
 
@@ -1063,7 +445,7 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
                   </h3>
                   <button 
                     onClick={() => setIsLangModalOpen(false)}
-                    className="w-8 h-8 rounded-full bg-[var(--surface)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--danger)] transition-colors active:scale-95 border border-[var(--border)]"
+                    className="w-8 h-8 rounded-full bg-[var(--surface)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--danger)] transition-colors active:scale-95"
                   >
                     <FaTimes size={14} />
                   </button>
@@ -1104,7 +486,7 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
                   </h3>
                   <button 
                     onClick={() => setIsThemeModalOpen(false)}
-                    className="w-8 h-8 rounded-full bg-[var(--surface)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--danger)] transition-colors active:scale-95 border border-[var(--border)]"
+                    className="w-8 h-8 rounded-full bg-[var(--surface)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--danger)] transition-colors active:scale-95"
                   >
                     <FaTimes size={14} />
                   </button>
@@ -1155,23 +537,175 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
           </div>
         </div>
       )}
-
     </main>
   );
 }
 
-export default function DetalheAluno({ params }: { params: Promise<{ id: string }> }) {
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => { setMounted(true); }, []);
-  const bgTheme = mounted && localStorage.getItem('@premium_theme') === 'light' ? '#F3F6FB' : '#0F1115';
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// COMPONENTES AUXILIARES
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+function BotaoMenu({ icon, label, onClick }: any) {
+  return (
+    <button onClick={onClick} className="bg-[var(--surface)] border border-[var(--border)] p-6 rounded-[2rem] flex flex-col items-center justify-center gap-4 active:scale-95 transition-all shadow-sm hover:shadow-[0_10px_30px_-15px_var(--primary)] hover:border-[var(--primary)]/50 group">
+      <div className="text-2xl text-[var(--text-secondary)] group-hover:text-[var(--primary)] transition-colors group-hover:scale-110 duration-300">{icon}</div>
+      <span className="font-bold text-[11px] uppercase tracking-widest text-[var(--text-primary)]">{label}</span>
+    </button>
+  );
+}
+
+function CalendarioTreino({ diasTreinados, lang }: { diasTreinados: Date[], lang: string }) {
+  const [dataAtual, setDataAtual] = useState(new Date());
+  const diasDoMes = useMemo(() => eachDayOfInterval({ start: startOfMonth(dataAtual), end: endOfMonth(dataAtual) }), [dataAtual]);
+  const localeObj = lang === 'pt-BR' ? ptBR : lang === 'pt-PT' ? pt : enUS;
 
   return (
-    <Suspense fallback={
-      <main style={{ backgroundColor: bgTheme }} className="min-h-screen transition-colors duration-500">
-        <DetalheAlunoSkeleton />
-      </main>
-    }>
-      <DetalheAlunoContent params={params} />
-    </Suspense>
+    <div className="bg-[var(--surface-sec)] p-6 rounded-[1.5rem] border border-[var(--border)] shadow-inner">
+      <div className="flex justify-between items-center mb-6 bg-[var(--surface)] p-2 rounded-full border border-[var(--border)]">
+        <button onClick={() => setDataAtual(subMonths(dataAtual, 1))} className="p-2 w-10 h-10 flex items-center justify-center rounded-full bg-[var(--surface-sec)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-90 transition-all"><FaChevronLeft size={12}/></button>
+        <h3 className="font-black text-xs uppercase tracking-widest text-[var(--text-primary)]">{format(dataAtual, 'MMMM yyyy', { locale: localeObj })}</h3>
+        <button onClick={() => setDataAtual(addMonths(dataAtual, 1))} className="p-2 w-10 h-10 flex items-center justify-center rounded-full bg-[var(--surface-sec)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] active:scale-90 transition-all"><FaChevronRight size={12}/></button>
+      </div>
+      <div className="grid grid-cols-7 gap-2 text-center mb-4 border-b border-[var(--border)] pb-4">
+        {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((d, i) => <div key={i} className="text-[10px] font-black text-[var(--text-secondary)] uppercase">{d}</div>)}
+      </div>
+      <div className="grid grid-cols-7 gap-2 text-center">
+        {diasDoMes.map((dia, i) => {
+          const treinou = diasTreinados.some(d => isSameDay(d, dia));
+          return (
+            <div key={i} className={`w-9 h-9 sm:w-10 sm:h-10 mx-auto rounded-[12px] flex items-center justify-center text-xs font-bold transition-all relative ${treinou ? 'bg-[var(--primary)] text-white shadow-[0_0_12px_rgba(37,99,235,0.4)]' : 'text-[var(--text-primary)] bg-[var(--surface)] border border-[var(--border)]'} ${!isSameMonth(dia, dataAtual) ? 'opacity-20' : ''}`}>
+              {format(dia, 'd')}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function ModalAvaliacao({ isOpen, onClose, avaliacao, historico, themeStyles, t, lang }: any) {
+  if (!isOpen || !avaliacao) return null;
+
+  const medidasList = [
+    { label: 'Tórax', value: avaliacao.torax },
+    { label: 'Ombros', value: avaliacao.ombros },
+    { label: 'Abdômen', value: avaliacao.abdomen },
+    { label: 'Cintura', value: avaliacao.cintura },
+    { label: 'Quadril', value: avaliacao.quadril },
+    { label: 'Braço Dir.', value: avaliacao.braco_direito },
+    { label: 'Braço Esq.', value: avaliacao.braco_esquerdo },
+  ];
+
+  return (
+    <div className="fixed inset-0 z-[99999] flex sm:items-center justify-center sm:p-5 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
+      
+      {/* O Container principal Fullscreen mobile */}
+      <div style={themeStyles} className="bg-[var(--surface)] w-full h-full sm:h-auto sm:max-w-3xl sm:rounded-[2.5rem] flex flex-col shadow-2xl border border-[var(--border)] animate-in slide-in-from-bottom-full sm:zoom-in-95 duration-300 pb-[env(safe-area-inset-bottom)]">
+        
+        {/* Cabeçalho Fixo */}
+        <div className="p-5 sm:p-8 border-b border-[var(--border)] flex justify-between items-center shrink-0 pt-[max(env(safe-area-inset-top,1.25rem),1.25rem)]">
+          <div>
+            <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--primary)]">{t.analysis}</h2>
+            <p className="text-xl sm:text-2xl font-black text-[var(--text-primary)] tracking-tight">{t.evolution}</p>
+          </div>
+          <button onClick={onClose} className="w-10 h-10 bg-[var(--surface-sec)] border border-[var(--border)] rounded-full flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
+            <span className="font-bold text-lg leading-none">&times;</span>
+          </button>
+        </div>
+
+        {/* Conteúdo Rolável */}
+        <div className="flex-1 overflow-y-auto p-5 sm:p-8 custom-scrollbar pb-[calc(max(env(safe-area-inset-bottom),1.25rem)+6.5rem)] sm:pb-8">
+          
+          <div className="mb-8 bg-[var(--surface-sec)] px-4 py-3 rounded-2xl border border-[var(--border)] inline-block shadow-inner">
+             <p className="text-[10px] font-bold uppercase text-[var(--text-secondary)] tracking-widest">
+               {t.dateOfRecord}: <span className="text-[var(--text-primary)]">{new Date(avaliacao.data_avaliacao).toLocaleDateString(lang)}</span>
+             </p>
+          </div>
+          
+          {/* Gráficos Triplos Premium */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            
+            {/* 1. Evolução de Peso */}
+            <div className="bg-[var(--surface)] p-6 rounded-[2rem] border border-[var(--border)] h-64 shadow-sm flex flex-col">
+              <h3 className="font-black text-[var(--text-secondary)] text-[10px] uppercase tracking-widest mb-4 flex items-center gap-2"><FaChartLine /> {t.evolutionWeight}</h3>
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={historico.filter((a:any) => a.peso)} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
+                  <defs>
+                    <filter id="glowLinePeso" x="-20%" y="-20%" width="140%" height="140%">
+                      <feDropShadow dx="0" dy="4" stdDeviation="6" floodOpacity="0.4" floodColor="var(--primary)" />
+                    </filter>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
+                  <XAxis dataKey="data_avaliacao" tickFormatter={(v) => new Date(v).toLocaleDateString(lang, { day: '2-digit', month: '2-digit' })} tick={{fontSize: 9, fill: 'var(--text-secondary)', fontWeight: 700}} axisLine={false} tickLine={false} />
+                  <YAxis domain={['auto', 'auto']} tick={{fontSize: 10, fill: 'var(--text-secondary)', fontWeight: 700}} axisLine={false} tickLine={false} />
+                  <Tooltip labelFormatter={(l) => new Date(l).toLocaleDateString(lang)} contentStyle={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '12px', fontWeight: 'bold', color: 'var(--text-primary)' }} itemStyle={{ color: 'var(--primary)' }} />
+                  <Line filter="url(#glowLinePeso)" type="monotone" name="Peso (kg)" dataKey="peso" stroke="var(--primary)" strokeWidth={4} dot={false} activeDot={{ r: 6, fill: "var(--primary)", stroke: "var(--surface)", strokeWidth: 3 }} animationDuration={1500} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* 2. Evolução de Gordura Corporal */}
+            <div className="bg-[var(--surface)] p-6 rounded-[2rem] border border-[var(--border)] h-64 shadow-sm flex flex-col relative overflow-hidden group">
+              <div className="absolute inset-0 bg-gradient-to-t from-[var(--danger)]/5 to-transparent pointer-events-none" />
+              <h3 className="font-black text-[var(--text-secondary)] text-[10px] uppercase tracking-widest mb-4 flex items-center gap-2 relative z-10"><FaChartLine /> {t.evolutionFat}</h3>
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={historico.filter((a:any) => a.gordura)} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="colorGorduraAluno" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="var(--danger)" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="var(--danger)" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
+                  <XAxis dataKey="data_avaliacao" tickFormatter={(v) => new Date(v).toLocaleDateString(lang, { day: '2-digit', month: '2-digit' })} tick={{fontSize: 9, fill: 'var(--text-secondary)', fontWeight: 700}} axisLine={false} tickLine={false} />
+                  <YAxis domain={['auto', 'auto']} tick={{fontSize: 10, fill: 'var(--text-secondary)', fontWeight: 700}} axisLine={false} tickLine={false} />
+                  <Tooltip labelFormatter={(l) => new Date(l).toLocaleDateString(lang)} contentStyle={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '12px', fontWeight: 'bold', color: 'var(--text-primary)' }} itemStyle={{ color: 'var(--danger)' }} />
+                  <Area type="monotone" name="Gordura (%)" dataKey="gordura" stroke="var(--danger)" strokeWidth={4} fillOpacity={1} fill="url(#colorGorduraAluno)" animationDuration={1500} dot={false} activeDot={{ r: 6, fill: "var(--danger)", stroke: "var(--surface)", strokeWidth: 3 }} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* 3. Evolução de Circunferências (Largura Total) */}
+            <div className="bg-[var(--surface)] p-6 rounded-[2rem] border border-[var(--border)] h-72 shadow-sm flex flex-col md:col-span-2">
+              <h3 className="font-black text-[var(--text-secondary)] text-[10px] uppercase tracking-widest mb-4 flex items-center gap-2"><FaChartLine /> {t.evolutionMeasures}</h3>
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={historico.filter((a:any) => a.abdomen || a.cintura || a.quadril)} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
+                  <XAxis dataKey="data_avaliacao" tickFormatter={(v) => new Date(v).toLocaleDateString(lang, { day: '2-digit', month: '2-digit' })} tick={{fontSize: 9, fill: 'var(--text-secondary)', fontWeight: 700}} axisLine={false} tickLine={false} />
+                  <YAxis domain={['auto', 'auto']} tick={{fontSize: 10, fill: 'var(--text-secondary)', fontWeight: 700}} axisLine={false} tickLine={false} />
+                  <Tooltip labelFormatter={(l) => new Date(l).toLocaleDateString(lang)} contentStyle={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '12px', fontWeight: 'bold', color: 'var(--text-primary)' }} />
+                  <Legend wrapperStyle={{ fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase' }} />
+                  <Line type="monotone" name="Abdômen" dataKey="abdomen" stroke="#3B82F6" strokeWidth={3} dot={false} activeDot={{ r: 5, strokeWidth: 2, stroke: 'var(--surface)' }} animationDuration={1500} />
+                  <Line type="monotone" name="Cintura" dataKey="cintura" stroke="#F59E0B" strokeWidth={3} dot={false} activeDot={{ r: 5, strokeWidth: 2, stroke: 'var(--surface)' }} animationDuration={1500} />
+                  <Line type="monotone" name="Quadril" dataKey="quadril" stroke="#22C55E" strokeWidth={3} dot={false} activeDot={{ r: 5, strokeWidth: 2, stroke: 'var(--surface)' }} animationDuration={1500} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+          
+          {/* Medidas Atuais */}
+          <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-secondary)] mb-4">{t.details}</h3>
+          <div className="grid grid-cols-2 gap-3 mb-6">
+            {medidasList.map((m, i) => (
+              <div key={i} className="bg-[var(--surface-sec)] p-4 rounded-xl border border-[var(--border)] flex justify-between items-center shadow-inner">
+                <span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase">{m.label}</span>
+                <span className="text-sm font-black text-[var(--text-primary)]">{m.value || '--'}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Observações */}
+          {avaliacao.observacoes && (
+            <div className="mt-6">
+              <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-secondary)] mb-3">{t.obs}</h3>
+              <div className="w-full p-5 bg-[var(--surface-sec)] border border-[var(--border)] rounded-[1.2rem] font-medium text-sm text-[var(--text-primary)] shadow-inner italic">
+                "{avaliacao.observacoes}"
+              </div>
+            </div>
+          )}
+
+        </div>
+      </div>
+    </div>
   );
 }
