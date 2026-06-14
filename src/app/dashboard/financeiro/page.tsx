@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import { 
   FaCheckCircle, FaExclamationCircle, FaGlobe, FaMoon, FaSun, 
   FaChevronLeft, FaTimes, FaCheck, FaChartBar, FaListUl, 
-  FaUserClock, FaWhatsapp, FaPlus, FaEye, FaEyeSlash, FaDumbbell
+  FaUserClock, FaWhatsapp, FaPlus, FaEye, FaEyeSlash, FaDumbbell,
+  FaChevronDown
 } from 'react-icons/fa';
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -17,11 +18,7 @@ const FinanceiroSkeleton = () => (
       <div className="w-48 h-10 bg-[var(--surface-sec)] rounded-[1.2rem]" />
       <div className="w-24 h-10 bg-[var(--surface-sec)] rounded-[1.2rem]" />
     </div>
-    <div className="flex gap-4 mb-6">
-      <div className="w-24 h-10 bg-[var(--surface-sec)] rounded-full" />
-      <div className="w-24 h-10 bg-[var(--surface-sec)] rounded-full" />
-      <div className="w-24 h-10 bg-[var(--surface-sec)] rounded-full" />
-    </div>
+    <div className="w-full h-16 bg-[var(--surface-sec)] rounded-[1.5rem] mb-6" />
     <div className="grid md:grid-cols-2 gap-6">
       <div className="bg-[var(--surface)] p-8 rounded-[2.5rem] h-48 border border-[var(--border)]" />
       <div className="bg-[var(--surface)] p-8 rounded-[2.5rem] h-48 border border-[var(--border)]" />
@@ -32,43 +29,37 @@ const FinanceiroSkeleton = () => (
 
 const translations = {
   'pt-BR': {
-    title: 'Gestão Financeira', accumulated: 'Receita Anual', monthlyRevenue: 'Receita do Mês',
-    pendingRevenue: 'A Receber (Atrasado)', activeStudents: 'Alunos Ativos',
-    config: 'Configurações', monthlyFee: 'Mensalidade Padrão', pix: 'Chave PIX',
-    manualPayment: 'Registrar Recebimento', selectStudent: 'Selecione o aluno...', valueLabel: 'Valor (R$)',
+    title: 'Financeiro', accumulated: 'Receita Anual', monthlyRevenue: 'Receita do Mês',
+    activeStudents: 'Alunos Ativos', manualPayment: 'Registrar Recebimento', 
+    selectStudent: 'Selecione o aluno...', valueLabel: 'Valor (R$)',
     transactions: 'Transações Recentes', student: 'Aluno', date: 'Data', value: 'Valor',
     noName: 'Sem nome', errMissing: 'Preencha todos os campos.', errProcess: 'Erro ao processar.', 
     successPay: 'Pagamento registrado com sucesso!', successConfig: 'Configurações atualizadas!',
     selectLanguage: 'Idioma', selectTheme: 'Aparência', themeLight: 'Modo Claro', themeDark: 'Modo Escuro',
-    tabOverview: 'Visão Geral', tabTransactions: 'Transações', tabPending: 'Pendências', tabAttendance: 'Frequência',
-    graphTitle: 'Faturamento Anual', charge: 'Cobrar', lastSeen: 'Última atividade', daysAgo: 'dias atrás',
-    noPending: 'Nenhum aluno pendente!', noAttendance: 'Nenhum dado de frequência.'
+    tabOverview: 'Visão Geral', tabTransactions: 'Lançamentos', tabPending: 'Alunos Pendentes', tabAttendance: 'Frequência',
+    graphTitle: 'Faturamento Anual', charge: 'Cobrar Aluno', noPending: 'Nenhum aluno com pagamento atrasado!'
   },
   'pt-PT': {
-    title: 'Gestão Financeira', accumulated: 'Receita Anual', monthlyRevenue: 'Receita do Mês',
-    pendingRevenue: 'A Receber (Atrasado)', activeStudents: 'Alunos Ativos',
-    config: 'Configurações', monthlyFee: 'Mensalidade Padrão', pix: 'Chave PIX',
-    manualPayment: 'Registar Recebimento', selectStudent: 'Selecione o aluno...', valueLabel: 'Valor (€)',
+    title: 'Financeiro', accumulated: 'Receita Anual', monthlyRevenue: 'Receita do Mês',
+    activeStudents: 'Alunos Ativos', manualPayment: 'Registar Recebimento', 
+    selectStudent: 'Selecione o aluno...', valueLabel: 'Valor (€)',
     transactions: 'Transações Recentes', student: 'Aluno', date: 'Data', value: 'Valor',
     noName: 'Sem nome', errMissing: 'Preencha todos os campos.', errProcess: 'Erro ao processar.', 
     successPay: 'Pagamento registado com sucesso!', successConfig: 'Configurações atualizadas!',
     selectLanguage: 'Idioma', selectTheme: 'Aparência', themeLight: 'Modo Claro', themeDark: 'Modo Escuro',
-    tabOverview: 'Visão Geral', tabTransactions: 'Transações', tabPending: 'Pendências', tabAttendance: 'Frequência',
-    graphTitle: 'Faturação Anual', charge: 'Cobrar', lastSeen: 'Última atividade', daysAgo: 'dias atrás',
-    noPending: 'Nenhum aluno em incumprimento!', noAttendance: 'Nenhum dado de frequência.'
+    tabOverview: 'Visão Geral', tabTransactions: 'Lançamentos', tabPending: 'Alunos Pendentes', tabAttendance: 'Frequência',
+    graphTitle: 'Faturação Anual', charge: 'Cobrar Aluno', noPending: 'Nenhum aluno em incumprimento!'
   },
   'en': {
-    title: 'Financial Mgmt', accumulated: 'Yearly Revenue', monthlyRevenue: 'Monthly Revenue',
-    pendingRevenue: 'Pending (Overdue)', activeStudents: 'Active Students',
-    config: 'Settings', monthlyFee: 'Standard Fee', pix: 'PIX Key',
-    manualPayment: 'Register Payment', selectStudent: 'Select student...', valueLabel: 'Value ($)',
+    title: 'Financial', accumulated: 'Yearly Revenue', monthlyRevenue: 'Monthly Revenue',
+    activeStudents: 'Active Students', manualPayment: 'Register Payment', 
+    selectStudent: 'Select student...', valueLabel: 'Value ($)',
     transactions: 'Recent Transactions', student: 'Student', date: 'Date', value: 'Value',
     noName: 'No name', errMissing: 'Fill in all fields.', errProcess: 'Error processing.', 
     successPay: 'Payment registered successfully!', successConfig: 'Settings updated!',
     selectLanguage: 'Language', selectTheme: 'Appearance', themeLight: 'Light Mode', themeDark: 'Dark Mode',
-    tabOverview: 'Overview', tabTransactions: 'Transactions', tabPending: 'Pending', tabAttendance: 'Attendance',
-    graphTitle: 'Yearly Revenue Chart', charge: 'Charge', lastSeen: 'Last seen', daysAgo: 'days ago',
-    noPending: 'No pending payments!', noAttendance: 'No attendance data.'
+    tabOverview: 'Overview', tabTransactions: 'Transactions', tabPending: 'Pending Students', tabAttendance: 'Attendance',
+    graphTitle: 'Yearly Revenue Chart', charge: 'Charge Student', noPending: 'No pending payments!'
   }
 };
 
@@ -80,7 +71,6 @@ const getMeses = (lang: string) => {
 export default function FinanceiroSaaS() {
   const router = useRouter();
   
-  // Dados do DB
   const [pagamentos, setPagamentos] = useState<any[]>([]);
   const [listaAlunos, setListaAlunos] = useState<any[]>([]);
   const [configPersonal, setConfigPersonal] = useState({ valor_mensalidade_padrao: 0 });
@@ -88,6 +78,7 @@ export default function FinanceiroSaaS() {
   
   // UI & UX States
   const [activeTab, setActiveTab] = useState<'overview' | 'transactions' | 'pending' | 'attendance'>('overview');
+  const [isTabMenuOpen, setIsTabMenuOpen] = useState(false); // NOVO: Controle do Menu Dropdown
   const [toast, setToast] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   const [olhoAberto, setOlhoAberto] = useState(true);
   
@@ -105,6 +96,17 @@ export default function FinanceiroSaaS() {
   const [lang, setLang] = useState<'pt-BR' | 'pt-PT' | 'en'>('pt-BR');
   const [mounted, setMounted] = useState(false);
   const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
+
+  const t = translations[lang] || translations['pt-BR'];
+
+  // Definição das opções do Menu Dropdown
+  const tabs = [
+    { id: 'overview', icon: <FaChartBar />, label: t.tabOverview },
+    { id: 'transactions', icon: <FaListUl />, label: t.tabTransactions },
+    { id: 'pending', icon: <FaExclamationCircle />, label: t.tabPending },
+    { id: 'attendance', icon: <FaUserClock />, label: t.tabAttendance }
+  ];
+  const activeTabConfig = tabs.find(tab => tab.id === activeTab);
 
   useEffect(() => {
     const updateSettings = () => {
@@ -127,13 +129,12 @@ export default function FinanceiroSaaS() {
     };
   }, []);
 
-  const t = translations[lang] || translations['pt-BR'];
   const showToast = (type: 'success' | 'error', text: string) => { setToast({ type, text }); setTimeout(() => setToast(null), 4000); };
 
   const themeStyles = isDark ? {
-    '--bg': '#0F1115', '--surface': 'rgba(21, 26, 34, 0.7)', '--surface-sec': '#1B2330', '--primary': '#3B82F6', '--danger': '#EF4444', '--success': '#22C55E', '--warning': '#F59E0B', '--text-primary': '#F8FAFC', '--text-secondary': '#94A3B8', '--border': 'rgba(255,255,255,0.08)',
+    '--bg': '#0F1115', '--surface': 'rgba(21, 26, 34, 0.7)', '--surface-sec': '#1B2330', '--primary': '#3B82F6', '--danger': '#EF4444', '--success': '#22C55E', '--text-primary': '#F8FAFC', '--text-secondary': '#94A3B8', '--border': 'rgba(255,255,255,0.08)',
   } as React.CSSProperties : {
-    '--bg': '#F3F6FB', '--surface': 'rgba(255, 255, 255, 0.8)', '--surface-sec': '#E8EEF9', '--primary': '#2563EB', '--danger': '#DC2626', '--success': '#16A34A', '--warning': '#D97706', '--text-primary': '#111827', '--text-secondary': '#6B7280', '--border': 'rgba(15,23,42,0.08)',
+    '--bg': '#F3F6FB', '--surface': 'rgba(255, 255, 255, 0.8)', '--surface-sec': '#E8EEF9', '--primary': '#2563EB', '--danger': '#DC2626', '--success': '#16A34A', '--text-primary': '#111827', '--text-secondary': '#6B7280', '--border': 'rgba(15,23,42,0.08)',
   } as React.CSSProperties;
 
   const fetchDados = async () => {
@@ -182,7 +183,6 @@ export default function FinanceiroSaaS() {
       supabase.from('pagamentos').insert([{
         aluno_id: alunoId, personal_id: user?.id, valor: Number(novoValor), data_pagamento: new Date().toISOString(), status: 'pago'
       }]),
-      // Ao pagar, o aluno volta a ficar ATIVO automaticamente
       supabase.from('alunos').update({ 
         status_pagamento: 'ativo', ativo: true, data_vencimento: novaDataVencimento.toISOString().split('T')[0] 
       }).eq('id', alunoId)
@@ -199,7 +199,6 @@ export default function FinanceiroSaaS() {
     setSaving(false);
   };
 
-  // ━━━━━━━━━━━━━━━━ CÁLCULOS FINANCEIROS ━━━━━━━━━━━━━━━━
   const formatCurrency = (val: number) => new Intl.NumberFormat(lang, { style: 'currency', currency: lang === 'pt-PT' ? 'EUR' : lang === 'en' ? 'USD' : 'BRL' }).format(val);
 
   const pagamentosMesFiltrado = useMemo(() => pagamentos.filter(p => {
@@ -223,28 +222,22 @@ export default function FinanceiroSaaS() {
   const totalAno = faturamentoAnual.reduce((acc, val) => acc + val, 0);
   const maxMes = Math.max(...faturamentoAnual, 1); 
 
-  // ━━━━━━━━━━━━━━━━ INADIMPLENTES (AGORA COM INATIVOS E HOJE) ━━━━━━━━━━━━━━━━
+  // ━━━━━━━━━━━━━━━━ INADIMPLENTES (Apenas a lógica limpa e precisa) ━━━━━━━━━━━━━━━━
   const alunosInadimplentes = useMemo(() => listaAlunos.filter(a => {
     if (!a.data_vencimento) return false;
     
-    const hoje = new Date();
-    hoje.setHours(0,0,0,0);
-    const vencimento = new Date(a.data_vencimento + 'T00:00:00');
+    // Pegamos a data atual em formato YYYY-MM-DD para evitar problemas de fuso horário
+    const hojeStr = new Date().toISOString().split('T')[0];
     
-    // Verifica se a data de vencimento é HOJE ou do PASSADO (<=)
-    // Agora não filtramos mais o "a.ativo", ou seja, Inativos também aparecem se tiverem dívida.
-    return vencimento <= hoje; 
-  }).sort((a,b) => new Date(a.data_vencimento).getTime() - new Date(b.data_vencimento).getTime()), [listaAlunos]);
-
-  const valorAtrasado = alunosInadimplentes.reduce((total, aluno) => {
-    const valorCobrado = aluno.valor_mensalidade || configPersonal.valor_mensalidade_padrao || 0;
-    return total + Number(valorCobrado);
-  }, 0); 
+    // Compara diretamente as strings: '2026-06-13' < '2026-06-14' (Se a data for menor que hoje, venceu)
+    return a.data_vencimento < hojeStr; 
+  }).sort((a,b) => a.data_vencimento.localeCompare(b.data_vencimento)), [listaAlunos]);
 
   const enviarCobrancaWhatsApp = (aluno: any) => {
     if(!aluno.telefone) return alert("Aluno sem telefone cadastrado.");
+    // A mensagem ainda pode conter o valor, já que pro aluno faz sentido, mas na TELA não vai mostrar.
     const valorCobrado = aluno.valor_mensalidade || configPersonal.valor_mensalidade_padrao || 0;
-    const msg = `Olá ${aluno.nome}, tudo bem? Notei que sua mensalidade no valor de ${formatCurrency(valorCobrado)} com vencimento em ${new Date(aluno.data_vencimento + 'T00:00:00').toLocaleDateString('pt-BR')} está pendente. Qualquer dúvida estou à disposição!`;
+    const msg = `Olá ${aluno.nome}, tudo bem? Notei que sua mensalidade com vencimento em ${new Date(aluno.data_vencimento + 'T00:00:00').toLocaleDateString('pt-BR')} está pendente. Qualquer dúvida estou à disposição!`;
     const num = aluno.telefone.replace(/\D/g, '');
     window.open(`https://wa.me/${num}?text=${encodeURIComponent(msg)}`, '_blank');
   };
@@ -266,7 +259,7 @@ export default function FinanceiroSaaS() {
       {loading ? <FinanceiroSkeleton /> : (
         <div className="max-w-4xl mx-auto space-y-6 relative z-10 animate-in fade-in duration-700">
           
-          <header className="flex justify-between items-center mb-4 pt-2">
+          <header className="flex justify-between items-center mb-6 pt-2">
             <button onClick={() => router.back()} className="flex items-center justify-center w-11 h-11 rounded-full bg-[var(--surface)] backdrop-blur-md border border-[var(--border)] active:scale-95 transition-all shadow-sm">
               <FaChevronLeft className="text-[var(--text-primary)]" size={14} />
             </button>
@@ -278,38 +271,56 @@ export default function FinanceiroSaaS() {
             </div>
           </header>
 
-          <div className="flex overflow-x-auto gap-2 pb-2 custom-scrollbar snap-x">
-            {[
-              { id: 'overview', icon: <FaChartBar />, label: t.tabOverview },
-              { id: 'transactions', icon: <FaListUl />, label: t.tabTransactions },
-              { id: 'pending', icon: <FaExclamationCircle />, label: t.tabPending },
-              { id: 'attendance', icon: <FaUserClock />, label: t.tabAttendance }
-            ].map(tab => (
-              <button 
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
-                className={`snap-center shrink-0 flex items-center gap-2 px-5 py-3 rounded-[1.2rem] text-xs font-black uppercase tracking-wider transition-all border ${activeTab === tab.id ? 'bg-[var(--primary)] text-white border-[var(--primary)] shadow-md shadow-[var(--primary)]/20' : 'bg-[var(--surface)] text-[var(--text-secondary)] border-[var(--border)] hover:border-[var(--text-secondary)]/30'}`}
-              >
-                {tab.icon} {tab.label}
-              </button>
-            ))}
+          {/* NOVO: MENU DROPDOWN ELEGANTE PARA AS ABAS */}
+          <div className="relative mb-6 z-30">
+            <button 
+              onClick={() => setIsTabMenuOpen(!isTabMenuOpen)}
+              className="w-full bg-[var(--surface)] backdrop-blur-xl border border-[var(--border)] p-4 rounded-[1.5rem] flex items-center justify-between shadow-sm active:scale-[0.98] transition-all"
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-[var(--primary)]">{activeTabConfig?.icon}</span>
+                <span className="font-black text-[13px] tracking-wide text-[var(--text-primary)]">{activeTabConfig?.label}</span>
+              </div>
+              <FaChevronDown className={`text-[var(--text-secondary)] transition-transform duration-300 ${isTabMenuOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {/* Opções do Menu Dropdown */}
+            {isTabMenuOpen && (
+              <>
+                <div className="fixed inset-0 z-20" onClick={() => setIsTabMenuOpen(false)}></div>
+                <div className="absolute top-full mt-2 w-full bg-[var(--surface)] backdrop-blur-3xl border border-[var(--border)] rounded-[1.5rem] shadow-2xl overflow-hidden p-2 flex flex-col gap-1 z-30 animate-in slide-in-from-top-2 fade-in">
+                  {tabs.map(tab => (
+                    <button
+                      key={tab.id}
+                      onClick={() => { setActiveTab(tab.id as any); setIsTabMenuOpen(false); }}
+                      className={`flex items-center gap-3 p-4 rounded-xl font-bold text-[13px] transition-all active:scale-[0.98] ${activeTab === tab.id ? 'bg-[var(--primary)]/10 text-[var(--primary)]' : 'text-[var(--text-secondary)] hover:bg-[var(--surface-sec)] hover:text-[var(--text-primary)]'}`}
+                    >
+                      {tab.icon} {tab.label}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
 
           {/* ABA 1: VISÃO GERAL */}
           {activeTab === 'overview' && (
             <div className="space-y-6 animate-in slide-in-from-bottom-4 fade-in duration-500">
               <div className="grid grid-cols-2 gap-4">
-                <div className="bg-[var(--surface)] backdrop-blur-xl p-6 rounded-[2rem] border border-[var(--border)] shadow-sm relative overflow-hidden">
+                <div className="bg-[var(--surface)] backdrop-blur-xl p-6 rounded-[2rem] border border-[var(--border)] shadow-sm relative overflow-hidden flex flex-col justify-center">
                   <button onClick={() => setOlhoAberto(!olhoAberto)} className="absolute top-4 right-4 text-[var(--text-secondary)]">
                     {olhoAberto ? <FaEye size={14} /> : <FaEyeSlash size={14} />}
                   </button>
                   <h2 className="text-[9px] font-black text-[var(--text-secondary)] uppercase tracking-[0.2em] mb-2">{t.monthlyRevenue}</h2>
-                  <p className="text-2xl font-black tracking-tighter text-[var(--primary)]">{olhoAberto ? formatCurrency(faturamentoMes) : '••••••'}</p>
+                  <p className="text-2xl sm:text-3xl font-black tracking-tighter text-[var(--primary)]">{olhoAberto ? formatCurrency(faturamentoMes) : '••••••'}</p>
                 </div>
 
-                <div className="bg-[var(--danger)]/10 backdrop-blur-xl p-6 rounded-[2rem] border border-[var(--danger)]/20 shadow-sm relative overflow-hidden">
-                  <h2 className="text-[9px] font-black text-[var(--danger)] uppercase tracking-[0.2em] mb-2">{t.pendingRevenue}</h2>
-                  <p className="text-2xl font-black tracking-tighter text-[var(--danger)]">{olhoAberto ? formatCurrency(valorAtrasado) : '••••••'}</p>
+                {/* Bloco de Inadimplência agora mostra apenas a QUANTIDADE de alunos */}
+                <div className="bg-[var(--danger)]/10 backdrop-blur-xl p-6 rounded-[2rem] border border-[var(--danger)]/20 shadow-sm relative overflow-hidden flex flex-col justify-center">
+                  <h2 className="text-[9px] font-black text-[var(--danger)] uppercase tracking-[0.2em] mb-2">Pendências</h2>
+                  <p className="text-2xl sm:text-3xl font-black tracking-tighter text-[var(--danger)]">
+                    {alunosInadimplentes.length} {alunosInadimplentes.length === 1 ? 'Aluno' : 'Alunos'}
+                  </p>
                 </div>
               </div>
 
@@ -382,7 +393,7 @@ export default function FinanceiroSaaS() {
                 <div className="p-6 border-b border-[var(--border)] flex justify-between items-center bg-[var(--surface-sec)]/50">
                   <h2 className="font-black text-sm tracking-tighter text-[var(--text-primary)]">{t.transactions}</h2>
                   <div className="flex gap-2">
-                    <select value={mesFiltro} onChange={e => setMesFiltro(Number(e.target.value))} className="bg-[var(--surface)] border border-[var(--border)] p-2 rounded-lg text-xs font-bold">
+                    <select value={mesFiltro} onChange={e => setMesFiltro(Number(e.target.value))} className="bg-[var(--surface)] border border-[var(--border)] p-2 rounded-lg text-xs font-bold outline-none cursor-pointer">
                       {getMeses(lang).map((m, i) => <option key={i} value={i}>{m}</option>)}
                     </select>
                   </div>
@@ -407,7 +418,7 @@ export default function FinanceiroSaaS() {
             </div>
           )}
 
-          {/* ABA 3: INADIMPLENTES (AGORA MOSTRA INATIVOS E VENCIMENTO DE HOJE) */}
+          {/* ABA 3: INADIMPLENTES (AGORA FOCADO APENAS EM QUEM DEVE - SEM MOSTRAR VALOR) */}
           {activeTab === 'pending' && (
             <div className="space-y-4 animate-in slide-in-from-bottom-4 fade-in duration-500">
               {alunosInadimplentes.length === 0 ? (
@@ -420,7 +431,6 @@ export default function FinanceiroSaaS() {
               ) : (
                 alunosInadimplentes.map(aluno => {
                   const diasAtraso = Math.floor((new Date().getTime() - new Date(aluno.data_vencimento + 'T00:00:00').getTime()) / (1000 * 3600 * 24));
-                  const valorCobrado = aluno.valor_mensalidade || configPersonal.valor_mensalidade_padrao || 0;
                   
                   return (
                     <div key={aluno.id} className="bg-[var(--surface)] p-5 rounded-[1.5rem] border border-[var(--danger)]/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm hover:border-[var(--danger)]/60 transition-all">
@@ -430,11 +440,10 @@ export default function FinanceiroSaaS() {
                           {!aluno.ativo && (
                             <span className="text-[8px] bg-[var(--danger)] text-white px-1.5 py-0.5 rounded uppercase font-bold tracking-widest">Inativo</span>
                           )}
-                          <span className="text-[10px] font-black text-[var(--text-secondary)]">({formatCurrency(valorCobrado)})</span>
                         </div>
                         <div className="flex gap-2 items-center mt-1">
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded text-white bg-[var(--danger)]">
-                            Vence dia {new Date(aluno.data_vencimento + 'T00:00:00').toLocaleDateString('pt-BR').substring(0, 5)}
+                            Venceu dia {new Date(aluno.data_vencimento + 'T00:00:00').toLocaleDateString('pt-BR').substring(0, 5)}
                           </span>
                           {diasAtraso > 0 && (
                             <span className="text-[10px] font-bold text-[var(--danger)] uppercase tracking-wider">
@@ -455,7 +464,7 @@ export default function FinanceiroSaaS() {
                           onClick={() => { handleSelecionarAluno(aluno.id); setActiveTab('transactions'); }}
                           className="bg-[var(--surface-sec)] text-[var(--text-primary)] border border-[var(--border)] px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider hover:border-[var(--primary)] transition-all active:scale-95"
                         >
-                          Baixar
+                          Baixar Pgto
                         </button>
                       </div>
                     </div>
