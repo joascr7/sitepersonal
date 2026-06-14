@@ -1,13 +1,13 @@
 'use client';
-import { useEffect, useState, use, Suspense, useMemo } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useState, useEffect, Suspense, useMemo } from 'react';
 import { supabase } from '@/lib/supabaseClient';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { LineChart, Line, BarChart, Bar, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import ControleFinanceiro from '@/components/ControleFinanceiro';
 import { 
   FaChevronLeft, FaGlobe, FaMoon, FaSun, FaExclamationCircle, FaCheckCircle, 
   FaTrash, FaFilePdf, FaUpload, FaPlus, FaChartLine, FaDumbbell, FaCommentAlt, FaFolderOpen,
-  FaArchive, FaUndo, FaUsers, FaEdit, FaCalendarCheck
+  FaArchive, FaUndo, FaUsers, FaEdit, FaCalendarCheck, FaTimes, FaCheck
 } from 'react-icons/fa';
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -59,7 +59,8 @@ const translations = {
       confirmAvaliacao: 'Tem certeza que deseja excluir este registro?', 
       confirmArquivo: 'Tem certeza que deseja excluir este arquivo?', 
       errDelete: 'Erro ao excluir: ', errSave: 'Erro ao salvar: ', errUpload: 'Erro ao subir arquivo.', successUpload: 'Arquivo enviado com sucesso!' 
-    }
+    },
+    selectLanguage: 'Selecione o Idioma', selectTheme: 'Aparência', themeLight: 'Modo Claro', themeDark: 'Modo Escuro'
   },
   'pt-PT': {
     back: 'Voltar', modality: 'Modalidade: ', notDefined: 'Não definido',
@@ -82,7 +83,8 @@ const translations = {
       confirmAvaliacao: 'Tem certeza que deseja eliminar este registo?', 
       confirmArquivo: 'Tem certeza que deseja eliminar este ficheiro?', 
       errDelete: 'Erro ao eliminar: ', errSave: 'Erro ao guardar: ', errUpload: 'Erro ao subir ficheiro.', successUpload: 'Ficheiro enviado com sucesso!' 
-    }
+    },
+    selectLanguage: 'Selecione o Idioma', selectTheme: 'Aparência', themeLight: 'Modo Claro', themeDark: 'Modo Escuro'
   },
   'en': {
     back: 'Back', modality: 'Modality: ', notDefined: 'Not defined',
@@ -105,9 +107,16 @@ const translations = {
       confirmAvaliacao: 'Are you sure you want to delete this record?', 
       confirmArquivo: 'Are you sure you want to delete this file?', 
       errDelete: 'Error deleting: ', errSave: 'Error saving: ', errUpload: 'Error uploading file.', successUpload: 'File uploaded successfully!' 
-    }
+    },
+    selectLanguage: 'Select Language', selectTheme: 'Appearance', themeLight: 'Light Mode', themeDark: 'Dark Mode'
   }
 };
+
+const languages = [
+  { code: 'pt-BR', name: 'Português (Brasil)', flag: '🇧🇷' },
+  { code: 'pt-PT', name: 'Português (Portugal)', flag: '🇵🇹' },
+  { code: 'en', name: 'English', flag: '🇺🇸' }
+];
 
 function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -140,28 +149,56 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
     cintura: '', quadril: '', braco_direito: '', braco_esquerdo: '', observacoes: ''
   });
 
+  // Estados Premium UI
   const [isDark, setIsDark] = useState(true);
   const [lang, setLang] = useState<'pt-BR' | 'pt-PT' | 'en'>('pt-BR');
   const [mounted, setMounted] = useState(false);
+  const [isLangModalOpen, setIsLangModalOpen] = useState(false);
+  const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
 
   useEffect(() => {
-    const savedTheme = localStorage.getItem('@premium_theme');
-    const savedLang = localStorage.getItem('@premium_lang') as 'pt-BR' | 'pt-PT' | 'en';
-    if (savedTheme) setIsDark(savedTheme === 'dark');
-    if (savedLang) setLang(savedLang);
+    const updateSettings = () => {
+      const savedTheme = localStorage.getItem('@premium_theme');
+      const savedLang = localStorage.getItem('@premium_lang') as 'pt-BR' | 'pt-PT' | 'en';
+      if (savedTheme) setIsDark(savedTheme === 'dark');
+      if (savedLang) setLang(savedLang);
+    };
+    
+    updateSettings();
     setMounted(true);
+
+    window.addEventListener('storage', updateSettings);
+    window.addEventListener('config-updated', updateSettings);
+    
+    return () => {
+      window.removeEventListener('storage', updateSettings);
+      window.removeEventListener('config-updated', updateSettings);
+    };
   }, []);
 
-  const toggleTheme = () => { const newTheme = !isDark; setIsDark(newTheme); localStorage.setItem('@premium_theme', newTheme ? 'dark' : 'light'); window.dispatchEvent(new Event('storage')); };
-  const toggleLang = () => { const langs: ('pt-BR' | 'pt-PT' | 'en')[] = ['pt-BR', 'pt-PT', 'en']; const nextLang = langs[(langs.indexOf(lang) + 1) % langs.length]; setLang(nextLang); localStorage.setItem('@premium_lang', nextLang); };
+  const handleSelectLanguage = (newLang: string) => {
+    setLang(newLang as any);
+    localStorage.setItem('@premium_lang', newLang);
+    window.dispatchEvent(new Event('config-updated'));
+    setIsLangModalOpen(false);
+  };
+
+  const handleSelectTheme = (theme: 'dark' | 'light') => {
+    const newIsDark = theme === 'dark';
+    setIsDark(newIsDark);
+    localStorage.setItem('@premium_theme', newIsDark ? 'dark' : 'light');
+    window.dispatchEvent(new Event('config-updated'));
+    setIsThemeModalOpen(false);
+  };
   
   const t = translations[lang] || translations['pt-BR'];
   const showToast = (type: 'success' | 'error', text: string) => { setToast({ type, text }); setTimeout(() => setToast(null), 4000); };
 
+  // Glassmorphism Premium
   const themeStyles = isDark ? {
-    '--bg': '#0F1115', '--surface': '#151A22', '--surface-sec': '#1B2330', '--primary': '#3B82F6', '--danger': '#EF4444', '--success': '#22C55E', '--text-primary': '#F8FAFC', '--text-secondary': '#94A3B8', '--border': 'rgba(255,255,255,0.05)',
+    '--bg': '#0F1115', '--surface': 'rgba(21, 26, 34, 0.8)', '--surface-sec': '#1B2330', '--primary': '#3B82F6', '--danger': '#EF4444', '--success': '#22C55E', '--text-primary': '#F8FAFC', '--text-secondary': '#94A3B8', '--border': 'rgba(255,255,255,0.08)',
   } as React.CSSProperties : {
-    '--bg': '#F3F6FB', '--surface': '#FFFFFF', '--surface-sec': '#E8EEF9', '--primary': '#2563EB', '--danger': '#DC2626', '--success': '#16A34A', '--text-primary': '#111827', '--text-secondary': '#6B7280', '--border': 'rgba(15,23,42,0.06)',
+    '--bg': '#F3F6FB', '--surface': 'rgba(255, 255, 255, 0.85)', '--surface-sec': '#E8EEF9', '--primary': '#2563EB', '--danger': '#DC2626', '--success': '#16A34A', '--text-primary': '#111827', '--text-secondary': '#6B7280', '--border': 'rgba(15,23,42,0.08)',
   } as React.CSSProperties;
 
   useEffect(() => {
@@ -431,21 +468,32 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
         <div className="max-w-4xl mx-auto space-y-8 relative z-10 animate-in fade-in duration-700">
           
           <div className="flex justify-between items-center mb-6">
-            <button onClick={() => router.back()} className="flex items-center gap-2 text-[10px] font-black text-[var(--text-secondary)] uppercase tracking-widest hover:text-[var(--primary)] transition-all active:scale-95">
-              <FaChevronLeft size={10} /> {t.back}
+            <button onClick={() => router.back()} className="flex items-center justify-center w-11 h-11 rounded-full bg-[var(--surface)] border border-[var(--border)] active:scale-95 transition-all shadow-sm hover:bg-[var(--surface-sec)]">
+              <FaChevronLeft className="text-[var(--text-primary)]" size={14} />
             </button>
-            <div className="flex gap-2">
-              <button onClick={toggleLang} className="w-10 h-10 rounded-full bg-[var(--surface)] border border-[var(--border)] shadow-sm flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--primary)] transition-all active:scale-95 relative">
+            
+            {/* PILL UI DE CONTROLES */}
+            <div className="flex items-center bg-[var(--surface)] backdrop-blur-md border border-[var(--border)] rounded-full shadow-sm p-1">
+              <button 
+                onClick={() => setIsLangModalOpen(true)}
+                className="flex items-center justify-center gap-1.5 px-3 h-8 rounded-full text-[var(--text-secondary)] hover:text-[var(--primary)] hover:bg-[var(--primary)]/5 transition-all active:scale-95"
+              >
                 <FaGlobe size={14} />
-                <span className="absolute -top-1 -right-1 bg-[var(--primary)] text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full">{lang.split('-')[0].toUpperCase()}</span>
+                <span className="text-[10px] font-black uppercase tracking-widest hidden sm:block">{lang.split('-')[0]}</span>
               </button>
-              <button onClick={toggleTheme} className="w-10 h-10 rounded-full bg-[var(--surface)] border border-[var(--border)] shadow-sm flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--primary)] transition-all active:scale-95">
+              
+              <div className="w-[1px] h-4 bg-[var(--border)] mx-0.5" />
+              
+              <button 
+                onClick={() => setIsThemeModalOpen(true)} 
+                className="flex items-center justify-center w-10 h-8 rounded-full text-[var(--text-secondary)] hover:text-[var(--primary)] hover:bg-[var(--primary)]/5 transition-all active:scale-95"
+              >
                 {isDark ? <FaSun size={14} /> : <FaMoon size={14} />}
               </button>
             </div>
           </div>
 
-          <section className="bg-[var(--surface)] p-8 rounded-[2.5rem] border border-[var(--border)] shadow-xl mb-8 flex flex-col items-center text-center gap-5">
+          <section className="bg-[var(--surface)] backdrop-blur-2xl p-8 rounded-[2.5rem] border border-[var(--border)] shadow-xl shadow-[var(--border)] mb-8 flex flex-col items-center text-center gap-5">
             <div className="w-24 h-24 rounded-[2rem] overflow-hidden border border-[var(--border)] shadow-inner bg-[var(--surface-sec)]">
               <img src={aluno?.avatar_url || 'https://via.placeholder.com/150'} className="w-full h-full object-cover" alt={aluno?.nome} />
             </div>
@@ -486,10 +534,10 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
             <section className="space-y-6 animate-in slide-in-from-right-4 fade-in duration-500">
               
               <div className="flex gap-2">
-                <button onClick={() => { setMostrarArquivados(false); setIndexAberto(null); }} className={`flex-1 py-3 rounded-[1rem] font-black text-[10px] uppercase tracking-widest transition-all ${!mostrarArquivados ? 'bg-[var(--primary)] text-white shadow-lg shadow-[var(--primary)]/20' : 'bg-[var(--surface-sec)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border)]'}`}>
+                <button onClick={() => { setMostrarArquivados(false); setIndexAberto(null); }} className={`flex-1 py-3 rounded-[1.2rem] font-black text-[10px] uppercase tracking-widest transition-all ${!mostrarArquivados ? 'bg-[var(--primary)] text-white shadow-lg shadow-[var(--primary)]/20' : 'bg-[var(--surface-sec)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border)]'}`}>
                   {t.workouts.active}
                 </button>
-                <button onClick={() => { setMostrarArquivados(true); setIndexAberto(null); }} className={`flex-1 py-3 rounded-[1rem] font-black text-[10px] uppercase tracking-widest transition-all ${mostrarArquivados ? 'bg-[var(--primary)] text-white shadow-lg shadow-[var(--primary)]/20' : 'bg-[var(--surface-sec)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border)]'}`}>
+                <button onClick={() => { setMostrarArquivados(true); setIndexAberto(null); }} className={`flex-1 py-3 rounded-[1.2rem] font-black text-[10px] uppercase tracking-widest transition-all ${mostrarArquivados ? 'bg-[var(--primary)] text-white shadow-lg shadow-[var(--primary)]/20' : 'bg-[var(--surface-sec)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border)]'}`}>
                   {t.workouts.archived}
                 </button>
               </div>
@@ -548,7 +596,7 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
                                 <FaUndo size={14} />
                               </button>
                             ) : (
-                              <button onClick={() => toggleArquivarPrograma(grupo.treinos, true)} className="bg-[var(--text-secondary)]/10 text-[var(--text-secondary)] p-3 rounded-xl hover:bg-[var(--text-secondary)] hover:text-[var(--bg)] transition-colors" title={t.workouts.archive}>
+                              <button onClick={() => toggleArquivarPrograma(grupo.treinos, true)} className="bg-[var(--text-secondary)]/10 text-[var(--text-secondary)] p-3 rounded-xl hover:bg-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors" title={t.workouts.archive}>
                                 <FaArchive size={14} />
                               </button>
                             )}
@@ -890,6 +938,120 @@ function DetalheAlunoContent({ params }: { params: Promise<{ id: string }> }) {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* ━━━━━━━━━━ MODAIS DE CONFIGURAÇÃO (Fundo Escuro) ━━━━━━━━━━ */}
+      {(isLangModalOpen || isThemeModalOpen) && (
+        <div className="fixed inset-0 z-[999999] flex items-end sm:items-center justify-center p-0 sm:p-5">
+          <div 
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300"
+            onClick={() => { setIsLangModalOpen(false); setIsThemeModalOpen(false); }} 
+          />
+          
+          <div style={themeStyles} className="w-full max-w-sm bg-[var(--bg)] border border-[var(--border)] rounded-t-[2.5rem] sm:rounded-[2.5rem] p-6 shadow-2xl relative z-10 animate-in slide-in-from-bottom-full sm:slide-in-from-bottom-8 sm:zoom-in-95 duration-300">
+            
+            {/* ━━ CONTEÚDO: IDIOMAS ━━ */}
+            {isLangModalOpen && (
+              <>
+                <div className="flex justify-between items-center mb-6 px-2">
+                  <h3 className="font-black text-lg tracking-tight text-[var(--text-primary)]">
+                    {t.selectLanguage}
+                  </h3>
+                  <button 
+                    onClick={() => setIsLangModalOpen(false)}
+                    className="w-8 h-8 rounded-full bg-[var(--surface)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--danger)] transition-colors active:scale-95"
+                  >
+                    <FaTimes size={14} />
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  {languages.map((language) => {
+                    const isActive = lang === language.code;
+                    return (
+                      <button
+                        key={language.code}
+                        onClick={() => handleSelectLanguage(language.code)}
+                        className={`w-full flex items-center justify-between p-4 rounded-[1.2rem] border transition-all active:scale-[0.98] ${
+                          isActive 
+                            ? 'bg-[var(--primary)]/10 border-[var(--primary)]/30 text-[var(--primary)]' 
+                            : 'bg-[var(--surface)] border-[var(--border)] text-[var(--text-primary)] hover:border-[var(--text-secondary)]/50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-4">
+                          <span className="text-2xl">{language.flag}</span>
+                          <span className={`font-bold text-sm ${isActive ? 'text-[var(--primary)]' : ''}`}>
+                            {language.name}
+                          </span>
+                        </div>
+                        {isActive && <FaCheck className="text-[var(--primary)]" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+
+            {/* ━━ CONTEÚDO: TEMA ━━ */}
+            {isThemeModalOpen && (
+              <>
+                <div className="flex justify-between items-center mb-6 px-2">
+                  <h3 className="font-black text-lg tracking-tight text-[var(--text-primary)]">
+                    {t.selectTheme}
+                  </h3>
+                  <button 
+                    onClick={() => setIsThemeModalOpen(false)}
+                    className="w-8 h-8 rounded-full bg-[var(--surface)] flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--danger)] transition-colors active:scale-95"
+                  >
+                    <FaTimes size={14} />
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  {/* Botão Claro */}
+                  <button
+                    onClick={() => handleSelectTheme('light')}
+                    className={`w-full flex items-center justify-between p-4 rounded-[1.2rem] border transition-all active:scale-[0.98] ${
+                      !isDark 
+                        ? 'bg-[var(--primary)]/10 border-[var(--primary)]/30 text-[var(--primary)]' 
+                        : 'bg-[var(--surface)] border-[var(--border)] text-[var(--text-primary)] hover:border-[var(--text-secondary)]/50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-8 h-8 rounded-full bg-orange-100 text-orange-500 flex items-center justify-center">
+                        <FaSun size={16} />
+                      </div>
+                      <span className={`font-bold text-sm ${!isDark ? 'text-[var(--primary)]' : ''}`}>
+                        {t.themeLight}
+                      </span>
+                    </div>
+                    {!isDark && <FaCheck className="text-[var(--primary)]" />}
+                  </button>
+                  
+                  {/* Botão Escuro */}
+                  <button
+                    onClick={() => handleSelectTheme('dark')}
+                    className={`w-full flex items-center justify-between p-4 rounded-[1.2rem] border transition-all active:scale-[0.98] ${
+                      isDark 
+                        ? 'bg-[var(--primary)]/10 border-[var(--primary)]/30 text-[var(--primary)]' 
+                        : 'bg-[var(--surface)] border-[var(--border)] text-[var(--text-primary)] hover:border-[var(--text-secondary)]/50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-8 h-8 rounded-full bg-slate-800 text-slate-300 flex items-center justify-center">
+                        <FaMoon size={16} />
+                      </div>
+                      <span className={`font-bold text-sm ${isDark ? 'text-[var(--primary)]' : ''}`}>
+                        {t.themeDark}
+                      </span>
+                    </div>
+                    {isDark && <FaCheck className="text-[var(--primary)]" />}
+                  </button>
+                </div>
+              </>
+            )}
+            
+            <div className="w-12 h-1 bg-[var(--border)] rounded-full mx-auto mt-6 sm:hidden" />
+          </div>
         </div>
       )}
     </main>
