@@ -30,9 +30,6 @@ const FinanceiroSkeleton = () => (
   </div>
 );
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// DICIONÁRIO DE INTERNACIONALIZAÇÃO (i18n)
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 const translations = {
   'pt-BR': {
     title: 'Gestão Financeira', accumulated: 'Receita Anual', monthlyRevenue: 'Receita do Mês',
@@ -75,12 +72,6 @@ const translations = {
   }
 };
 
-const languages = [
-  { code: 'pt-BR', name: 'Português (Brasil)', flag: '🇧🇷' },
-  { code: 'pt-PT', name: 'Português (Portugal)', flag: '🇵🇹' },
-  { code: 'en', name: 'English', flag: '🇺🇸' }
-];
-
 const getMeses = (lang: string) => {
   if (lang === 'en') return ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   return ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
@@ -92,6 +83,7 @@ export default function FinanceiroSaaS() {
   // Dados do DB
   const [pagamentos, setPagamentos] = useState<any[]>([]);
   const [listaAlunos, setListaAlunos] = useState<any[]>([]);
+  const [configPersonal, setConfigPersonal] = useState({ valor_mensalidade_padrao: 0 });
   const [loading, setLoading] = useState(true);
   
   // UI & UX States
@@ -112,7 +104,6 @@ export default function FinanceiroSaaS() {
   const [isDark, setIsDark] = useState(true);
   const [lang, setLang] = useState<'pt-BR' | 'pt-PT' | 'en'>('pt-BR');
   const [mounted, setMounted] = useState(false);
-  const [isLangModalOpen, setIsLangModalOpen] = useState(false);
   const [isThemeModalOpen, setIsThemeModalOpen] = useState(false);
 
   useEffect(() => {
@@ -149,16 +140,32 @@ export default function FinanceiroSaaS() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    // Busca Pagamentos e Alunos (com data de vencimento e telefone para cobrança)
-    const [pRes, aRes] = await Promise.all([
+    // Busca o valor padrão do personal, pagamentos e os dados dos alunos (agora incluindo valor_mensalidade individual)
+    const [cRes, pRes, aRes] = await Promise.all([
+      supabase.from('personais').select('valor_mensalidade').eq('id', user.id).single(),
       supabase.from('pagamentos').select('id, valor, data_pagamento, alunos(nome)').eq('personal_id', user.id).order('data_pagamento', { ascending: false }),
-      // Adicione 'data_ultimo_treino' se tiver na sua tabela para a frequência
-      supabase.from('alunos').select('id, nome, ativo, data_vencimento, telefone, status_pagamento').eq('personal_id', user.id)
+      supabase.from('alunos').select('id, nome, ativo, data_vencimento, telefone, status_pagamento, valor_mensalidade, data_ultimo_treino').eq('personal_id', user.id)
     ]);
 
+    if (cRes.data) setConfigPersonal({ valor_mensalidade_padrao: cRes.data.valor_mensalidade || 0 });
     setPagamentos(pRes.data || []);
     setListaAlunos(aRes.data || []);
     setLoading(false);
+  };
+
+  const handleSelecionarAluno = (idSelecionado: string) => {
+    setAlunoId(idSelecionado);
+    if (!idSelecionado) {
+      setNovoValor('');
+      return;
+    }
+    // Procura o aluno selecionado
+    const aluno = listaAlunos.find(a => a.id === idSelecionado);
+    if (aluno) {
+      // Se o aluno tiver um valor específico, puxa ele. Se não tiver, puxa o valor padrão do Personal.
+      const valorParaCobrar = aluno.valor_mensalidade || configPersonal.valor_mensalidade_padrao;
+      setNovoValor(valorParaCobrar ? valorParaCobrar.toString() : '');
+    }
   };
 
   const registrarPagamentoManual = async () => {
@@ -219,23 +226,28 @@ export default function FinanceiroSaaS() {
   }, [pagamentos, anoFiltro]);
 
   const totalAno = faturamentoAnual.reduce((acc, val) => acc + val, 0);
-  const maxMes = Math.max(...faturamentoAnual, 1); // Evita divisão por zero
+  const maxMes = Math.max(...faturamentoAnual, 1); 
 
-  // ━━━━━━━━━━━━━━━━ INADIMPLENTES & FREQUÊNCIA ━━━━━━━━━━━━━━━━
+  // ━━━━━━━━━━━━━━━━ INADIMPLENTES (CÁLCULO DINÂMICO) ━━━━━━━━━━━━━━━━
   const alunosInadimplentes = useMemo(() => listaAlunos.filter(a => {
     if (!a.data_vencimento) return false;
     const hoje = new Date();
     hoje.setHours(0,0,0,0);
     const vencimento = new Date(a.data_vencimento + 'T00:00:00');
-    return vencimento < hoje; // Venceu e ainda não pagou
+    return vencimento < hoje; 
   }).sort((a,b) => new Date(a.data_vencimento).getTime() - new Date(b.data_vencimento).getTime()), [listaAlunos]);
 
-  // Total estimado a receber atrasado (Assumindo R$ 150 padrão se não tiver)
-  const valorAtrasado = alunosInadimplentes.length * 150; 
+  // Total a receber (Soma os valores INDIVIDUAIS de cada aluno)
+  const valorAtrasado = alunosInadimplentes.reduce((total, aluno) => {
+    // Tenta usar o valor específico do aluno. Se ele não tiver, usa o valor padrão do personal. Se nenhum existir, 0.
+    const valorCobrado = aluno.valor_mensalidade || configPersonal.valor_mensalidade_padrao || 0;
+    return total + Number(valorCobrado);
+  }, 0); 
 
   const enviarCobrancaWhatsApp = (aluno: any) => {
     if(!aluno.telefone) return alert("Aluno sem telefone cadastrado.");
-    const msg = `Olá ${aluno.nome}, tudo bem? Notei que sua mensalidade com vencimento em ${new Date(aluno.data_vencimento + 'T00:00:00').toLocaleDateString('pt-BR')} está pendente. Qualquer dúvida estou à disposição!`;
+    const valorCobrado = aluno.valor_mensalidade || configPersonal.valor_mensalidade_padrao || 0;
+    const msg = `Olá ${aluno.nome}, tudo bem? Notei que sua mensalidade no valor de ${formatCurrency(valorCobrado)} com vencimento em ${new Date(aluno.data_vencimento + 'T00:00:00').toLocaleDateString('pt-BR')} está pendente. Qualquer dúvida estou à disposição!`;
     const num = aluno.telefone.replace(/\D/g, '');
     window.open(`https://wa.me/${num}?text=${encodeURIComponent(msg)}`, '_blank');
   };
@@ -303,14 +315,14 @@ export default function FinanceiroSaaS() {
                   <p className="text-2xl font-black tracking-tighter text-[var(--primary)]">{olhoAberto ? formatCurrency(faturamentoMes) : '••••••'}</p>
                 </div>
 
-                {/* Pendentes (A Receber) */}
-                <div className="bg-[var(--danger)]/10 backdrop-blur-xl p-6 rounded-[2rem] border border-[var(--danger)]/20 shadow-sm">
+                {/* Pendentes (A Receber) - AGORA COM VALOR DINÂMICO! */}
+                <div className="bg-[var(--danger)]/10 backdrop-blur-xl p-6 rounded-[2rem] border border-[var(--danger)]/20 shadow-sm relative overflow-hidden">
                   <h2 className="text-[9px] font-black text-[var(--danger)] uppercase tracking-[0.2em] mb-2">{t.pendingRevenue}</h2>
                   <p className="text-2xl font-black tracking-tighter text-[var(--danger)]">{olhoAberto ? formatCurrency(valorAtrasado) : '••••••'}</p>
                 </div>
               </div>
 
-              {/* Gráfico de Faturamento Anual NATIVO (CSS) */}
+              {/* Gráfico de Faturamento Anual */}
               <div className="bg-[var(--surface)] backdrop-blur-xl p-6 sm:p-8 rounded-[2.5rem] border border-[var(--border)] shadow-sm">
                 <div className="flex justify-between items-center mb-8">
                   <h2 className="text-[10px] font-black text-[var(--text-secondary)] uppercase tracking-[0.2em]">{t.graphTitle}</h2>
@@ -323,11 +335,9 @@ export default function FinanceiroSaaS() {
                     const percent = Math.max((valor / maxMes) * 100, 0);
                     return (
                       <div key={mes} className="flex flex-col items-center flex-1 group">
-                        {/* Tooltip Hover */}
                         <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute -mt-8 bg-[var(--surface-sec)] text-[10px] font-bold px-2 py-1 rounded shadow-lg border border-[var(--border)] pointer-events-none">
                           {formatCurrency(valor)}
                         </div>
-                        {/* Barra */}
                         <div className="w-full max-w-[2rem] bg-[var(--surface-sec)] rounded-t-lg flex items-end overflow-hidden transition-all duration-1000 group-hover:brightness-110" style={{ height: '100%' }}>
                           <div className={`w-full rounded-t-lg transition-all duration-1000 ease-out ${valor > 0 ? 'bg-gradient-to-t from-blue-700 to-[var(--primary)] shadow-[0_0_15px_rgba(59,130,246,0.5)]' : ''}`} style={{ height: `${percent}%` }} />
                         </div>
@@ -352,12 +362,24 @@ export default function FinanceiroSaaS() {
               <div className="bg-[var(--surface)] backdrop-blur-xl p-6 sm:p-8 rounded-[2.5rem] border border-[var(--border)] shadow-sm">
                 <h2 className="text-[10px] font-black text-[var(--text-secondary)] uppercase tracking-[0.2em] mb-4">{t.manualPayment}</h2>
                 <div className="flex flex-col sm:flex-row gap-3">
-                  <select value={alunoId} onChange={(e) => setAlunoId(e.target.value)} className="flex-[2] min-w-[200px] p-4 bg-[var(--surface-sec)] rounded-[1.2rem] text-sm font-bold border border-[var(--border)] outline-none text-[var(--text-primary)] appearance-none cursor-pointer">
+                  {/* SELECIONAR ALUNO */}
+                  <select 
+                    value={alunoId} 
+                    onChange={(e) => handleSelecionarAluno(e.target.value)} 
+                    className="flex-[2] min-w-[200px] p-4 bg-[var(--surface-sec)] rounded-[1.2rem] text-sm font-bold border border-[var(--border)] outline-none text-[var(--text-primary)] appearance-none cursor-pointer"
+                  >
                     <option value="">{t.selectStudent}</option>
                     {listaAlunos.map(a => <option key={a.id} value={a.id}>{a.nome}</option>)}
                   </select>
+                  
                   <div className="flex gap-3">
-                    <input type="number" placeholder={t.valueLabel} value={novoValor} onChange={(e) => setNovoValor(e.target.value)} className="w-full sm:flex-1 p-4 bg-[var(--surface-sec)] rounded-[1.2rem] text-sm font-bold border border-[var(--border)] outline-none text-[var(--text-primary)]" />
+                    <input 
+                      type="number" 
+                      placeholder={t.valueLabel} 
+                      value={novoValor} 
+                      onChange={(e) => setNovoValor(e.target.value)} 
+                      className="w-full sm:flex-1 p-4 bg-[var(--surface-sec)] rounded-[1.2rem] text-sm font-bold border border-[var(--border)] outline-none text-[var(--text-primary)]" 
+                    />
                     <button onClick={registrarPagamentoManual} disabled={saving} className="bg-[var(--primary)] text-white px-8 rounded-[1.2rem] font-black hover:brightness-110 active:scale-95 transition-all shadow-md shadow-[var(--primary)]/20 flex items-center justify-center">
                       <FaPlus />
                     </button>
@@ -395,7 +417,7 @@ export default function FinanceiroSaaS() {
             </div>
           )}
 
-          {/* ━━━━━━━━━━ ABA 3: INADIMPLENTES (Controle de quem falta pagar) ━━━━━━━━━━ */}
+          {/* ━━━━━━━━━━ ABA 3: INADIMPLENTES ━━━━━━━━━━ */}
           {activeTab === 'pending' && (
             <div className="space-y-4 animate-in slide-in-from-bottom-4 fade-in duration-500">
               {alunosInadimplentes.length === 0 ? (
@@ -408,10 +430,15 @@ export default function FinanceiroSaaS() {
               ) : (
                 alunosInadimplentes.map(aluno => {
                   const diasAtraso = Math.floor((new Date().getTime() - new Date(aluno.data_vencimento + 'T00:00:00').getTime()) / (1000 * 3600 * 24));
+                  const valorCobrado = aluno.valor_mensalidade || configPersonal.valor_mensalidade_padrao || 0;
+                  
                   return (
                     <div key={aluno.id} className="bg-[var(--surface)] p-5 rounded-[1.5rem] border border-[var(--danger)]/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm hover:border-[var(--danger)]/60 transition-all">
                       <div className="flex flex-col">
-                        <span className="font-black text-[var(--text-primary)] text-sm">{aluno.nome}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-black text-[var(--text-primary)] text-sm">{aluno.nome}</span>
+                          <span className="text-[10px] font-black text-[var(--text-secondary)]">({formatCurrency(valorCobrado)})</span>
+                        </div>
                         <div className="flex gap-2 items-center mt-1">
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded text-white bg-[var(--danger)]">
                             Venceu dia {new Date(aluno.data_vencimento + 'T00:00:00').toLocaleDateString('pt-BR').substring(0, 5)}
@@ -430,7 +457,7 @@ export default function FinanceiroSaaS() {
                           <FaWhatsapp size={16} /> {t.charge}
                         </button>
                         <button 
-                          onClick={() => { setAlunoId(aluno.id); setActiveTab('transactions'); }}
+                          onClick={() => { handleSelecionarAluno(aluno.id); setActiveTab('transactions'); }}
                           className="bg-[var(--surface-sec)] text-[var(--text-primary)] border border-[var(--border)] px-4 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider hover:border-[var(--primary)] transition-all active:scale-95"
                         >
                           Baixar
@@ -443,7 +470,7 @@ export default function FinanceiroSaaS() {
             </div>
           )}
 
-          {/* ━━━━━━━━━━ ABA 4: FREQUÊNCIA (Assiduidade dos Alunos) ━━━━━━━━━━ */}
+          {/* ━━━━━━━━━━ ABA 4: FREQUÊNCIA ━━━━━━━━━━ */}
           {activeTab === 'attendance' && (
             <div className="bg-[var(--surface)] backdrop-blur-xl rounded-[2.5rem] border border-[var(--border)] shadow-sm overflow-hidden p-2 animate-in slide-in-from-bottom-4 fade-in duration-500">
               <div className="p-6">
@@ -452,8 +479,6 @@ export default function FinanceiroSaaS() {
                 
                 <div className="space-y-3">
                   {listaAlunos.filter(a => a.ativo).map(aluno => {
-                    // Simulando dado de ultimo treino. Se você tiver na base, troque `aluno.data_ultimo_treino`. 
-                    // Por enquanto deixarei um placeholder visual para você ver como fica.
                     const temDados = aluno.data_ultimo_treino; 
                     return (
                       <div key={aluno.id} className="bg-[var(--surface-sec)] p-4 rounded-2xl flex items-center justify-between border border-[var(--border)]">
