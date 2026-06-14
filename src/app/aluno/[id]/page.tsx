@@ -386,7 +386,7 @@ function AreaDoAlunoContent({ id }: { id: string }) {
           </div>
         )}
 
-        <section className="bg-[var(--surface)] backdrop-blur-xl p-6 rounded-[2rem] border border-[var(--border)] shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500 delay-150">
+        <section className="bg-[var(--surface)] p-6 rounded-[2rem] border border-[var(--border)] shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500 delay-150">
           <div className="flex justify-between items-center mb-5"><h2 className="text-[11px] font-bold text-[var(--text-secondary)] uppercase tracking-[0.2em]">{t.week}</h2></div>
           <div className="flex justify-between items-center">
             {diasSemana.map((dia, i) => {
@@ -405,7 +405,7 @@ function AreaDoAlunoContent({ id }: { id: string }) {
           </div>
         </section>
 
-        <button onClick={() => setCalendarioAberto(true)} className="w-full py-4 bg-[var(--surface)] backdrop-blur-xl border border-[var(--border)] rounded-[1.5rem] text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all active:scale-95 shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500 delay-200">
+        <button onClick={() => setCalendarioAberto(true)} className="w-full py-4 bg-[var(--surface)] border border-[var(--border)] rounded-[1.5rem] text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all active:scale-95 shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500 delay-200">
           {t.historyBtn}
         </button>
 
@@ -433,7 +433,7 @@ function AreaDoAlunoContent({ id }: { id: string }) {
         </div>
 
         {aluno && (
-          <div className="bg-[var(--surface)] backdrop-blur-xl p-5 rounded-[1.5rem] border border-[var(--border)] flex justify-between items-center shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500 delay-300 mt-2">
+          <div className="bg-[var(--surface)] p-5 rounded-[1.5rem] border border-[var(--border)] flex justify-between items-center shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500 delay-300 mt-2">
             <div className="flex flex-col">
               <span className="text-[9px] font-bold uppercase text-[var(--text-secondary)] tracking-widest mb-1">{t.status}</span>
               <div className="flex items-center gap-2">
@@ -469,7 +469,9 @@ function AreaDoAlunoContent({ id }: { id: string }) {
               onClick={() => { setIsLangModalOpen(false); setIsThemeModalOpen(false); }} 
             />
             
-            <div style={themeStyles} className="w-full max-w-sm bg-[var(--bg)] border border-[var(--border)] rounded-t-[2.5rem] sm:rounded-[2.5rem] p-6 shadow-2xl relative z-10 animate-in slide-in-from-bottom-full sm:slide-in-from-bottom-8 sm:zoom-in-95 duration-300">
+            <div style={themeStyles} className="w-full max-w-sm bg-[var(--bg)] border border-[var(--border)] rounded-t-[2.5rem] sm:rounded-[2.5rem] p-6 pb-[calc(env(safe-area-inset-bottom)+7rem)] sm:pb-6 shadow-2xl relative z-10 animate-in slide-in-from-bottom-full sm:slide-in-from-bottom-8 sm:zoom-in-95 duration-300">
+              
+              <div className="w-12 h-1.5 bg-[var(--text-secondary)]/20 rounded-full mx-auto mb-6 sm:hidden" />
               
               {/* ━━ CONTEÚDO: IDIOMAS ━━ */}
               {isLangModalOpen && (
@@ -567,8 +569,6 @@ function AreaDoAlunoContent({ id }: { id: string }) {
                   </div>
                 </>
               )}
-              
-              <div className="w-12 h-1 bg-[var(--border)] rounded-full mx-auto mt-6 sm:hidden" />
             </div>
           </div>
         )}
