@@ -43,15 +43,32 @@ export default function NavbarAluno() {
   };
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  // TEMA E IDIOMA EM TEMPO REAL (SEM ATRASO)
+  // TEMA E IDIOMA EM TEMPO REAL + CORREÇÃO GLOBAL DE FUNDO (iOS/Mobile)
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   useEffect(() => {
     const updateSettings = () => {
       const savedTheme = localStorage.getItem('@premium_theme');
-      if (savedTheme) setIsDark(savedTheme === 'dark');
+      const isDarkTheme = savedTheme === 'dark';
+      setIsDark(isDarkTheme);
       
       const savedLang = localStorage.getItem('@premium_lang') as 'pt-BR' | 'pt-PT' | 'en';
       if (savedLang) setLang(savedLang);
+
+      // CORREÇÃO DO ESPAÇO BRANCO NO TOPO E RODAPÉ (BARRA DE STATUS DO CELULAR)
+      const bgColor = isDarkTheme ? '#0F1115' : '#F3F6FB';
+      
+      // 1. Muda a cor da barra de status (relógio, bateria)
+      let metaThemeColor = document.querySelector("meta[name='theme-color']");
+      if (!metaThemeColor) {
+        metaThemeColor = document.createElement("meta");
+        metaThemeColor.setAttribute("name", "theme-color");
+        document.head.appendChild(metaThemeColor);
+      }
+      metaThemeColor.setAttribute("content", bgColor);
+
+      // 2. Força o fundo do HTML e BODY em tempo real
+      document.documentElement.style.setProperty('background-color', bgColor, 'important');
+      document.body.style.setProperty('background-color', bgColor, 'important');
     };
 
     updateSettings();
@@ -70,7 +87,7 @@ export default function NavbarAluno() {
   const parts = pathname.split('/');
   const alunoId = parts[2];
 
-  // Estilos Locais da Navbar (Garante que ela acompanhe o tema instantaneamente)
+  // Estilos Locais da Navbar
   const themeStyles = isDark ? {
     '--bg': '#0F1115', '--surface': 'rgba(21, 26, 34, 0.9)', '--surface-sec': '#1B2330', '--primary': '#3B82F6', '--danger': '#EF4444', '--success': '#22C55E', '--text-primary': '#F8FAFC', '--text-secondary': '#94A3B8', '--border': 'rgba(255,255,255,0.08)',
   } as React.CSSProperties : {
@@ -92,7 +109,6 @@ export default function NavbarAluno() {
           .single();
 
         if (alunoData) {
-          // Checa se está vencido ou bloqueado
           let vencido = alunoData.status_pagamento === 'bloqueado';
           if (alunoData.data_vencimento) {
             const hoje = new Date();
@@ -102,7 +118,6 @@ export default function NavbarAluno() {
           }
           setIsVencido(vencido);
 
-          // Puxa o WhatsApp do Personal
           if (alunoData.personal_id) {
             const { data: personalData } = await supabase
               .from('personais')
@@ -155,14 +170,23 @@ export default function NavbarAluno() {
 
   return (
     <>
-      {/* ━━━━━━━━━━ INJEÇÃO GLOBAL: REMOVE ESPAÇOS BRANCOS DE TOPO/RODAPÉ ━━━━━━━━━━ */}
+      {/* ━━━━━━━━━━ INJEÇÃO GLOBAL EXTREMA PARA REMOVER ESPAÇOS BRANCOS ━━━━━━━━━━ */}
       <style dangerouslySetInnerHTML={{
         __html: `
-          html, body {
+          :root, html, body {
             background-color: ${isDark ? '#0F1115' : '#F3F6FB'} !important;
+            overscroll-behavior-y: none; /* Previne o quique branco do iOS */
+          }
+          #fixed-bg-premium {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: ${isDark ? '#0F1115' : '#F3F6FB'};
+            z-index: -9999;
+            pointer-events: none;
           }
         `
       }} />
+      <div id="fixed-bg-premium" /> {/* Camada extra garantindo cor em 100% da tela */}
 
       {/* TOAST FLUTUANTE DE BLOQUEIO */}
       {toast && (
@@ -239,8 +263,6 @@ export default function NavbarAluno() {
                   e.preventDefault();
                   showToast('error', t.lockedToast);
                 } else if (!isExternal) {
-                  // Previne o reload padrão do link `<a>` em Next.js usando o router.push 
-                  // se não for link externo. Deixa o app muito mais rápido na navegação mobile.
                   e.preventDefault();
                   router.push(link.path);
                 }
