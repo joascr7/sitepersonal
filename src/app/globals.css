@@ -3,7 +3,7 @@
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    SISTEMA GLOBAL DE TEMAS PREMIUM (Design Tokens)
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-:root {
+:root, html.dark {
   /* Dark Premium (Sofisticado / Fitness) */
   --bg: #0F1115;
   --surface: #151A22;
@@ -17,15 +17,14 @@
   --warning: #F59E0B;
   --danger: #EF4444;
 
-  /* Variáveis de Herança (Preservando 100% o funcionamento legado) */
+  /* Variáveis de Herança */
   --background: var(--bg);
   --foreground: var(--text-primary);
   --card-bg: var(--surface);
 }
 
-/* Mantendo o data-theme classic e mapeando para o Light Premium (Apple Fitness Style) */
-[data-theme='classic'],
-[data-theme='light'] {
+html.light, [data-theme='light'], [data-theme='classic'] {
+  /* Light Premium (Apple Fitness Style) */
   --bg: #F3F6FB;
   --surface: #FFFFFF;
   --surface-sec: #E8EEF9;
@@ -38,63 +37,81 @@
   --warning: #D97706;
   --danger: #DC2626;
 
-  /* Variáveis de Herança (Preservando 100% o funcionamento legado) */
+  /* Variáveis de Herança */
   --background: var(--bg);
   --foreground: var(--text-primary);
   --card-bg: var(--surface);
 }
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   BASE E RESET PREMIUM NATIVO
+   BASE E RESET PREMIUM NATIVO (O SEGREDO DO EDGE-TO-EDGE)
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-body {
-  background-color: var(--background);
-  color: var(--foreground);
+html, body {
+  /* OBRIGA o navegador a pintar 100% da tela, cobrindo câmera e bateria */
+  background-color: var(--bg) !important;
+  color: var(--text-primary);
+  
+  width: 100%;
+  height: 100%;
+  min-height: 100dvh;
+  margin: 0 !important;
+  padding: 0 !important;
   
   /* Transição suave de temas */
   transition: background-color 0.5s ease, color 0.5s ease;
   
-  /* Tipografia Nativa Fallback (Caso a fonte externa não carregue) */
-  font-family: var(--font-geist-sans), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+  /* Tipografia Nativa */
+  font-family: var(--font-geist-sans), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   
-  min-height: 100vh;
-  margin: 0;
-  padding: 0;
+  /* Bloqueia o "bounce" elástico do iOS que revela o fundo branco do Safari */
+  overscroll-behavior: none !important;
+  overscroll-behavior-y: none !important;
+  overscroll-behavior-x: none !important;
+  
+  /* Bloqueia gestos de zoom mantendo scroll */
+  touch-action: pan-y !important;
+  zoom: 1 !important; 
+}
 
-  /* EXPERIÊNCIA NATIVA MOBILE (PWA / iOS / Android) */
-  /* Remove aquele tap highlight azul padrão ao clicar em links/botões no mobile */
+/* Previne vazamento de branco caso o Next.js crie uma div wrapper raiz */
+#__next, div[data-overlay-container] {
+  background-color: var(--bg) !important;
+  min-height: 100dvh;
+}
+
+body {
+  /* Remove o highlight azul ao clicar em botões no mobile */
   -webkit-tap-highlight-color: transparent;
   
-  /* Textos absurdamente nítidos no iOS e telas Retina */
+  /* Textos absurdamente nítidos no iOS */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  /* Bloqueia a seleção acidental (que abre a lupa no iOS) */
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
 }
 
-/* Força o topo da tela a ignorar o espaço da navbar se necessário */
-body {
-  padding-top: 0 !important;
-  margin-top: 0 !important;
-}
-
-/* Garante que o container principal comece do pixel 0 */
+/* Garante que o container de conteúdo respeite as safe-areas, NÃO a raiz HTML */
 main {
   width: 100%;
-  margin-top: 0 !important;
+  margin: 0 !important;
   
-  /* Adiciona automaticamente espaço se o celular tiver notch ou barra de home (Apple HIG) */
-  padding-bottom: env(safe-area-inset-bottom);
-  padding-top: env(safe-area-inset-top); 
+  /* Padding dinâmico: Nunca deixa o conteúdo esconder atrás da câmera ou do menu inferior */
+  padding-top: max(env(safe-area-inset-top), 1rem);
+  padding-bottom: max(env(safe-area-inset-bottom), 8rem); 
 }
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
    OTIMIZAÇÕES DE UI (CLEAN SCROLL)
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 html {
-  /* Scroll macio em links de âncora */
   scroll-behavior: smooth;
 }
 
-/* Esconde as scrollbars padrão para aparência limpa de aplicativo, mas mantém o scroll funcional */
+/* Esconde scrollbars nativas mas mantém o funcionamento */
 ::-webkit-scrollbar {
   display: none;
   width: 0;
@@ -102,11 +119,10 @@ html {
 }
 
 * {
-  -ms-overflow-style: none; /* IE e Edge */
+  -ms-overflow-style: none; /* IE/Edge */
   scrollbar-width: none;    /* Firefox */
 }
 
-/* Opcional: Se quiser esconder a barra de rolagem mas continuar rolando (estilo app nativo) */
 .custom-scrollbar::-webkit-scrollbar {
   display: none;
 }
@@ -116,34 +132,13 @@ html {
 }
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-   TRAVA DE ZOOM NATIVO E UX PREMIUM (Corrigido para manter rolagem)
+   TRAVA DE ZOOM NATIVO EM FORMULÁRIOS
    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-
-/* Impede o zoom automático do iOS Safari ao focar em campos de digitação */
 input, select, textarea {
+  /* O tamanho 16px é uma trava nativa do iOS: impede o auto-zoom ao focar no campo */
   font-size: 16px !important;
   
-  /* Garante que o aluno consiga digitar e selecionar o próprio texto dentro dos formulários */
+  /* Libera a seleção de texto APENAS dentro de inputs */
   -webkit-user-select: auto !important;
   user-select: auto !important;
-}
-
-html, body {
-  /* pan-y: Devolve a rolagem vertical (scroll), mas BLOQUEIA gestos de zoom (pinça) e lateral */
-  touch-action: pan-y !important; 
-  
-  /* Previne o "elastic bounce" no topo/fundo da tela no iOS, mantendo a sensação de app nativo */
-  overscroll-behavior-y: none !important;
-  overscroll-behavior-x: none !important;
-  
-  /* Arranca a habilidade do navegador de dar zoom na raiz */
-  zoom: 1 !important; 
-}
-
-body {
-  /* Bloqueia a seleção de texto acidental na interface, evitando que abra a lupa do sistema */
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-  user-select: none;
 }
