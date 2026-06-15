@@ -9,7 +9,6 @@ export default function ClientLayoutWrapper({ children }: { children: React.Reac
   const [isDark, setIsDark] = useState(true);
 
   useEffect(() => {
-    // 1. RevenueCat
     const initRevenueCat = async () => {
       try {
         const Purchases = (await import('react-native-purchases')).default;
