@@ -20,11 +20,57 @@ export default function ClientLayoutWrapper({ children }: { children: React.Reac
     };
     initRevenueCat();
 
-    // 2. Leitura inicial do Tema
+    // 2. Sincronização de Tema via Classes Nativas (Alta Performance)
     const initTheme = () => {
       const savedTheme = localStorage.getItem('@premium_theme');
       const isDarkMode = savedTheme ? savedTheme === 'dark' : true; 
       setIsDark(isDarkMode);
+      
+      const root = document.documentElement;
+      
+      // Remove classes antigas e adiciona a nova classe de tema na raiz real do HTML
+      if (isDarkMode) {
+        root.classList.remove('light');
+        root.classList.add('dark');
+        
+        // Define variáveis para os componentes
+        root.style.setProperty('--bg', '#0F1115');
+        root.style.setProperty('--surface', '#151A22');
+        root.style.setProperty('--surface-sec', '#1B2330');
+        root.style.setProperty('--primary', '#3B82F6');
+        root.style.setProperty('--primary-soft', '#60A5FA');
+        root.style.setProperty('--text-primary', '#F8FAFC');
+        root.style.setProperty('--text-secondary', '#94A3B8');
+        root.style.setProperty('--border', 'rgba(255,255,255,0.05)');
+        root.style.setProperty('--success', '#22C55E');
+        root.style.setProperty('--warning', '#F59E0B');
+        root.style.setProperty('--danger', '#EF4444');
+      } else {
+        root.classList.remove('dark');
+        root.classList.add('light');
+        
+        root.style.setProperty('--bg', '#F3F6FB');
+        root.style.setProperty('--surface', '#FFFFFF');
+        root.style.setProperty('--surface-sec', '#E8EEF9');
+        root.style.setProperty('--primary', '#2563EB');
+        root.style.setProperty('--primary-soft', '#60A5FA');
+        root.style.setProperty('--text-primary', '#111827');
+        root.style.setProperty('--text-secondary', '#6B7280');
+        root.style.setProperty('--border', 'rgba(15,23,42,0.06)');
+        root.style.setProperty('--success', '#16A34A');
+        root.style.setProperty('--warning', '#D97706');
+        root.style.setProperty('--danger', '#DC2626');
+      }
+
+      // Atualiza a Meta Tag da bateria/relógio nativa do iOS
+      const bgHex = isDarkMode ? '#0F1115' : '#F3F6FB';
+      let metaThemeColor = document.querySelector('meta[name="theme-color"]');
+      if (!metaThemeColor) {
+        metaThemeColor = document.createElement('meta');
+        metaThemeColor.setAttribute('name', 'theme-color');
+        document.head.appendChild(metaThemeColor);
+      }
+      metaThemeColor.setAttribute('content', bgHex);
       
       if (!localStorage.getItem('@premium_lang')) {
         localStorage.setItem('@premium_lang', 'pt-BR');
@@ -40,7 +86,6 @@ export default function ClientLayoutWrapper({ children }: { children: React.Reac
     };
     window.addEventListener('storage', handleStorageChange);
     
-    // Sobrescrita Mágica do localStorage
     const originalSetItem = localStorage.setItem;
     localStorage.setItem = function(key, value) {
       originalSetItem.apply(this, [key, value]);
@@ -53,14 +98,10 @@ export default function ClientLayoutWrapper({ children }: { children: React.Reac
     // 3. Bloqueio Definitivo de Zoom
     const preventPinchZoom = (e: TouchEvent) => { if (e.touches && e.touches.length > 1) e.preventDefault(); };
     const preventAppleGestures = (e: Event) => e.preventDefault();
-    const preventWheelZoom = (e: WheelEvent) => { if (e.ctrlKey) e.preventDefault(); };
-    const preventKeyZoom = (e: KeyboardEvent) => { if ((e.ctrlKey || e.metaKey) && (e.key === '+' || e.key === '-' || e.key === '=')) e.preventDefault(); };
-
+    
     window.addEventListener('touchstart', preventPinchZoom as any, { passive: false });
     window.addEventListener('touchmove', preventPinchZoom as any, { passive: false });
     document.addEventListener('gesturestart', preventAppleGestures as any, { passive: false });
-    document.addEventListener('wheel', preventWheelZoom as any, { passive: false });
-    document.addEventListener('keydown', preventKeyZoom as any);
 
     return () => {
       window.removeEventListener('storage', handleStorageChange);
@@ -68,54 +109,11 @@ export default function ClientLayoutWrapper({ children }: { children: React.Reac
       window.removeEventListener('touchstart', preventPinchZoom as any);
       window.removeEventListener('touchmove', preventPinchZoom as any);
       document.removeEventListener('gesturestart', preventAppleGestures as any);
-      document.removeEventListener('wheel', preventWheelZoom as any);
-      document.removeEventListener('keydown', preventKeyZoom as any);
     };
   }, []);
 
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  // A MÁGICA EDGE-TO-EDGE ACONTECE AQUI: PINTURA DINÂMICA FORÇADA
-  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  useEffect(() => {
-    if (!mounted) return;
-    const bg = isDark ? '#0F1115' : '#F3F6FB';
-
-    // Injeta estilo bruto no HTML e BODY
-    let styleTag = document.getElementById('premium-theme-fix');
-    if (!styleTag) {
-      styleTag = document.createElement('style');
-      styleTag.id = 'premium-theme-fix';
-      document.head.appendChild(styleTag);
-    }
-    styleTag.innerHTML = `
-      html, body, #__next {
-        background-color: ${bg} !important;
-      }
-      :root {
-        --bg: ${bg};
-        --surface: ${isDark ? '#151A22' : '#FFFFFF'};
-        --surface-sec: ${isDark ? '#1B2330' : '#E8EEF9'};
-        --primary: ${isDark ? '#3B82F6' : '#2563EB'};
-        --text-primary: ${isDark ? '#F8FAFC' : '#111827'};
-        --text-secondary: ${isDark ? '#94A3B8' : '#6B7280'};
-        --border: ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(15,23,42,0.06)'};
-        --danger: ${isDark ? '#EF4444' : '#DC2626'};
-        --success: ${isDark ? '#22C55E' : '#16A34A'};
-      }
-    `;
-
-    // Atualiza a Meta Tag que pinta o fundo do relógio/bateria do iPhone
-    let metaThemeColor = document.querySelector('meta[name="theme-color"]');
-    if (!metaThemeColor) {
-      metaThemeColor = document.createElement('meta');
-      metaThemeColor.setAttribute('name', 'theme-color');
-      document.head.appendChild(metaThemeColor);
-    }
-    metaThemeColor.setAttribute('content', bg);
-  }, [isDark, mounted]);
-
   return (
-    <div className="flex flex-col min-h-[100dvh] w-full transition-colors duration-500 pb-28">
+    <div className="flex flex-col min-h-[100dvh] w-full pb-28">
       <AlunoProvider>
         <LogoProvider>
           <ConditionalNavbar />
@@ -123,7 +121,6 @@ export default function ClientLayoutWrapper({ children }: { children: React.Reac
             <div className="flex-grow w-full">
               {children}
             </div>
-            {/* Espaço extra para evitar que a Navbar móvel sobreponha conteúdo */}
             <div className="h-[100px] w-full shrink-0 pointer-events-none" aria-hidden="true" />
           </main>
         </LogoProvider>
